@@ -1,0 +1,8 @@
+#!/usr/bin/env php
+<?php
+
+if (!is_file(dirname(__DIR__).'/vendor/phpunit/phpunit/phpunit')) {
+    throw new \LogicException('PHPUnit is missing. Try running "composer install --dev".');
+}
+
+require dirname(__DIR__).'/vendor/phpunit/phpunit/phpunit';
