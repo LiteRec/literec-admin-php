@@ -3,37 +3,62 @@
 {% block title %}Sign in — LiteRecAdmin{% endblock %}
 
 {% block body %}
-    <main>
-        <h1>Sign in</h1>
+    <main class="flex min-h-screen items-center justify-center bg-litrec-bg p-6">
+        <div
+            data-gsap="card"
+            class="w-full max-w-md rounded-xl border-2 border-litrec-edge bg-white p-8 shadow-lg"
+            x-data="{ submitting: false }"
+        >
+            <h1 class="text-2xl font-bold text-litrec-ink">LiteRecAdmin</h1>
+            <p class="mt-1 text-sm text-litrec-edge">Sign in to continue.</p>
 
-        {% if error %}
-            <p role="alert">{{ error.messageKey|trans(error.messageData, 'security') }}</p>
-        {% endif %}
+            {% if error %}
+                <p role="alert" class="mt-4 text-sm font-semibold text-red-700">
+                    {{ error.messageKey|trans(error.messageData, 'security') }}
+                </p>
+            {% endif %}
 
-        <form method="post" action="{{ path('app_login') }}">
-            <label for="username">Username</label>
-            <input
-                type="text"
-                id="username"
-                name="_username"
-                value="{{ last_username }}"
-                required
-                autofocus
-                autocomplete="username"
+            <form
+                method="post"
+                action="{{ path('app_login') }}"
+                class="mt-6 space-y-4"
+                x-on:submit="submitting = true"
             >
+                <div>
+                    <label for="username" class="block text-sm font-medium text-litrec-ink">Username</label>
+                    <input
+                        type="text"
+                        id="username"
+                        name="_username"
+                        value="{{ last_username }}"
+                        required
+                        autofocus
+                        autocomplete="username"
+                        class="mt-1 block w-full rounded-md border border-litrec-edge px-3 py-2 text-litrec-ink focus:border-litrec-ink focus:outline-none focus:ring-1 focus:ring-litrec-ink"
+                    >
+                </div>
 
-            <label for="password">Password</label>
-            <input
-                type="password"
-                id="password"
-                name="_password"
-                required
-                autocomplete="current-password"
-            >
+                <div>
+                    <label for="password" class="block text-sm font-medium text-litrec-ink">Password</label>
+                    <input
+                        type="password"
+                        id="password"
+                        name="_password"
+                        required
+                        autocomplete="current-password"
+                        class="mt-1 block w-full rounded-md border border-litrec-edge px-3 py-2 text-litrec-ink focus:border-litrec-ink focus:outline-none focus:ring-1 focus:ring-litrec-ink"
+                    >
+                </div>
 
-            <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
 
-            <button type="submit">Sign in</button>
-        </form>
+                <button
+                    type="submit"
+                    class="w-full rounded-md bg-litrec-edge px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-litrec-ink focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-ink disabled:cursor-not-allowed disabled:opacity-60"
+                    :disabled="submitting"
+                    x-text="submitting ? 'Signing in…' : 'Login'"
+                >Login</button>
+            </form>
+        </div>
     </main>
 {% endblock %}

@@ -14,10 +14,11 @@ final class SecurityControllerTest extends WebTestCase
         $client->request('GET', '/login');
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('h1', 'Sign in');
+        self::assertSelectorTextContains('h1', 'LiteRecAdmin');
         self::assertSelectorExists('form[action$="/login"]');
         self::assertSelectorExists('input[name="_username"]');
         self::assertSelectorExists('input[name="_password"]');
         self::assertSelectorExists('input[name="_csrf_token"]');
+        self::assertSelectorExists('button[type="submit"]');
     }
 }
