@@ -85,7 +85,26 @@
         ],
         "post-update-cmd": [
             "@auto-scripts"
+        ],
+        "cs": "phpcs",
+        "cs-fix": "phpcbf",
+        "stan": [
+            "@php bin/console cache:warmup --quiet",
+            "phpstan analyse"
+        ],
+        "test": "phpunit",
+        "qa": [
+            "@cs",
+            "@stan",
+            "@test"
         ]
+    },
+    "scripts-descriptions": {
+        "cs": "Check coding standards with PHP_CodeSniffer (PSR-12)",
+        "cs-fix": "Auto-fix coding standard violations with phpcbf",
+        "stan": "Run static analysis with PHPStan (level 9)",
+        "test": "Run the PHPUnit test suite",
+        "qa": "Run all quality gates: coding standards, static analysis and tests"
     },
     "conflict": {
         "symfony/symfony": "*"
@@ -98,7 +117,11 @@
         }
     },
     "require-dev": {
+        "phpstan/phpstan": "^2.1",
+        "phpstan/phpstan-doctrine": "^2.0",
+        "phpstan/phpstan-symfony": "^2.0",
         "phpunit/phpunit": "^13.1",
+        "squizlabs/php_codesniffer": "^4.0",
         "symfony/browser-kit": "7.4.*",
         "symfony/css-selector": "7.4.*",
         "symfony/debug-bundle": "7.4.*",

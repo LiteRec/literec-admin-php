@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<ruleset name="LiteRecAdmin">
+    <description>Coding standard for LiteRecAdmin: PSR-12.</description>
+
+    <file>src</file>
+    <file>tests</file>
+
+    <!-- Show sniff codes and progress. -->
+    <arg name="colors"/>
+    <arg value="sp"/>
+
+    <rule ref="PSR12"/>
+</ruleset>
