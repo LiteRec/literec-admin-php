@@ -93,7 +93,10 @@
             "@php bin/console cache:warmup --quiet",
             "phpstan analyse"
         ],
-        "test": "phpunit",
+        "test": [
+            "@php bin/console tailwind:build",
+            "phpunit"
+        ],
         "qa": [
             "@cs",
             "@stan",
@@ -104,7 +107,7 @@
         "cs": "Check coding standards with PHP_CodeSniffer (PSR-12)",
         "cs-fix": "Auto-fix coding standard violations with phpcbf",
         "stan": "Run static analysis with PHPStan (level 9)",
-        "test": "Run the PHPUnit test suite",
+        "test": "Build Tailwind CSS, then run the PHPUnit test suite",
         "qa": "Run all quality gates: coding standards, static analysis and tests"
     },
     "conflict": {
