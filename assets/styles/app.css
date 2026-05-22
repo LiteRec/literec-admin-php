@@ -4,6 +4,16 @@
 @source "../../templates";
 @source "../../assets";
 
+/*
+ * Brand palette — carried over from the legacy Adobe Flex login so the
+ * rebuild reads as the same application to existing staff.
+ */
+@theme {
+    --color-litrec-bg: #b9c9d9;
+    --color-litrec-edge: #45637f;
+    --color-litrec-ink: #0b333c;
+}
+
 /* Hide x-cloak elements until Alpine.js has initialised. */
 [x-cloak] {
     display: none !important;
