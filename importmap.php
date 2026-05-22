@@ -16,4 +16,13 @@ return [
         'path' => './assets/app.js',
         'entrypoint' => true,
     ],
+    'alpinejs' => [
+        'version' => '3.15.12',
+    ],
+    'htmx.org' => [
+        'version' => '2.0.10',
+    ],
+    'gsap' => [
+        'version' => '3.15.0',
+    ],
 ];
