@@ -6,22 +6,23 @@ namespace App\Controller;
 
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
  * Public entry points for the application.
  *
- * The home route renders a placeholder until the authenticated experience
- * is wired up (LRA-9); the health route backs the container healthcheck
- * configured in LRA-3.
+ * The home route sends authenticated users to the dashboard; the firewall
+ * redirects anonymous users to the login page before the controller runs.
+ * The health route backs the container healthcheck configured in LRA-3.
  */
 final class HomeController extends AbstractController
 {
     #[Route('/', name: 'app_home', methods: ['GET'])]
-    public function index(): Response
+    public function index(): RedirectResponse
     {
-        return $this->render('home/index.html.twig');
+        return $this->redirectToRoute('app_dashboard');
     }
 
     #[Route('/health', name: 'app_health', methods: ['GET'])]

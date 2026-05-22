@@ -38,4 +38,9 @@
             <function>trigger_deprecation</function>
         </deprecationTrigger>
     </source>
+
+    <extensions>
+        <!-- Wraps every functional test in a transaction that is rolled back at the end. -->
+        <bootstrap class="DAMA\DoctrineTestBundle\PHPUnit\PHPUnitExtension"/>
+    </extensions>
 </phpunit>
