@@ -1,0 +1,25 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Dashboard — LiteRecAdmin{% endblock %}
+
+{% block body %}
+    <main class="flex min-h-screen items-center justify-center bg-litrec-bg p-6">
+        <div data-gsap="card" class="w-full max-w-lg rounded-xl border-2 border-litrec-edge bg-white p-8 shadow-lg">
+            <h1 class="text-2xl font-bold text-litrec-ink">LiteRecAdmin</h1>
+            <p class="mt-2 text-sm text-litrec-edge">
+                Signed in as <strong>{{ app.user.username }}</strong>. The full administrator dashboard
+                arrives in a later milestone — this page exists so the login flow can be reviewed end to end.
+            </p>
+
+            <form method="post" action="{{ path('app_logout') }}" class="mt-6">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token('logout') }}">
+                <button
+                    type="submit"
+                    class="rounded-md bg-litrec-edge px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-litrec-ink focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-ink"
+                >
+                    Sign out
+                </button>
+            </form>
+        </div>
+    </main>
+{% endblock %}
