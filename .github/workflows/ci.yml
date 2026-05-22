@@ -20,7 +20,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:17-alpine
+        image: postgres:17-alpine@sha256:979c4379dd698aba0b890599a6104e082035f98ef31d9b9291ec22f2b13059ca
         env:
           POSTGRES_USER: app
           POSTGRES_PASSWORD: '!ChangeMe!'
@@ -54,8 +54,11 @@ jobs:
       - name: Install dependencies
         run: composer install --no-interaction --no-progress --prefer-dist
 
-      - name: Set up the test database
-        run: php bin/console --env=test doctrine:migrations:migrate --no-interaction --all-or-nothing
+      - name: Create the test database
+        run: php bin/console --env=test doctrine:database:create --if-not-exists
+
+      - name: Set up the test database schema
+        run: php bin/console --env=test doctrine:migrations:migrate --no-interaction
 
       - name: PHPCS (PSR-12)
         run: composer cs
