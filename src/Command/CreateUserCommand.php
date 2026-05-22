@@ -6,11 +6,13 @@ namespace App\Command;
 
 use App\Entity\User;
 use App\Repository\UserRepository;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
@@ -39,12 +41,17 @@ final class CreateUserCommand extends Command
     {
         $this
             ->addArgument('username', InputArgument::REQUIRED, 'The unique username')
-            ->addArgument('password', InputArgument::REQUIRED, 'The plaintext password (it will be hashed)')
             ->addArgument(
                 'roles',
                 InputArgument::IS_ARRAY | InputArgument::OPTIONAL,
                 'Extra roles to grant, space-separated (e.g. ROLE_ADMIN)',
                 [],
+            )
+            ->addOption(
+                'password',
+                null,
+                InputOption::VALUE_REQUIRED,
+                'The plaintext password; if omitted, you are prompted for it without echo',
             );
     }
 
@@ -53,10 +60,23 @@ final class CreateUserCommand extends Command
         $io = new SymfonyStyle($input, $output);
 
         $username = $input->getArgument('username');
-        $password = $input->getArgument('password');
 
-        if (!is_string($username) || $username === '' || !is_string($password) || $password === '') {
-            $io->error('The username and password arguments must be non-empty strings.');
+        if (!is_string($username) || $username === '') {
+            $io->error('The username argument must be a non-empty string.');
+
+            return Command::INVALID;
+        }
+
+        // Prefer a hidden prompt; the --password option exists for
+        // non-interactive use and keeps the secret off the argument list.
+        $password = $input->getOption('password');
+
+        if ($password === null) {
+            $password = $io->askHidden('Password');
+        }
+
+        if (!is_string($password) || $password === '') {
+            $io->error('A non-empty password is required (pass --password or answer the prompt).');
 
             return Command::INVALID;
         }
@@ -88,8 +108,16 @@ final class CreateUserCommand extends Command
         $user->setRoles($roles);
         $user->setPassword($this->passwordHasher->hashPassword($user, $password));
 
-        $this->entityManager->persist($user);
-        $this->entityManager->flush();
+        try {
+            $this->entityManager->persist($user);
+            $this->entityManager->flush();
+        } catch (UniqueConstraintViolationException) {
+            // The pre-check above and this insert are not atomic; a
+            // concurrent run can still collide on the unique username.
+            $io->error(sprintf('A user with username "%s" already exists.', $username));
+
+            return Command::FAILURE;
+        }
 
         $io->success(sprintf('Created user "%s".', $username));
 
