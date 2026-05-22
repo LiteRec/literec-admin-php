@@ -11,8 +11,17 @@ import gsap from 'gsap';
 window.Alpine = Alpine;
 Alpine.start();
 
-// HTMX — expose globally so hx-* attributes are processed.
+// HTMX — expose globally so hx-* attributes are processed, and surface
+// request failures for the health-check target.
 window.htmx = htmx;
+
+document.body.addEventListener('htmx:afterRequest', (event) => {
+    const target = event.detail.target;
+
+    if (event.detail.failed && target && target.id === 'health-result') {
+        target.textContent = 'Unable to reach the health endpoint.';
+    }
+});
 
 // GSAP — expose globally and apply a subtle entrance animation to any
 // element marked with data-gsap="card".
