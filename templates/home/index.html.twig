@@ -30,11 +30,10 @@
                     hx-get="{{ path('app_health') }}"
                     hx-target="#health-result"
                     hx-indicator="#health-loading"
-                    hx-on::after-request="if (event.detail.failed) { document.getElementById('health-result').textContent = 'Unable to reach the health endpoint.'; }"
                 >
                     Check health (HTMX)
                 </button>
-                <span id="health-loading" class="htmx-indicator ml-2 text-xs text-slate-500">Loading…</span>
+                <span id="health-loading" class="htmx-indicator ml-2 text-xs text-slate-500" role="status" aria-live="polite">Loading…</span>
                 <pre id="health-result" class="mt-2 text-xs text-slate-500" aria-live="polite"></pre>
             </div>
         </div>
