@@ -31,6 +31,13 @@ final class InMemoryUsers implements Users
 
     public function save(User $user): void
     {
+        // Mirror DoctrineUsers semantics: save() only persists changes to an
+        // already-added aggregate; calling it on an unknown user is a
+        // programming error, not a "create if missing" upsert.
+        if (!isset($this->byId[$user->id()->value])) {
+            throw UserNotFound::byId($user->id()->value);
+        }
+
         $this->byId[$user->id()->value] = $user;
     }
 

@@ -63,9 +63,7 @@ final class LoginFlowTest extends WebTestCase
 
         $container = static::getContainer();
         $users = $container->get(Users::class);
-        self::assertInstanceOf(Users::class, $users);
         $clock = $container->get(ClockInterface::class);
-        self::assertInstanceOf(ClockInterface::class, $clock);
 
         $user = $users->byUsername(Username::of('disabled_e2e'));
         $user->deactivate('e2e-disabled', $clock);
@@ -88,8 +86,6 @@ final class LoginFlowTest extends WebTestCase
         $container = static::getContainer();
         $bus = $container->get(MessageBusInterface::class);
         $users = $container->get(Users::class);
-        self::assertInstanceOf(MessageBusInterface::class, $bus);
-        self::assertInstanceOf(Users::class, $users);
 
         $bus->dispatch(new RegisterUser($username, $plainPassword));
 

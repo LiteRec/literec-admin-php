@@ -84,6 +84,8 @@ final class UserTest extends TestCase
         $events = $user->releaseEvents();
         self::assertCount(1, $events);
         self::assertInstanceOf(PasswordChanged::class, $events[0]);
+        self::assertTrue($events[0]->userId->equals($user->id()));
+        self::assertEquals($this->clock->now(), $events[0]->occurredAt);
         self::assertSame($newHash, $user->passwordHash()->value);
     }
 
@@ -111,6 +113,9 @@ final class UserTest extends TestCase
         $events = $user->releaseEvents();
         self::assertCount(1, $events);
         self::assertInstanceOf(RoleGranted::class, $events[0]);
+        self::assertTrue($events[0]->userId->equals($user->id()));
+        self::assertSame(Role::Admin, $events[0]->role);
+        self::assertEquals($this->clock->now(), $events[0]->occurredAt);
         self::assertContains(Role::Admin, $user->roles());
     }
 
@@ -139,6 +144,22 @@ final class UserTest extends TestCase
         $events = $user->releaseEvents();
         self::assertCount(1, $events);
         self::assertInstanceOf(RoleRevoked::class, $events[0]);
+        self::assertTrue($events[0]->userId->equals($user->id()));
+        self::assertSame(Role::Admin, $events[0]->role);
+        self::assertEquals($this->clock->now(), $events[0]->occurredAt);
+        self::assertNotContains(Role::Admin, $user->roles());
+    }
+
+    #[Test]
+    #[TestDox('::revokeRole() is a no-op when the role is not granted.')]
+    public function revoke_role_is_idempotent(): void
+    {
+        $user = $this->register();
+        $user->releaseEvents();
+
+        $user->revokeRole(Role::Admin, $this->clock);
+
+        self::assertSame([], $user->releaseEvents());
         self::assertNotContains(Role::Admin, $user->roles());
     }
 
@@ -154,7 +175,9 @@ final class UserTest extends TestCase
         $events = $user->releaseEvents();
         self::assertCount(1, $events);
         self::assertInstanceOf(UserDeactivated::class, $events[0]);
+        self::assertTrue($events[0]->userId->equals($user->id()));
         self::assertSame('superseded', $events[0]->reason);
+        self::assertEquals($this->clock->now(), $events[0]->occurredAt);
         self::assertFalse($user->isActive());
     }
 
@@ -171,6 +194,8 @@ final class UserTest extends TestCase
         $events = $user->releaseEvents();
         self::assertCount(1, $events);
         self::assertInstanceOf(UserReactivated::class, $events[0]);
+        self::assertTrue($events[0]->userId->equals($user->id()));
+        self::assertEquals($this->clock->now(), $events[0]->occurredAt);
         self::assertTrue($user->isActive());
     }
 
@@ -199,19 +224,6 @@ final class UserTest extends TestCase
 
         self::assertSame([], $user->releaseEvents());
         self::assertTrue($user->isActive());
-    }
-
-    #[Test]
-    #[TestDox('::revokeRole() is a no-op when the role is not granted.')]
-    public function revoke_role_is_idempotent(): void
-    {
-        $user = $this->register();
-        $user->releaseEvents();
-
-        $user->revokeRole(Role::Admin, $this->clock);
-
-        self::assertSame([], $user->releaseEvents());
-        self::assertNotContains(Role::Admin, $user->roles());
     }
 
     #[Test]
