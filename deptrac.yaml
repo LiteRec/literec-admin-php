@@ -23,6 +23,14 @@ deptrac:
               # All other legacy paths were removed by LRA-13.
               - type: directory
                 value: src/Controller/.*
+        - name: Ui
+          collectors:
+              # Cross-cutting UI infrastructure: app-shell Twig globals,
+              # navigation, dashboard view-models, reusable components.
+              # Not a bounded context — pure presentation glue for staff
+              # admin pages.
+              - type: directory
+                value: src/Ui/.*
 
         # External-code layers are matched by namespace prefix rather than by
         # composer package list. This avoids depending on the exact direct/transitive
@@ -45,6 +53,10 @@ deptrac:
           collectors:
               - type: classLike
                 value: ^Doctrine\\.*
+        - name: Twig
+          collectors:
+              - type: classLike
+                value: ^Twig\\.*
         - name: Symfony
           collectors:
               - type: bool
@@ -85,3 +97,7 @@ deptrac:
             - SymfonyPasswordHasher
             - SymfonyMessenger
             - PsrClock
+        Ui:
+            - Ui
+            - Symfony
+            - Twig

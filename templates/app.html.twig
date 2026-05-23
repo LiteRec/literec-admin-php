@@ -1,0 +1,44 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ block('page_title') }} — LiteRecAdmin{% endblock %}
+
+{% block body %}
+    <div class="flex min-h-screen flex-col bg-litrec-bg text-litrec-ink">
+        <header class="border-b border-litrec-edge bg-white">
+            <div class="mx-auto flex max-w-7xl items-center justify-between gap-6 px-6 py-3">
+                <a href="{{ path('app_dashboard') }}" class="text-lg font-bold text-litrec-ink">LiteRecAdmin</a>
+
+                <div class="flex items-center gap-6 text-sm text-litrec-edge">
+                    <span data-testid="selected-facility"><span class="sr-only">Selected facility: </span>{{ selected_facility() }}</span>
+                    {% if app.user %}
+                        <span>Signed in as <strong class="text-litrec-ink">{{ app.user.username }}</strong></span>
+                        <form method="post" action="{{ path('app_logout') }}">
+                            <input type="hidden" name="_csrf_token" value="{{ csrf_token('logout') }}">
+                            <button type="submit" aria-label="Sign out of your account" class="rounded-md bg-litrec-edge px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-litrec-ink focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-ink">
+                                Sign out
+                            </button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+        </header>
+
+        {% include 'components/_main_nav.html.twig' %}
+
+        <main class="mx-auto w-full max-w-7xl flex-1 px-6 py-8">
+            <div class="mb-6 flex items-start justify-between gap-4">
+                <h1 class="text-2xl font-bold text-litrec-ink">{% block page_title %}{% endblock %}</h1>
+                <div class="flex items-center gap-2">{% block page_actions %}{% endblock %}</div>
+            </div>
+
+            {% block page_body %}{% endblock %}
+        </main>
+
+        <footer class="border-t border-litrec-edge bg-white">
+            <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-3 text-xs text-litrec-edge">
+                <span>© {{ 'now'|date('Y') }} LiteRec</span>
+                <span>build {{ build_version() }}</span>
+            </div>
+        </footer>
+    </div>
+{% endblock %}

@@ -7,6 +7,15 @@
 # Put parameters here that don't need to change on each machine where the app is deployed
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
+    # Mock selected-facility indicator shown in the authenticated app shell
+    # header. Will be driven by the user's actual facility selection once the
+    # Facilities context lands; until then the shell needs a concrete value.
+    app.selected_facility_mock: 'Main Facility'
+    # Build version surfaced in the app shell footer. Defaults to "dev" so
+    # locally-run instances still render something; CI/CD provides the real
+    # version via the APP_BUILD_VERSION environment variable.
+    app.build_version: '%env(default:default_build_version:string:APP_BUILD_VERSION)%'
+    default_build_version: 'dev'
 
 services:
     # default configuration for services in *this* file
@@ -44,6 +53,12 @@ services:
     App\Users\Infrastructure\Security\SecurityUserProvider:
         arguments:
             $commandBus: '@command.bus'
+
+    # App shell Twig globals (selected facility, build version).
+    App\Ui\Twig\AppShellExtension:
+        arguments:
+            $selectedFacility: '%app.selected_facility_mock%'
+            $buildVersion: '%app.build_version%'
 
 # Expose select Users-context aliases to the test container so integration
 # tests can fetch them via static::getContainer()->get(...) without making
