@@ -25,4 +25,7 @@ return [
     'gsap' => [
         'version' => '3.15.0',
     ],
+    '@alpinejs/focus' => [
+        'version' => '3.15.12',
+    ],
 ];
