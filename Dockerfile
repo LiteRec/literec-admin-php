@@ -10,7 +10,7 @@ FROM dunglas/frankenphp:1-php8.5 AS frankenphp_upstream
 # image rebuilds are reproducible; bump it intentionally when needed.
 FROM dunglas/frankenphp:1-builder-php8.5 AS frankenphp_builder
 
-ARG CADDY_CLOUDFLARE_VERSION=v0.2.1
+ARG CADDY_CLOUDFLARE_VERSION=v0.2.4
 
 # xcaddy is not pre-installed in the FrankenPHP builder image; copy it
 # from caddy:builder, which ships it as /usr/bin/xcaddy.

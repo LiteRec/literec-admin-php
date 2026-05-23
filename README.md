@@ -22,6 +22,11 @@ succeeds and Caddy falls back to its internal CA.
   account-wide permissions).
 - A hostname under that zone you want this container to answer on
   (e.g. `litrec.dev.example.com`).
+- A DNS record in the Cloudflare zone for that hostname pointing to
+  the machine running the container — an `A` / `AAAA` record to the
+  host's public IPv4 / IPv6, or a `CNAME` to a host that already
+  resolves to it. Without this record the browser cannot reach the
+  container even after the certificate is issued.
 
 ### Configuration
 
