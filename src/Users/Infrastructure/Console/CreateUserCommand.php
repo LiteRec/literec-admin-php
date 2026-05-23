@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace App\Command;
+namespace App\Users\Infrastructure\Console;
 
-use App\Entity\User;
-use App\Repository\UserRepository;
+use App\Users\Infrastructure\Persistence\Doctrine\User;
+use App\Users\Infrastructure\Persistence\Doctrine\UserRepository;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;

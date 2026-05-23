@@ -8,7 +8,7 @@ security:
         # used to reload user from session & other features (e.g. switch_user)
         app_user_provider:
             entity:
-                class: App\Entity\User
+                class: App\Users\Infrastructure\Persistence\Doctrine\User
                 property: username
 
     firewalls:
@@ -20,7 +20,7 @@ security:
         main:
             lazy: true
             provider: app_user_provider
-            user_checker: App\Security\UserChecker
+            user_checker: App\Users\Infrastructure\Security\UserChecker
 
             form_login:
                 login_path: app_login
