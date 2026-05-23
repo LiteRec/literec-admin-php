@@ -1,0 +1,11 @@
+{# @param string label  Visible KPI label (e.g. "Today's Revenue"). #}
+{# @param string value  Pre-formatted value (e.g. "$4,182.50", "1,847"). #}
+{# @param ?string delta Optional supporting line (e.g. "+12% vs. yesterday"). #}
+{% set delta = delta|default(null) %}
+<div data-gsap="card" class="rounded-xl border border-litrec-edge bg-white p-5 shadow-card">
+    <p class="text-xs uppercase tracking-wide text-litrec-edge">{{ label }}</p>
+    <p class="mt-2 text-2xl font-bold text-litrec-ink">{{ value }}</p>
+    {% if delta is not null %}
+        <p class="mt-1 text-xs text-litrec-edge">{{ delta }}</p>
+    {% endif %}
+</div>

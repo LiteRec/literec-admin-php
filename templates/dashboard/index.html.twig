@@ -3,18 +3,16 @@
 {% block page_title %}Admin Dashboard{% endblock %}
 
 {% block page_body %}
-    {# KPI cards row. #}
+    {# KPI cards row — each tile rendered through the reusable _kpi_card component. #}
     <section aria-labelledby="kpi-heading" class="mb-8">
         <h2 id="kpi-heading" class="sr-only">Key performance indicators</h2>
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {% for kpi in dashboard.kpis %}
-                <div data-gsap="card" class="rounded-xl border border-litrec-edge bg-white p-5 shadow-card">
-                    <p class="text-xs uppercase tracking-wide text-litrec-edge">{{ kpi.label }}</p>
-                    <p class="mt-2 text-2xl font-bold text-litrec-ink">{{ kpi.value }}</p>
-                    {% if kpi.delta is not null %}
-                        <p class="mt-1 text-xs text-litrec-edge">{{ kpi.delta }}</p>
-                    {% endif %}
-                </div>
+                {% include 'components/_kpi_card.html.twig' with {
+                    label: kpi.label,
+                    value: kpi.value,
+                    delta: kpi.delta,
+                } only %}
             {% endfor %}
         </div>
     </section>
@@ -34,15 +32,7 @@
                         </div>
                         <div class="flex items-center gap-3 text-right">
                             <span class="text-sm font-semibold text-litrec-ink">{{ tx.amountFormatted }}</span>
-                            {% set status_classes = {
-                                'succeeded': 'bg-green-100 text-green-800',
-                                'pending':   'bg-yellow-100 text-yellow-800',
-                                'failed':    'bg-red-100 text-red-800',
-                                'refunded':  'bg-blue-100 text-blue-800',
-                            } %}
-                            <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold {{ status_classes[tx.status.value] }}">
-                                {{ tx.status.value|capitalize }}
-                            </span>
+                            {% include 'components/_status_badge.html.twig' with { status: tx.status.value } only %}
                         </div>
                     </li>
                 {% endfor %}
