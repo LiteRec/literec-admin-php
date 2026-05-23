@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace App\Tests\Controller;
 
-use App\Users\Infrastructure\Persistence\Doctrine\User;
-use Doctrine\ORM\EntityManagerInterface;
+use App\Users\Application\Command\RegisterUser;
+use App\Users\Domain\User;
+use App\Users\Domain\Users;
+use App\Users\Domain\ValueObject\Username;
+use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
  * End-to-end coverage of the login flow against a real database.
@@ -56,13 +59,17 @@ final class LoginFlowTest extends WebTestCase
     public function testInactiveUserIsRejectedByUserChecker(): void
     {
         $client = static::createClient();
-        $user = $this->seedUser('disabled_e2e', 'CorrectHorseBattery!');
-        $user->setIsActive(false);
+        $this->seedUser('disabled_e2e', 'CorrectHorseBattery!');
 
         $container = static::getContainer();
-        $entityManager = $container->get(EntityManagerInterface::class);
-        self::assertInstanceOf(EntityManagerInterface::class, $entityManager);
-        $entityManager->flush();
+        $users = $container->get(Users::class);
+        self::assertInstanceOf(Users::class, $users);
+        $clock = $container->get(ClockInterface::class);
+        self::assertInstanceOf(ClockInterface::class, $clock);
+
+        $user = $users->byUsername(Username::of('disabled_e2e'));
+        $user->deactivate('e2e-disabled', $clock);
+        $users->save($user);
 
         $crawler = $client->request('GET', '/login');
         $form = $crawler->selectButton('Login')->form([
@@ -79,18 +86,13 @@ final class LoginFlowTest extends WebTestCase
     private function seedUser(string $username, string $plainPassword): User
     {
         $container = static::getContainer();
-        $entityManager = $container->get(EntityManagerInterface::class);
-        $hasher = $container->get(UserPasswordHasherInterface::class);
+        $bus = $container->get(MessageBusInterface::class);
+        $users = $container->get(Users::class);
+        self::assertInstanceOf(MessageBusInterface::class, $bus);
+        self::assertInstanceOf(Users::class, $users);
 
-        self::assertInstanceOf(EntityManagerInterface::class, $entityManager);
-        self::assertInstanceOf(UserPasswordHasherInterface::class, $hasher);
+        $bus->dispatch(new RegisterUser($username, $plainPassword));
 
-        $user = new User($username);
-        $user->setPassword($hasher->hashPassword($user, $plainPassword));
-
-        $entityManager->persist($user);
-        $entityManager->flush();
-
-        return $user;
+        return $users->byUsername(Username::of($username));
     }
 }
