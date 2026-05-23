@@ -2,8 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Controller;
+namespace App\Users\Infrastructure\Http\Controller;
 
+use LogicException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -28,6 +29,6 @@ final class SecurityController extends AbstractController
     #[Route('/logout', name: 'app_logout')]
     public function logout(): never
     {
-        throw new \LogicException('Intercepted by the logout key on the firewall; never invoked directly.');
+        throw new LogicException('Intercepted by the logout key on the firewall; never invoked directly.');
     }
 }

@@ -18,16 +18,11 @@ deptrac:
                 value: src/Users/Infrastructure/.*
         - name: Legacy
           collectors:
-              - type: directory
-                value: src/Entity/.*
-              - type: directory
-                value: src/Repository/.*
+              # Two non-Users root controllers remain at src/Controller/ awaiting
+              # reassignment to their proper bounded contexts (Reports, Scheduling).
+              # All other legacy paths were removed by LRA-13.
               - type: directory
                 value: src/Controller/.*
-              - type: directory
-                value: src/Command/.*
-              - type: directory
-                value: src/Security/.*
 
         # External-code layers are matched by namespace prefix rather than by
         # composer package list. This avoids depending on the exact direct/transitive
@@ -77,14 +72,12 @@ deptrac:
             - PsrClock
             - Doctrine
             - Symfony
-        # Legacy is intentionally permissive: it covers the pre-DDD code
-        # under src/{Entity,Repository,Controller,Command,Security} that
-        # LRA-13 will migrate into src/Users/Infrastructure/. The
-        # self-dependency reflects that existing legacy classes call each
-        # other freely; the broad whitelist preserves CI-green while the
-        # migration is in progress. Once LRA-13 merges, the layer's
-        # collectors will shrink to the two remaining non-Users
-        # controllers and the ruleset will tighten in step.
+        # Legacy now covers only the two root controllers
+        # (HomeController, DashboardController) that LRA-13 left in place
+        # because they belong to bounded contexts (Reports, Scheduling)
+        # that have not yet been introduced. The permissive ruleset will
+        # shrink further (or the layer will be removed entirely) once
+        # those contexts exist and the controllers move under them.
         Legacy:
             - Legacy
             - Doctrine
