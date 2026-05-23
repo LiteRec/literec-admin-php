@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Tests\Entity;
 
+use App\Users\Domain\Exception\InvalidUsername;
+use App\Users\Domain\Exception\PasswordNotSet;
 use App\Users\Infrastructure\Persistence\Doctrine\User;
 use PHPUnit\Framework\TestCase;
 
@@ -11,7 +13,7 @@ final class UserTest extends TestCase
 {
     public function testConstructorRejectsAnEmptyUsername(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidUsername::class);
 
         new User('');
     }
@@ -73,7 +75,7 @@ final class UserTest extends TestCase
 
     public function testAssertPasswordIsSetThrowsWhenPasswordIsMissing(): void
     {
-        $this->expectException(\LogicException::class);
+        $this->expectException(PasswordNotSet::class);
 
         (new User('alice'))->assertPasswordIsSet();
     }
