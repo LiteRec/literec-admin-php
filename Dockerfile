@@ -3,6 +3,35 @@
 # Versions
 FROM dunglas/frankenphp:1-php8.5 AS frankenphp_upstream
 
+# xcaddy builder — rebuilds the FrankenPHP binary with the
+# caddy-dns/cloudflare provider compiled in so Caddy can solve the
+# Let's Encrypt DNS-01 challenge against a Cloudflare-managed zone
+# without exposing inbound ports. The provider version is pinned so
+# image rebuilds are reproducible; bump it intentionally when needed.
+FROM dunglas/frankenphp:1-builder-php8.5 AS frankenphp_builder
+
+ARG CADDY_CLOUDFLARE_VERSION=v0.2.1
+
+# xcaddy is not pre-installed in the FrankenPHP builder image; copy it
+# from caddy:builder, which ships it as /usr/bin/xcaddy.
+COPY --from=caddy:builder /usr/bin/xcaddy /usr/bin/xcaddy
+
+WORKDIR /go/src/app
+
+# Append PHP include paths to CGO_CFLAGS so the FrankenPHP cgo sources
+# can find Zend/zend_modules.h (php-config --includes). The base
+# CGO_CFLAGS / CGO_LDFLAGS from the builder image are preserved.
+RUN CGO_ENABLED=1 \
+    XCADDY_SETCAP=1 \
+    XCADDY_GO_BUILD_FLAGS="-ldflags='-w -s'" \
+    CGO_CFLAGS="${CGO_CFLAGS} $(php-config --includes)" \
+    xcaddy build \
+        --output /usr/local/bin/frankenphp \
+        --with github.com/dunglas/frankenphp=./ \
+        --with github.com/dunglas/frankenphp/caddy=./caddy/ \
+        --with github.com/dunglas/caddy-cbrotli \
+        --with github.com/caddy-dns/cloudflare@${CADDY_CLOUDFLARE_VERSION}
+
 # The different stages of this Dockerfile are meant to be built into separate images
 # https://docs.docker.com/build/building/multi-stage/#stop-at-a-specific-build-stage
 # https://docs.docker.com/reference/compose-file/build/#target
@@ -12,6 +41,12 @@ FROM dunglas/frankenphp:1-php8.5 AS frankenphp_upstream
 FROM frankenphp_upstream AS frankenphp_base
 
 SHELL ["/bin/bash", "-euxo", "pipefail", "-c"]
+
+# Replace the upstream frankenphp binary with the xcaddy-built one that
+# includes caddy-dns/cloudflare. Fail the build if the provider module
+# is not present so a missing module never reaches runtime.
+COPY --from=frankenphp_builder /usr/local/bin/frankenphp /usr/local/bin/frankenphp
+RUN frankenphp list-modules | grep -q '^dns.providers.cloudflare$'
 
 WORKDIR /app
 

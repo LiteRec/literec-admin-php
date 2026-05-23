@@ -20,6 +20,13 @@ services:
       # See https://xdebug.org/docs/all_settings#mode
       XDEBUG_MODE: "${XDEBUG_MODE:-off}"
       APP_ENV: "${APP_ENV:-dev}"
+      # When set, the value is consumed by the
+      # `tls { dns cloudflare {env.CLOUDFLARE_API_TOKEN} }` directive
+      # injected into Caddy via CADDY_SERVER_EXTRA_DIRECTIVES. The
+      # variable stays empty by default so contributors without a
+      # Cloudflare token fall back to Caddy's internal CA.
+      CLOUDFLARE_API_TOKEN: "${CLOUDFLARE_API_TOKEN:-}"
+      CADDY_SERVER_EXTRA_DIRECTIVES: "${CADDY_SERVER_EXTRA_DIRECTIVES:-}"
     extra_hosts:
       # Ensure that host.docker.internal is correctly defined on Linux
       - host.docker.internal:host-gateway
