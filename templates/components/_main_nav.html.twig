@@ -6,8 +6,10 @@
 {% set nav = main_navigation() %}
 
 <nav class="border-b border-litrec-edge bg-white" aria-label="Main navigation" x-data="{ openIndex: null }">
-    {# Desktop: horizontal menubar with dropdowns. #}
-    <div class="mx-auto hidden max-w-7xl px-6 md:block">
+    {# Desktop (≥ lg / 1024px): horizontal menubar with dropdowns. Below lg
+       the menubar would force the two-word "Cash Register" label onto two
+       lines, so the mobile hamburger panel below takes over up to 1023px. #}
+    <div class="mx-auto hidden max-w-7xl px-6 lg:block">
         <ul role="menubar" class="flex items-stretch gap-1">
             {% for index, item in nav.items %}
                 {% set active = is_active_nav_item(item, current_route) %}
@@ -24,7 +26,7 @@
                     <a
                         role="menuitem"
                         href="{{ path(item.route) }}"
-                        class="inline-flex items-center pl-4 pr-2 py-3 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-inset focus:ring-litrec-ink {{ active ? 'bg-litrec-edge text-white' : 'text-litrec-ink hover:bg-litrec-bg' }}"
+                        class="inline-flex items-center whitespace-nowrap pl-4 pr-2 py-3 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-inset focus:ring-litrec-ink {{ active ? 'bg-litrec-edge text-white' : 'text-litrec-ink hover:bg-litrec-bg' }}"
                     >
                         {{ item.label }}
                     </a>
@@ -68,8 +70,10 @@
         </ul>
     </div>
 
-    {# Mobile: hamburger toggles a stacked panel with inline sub-items. #}
-    <div class="md:hidden" x-data="{ mobileOpen: false }">
+    {# Mobile / tablet (< lg): hamburger toggles a stacked panel with inline
+       sub-items. Covers everything up to 1023px to keep the menubar from
+       cramping at the md breakpoint. #}
+    <div class="lg:hidden" x-data="{ mobileOpen: false }">
         <div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
             <span class="text-sm font-semibold text-litrec-ink">Menu</span>
             <button
