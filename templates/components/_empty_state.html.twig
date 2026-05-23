@@ -1,0 +1,24 @@
+{# @param string title     Headline (e.g. "Coming soon", "No reports yet"). #}
+{# @param string message   Supporting paragraph. #}
+{# @param ?string ctaLabel Optional call-to-action label. #}
+{# @param ?string ctaRoute Optional Symfony route name (rendered only if ctaLabel is also given). #}
+{% set title = title|default('No data') %}
+{% set message = message|default('') %}
+{% set ctaLabel = ctaLabel|default(null) %}
+{% set ctaRoute = ctaRoute|default(null) %}
+<div class="rounded-xl border-2 border-dashed border-litrec-edge bg-white p-10 text-center shadow-card">
+    <h2 class="text-xl font-semibold text-litrec-ink">{{ title }}</h2>
+    {% if message is not empty %}
+        <p class="mt-2 text-sm text-litrec-edge">{{ message }}</p>
+    {% endif %}
+    {% if ctaLabel is not null and ctaRoute is not null %}
+        <p class="mt-4">
+            <a
+                href="{{ path(ctaRoute) }}"
+                class="inline-block rounded-md bg-litrec-edge px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-litrec-ink focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-ink"
+            >
+                {{ ctaLabel }}
+            </a>
+        </p>
+    {% endif %}
+</div>

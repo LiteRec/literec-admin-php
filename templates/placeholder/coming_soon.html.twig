@@ -3,11 +3,21 @@
 {% block page_title %}{{ section_title }}{% endblock %}
 
 {% block page_body %}
-    <div class="rounded-xl border-2 border-dashed border-litrec-edge bg-white p-10 text-center shadow-card">
-        <h2 class="text-xl font-semibold text-litrec-ink">Coming soon</h2>
-        <p class="mt-2 text-sm text-litrec-edge">
-            The <strong>{{ section_title }}</strong> screen is part of the navigation surface so staff can find every legacy area,
-            but the feature itself arrives in a later milestone.
-        </p>
-    </div>
+    {# Exercises the _breadcrumbs and _empty_state components so their
+       contracts are demonstrated in a real (always-rendered) page. The
+       trail is mocked here; real route hierarchy lands when each section
+       gets its own feature pages. #}
+    {% include 'components/_breadcrumbs.html.twig' with {
+        trail: [
+            { label: 'Dashboard', route: 'app_dashboard' },
+            { label: section_title },
+        ],
+    } only %}
+
+    {% include 'components/_empty_state.html.twig' with {
+        title: 'Coming soon',
+        message: section_title ~ ' is part of the navigation surface so staff can find every legacy area, but the feature itself arrives in a later milestone.',
+        ctaLabel: 'Back to Dashboard',
+        ctaRoute: 'app_dashboard',
+    } only %}
 {% endblock %}
