@@ -15,6 +15,26 @@ Alpine.start();
 // request failures for the health-check target.
 window.htmx = htmx;
 
+// Forward Symfony's CSRF token on every non-GET HTMX request. The token is
+// rendered into a <meta name="csrf-token"> tag by base.html.twig under the
+// `htmx` intent; Symfony validates it server-side.
+const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+
+document.body.addEventListener('htmx:configRequest', (event) => {
+    const verb = (event.detail.verb || 'GET').toUpperCase();
+
+    if (SAFE_METHODS.has(verb)) {
+        return;
+    }
+
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    const token = meta ? meta.getAttribute('content') : null;
+
+    if (token) {
+        event.detail.headers['X-CSRF-TOKEN'] = token;
+    }
+});
+
 document.body.addEventListener('htmx:afterRequest', (event) => {
     const target = event.detail.target;
 
@@ -28,6 +48,12 @@ document.body.addEventListener('htmx:afterRequest', (event) => {
 window.gsap = gsap;
 
 function animateCards() {
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (prefersReducedMotion) {
+        return;
+    }
+
     const cards = document.querySelectorAll('[data-gsap="card"]');
 
     if (cards.length > 0) {
