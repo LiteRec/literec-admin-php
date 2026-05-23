@@ -15,9 +15,9 @@ doctrine:
         auto_mapping: true
         mappings:
             Users:
-                type: attribute
+                type: xml
                 is_bundle: false
-                dir: '%kernel.project_dir%/src/Users/Infrastructure/Persistence/Doctrine'
+                dir: '%kernel.project_dir%/src/Users/Infrastructure/Persistence/Doctrine/Mapping'
                 prefix: 'App\Users\Infrastructure\Persistence\Doctrine'
                 alias: Users
 
