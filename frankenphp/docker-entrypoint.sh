@@ -21,6 +21,10 @@ if [ "$1" = 'frankenphp' ] || [ "$1" = 'php' ] || [ "$1" = 'bin/console' ]; then
 	# Or about an error in project initialization
 	php bin/console -V
 
+	# Compile the Tailwind CSS so AssetMapper can resolve @import "tailwindcss"
+	# when any page is requested.
+	php bin/console tailwind:build
+
 	if grep -q ^DATABASE_URL= .env 2>/dev/null || [ -n "${DATABASE_URL:-}" ]; then
 		echo 'Waiting for database to be ready...'
 		ATTEMPTS_LEFT_TO_REACH_DATABASE=60
