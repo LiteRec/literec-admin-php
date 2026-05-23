@@ -28,3 +28,12 @@ services:
 
     # Bind the Users\Domain IdentityGenerator port to its UUID v7 adapter.
     App\Users\Domain\IdentityGenerator: '@App\Users\Infrastructure\Identity\Uuid7IdentityGenerator'
+
+# Expose select Users-context aliases to the test container so integration
+# tests can fetch them via static::getContainer()->get(...) without making
+# them public in production.
+when@test:
+    services:
+        App\Users\Domain\IdentityGenerator:
+            alias: App\Users\Infrastructure\Identity\Uuid7IdentityGenerator
+            public: true
