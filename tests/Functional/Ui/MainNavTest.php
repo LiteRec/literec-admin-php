@@ -30,7 +30,7 @@ final class MainNavTest extends WebTestCase
         $client->request('GET', '/dashboard');
         self::assertResponseIsSuccessful();
 
-        $labels = [
+        $expected = [
             'Cash Register',
             'Programs',
             'Users',
@@ -40,12 +40,12 @@ final class MainNavTest extends WebTestCase
             'Communications',
         ];
 
-        foreach ($labels as $label) {
-            self::assertSelectorTextContains(
-                'nav[aria-label="Main navigation"] [role="menubar"]',
-                $label,
-            );
-        }
+        $crawler = $client->getCrawler();
+        $actual = $crawler
+            ->filter('nav[aria-label="Main navigation"] [role="menubar"] > li > a[role="menuitem"]')
+            ->each(static fn ($node): string => trim($node->text()));
+
+        self::assertSame($expected, $actual);
     }
 
     #[Test]
@@ -72,6 +72,8 @@ final class MainNavTest extends WebTestCase
         $client->request('GET', '/programs');
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorExists('nav[aria-label="Main navigation"] [role="menuitem"].bg-litrec-edge');
+        self::assertSelectorExists(
+            'nav[aria-label="Main navigation"] [role="menuitem"][href="/programs"].bg-litrec-edge',
+        );
     }
 }
