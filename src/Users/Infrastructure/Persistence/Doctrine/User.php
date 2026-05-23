@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Users\Infrastructure\Persistence\Doctrine;
 
+use App\Users\Domain\Exception\InvalidUsername;
+use App\Users\Domain\Exception\PasswordNotSet;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
@@ -49,7 +51,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function __construct(string $username)
     {
         if ($username === '') {
-            throw new \InvalidArgumentException('A user must have a non-empty username.');
+            throw InvalidUsername::empty();
         }
 
         $this->username = $username;
@@ -78,7 +80,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function getUserIdentifier(): string
     {
         if ($this->username === '') {
-            throw new \LogicException('A user must have a non-empty username.');
+            throw InvalidUsername::empty();
         }
 
         return $this->username;
@@ -146,7 +148,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function assertPasswordIsSet(): void
     {
         if ($this->password === '') {
-            throw new \LogicException('A user cannot be persisted without a password.');
+            throw PasswordNotSet::throw();
         }
     }
 
