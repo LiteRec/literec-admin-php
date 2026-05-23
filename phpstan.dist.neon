@@ -11,3 +11,5 @@ parameters:
         - tests
     symfony:
         containerXmlPath: var/cache/dev/App_KernelDevDebugContainer.xml
+    doctrine:
+        objectManagerLoader: tests/phpstan-object-manager-loader.php

@@ -6,34 +6,28 @@ namespace App\Users\Infrastructure\Persistence\Doctrine;
 
 use App\Users\Domain\Exception\InvalidUsername;
 use App\Users\Domain\Exception\PasswordNotSet;
-use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 
-#[ORM\Entity(repositoryClass: UserRepository::class)]
-#[ORM\Table(name: '`user`')]
-#[ORM\UniqueConstraint(name: 'UNIQ_IDENTIFIER_USERNAME', fields: ['username'])]
-#[ORM\HasLifecycleCallbacks]
+/**
+ * Doctrine mapping lives in src/Users/Infrastructure/Persistence/Doctrine/Mapping/User.orm.xml
+ * (LRA-18). LRA-19 will lift this class into App\Users\Domain\User and
+ * swap the int id for a UUID v7 value object.
+ */
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
-    #[ORM\Id]
-    #[ORM\GeneratedValue]
-    #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(length: 180)]
     private string $username;
 
     /**
      * @var list<string> The user roles
      */
-    #[ORM\Column]
     private array $roles = [];
 
     /**
      * The hashed password.
      */
-    #[ORM\Column]
     private string $password = '';
 
     /**
@@ -42,10 +36,8 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      * UserChecker that enforces it is added with the authentication
      * backend (LRA-7).
      */
-    #[ORM\Column(options: ['default' => true])]
     private bool $isActive = true;
 
-    #[ORM\Column]
     private \DateTimeImmutable $createdAt;
 
     public function __construct(string $username)
@@ -142,9 +134,8 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     /**
      * Guards against persisting a user that never had a password hash set.
+     * Wired as prePersist + preUpdate lifecycle-callback in User.orm.xml.
      */
-    #[ORM\PrePersist]
-    #[ORM\PreUpdate]
     public function assertPasswordIsSet(): void
     {
         if ($this->password === '') {
