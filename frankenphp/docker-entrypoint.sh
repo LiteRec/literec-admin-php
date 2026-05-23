@@ -22,8 +22,12 @@ if [ "$1" = 'frankenphp' ] || [ "$1" = 'php' ] || [ "$1" = 'bin/console' ]; then
 	php bin/console -V
 
 	# Compile the Tailwind CSS so AssetMapper can resolve @import "tailwindcss"
-	# when any page is requested.
-	php bin/console tailwind:build
+	# when any page is requested. Production images already run tailwind:build
+	# --minify during the image build (see Dockerfile), so skip it here to avoid
+	# redundant work and longer container start-up.
+	if [ -f importmap.php ] && [ "${APP_ENV:-prod}" != 'prod' ]; then
+		php bin/console tailwind:build
+	fi
 
 	if grep -q ^DATABASE_URL= .env 2>/dev/null || [ -n "${DATABASE_URL:-}" ]; then
 		echo 'Waiting for database to be ready...'
