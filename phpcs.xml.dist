@@ -10,4 +10,14 @@
     <arg value="sp"/>
 
     <rule ref="PSR12"/>
+
+    <!--
+        Project TDD doctrine (see CLAUDE.md "Test structure, naming, and assertions")
+        requires behavior-describing snake_case test method names like
+        `it_signs_in_when_credentials_are_valid`. PSR-1's camelCase rule conflicts
+        with that intent, so the sniff is disabled in tests/ only.
+    -->
+    <rule ref="PSR1.Methods.CamelCapsMethodName.NotCamelCaps">
+        <exclude-pattern>tests/*</exclude-pattern>
+    </rule>
 </ruleset>

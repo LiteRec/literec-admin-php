@@ -25,3 +25,6 @@ services:
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
+
+    # Bind the Users\Domain IdentityGenerator port to its UUID v7 adapter.
+    App\Users\Domain\IdentityGenerator: '@App\Users\Infrastructure\Identity\Uuid7IdentityGenerator'
