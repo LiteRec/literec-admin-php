@@ -24,10 +24,12 @@ final class Uuid7IdentityGeneratorTest extends TestCase
         $id = (new Uuid7IdentityGenerator($clock))->nextUserId();
 
         // RFC 4122 canonical form: 8-4-4-4-12 lowercase hex with version
-        // nibble 7 and variant high bits 10xx (8/9/a/b).
+        // nibble 7 and variant high bits 10xx (8/9/a/b). UserId's own
+        // constructor enforces this pattern, so reaching this assertion
+        // already proves the format; the regex is kept for documentation.
         self::assertMatchesRegularExpression(
             '/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/',
-            $id,
+            $id->value,
         );
     }
 
@@ -38,17 +40,17 @@ final class Uuid7IdentityGeneratorTest extends TestCase
         $clock = new MockClock(new DateTimeImmutable('2026-01-01 12:00:00'));
         $generator = new Uuid7IdentityGenerator($clock);
 
-        $ids = [];
+        $values = [];
         for ($i = 0; $i < 8; $i++) {
-            $ids[] = $generator->nextUserId();
+            $values[] = $generator->nextUserId()->value;
             // 1 ms apart guarantees the UUID v7 timestamp prefix advances.
             $clock->sleep(0.001);
         }
 
-        $sorted = $ids;
+        $sorted = $values;
         sort($sorted);
 
-        self::assertSame($ids, $sorted);
+        self::assertSame($values, $sorted);
     }
 
     #[Test]
@@ -58,13 +60,13 @@ final class Uuid7IdentityGeneratorTest extends TestCase
         $clock = new MockClock(new DateTimeImmutable('2026-01-01 12:00:00'));
         $generator = new Uuid7IdentityGenerator($clock);
 
-        $ids = [];
+        $values = [];
         for ($i = 0; $i < 1000; $i++) {
-            $ids[] = $generator->nextUserId();
+            $values[] = $generator->nextUserId()->value;
         }
 
         // Even with a frozen clock, UUID v7's random tail field
         // guarantees collision-resistance across 1000 calls.
-        self::assertCount(1000, array_unique($ids));
+        self::assertCount(1000, array_unique($values));
     }
 }

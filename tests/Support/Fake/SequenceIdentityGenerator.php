@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Support\Fake;
 
 use App\Users\Domain\IdentityGenerator;
+use App\Users\Domain\ValueObject\UserId;
 use LogicException;
 
 /**
@@ -14,17 +15,17 @@ use LogicException;
  */
 final class SequenceIdentityGenerator implements IdentityGenerator
 {
-    /** @var list<string> */
+    /** @var list<UserId> */
     private array $queue;
 
-    public function __construct(string ...$ids)
+    public function __construct(UserId ...$ids)
     {
         // array_values() is required so PHPStan can prove the property's
-        // list<string> shape; variadics widen to array<int,string> in level 9.
+        // list<UserId> shape; variadics widen to array<int,UserId> in level 9.
         $this->queue = array_values($ids);
     }
 
-    public function nextUserId(): string
+    public function nextUserId(): UserId
     {
         if ($this->queue === []) {
             throw new LogicException('Identity queue exhausted.');

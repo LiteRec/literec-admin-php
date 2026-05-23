@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Users\Infrastructure\Identity;
 
 use App\Users\Domain\IdentityGenerator;
+use App\Users\Domain\ValueObject\UserId;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Uid\UuidV7;
 
@@ -14,8 +15,8 @@ final class Uuid7IdentityGenerator implements IdentityGenerator
     {
     }
 
-    public function nextUserId(): string
+    public function nextUserId(): UserId
     {
-        return new UuidV7(UuidV7::generate($this->clock->now()))->toRfc4122();
+        return UserId::fromString(UuidV7::generate($this->clock->now()));
     }
 }
