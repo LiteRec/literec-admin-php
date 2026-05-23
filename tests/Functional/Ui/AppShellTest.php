@@ -4,14 +4,12 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Ui;
 
-use App\Users\Application\Command\RegisterUser;
+use App\Tests\Support\Trait\SignsInUsers;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Large;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\TestDox;
-use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Symfony\Component\Messenger\MessageBusInterface;
 
 /**
  * Pins the contract between app.html.twig and the AppShellExtension.
@@ -26,15 +24,17 @@ use Symfony\Component\Messenger\MessageBusInterface;
 #[Group('database')]
 final class AppShellTest extends WebTestCase
 {
+    use SignsInUsers;
+
     private const string TEST_USERNAME = 'shell_e2e';
     private const string TEST_PASSWORD = 'CorrectHorseBattery!';
 
     #[Test]
-    #[TestDox('The dashboard renders inside the authenticated app shell: header, nav placeholder, content, footer.')]
+    #[TestDox('The dashboard renders inside the authenticated app shell: header, nav, content, footer.')]
     public function dashboard_renders_inside_the_app_shell(): void
     {
         $client = static::createClient();
-        $this->signIn($client);
+        $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
 
         $client->request('GET', '/dashboard');
 
@@ -43,7 +43,7 @@ final class AppShellTest extends WebTestCase
         self::assertSelectorTextContains('header [data-testid="selected-facility"]', 'Main Facility');
         self::assertSelectorTextContains('header strong', self::TEST_USERNAME);
         self::assertSelectorExists('header form[action="/logout"] input[name="_csrf_token"]');
-        self::assertSelectorExists('nav[aria-label="Main navigation placeholder"]');
+        self::assertSelectorExists('nav[aria-label="Main navigation"]');
         self::assertSelectorTextContains('main h1', 'Admin Dashboard');
         self::assertSelectorExists('main [data-gsap="card"]');
         self::assertSelectorTextContains('footer', 'LiteRec');
@@ -60,23 +60,8 @@ final class AppShellTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSelectorNotExists('header [data-testid="selected-facility"]');
-        self::assertSelectorNotExists('nav[aria-label="Main navigation placeholder"]');
+        self::assertSelectorNotExists('nav[aria-label="Main navigation"]');
         self::assertSelectorNotExists('footer');
     }
 
-    private function signIn(KernelBrowser $client): void
-    {
-        $container = static::getContainer();
-        $bus = $container->get(MessageBusInterface::class);
-        $bus->dispatch(new RegisterUser(self::TEST_USERNAME, self::TEST_PASSWORD));
-
-        $crawler = $client->request('GET', '/login');
-        $form = $crawler->selectButton('Login')->form([
-            '_username' => self::TEST_USERNAME,
-            '_password' => self::TEST_PASSWORD,
-        ]);
-        $client->submit($form);
-        $client->followRedirect();
-        self::assertResponseIsSuccessful();
-    }
 }
