@@ -2,12 +2,16 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Controller;
+namespace App\Tests\Functional\Users;
 
 use App\Users\Application\Command\RegisterUser;
 use App\Users\Domain\User;
 use App\Users\Domain\Users;
 use App\Users\Domain\ValueObject\Username;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\Large;
+use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\Attributes\TestDox;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -17,19 +21,26 @@ use Symfony\Component\Messenger\MessageBusInterface;
  * dama/doctrine-test-bundle wraps each test in a transaction that is
  * rolled back at the end, so the tests are isolated.
  */
+#[Large]
+#[Group('database')]
+#[Group('smoke')]
 final class LoginFlowTest extends WebTestCase
 {
-    public function testSeededUserCanLogInAndReachTheDashboard(): void
+    private const string TEST_PASSWORD = 'CorrectHorseBattery!';
+
+    #[Test]
+    #[TestDox('A seeded user can sign in with valid credentials and lands on /dashboard.')]
+    public function seeded_user_can_log_in_and_reach_the_dashboard(): void
     {
         $client = static::createClient();
-        $this->seedUser('alice_e2e', 'CorrectHorseBattery!');
+        $this->seedUser('alice_e2e', self::TEST_PASSWORD);
 
         $crawler = $client->request('GET', '/login');
         self::assertResponseIsSuccessful();
 
         $form = $crawler->selectButton('Login')->form([
             '_username' => 'alice_e2e',
-            '_password' => 'CorrectHorseBattery!',
+            '_password' => self::TEST_PASSWORD,
         ]);
         $client->submit($form);
 
@@ -39,10 +50,12 @@ final class LoginFlowTest extends WebTestCase
         self::assertSelectorTextContains('strong', 'alice_e2e');
     }
 
-    public function testBadCredentialsStayOnLoginWithAnError(): void
+    #[Test]
+    #[TestDox('Wrong password keeps the user on /login with a visible error alert.')]
+    public function bad_credentials_stay_on_login_with_an_error(): void
     {
         $client = static::createClient();
-        $this->seedUser('bob_e2e', 'CorrectHorseBattery!');
+        $this->seedUser('bob_e2e', self::TEST_PASSWORD);
 
         $crawler = $client->request('GET', '/login');
         $form = $crawler->selectButton('Login')->form([
@@ -56,10 +69,12 @@ final class LoginFlowTest extends WebTestCase
         self::assertSelectorExists('p[role="alert"]');
     }
 
-    public function testInactiveUserIsRejectedByUserChecker(): void
+    #[Test]
+    #[TestDox('An inactive user is rejected by UserChecker before the dashboard loads.')]
+    public function inactive_user_is_rejected_by_user_checker(): void
     {
         $client = static::createClient();
-        $this->seedUser('disabled_e2e', 'CorrectHorseBattery!');
+        $this->seedUser('disabled_e2e', self::TEST_PASSWORD);
 
         $container = static::getContainer();
         $users = $container->get(Users::class);
@@ -72,7 +87,7 @@ final class LoginFlowTest extends WebTestCase
         $crawler = $client->request('GET', '/login');
         $form = $crawler->selectButton('Login')->form([
             '_username' => 'disabled_e2e',
-            '_password' => 'CorrectHorseBattery!',
+            '_password' => self::TEST_PASSWORD,
         ]);
         $client->submit($form);
 

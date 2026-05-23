@@ -98,7 +98,17 @@
         "deptrac": "vendor/bin/deptrac analyse --no-progress",
         "test": [
             "@php bin/console tailwind:build",
-            "phpunit"
+            "phpunit --testsuite=all"
+        ],
+        "test:unit": "phpunit --testsuite=unit",
+        "test:integration": "phpunit --testsuite=integration",
+        "test:functional": [
+            "@php bin/console tailwind:build",
+            "phpunit --testsuite=functional"
+        ],
+        "test:slow": [
+            "@php bin/console tailwind:build",
+            "phpunit --testsuite=all --group=slow"
         ],
         "qa": [
             "@cs",
@@ -112,7 +122,11 @@
         "cs-fix": "Auto-fix coding standard violations with phpcbf",
         "stan": "Run static analysis with PHPStan (level 9)",
         "deptrac": "Enforce DDD/Hex layer dependencies with Deptrac",
-        "test": "Build Tailwind CSS, then run the PHPUnit test suite",
+        "test": "Build Tailwind, then run the full PHPUnit suite (Unit + Integration + Functional)",
+        "test:unit": "Run the Unit testsuite only — must finish under 10 seconds",
+        "test:integration": "Run the Integration testsuite (KernelTestCase + Postgres)",
+        "test:functional": "Build Tailwind, then run the Functional testsuite (WebTestCase + Postgres)",
+        "test:slow": "Build Tailwind, then run only the tests in the slow group",
         "qa": "Run all quality gates: coding standards, static analysis, architecture and tests"
     },
     "conflict": {
