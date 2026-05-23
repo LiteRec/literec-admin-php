@@ -5,13 +5,47 @@
 @source "../../assets";
 
 /*
- * Brand palette — carried over from the legacy Adobe Flex login so the
- * rebuild reads as the same application to existing staff.
+ * Design tokens for LiteRecAdmin. Every token below is exposed as a Tailwind
+ * utility (e.g. --color-litrec-ink → text-litrec-ink, bg-litrec-ink,
+ * border-litrec-ink).
+ *
+ * Colors
+ *   litrec-bg, litrec-edge, litrec-ink — brand palette carried over from the
+ *       legacy Adobe Flex login so the rebuild reads as the same application
+ *       to existing staff.
+ *   success, warning, danger, info — semantic state colors for badges,
+ *       alerts, and dashboard KPIs.
+ *
+ * Typography
+ *   --font-sans — the single application sans stack.
+ *   --text-h1 .. --text-h4 — heading scale used by the page header component
+ *       and feature templates.
+ *   --text-body — default body font size.
+ *
+ * Surface
+ *   --radius-card — corner radius for cards, panels, and modals.
+ *   --shadow-card — resting shadow for cards and panels.
  */
 @theme {
     --color-litrec-bg: #b9c9d9;
     --color-litrec-edge: #45637f;
     --color-litrec-ink: #0b333c;
+
+    --color-success: #15803d;
+    --color-warning: #ca8a04;
+    --color-danger: #b91c1c;
+    --color-info: #1d4ed8;
+
+    --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+    --text-h1: 2rem;
+    --text-h2: 1.5rem;
+    --text-h3: 1.25rem;
+    --text-h4: 1.125rem;
+    --text-body: 0.875rem;
+
+    --radius-card: 0.75rem;
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.05), 0 1px 3px rgb(0 0 0 / 0.1);
 }
 
 /* Hide x-cloak elements until Alpine.js has initialised. */

@@ -9,3 +9,8 @@ framework:
             - submit
             - authenticate
             - logout
+            # Stateless intent reserved for HTMX-driven mutations. The token
+            # is rendered into the <meta name="csrf-token"> tag in
+            # base.html.twig and forwarded by assets/app.js as the
+            # X-CSRF-TOKEN header on every non-GET HTMX request.
+            - htmx
