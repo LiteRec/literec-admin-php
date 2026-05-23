@@ -21,6 +21,17 @@ if [ "$1" = 'frankenphp' ] || [ "$1" = 'php' ] || [ "$1" = 'bin/console' ]; then
 	# Or about an error in project initialization
 	php bin/console -V
 
+	# Keep the bind-mounted assets/vendor/ in sync with importmap.php on every
+	# dev start. assets/vendor/ is gitignored, so a developer pulling a branch
+	# that adds a new importmap entry (e.g. @alpinejs/focus) would otherwise
+	# hit "vendor asset missing" at runtime until they ran the command by
+	# hand. The command is idempotent and only downloads what is missing. Prod
+	# containers do not bind-mount the project directory and have the assets
+	# baked into the image by asset-map:compile at build time.
+	if [ -f importmap.php ] && [ "${APP_ENV:-prod}" != 'prod' ]; then
+		php bin/console importmap:install
+	fi
+
 	# Compile the Tailwind CSS so AssetMapper can resolve @import "tailwindcss"
 	# when any page is requested. Production images already run tailwind:build
 	# --minify during the image build (see Dockerfile), so skip it here to avoid
