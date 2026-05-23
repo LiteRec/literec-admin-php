@@ -92,6 +92,7 @@ deptrac:
         # those contexts exist and the controllers move under them.
         Legacy:
             - Legacy
+            - Ui
             - Doctrine
             - Symfony
             - SymfonyPasswordHasher
@@ -101,3 +102,4 @@ deptrac:
             - Ui
             - Symfony
             - Twig
+            - PsrClock

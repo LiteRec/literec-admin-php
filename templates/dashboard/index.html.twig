@@ -2,22 +2,80 @@
 
 {% block page_title %}Admin Dashboard{% endblock %}
 
-{# Exercises the page_actions block of app.html.twig so its contract is real,
-   not theoretical. The richer dashboard actions arrive in LRA-27. #}
-{% block page_actions %}
-    <a
-        href="{{ path('app_dashboard') }}"
-        class="rounded-md border border-litrec-edge bg-white px-3 py-1.5 text-sm font-semibold text-litrec-ink shadow-sm hover:bg-litrec-bg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-ink"
-    >
-        Refresh
-    </a>
-{% endblock %}
-
 {% block page_body %}
-    <div data-gsap="card" class="rounded-xl border-2 border-litrec-edge bg-white p-6 shadow-card">
-        <p class="text-sm text-litrec-edge">
-            The full administrator dashboard arrives in LRA-27. This card lives inside the new authenticated
-            app shell so the layout — header, navigation, content, footer — can be reviewed end to end.
-        </p>
+    {# KPI cards row. #}
+    <section aria-labelledby="kpi-heading" class="mb-8">
+        <h2 id="kpi-heading" class="sr-only">Key performance indicators</h2>
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {% for kpi in dashboard.kpis %}
+                <div data-gsap="card" class="rounded-xl border border-litrec-edge bg-white p-5 shadow-card">
+                    <p class="text-xs uppercase tracking-wide text-litrec-edge">{{ kpi.label }}</p>
+                    <p class="mt-2 text-2xl font-bold text-litrec-ink">{{ kpi.value }}</p>
+                    {% if kpi.delta is not null %}
+                        <p class="mt-1 text-xs text-litrec-edge">{{ kpi.delta }}</p>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    {# Two-column layout at lg: transactions on the left, schedule on the right. #}
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <section aria-labelledby="transactions-heading" class="lg:col-span-2 rounded-xl border border-litrec-edge bg-white shadow-card">
+            <header class="border-b border-litrec-edge px-5 py-3">
+                <h2 id="transactions-heading" class="text-base font-semibold text-litrec-ink">Recent Transactions</h2>
+            </header>
+            <ul class="divide-y divide-litrec-bg">
+                {% for tx in dashboard.recentTransactions %}
+                    <li class="flex items-center justify-between gap-4 px-5 py-3">
+                        <div class="min-w-0">
+                            <p class="truncate text-sm font-semibold text-litrec-ink">{{ tx.userName }}</p>
+                            <p class="text-xs text-litrec-edge">{{ tx.method }} · {{ tx.at|date('g:i A') }}</p>
+                        </div>
+                        <div class="flex items-center gap-3 text-right">
+                            <span class="text-sm font-semibold text-litrec-ink">{{ tx.amountFormatted }}</span>
+                            {% set status_classes = {
+                                'succeeded': 'bg-green-100 text-green-800',
+                                'pending':   'bg-yellow-100 text-yellow-800',
+                                'failed':    'bg-red-100 text-red-800',
+                                'refunded':  'bg-blue-100 text-blue-800',
+                            } %}
+                            <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold {{ status_classes[tx.status.value] }}">
+                                {{ tx.status.value|capitalize }}
+                            </span>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        </section>
+
+        <section aria-labelledby="schedule-heading" class="rounded-xl border border-litrec-edge bg-white shadow-card">
+            <header class="border-b border-litrec-edge px-5 py-3">
+                <h2 id="schedule-heading" class="text-base font-semibold text-litrec-ink">Today's Schedule</h2>
+            </header>
+            <ul class="divide-y divide-litrec-bg">
+                {% for item in dashboard.todaysSchedule %}
+                    <li class="px-5 py-3">
+                        <p class="text-sm font-semibold text-litrec-ink">{{ item.timeLabel }} — {{ item.facility }}</p>
+                        <p class="text-xs text-litrec-edge">{{ item.partyName }}</p>
+                    </li>
+                {% endfor %}
+            </ul>
+        </section>
     </div>
+
+    {# Quick Links tile grid. #}
+    <section aria-labelledby="quicklinks-heading" class="mt-8">
+        <h2 id="quicklinks-heading" class="mb-3 text-sm font-semibold uppercase tracking-wide text-litrec-edge">Quick Links</h2>
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
+            {% for link in dashboard.quickLinks %}
+                <a
+                    href="{{ path(link.route) }}"
+                    class="rounded-lg border border-litrec-edge bg-white px-3 py-4 text-center text-sm font-semibold text-litrec-ink shadow-card hover:bg-litrec-bg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-ink"
+                >
+                    {{ link.label }}
+                </a>
+            {% endfor %}
+        </div>
+    </section>
 {% endblock %}
