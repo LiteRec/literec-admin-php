@@ -1,0 +1,13 @@
+{% extends 'app.html.twig' %}
+
+{% block page_title %}{{ section_title }}{% endblock %}
+
+{% block page_body %}
+    <div class="rounded-xl border-2 border-dashed border-litrec-edge bg-white p-10 text-center shadow-card">
+        <h2 class="text-xl font-semibold text-litrec-ink">Coming soon</h2>
+        <p class="mt-2 text-sm text-litrec-edge">
+            The <strong>{{ section_title }}</strong> screen is part of the navigation surface so staff can find every legacy area,
+            but the feature itself arrives in a later milestone.
+        </p>
+    </div>
+{% endblock %}

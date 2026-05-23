@@ -1,4 +1,106 @@
-{# Placeholder for the main navigation bar — the real implementation lands in LRA-26. #}
-<nav class="border-b border-litrec-edge bg-white" aria-label="Main navigation placeholder">
-    <p class="mx-auto max-w-7xl px-6 py-2 text-sm text-litrec-edge">Navigation arrives in LRA-26.</p>
+{# Staff-admin main navigation bar. Renders the seven top-level categories
+   from MainNavigation; sub-items live in per-item Alpine dropdowns. Sub-item
+   route names live in App\Ui\Navigation\MainNavigation — never duplicate
+   them here. #}
+{% set current_route = app.request is not null ? app.request.attributes.get('_route') : null %}
+{% set nav = main_navigation() %}
+
+<nav class="border-b border-litrec-edge bg-white" aria-label="Main navigation" x-data="{ openIndex: null }">
+    {# Desktop: horizontal menubar with dropdowns. #}
+    <div class="mx-auto hidden max-w-7xl px-6 md:block">
+        <ul role="menubar" class="flex items-stretch gap-1">
+            {% for index, item in nav.items %}
+                {% set active = is_active_nav_item(item, current_route) %}
+                <li
+                    role="none"
+                    class="relative flex items-stretch"
+                    @keydown.escape.window="openIndex = null"
+                    @click.outside="if (openIndex === {{ index }}) openIndex = null"
+                >
+                    {# Clicking the label navigates to the section's index
+                       route. The chevron toggles the dropdown. Splitting
+                       the targets keeps both navigation and dropdown
+                       reachable from desktop. #}
+                    <a
+                        role="menuitem"
+                        href="{{ path(item.route) }}"
+                        class="inline-flex items-center pl-4 pr-2 py-3 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-inset focus:ring-litrec-ink {{ active ? 'bg-litrec-edge text-white' : 'text-litrec-ink hover:bg-litrec-bg' }}"
+                    >
+                        {{ item.label }}
+                    </a>
+
+                    {% if item.hasChildren() %}
+                        <button
+                            type="button"
+                            @click="openIndex = openIndex === {{ index }} ? null : {{ index }}"
+                            @keydown.arrow-down.prevent="openIndex = {{ index }}; $nextTick(() => $el.parentElement.querySelector('[role=menu] a')?.focus())"
+                            aria-haspopup="true"
+                            :aria-expanded="openIndex === {{ index }} ? 'true' : 'false'"
+                            aria-label="Toggle {{ item.label }} menu"
+                            class="inline-flex items-center pl-1 pr-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-inset focus:ring-litrec-ink {{ active ? 'bg-litrec-edge text-white' : 'text-litrec-ink hover:bg-litrec-bg' }}"
+                        >
+                            <span aria-hidden="true">▾</span>
+                        </button>
+
+                        <ul
+                            role="menu"
+                            x-show="openIndex === {{ index }}"
+                            x-cloak
+                            @keydown.arrow-down.prevent="$focus.next()"
+                            @keydown.arrow-up.prevent="$focus.previous()"
+                            class="absolute left-0 top-full z-10 min-w-[16rem] border border-litrec-edge bg-white py-1 shadow-card"
+                        >
+                            {% for child in item.children %}
+                                <li role="none">
+                                    <a
+                                        role="menuitem"
+                                        href="{{ path(child.route) }}"
+                                        class="block px-4 py-2 text-sm text-litrec-ink hover:bg-litrec-bg focus:bg-litrec-bg focus:outline-none"
+                                    >
+                                        {{ child.label }}
+                                    </a>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    {# Mobile: hamburger toggles a stacked panel with inline sub-items. #}
+    <div class="md:hidden" x-data="{ mobileOpen: false }">
+        <div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
+            <span class="text-sm font-semibold text-litrec-ink">Menu</span>
+            <button
+                type="button"
+                @click="mobileOpen = !mobileOpen"
+                :aria-expanded="mobileOpen ? 'true' : 'false'"
+                aria-controls="main-nav-mobile-panel"
+                aria-label="Toggle main navigation"
+                class="rounded-md border border-litrec-edge px-3 py-1.5 text-sm text-litrec-ink hover:bg-litrec-bg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-ink"
+            >
+                <span x-text="mobileOpen ? 'Close' : 'Open'"></span>
+            </button>
+        </div>
+
+        <div id="main-nav-mobile-panel" x-show="mobileOpen" x-cloak class="border-t border-litrec-edge bg-white">
+            <ul class="px-6 py-3">
+                {% for item in nav.items %}
+                    <li class="border-b border-litrec-bg py-2 last:border-b-0">
+                        <a href="{{ path(item.route) }}" class="block text-sm font-semibold text-litrec-ink hover:text-litrec-edge">{{ item.label }}</a>
+                        {% if item.hasChildren() %}
+                            <ul class="mt-1 pl-4">
+                                {% for child in item.children %}
+                                    <li>
+                                        <a href="{{ path(child.route) }}" class="block py-1 text-sm text-litrec-edge hover:text-litrec-ink">{{ child.label }}</a>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
 </nav>
