@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Users\Infrastructure\Security;
 
 use App\Users\Application\Command\ChangeUserPassword;
+use App\Users\Domain\Exception\InvalidUsername;
 use App\Users\Domain\Exception\UserNotFound;
 use App\Users\Domain\Users;
 use App\Users\Domain\ValueObject\UserId;
@@ -35,8 +36,11 @@ final class SecurityUserProvider implements UserProviderInterface, PasswordUpgra
     public function loadUserByIdentifier(string $identifier): UserInterface
     {
         try {
+            // Username::of() can reject the identifier as malformed; surface
+            // that to the firewall as a regular "user not found" outcome so
+            // the auth flow never leaks domain exceptions through Security.
             $user = $this->users->byUsername(Username::of($identifier));
-        } catch (UserNotFound $e) {
+        } catch (UserNotFound | InvalidUsername $e) {
             throw new UserNotFoundException(previous: $e);
         }
 

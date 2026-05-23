@@ -15,6 +15,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\HandledStamp;
 use ValueError;
@@ -97,30 +98,66 @@ final class CreateUserCommand extends Command
 
         try {
             $envelope = $this->commandBus->dispatch(new RegisterUser($username, $password, $roles));
-        } catch (UsernameAlreadyTaken $e) {
-            $io->error($e->getMessage());
-
-            return Command::FAILURE;
-        } catch (InvalidUsername $e) {
-            $io->error($e->getMessage());
-
-            return Command::INVALID;
-        } catch (ValueError $e) {
-            // Role::from() threw on an unknown role string.
-            $io->error(sprintf('Unknown role: %s', $e->getMessage()));
-
-            return Command::INVALID;
+        } catch (HandlerFailedException $e) {
+            return $this->reportHandlerFailure($e, $io);
         }
 
         $stamp = $envelope->last(HandledStamp::class);
-        $id = $stamp?->getResult();
+        if ($stamp === null) {
+            $io->error('Command bus returned no HandledStamp; the handler did not run.');
 
-        $io->success(sprintf(
-            'Created user "%s" (id %s).',
-            $username,
-            $id instanceof UserId ? $id->value : '?',
-        ));
+            return Command::FAILURE;
+        }
+
+        $id = $stamp->getResult();
+        if (!$id instanceof UserId) {
+            $io->error(sprintf(
+                'RegisterUser handler returned %s; expected UserId.',
+                get_debug_type($id),
+            ));
+
+            return Command::FAILURE;
+        }
+
+        $io->success(sprintf('Created user "%s" (id %s).', $username, $id->value));
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * Symfony Messenger wraps every handler exception in HandlerFailedException;
+     * the actual domain exception is the chained previous. Walk the chain so a
+     * UsernameAlreadyTaken / InvalidUsername / ValueError surfaces as a clean
+     * CLI error rather than a wrapped stack trace.
+     */
+    private function reportHandlerFailure(HandlerFailedException $e, SymfonyStyle $io): int
+    {
+        $cause = $e->getPrevious();
+
+        // HandlerFailedException can wrap multiple handler errors; walk the
+        // chain in case the outermost previous is itself a wrapper.
+        while ($cause !== null) {
+            if ($cause instanceof UsernameAlreadyTaken) {
+                $io->error($cause->getMessage());
+
+                return Command::FAILURE;
+            }
+
+            if ($cause instanceof InvalidUsername) {
+                $io->error($cause->getMessage());
+
+                return Command::INVALID;
+            }
+
+            if ($cause instanceof ValueError) {
+                $io->error(sprintf('Unknown role: %s', $cause->getMessage()));
+
+                return Command::INVALID;
+            }
+
+            $cause = $cause->getPrevious();
+        }
+
+        throw $e;
     }
 }

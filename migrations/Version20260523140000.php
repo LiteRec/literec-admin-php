@@ -23,6 +23,11 @@ final class Version20260523140000 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
+        $this->abortIf(
+            !$this->connection->getDatabasePlatform() instanceof \Doctrine\DBAL\Platforms\PostgreSQLPlatform,
+            'Migration uses PostgreSQL-specific SQL (quoted "user", JSON, TIMESTAMP(0) WITHOUT TIME ZONE).',
+        );
+
         // Drop the entire table — there is no production data to preserve,
         // and the schema change (PK type + drop of identity sequence) is
         // simpler to express as a recreate than a multi-step in-place
@@ -45,6 +50,11 @@ final class Version20260523140000 extends AbstractMigration
 
     public function down(Schema $schema): void
     {
+        $this->abortIf(
+            !$this->connection->getDatabasePlatform() instanceof \Doctrine\DBAL\Platforms\PostgreSQLPlatform,
+            'Migration uses PostgreSQL-specific SQL.',
+        );
+
         $this->addSql('DROP TABLE "user"');
         $this->addSql(<<<'SQL'
             CREATE TABLE "user" (

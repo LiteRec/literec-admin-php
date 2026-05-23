@@ -17,7 +17,7 @@
         -->
         <id name="id" type="users_user_id"/>
 
-        <field name="username" type="users_username" unique="true" nullable="false"/>
+        <field name="username" type="users_username" nullable="false"/>
         <field name="roles"    type="users_roles"   nullable="false"/>
         <field name="password" type="users_hashed_password" nullable="false"/>
         <field name="isActive" type="boolean" nullable="false">
