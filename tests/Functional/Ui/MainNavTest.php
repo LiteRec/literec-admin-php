@@ -74,5 +74,4 @@ final class MainNavTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSelectorExists('nav[aria-label="Main navigation"] [role="menuitem"].bg-litrec-edge');
     }
-
 }

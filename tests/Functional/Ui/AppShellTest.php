@@ -63,5 +63,4 @@ final class AppShellTest extends WebTestCase
         self::assertSelectorNotExists('nav[aria-label="Main navigation"]');
         self::assertSelectorNotExists('footer');
     }
-
 }
