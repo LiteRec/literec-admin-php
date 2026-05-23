@@ -93,6 +93,7 @@
             "@php bin/console cache:warmup --quiet",
             "phpstan analyse --memory-limit=512M"
         ],
+        "deptrac": "vendor/bin/deptrac analyse --no-progress",
         "test": [
             "@php bin/console tailwind:build",
             "phpunit"
@@ -100,6 +101,7 @@
         "qa": [
             "@cs",
             "@stan",
+            "@deptrac",
             "@test"
         ]
     },
@@ -107,8 +109,9 @@
         "cs": "Check coding standards with PHP_CodeSniffer (PSR-12)",
         "cs-fix": "Auto-fix coding standard violations with phpcbf",
         "stan": "Run static analysis with PHPStan (level 9)",
+        "deptrac": "Enforce DDD/Hex layer dependencies with Deptrac",
         "test": "Build Tailwind CSS, then run the PHPUnit test suite",
-        "qa": "Run all quality gates: coding standards, static analysis and tests"
+        "qa": "Run all quality gates: coding standards, static analysis, architecture and tests"
     },
     "conflict": {
         "symfony/symfony": "*"
@@ -122,6 +125,7 @@
     },
     "require-dev": {
         "dama/doctrine-test-bundle": "^8.6",
+        "deptrac/deptrac": "^4",
         "phpstan/phpstan": "^2.1",
         "phpstan/phpstan-doctrine": "^2.0",
         "phpstan/phpstan-symfony": "^2.0",

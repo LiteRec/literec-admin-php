@@ -1,0 +1,94 @@
+deptrac:
+    paths:
+        - ./src
+    exclude_files:
+        - '#.*/tests/.*#'
+    layers:
+        - name: UsersDomain
+          collectors:
+              - type: directory
+                value: src/Users/Domain/.*
+        - name: UsersApplication
+          collectors:
+              - type: directory
+                value: src/Users/Application/.*
+        - name: UsersInfrastructure
+          collectors:
+              - type: directory
+                value: src/Users/Infrastructure/.*
+        - name: Legacy
+          collectors:
+              - type: directory
+                value: src/Entity/.*
+              - type: directory
+                value: src/Repository/.*
+              - type: directory
+                value: src/Controller/.*
+              - type: directory
+                value: src/Command/.*
+              - type: directory
+                value: src/Security/.*
+
+        # External-code layers are matched by namespace prefix rather than by
+        # composer package list. This avoids depending on the exact direct/transitive
+        # package split in composer.json: any class under the listed namespaces
+        # is treated as belonging to that layer regardless of which composer
+        # package ships it.
+        - name: PsrClock
+          collectors:
+              - type: classLike
+                value: ^Psr\\Clock\\.*
+        - name: SymfonyMessenger
+          collectors:
+              - type: classLike
+                value: ^Symfony\\Component\\Messenger\\.*
+        - name: SymfonyPasswordHasher
+          collectors:
+              - type: classLike
+                value: ^Symfony\\Component\\PasswordHasher\\.*
+        - name: Doctrine
+          collectors:
+              - type: classLike
+                value: ^Doctrine\\.*
+        - name: Symfony
+          collectors:
+              - type: bool
+                must:
+                    - type: classLike
+                      value: ^Symfony\\.*
+                must_not:
+                    - type: layer
+                      value: SymfonyMessenger
+                    - type: layer
+                      value: SymfonyPasswordHasher
+    ruleset:
+        UsersDomain:
+            - PsrClock
+        UsersApplication:
+            - UsersDomain
+            - SymfonyMessenger
+            - SymfonyPasswordHasher
+            - PsrClock
+        UsersInfrastructure:
+            - UsersDomain
+            - UsersApplication
+            - SymfonyMessenger
+            - SymfonyPasswordHasher
+            - PsrClock
+            - Doctrine
+            - Symfony
+        # Legacy is intentionally permissive: it covers the pre-DDD code
+        # under src/{Entity,Repository,Controller,Command,Security} that
+        # LRA-13 will migrate into src/Users/Infrastructure/. The
+        # self-dependency reflects that existing legacy classes call each
+        # other freely; the broad whitelist preserves CI-green while the
+        # migration is in progress. Once LRA-13 merges, the layer's
+        # collectors will shrink to the two remaining non-Users
+        # controllers and the ruleset will tighten in step.
+        Legacy:
+            - Legacy
+            - Doctrine
+            - Symfony
+            - SymfonyPasswordHasher
+            - SymfonyMessenger
+            - PsrClock

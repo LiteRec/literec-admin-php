@@ -66,5 +66,10 @@ jobs:
       - name: PHPStan (level 9)
         run: composer stan
 
+      - name: Deptrac (architecture)
+        # Invokes the binary directly (rather than `composer deptrac`) so we
+        # can pass --formatter=github-actions for inline PR annotations.
+        run: vendor/bin/deptrac analyse --no-progress --formatter=github-actions
+
       - name: PHPUnit
         run: composer test
