@@ -5,6 +5,10 @@ framework:
             token_id: submit
 
     csrf_protection:
+        # Validate the X-CSRF-TOKEN header in addition to form/body fields so
+        # HTMX requests (which carry the token in a header, not a form field)
+        # are accepted by the stateless CSRF validator.
+        check_header: true
         stateless_token_ids:
             - submit
             - authenticate
