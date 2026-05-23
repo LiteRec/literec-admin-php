@@ -1,25 +1,23 @@
-{% extends 'base.html.twig' %}
+{% extends 'app.html.twig' %}
 
-{% block title %}Dashboard — LiteRecAdmin{% endblock %}
+{% block page_title %}Admin Dashboard{% endblock %}
 
-{% block body %}
-    <main class="flex min-h-screen items-center justify-center bg-litrec-bg p-6">
-        <div data-gsap="card" class="w-full max-w-lg rounded-xl border-2 border-litrec-edge bg-white p-8 shadow-lg">
-            <h1 class="text-2xl font-bold text-litrec-ink">LiteRecAdmin</h1>
-            <p class="mt-2 text-sm text-litrec-edge">
-                Signed in as <strong>{{ app.user.username }}</strong>. The full administrator dashboard
-                arrives in a later milestone — this page exists so the login flow can be reviewed end to end.
-            </p>
+{# Exercises the page_actions block of app.html.twig so its contract is real,
+   not theoretical. The richer dashboard actions arrive in LRA-27. #}
+{% block page_actions %}
+    <a
+        href="{{ path('app_dashboard') }}"
+        class="rounded-md border border-litrec-edge bg-white px-3 py-1.5 text-sm font-semibold text-litrec-ink shadow-sm hover:bg-litrec-bg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-ink"
+    >
+        Refresh
+    </a>
+{% endblock %}
 
-            <form method="post" action="{{ path('app_logout') }}" class="mt-6">
-                <input type="hidden" name="_csrf_token" value="{{ csrf_token('logout') }}">
-                <button
-                    type="submit"
-                    class="rounded-md bg-litrec-edge px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-litrec-ink focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-ink"
-                >
-                    Sign out
-                </button>
-            </form>
-        </div>
-    </main>
+{% block page_body %}
+    <div data-gsap="card" class="rounded-xl border-2 border-litrec-edge bg-white p-6 shadow-card">
+        <p class="text-sm text-litrec-edge">
+            The full administrator dashboard arrives in LRA-27. This card lives inside the new authenticated
+            app shell so the layout — header, navigation, content, footer — can be reviewed end to end.
+        </p>
+    </div>
 {% endblock %}
