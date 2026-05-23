@@ -31,6 +31,14 @@ security:
                 login_path: app_login
                 check_path: app_login
                 enable_csrf: true
+                # Post-login landing: app_dashboard is referenced by route
+                # name (not URL) so a future URL change here does not
+                # silently break the redirect. LoginRedirectTest enforces
+                # this contract against the live router.
+                # always_use_default_target_path stays at its default
+                # (false) so a deep link (?_target_path=...) survives the
+                # login round-trip — important when staff bookmark feature
+                # pages and re-authenticate.
                 default_target_path: app_dashboard
 
             logout:
