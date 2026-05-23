@@ -12,10 +12,24 @@ framework:
             failed: 'doctrine://default?queue_name=failed'
             # sync: 'sync://'
 
-        default_bus: messenger.bus.default
+        default_bus: command.bus
 
+        # LRA-20: multi-bus setup. The command bus runs every handler inside
+        # a Doctrine transaction; combined with DispatchAfterCurrentBusStamp
+        # on aggregate event dispatches, domain events fire only after the
+        # write transaction commits.
         buses:
-            messenger.bus.default: []
+            command.bus:
+                middleware:
+                    - validation
+                    - doctrine_transaction
+            event.bus:
+                default_middleware: allow_no_handlers
+                middleware:
+                    - validation
+            query.bus:
+                middleware:
+                    - validation
 
         routing:
             Symfony\Component\Mailer\Messenger\SendEmailMessage: async

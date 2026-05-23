@@ -7,6 +7,13 @@ doctrine:
         #server_version: '16'
 
         profiling_collect_backtrace: '%kernel.debug%'
+
+        # Custom DBAL types for the Users bounded-context value objects.
+        types:
+            users_user_id: App\Users\Infrastructure\Persistence\Doctrine\Type\UserIdType
+            users_username: App\Users\Infrastructure\Persistence\Doctrine\Type\UsernameType
+            users_hashed_password: App\Users\Infrastructure\Persistence\Doctrine\Type\HashedPasswordType
+            users_roles: App\Users\Infrastructure\Persistence\Doctrine\Type\RolesType
     orm:
         validate_xml_mapping: true
         naming_strategy: doctrine.orm.naming_strategy.underscore
@@ -18,7 +25,7 @@ doctrine:
                 type: xml
                 is_bundle: false
                 dir: '%kernel.project_dir%/src/Users/Infrastructure/Persistence/Doctrine/Mapping'
-                prefix: 'App\Users\Infrastructure\Persistence\Doctrine'
+                prefix: 'App\Users\Domain'
                 alias: Users
 
 when@test:

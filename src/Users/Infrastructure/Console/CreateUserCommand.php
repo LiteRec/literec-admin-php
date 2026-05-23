@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Users\Infrastructure\Console;
 
-use App\Users\Infrastructure\Persistence\Doctrine\User;
-use App\Users\Infrastructure\Persistence\Doctrine\UserRepository;
-use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
-use Doctrine\ORM\EntityManagerInterface;
+use App\Users\Application\Command\RegisterUser;
+use App\Users\Domain\Exception\InvalidUsername;
+use App\Users\Domain\Exception\UsernameAlreadyTaken;
+use App\Users\Domain\ValueObject\UserId;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -15,11 +15,13 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
-use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
+use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\HandledStamp;
+use ValueError;
 
 /**
- * Seeds a staff user with a hashed password — used to create test
- * accounts for the login flow.
+ * Thin adapter that decodes CLI input into a {@see RegisterUser} command and
+ * dispatches it via the command bus. Contains zero business logic.
  */
 #[AsCommand(
     name: 'app:create-user',
@@ -29,11 +31,8 @@ final class CreateUserCommand extends Command
 {
     private const int MINIMUM_PASSWORD_LENGTH = 8;
 
-    public function __construct(
-        private readonly EntityManagerInterface $entityManager,
-        private readonly UserRepository $userRepository,
-        private readonly UserPasswordHasherInterface $passwordHasher,
-    ) {
+    public function __construct(private readonly MessageBusInterface $commandBus)
+    {
         parent::__construct();
     }
 
@@ -67,8 +66,6 @@ final class CreateUserCommand extends Command
             return Command::INVALID;
         }
 
-        // Prefer a hidden prompt; the --password option exists for
-        // non-interactive use and keeps the secret off the argument list.
         $password = $input->getOption('password');
 
         if ($password === null) {
@@ -98,28 +95,31 @@ final class CreateUserCommand extends Command
             }
         }
 
-        if ($this->userRepository->findOneBy(['username' => $username]) !== null) {
-            $io->error(sprintf('A user with username "%s" already exists.', $username));
-
-            return Command::FAILURE;
-        }
-
-        $user = new User($username);
-        $user->setRoles($roles);
-        $user->setPassword($this->passwordHasher->hashPassword($user, $password));
-
         try {
-            $this->entityManager->persist($user);
-            $this->entityManager->flush();
-        } catch (UniqueConstraintViolationException) {
-            // The pre-check above and this insert are not atomic; a
-            // concurrent run can still collide on the unique username.
-            $io->error(sprintf('A user with username "%s" already exists.', $username));
+            $envelope = $this->commandBus->dispatch(new RegisterUser($username, $password, $roles));
+        } catch (UsernameAlreadyTaken $e) {
+            $io->error($e->getMessage());
 
             return Command::FAILURE;
+        } catch (InvalidUsername $e) {
+            $io->error($e->getMessage());
+
+            return Command::INVALID;
+        } catch (ValueError $e) {
+            // Role::from() threw on an unknown role string.
+            $io->error(sprintf('Unknown role: %s', $e->getMessage()));
+
+            return Command::INVALID;
         }
 
-        $io->success(sprintf('Created user "%s".', $username));
+        $stamp = $envelope->last(HandledStamp::class);
+        $id = $stamp?->getResult();
+
+        $io->success(sprintf(
+            'Created user "%s" (id %s).',
+            $username,
+            $id instanceof UserId ? $id->value : '?',
+        ));
 
         return Command::SUCCESS;
     }

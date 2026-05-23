@@ -4,24 +4,24 @@ declare(strict_types=1);
 
 namespace App\Users\Infrastructure\Security;
 
-use App\Users\Infrastructure\Persistence\Doctrine\User;
 use Symfony\Component\Security\Core\Exception\CustomUserMessageAccountStatusException;
 use Symfony\Component\Security\Core\User\UserCheckerInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 
 /**
- * Rejects authentication attempts from accounts that have been disabled via
- * the User entity's isActive flag.
+ * Rejects authentication attempts from accounts that have been deactivated
+ * via the User aggregate's deactivate() method. Operates on SecurityUser
+ * because the firewall hydrates that adapter, not the domain aggregate.
  */
 final class UserChecker implements UserCheckerInterface
 {
     public function checkPreAuth(UserInterface $user): void
     {
-        if (!$user instanceof User) {
+        if (!$user instanceof SecurityUser) {
             return;
         }
 
-        if (!$user->isActive()) {
+        if (!$user->isActive) {
             throw new CustomUserMessageAccountStatusException('Your account is disabled.');
         }
     }

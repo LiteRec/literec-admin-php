@@ -1,15 +1,20 @@
 security:
     # https://symfony.com/doc/current/security.html#registering-the-user-hashing-passwords
     password_hashers:
+        # The custom SecurityUser adapter implements PasswordAuthenticatedUserInterface,
+        # so the interface entry still covers the firewall-side hashing.
         Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: 'auto'
+        # Named hasher referenced by App\Users\Application\Command\RegisterUserHandler
+        # via PasswordHasherFactoryInterface->getPasswordHasher('users').
+        users: 'auto'
 
     # https://symfony.com/doc/current/security.html#loading-the-user-the-user-provider
     providers:
-        # used to reload user from session & other features (e.g. switch_user)
+        # LRA-21: load users via the SecurityUserProvider, which delegates
+        # to the App\Users\Domain\Users port rather than coupling to a
+        # specific entity class.
         app_user_provider:
-            entity:
-                class: App\Users\Infrastructure\Persistence\Doctrine\User
-                property: username
+            id: App\Users\Infrastructure\Security\SecurityUserProvider
 
     firewalls:
         dev:
@@ -48,3 +53,8 @@ when@test:
                 cost: 4 # Lowest possible value for bcrypt
                 time_cost: 3 # Lowest possible value for argon
                 memory_cost: 10 # Lowest possible value for argon
+            users:
+                algorithm: auto
+                cost: 4
+                time_cost: 3
+                memory_cost: 10

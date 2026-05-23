@@ -20,7 +20,14 @@ services:
         resource: '../src/'
         exclude:
             - '../src/DependencyInjection/'
-            - '../src/Users/Infrastructure/Persistence/Doctrine/User.php'
+            - '../src/Users/Domain/User.php'
+            - '../src/Users/Domain/Event/'
+            - '../src/Users/Domain/Exception/'
+            - '../src/Users/Domain/ValueObject/'
+            - '../src/Users/Domain/AggregateRoot.php'
+            - '../src/Users/Application/Command/RegisterUser.php'
+            - '../src/Users/Application/Command/ChangeUserPassword.php'
+            - '../src/Users/Infrastructure/Persistence/Doctrine/Type/'
             - '../src/Kernel.php'
 
     # add more service definitions when explicit configuration is needed
@@ -29,6 +36,15 @@ services:
     # Bind the Users\Domain IdentityGenerator port to its UUID v7 adapter.
     App\Users\Domain\IdentityGenerator: '@App\Users\Infrastructure\Identity\Uuid7IdentityGenerator'
 
+    # Bind the Users\Domain Users repository port to its Doctrine adapter.
+    App\Users\Domain\Users: '@App\Users\Infrastructure\Persistence\Doctrine\DoctrineUsers'
+
+    # Inject the command bus into the SecurityUserProvider so the password
+    # upgrader can dispatch a ChangeUserPassword command.
+    App\Users\Infrastructure\Security\SecurityUserProvider:
+        arguments:
+            $commandBus: '@command.bus'
+
 # Expose select Users-context aliases to the test container so integration
 # tests can fetch them via static::getContainer()->get(...) without making
 # them public in production.
@@ -36,4 +52,7 @@ when@test:
     services:
         App\Users\Domain\IdentityGenerator:
             alias: App\Users\Infrastructure\Identity\Uuid7IdentityGenerator
+            public: true
+        App\Users\Domain\Users:
+            alias: App\Users\Infrastructure\Persistence\Doctrine\DoctrineUsers
             public: true
