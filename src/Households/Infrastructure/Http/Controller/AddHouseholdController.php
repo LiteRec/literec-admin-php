@@ -115,6 +115,12 @@ final class AddHouseholdController extends AbstractController
     )]
     public function memberNewForm(string $householdId): Response
     {
+        try {
+            $this->households->findById(HouseholdId::fromString($householdId));
+        } catch (HouseholdNotFound) {
+            throw $this->createNotFoundException('Household not found.');
+        }
+
         $form = $this->createForm(AddMemberFormType::class, new AddMemberInput());
 
         return $this->render('households/new/_member_dialog.html.twig', [
