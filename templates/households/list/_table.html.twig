@@ -4,7 +4,11 @@
      - criteria: SearchMembersCriteria #}
 {% set baseQuery = app.request.query.all %}
 
-{% if page.items|length == 0 %}
+{# Empty state fires only when the underlying result set is truly empty.
+   page.items can be empty on an out-of-range page even when totalItems > 0,
+   in which case the user should see the pagination footer rather than a
+   misleading "no matches" panel. #}
+{% if page.totalItems == 0 %}
     {% include 'components/_empty_state.html.twig' with {
         title: 'No members found',
         message: 'No members match your filters.',
