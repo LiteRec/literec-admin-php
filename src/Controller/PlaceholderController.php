@@ -77,12 +77,6 @@ final class PlaceholderController extends AbstractController
         return $this->stub('Program EFT Invoices');
     }
 
-    #[Route('/users', name: 'users_index', methods: ['GET'])]
-    public function usersIndex(): Response
-    {
-        return $this->stub('Users');
-    }
-
     #[Route('/users/refunds', name: 'refunds_index', methods: ['GET'])]
     public function refundsIndex(): Response
     {
