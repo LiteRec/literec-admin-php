@@ -37,21 +37,29 @@ final class EmailAddressTest extends TestCase
     #[TestWith(['not-an-email'])]
     #[TestWith(['@example.com'])]
     #[TestWith(['alice@'])]
-    #[TestDox('Rejects a syntactically malformed email with InvalidEmailAddress.')]
+    #[TestDox('Rejects a malformed email; exception message does not echo the input.')]
     public function rejects_malformed(string $input): void
     {
-        $this->expectException(InvalidEmailAddress::class);
-
-        EmailAddress::of($input);
+        try {
+            EmailAddress::of($input);
+            self::fail('Expected InvalidEmailAddress.');
+        } catch (InvalidEmailAddress $e) {
+            self::assertStringNotContainsString($input, $e->getMessage());
+        }
     }
 
     #[Test]
-    #[TestDox('Rejects an email longer than 254 characters with InvalidEmailAddress.')]
+    #[TestDox('Rejects an over-254-char email; exception message does not echo the input.')]
     public function rejects_overlong(): void
     {
-        $this->expectException(InvalidEmailAddress::class);
+        $input = str_repeat('a', 250) . '@e.io';
 
-        EmailAddress::of(str_repeat('a', 250) . '@e.io');
+        try {
+            EmailAddress::of($input);
+            self::fail('Expected InvalidEmailAddress.');
+        } catch (InvalidEmailAddress $e) {
+            self::assertStringNotContainsString($input, $e->getMessage());
+        }
     }
 
     #[Test]

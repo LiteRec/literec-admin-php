@@ -14,6 +14,7 @@ use App\Households\Domain\Event\MemberReactivated;
 use App\Households\Domain\Event\MemberRemovedFromHousehold;
 use App\Households\Domain\Event\MemberResidencyChanged;
 use App\Households\Domain\Exception\DuplicateMemberCode;
+use App\Households\Domain\Exception\DuplicateMemberId;
 use App\Households\Domain\Exception\MemberNotFound;
 use App\Households\Domain\ValueObject\Address;
 use App\Households\Domain\ValueObject\DateOfBirth;
@@ -114,11 +115,19 @@ final class Household
     }
 
     /**
+     * Returns a defensive copy: each {@see HouseholdMember} is cloned so
+     * callers cannot mutate the aggregate's internal members through their
+     * (public-for-aggregate-use-only) state-change methods. All real
+     * mutations must flow through Household's intention-revealing methods.
+     *
      * @return list<HouseholdMember>
      */
     public function members(): array
     {
-        return $this->members;
+        return array_map(
+            static fn(HouseholdMember $m): HouseholdMember => clone $m,
+            $this->members,
+        );
     }
 
     public function registeredAt(): DateTimeImmutable
@@ -139,6 +148,9 @@ final class Household
         ClockInterface $clock,
     ): void {
         foreach ($this->members as $existing) {
+            if ($existing->id()->equals($memberId)) {
+                throw DuplicateMemberId::for($memberId);
+            }
             if ($existing->code()->equals($memberCode)) {
                 throw DuplicateMemberCode::for($memberCode);
             }

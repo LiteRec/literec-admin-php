@@ -13,8 +13,14 @@ final class InvalidDateOfBirth extends DomainException implements HouseholdsDoma
         return new self('A date of birth must not be in the future.');
     }
 
+    /**
+     * @param string $value Not embedded in the message — date-of-birth input
+     *                      is PII even when malformed.
+     */
     public static function malformed(string $value): self
     {
-        return new self(sprintf('"%s" is not a parseable date string.', $value));
+        unset($value);
+
+        return new self('The provided value is not a parseable date string.');
     }
 }

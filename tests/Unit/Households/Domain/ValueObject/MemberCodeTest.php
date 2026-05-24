@@ -47,21 +47,29 @@ final class MemberCodeTest extends TestCase
     #[TestWith(['has space'])]
     #[TestWith(['bad/slash'])]
     #[TestWith(['bad.dot'])]
-    #[TestDox('Rejects codes containing characters outside [A-Za-z0-9_-].')]
+    #[TestDox('Rejects codes with characters outside [A-Za-z0-9_-]; message does not echo the raw input.')]
     public function rejects_illegal_characters(string $input): void
     {
-        $this->expectException(InvalidMemberCode::class);
-
-        MemberCode::of($input);
+        try {
+            MemberCode::of($input);
+            self::fail('Expected InvalidMemberCode.');
+        } catch (InvalidMemberCode $e) {
+            self::assertStringNotContainsString($input, $e->getMessage());
+        }
     }
 
     #[Test]
-    #[TestDox('Rejects codes longer than 32 characters.')]
+    #[TestDox('Rejects codes longer than 32 characters; message does not echo the raw input.')]
     public function rejects_overlong(): void
     {
-        $this->expectException(InvalidMemberCode::class);
+        $input = str_repeat('a', 33);
 
-        MemberCode::of(str_repeat('a', 33));
+        try {
+            MemberCode::of($input);
+            self::fail('Expected InvalidMemberCode.');
+        } catch (InvalidMemberCode $e) {
+            self::assertStringNotContainsString($input, $e->getMessage());
+        }
     }
 
     #[Test]
