@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Households\Domain\ValueObject;
 
 use App\Households\Domain\Exception\InvalidDateOfBirth;
+use DateMalformedStringException;
 use DateTimeImmutable;
-use Exception;
 use Psr\Clock\ClockInterface;
 
 /**
@@ -65,7 +65,7 @@ final readonly class DateOfBirth
     {
         try {
             return new DateTimeImmutable($iso);
-        } catch (Exception) {
+        } catch (DateMalformedStringException) {
             throw InvalidDateOfBirth::malformed($iso);
         }
     }
