@@ -50,6 +50,9 @@ services:
             - '../src/Households/Application/Command/UpdateHouseholdAddress.php'
             - '../src/Households/Application/Command/ChangeMemberResidency.php'
             - '../src/Households/Application/Command/DeactivateMember.php'
+            - '../src/Households/Application/Query/Port/'
+            - '../src/Households/Application/Query/SearchMembers.php'
+            - '../src/Households/Application/Query/GetMemberDetail.php'
             - '../src/Kernel.php'
 
     # add more service definitions when explicit configuration is needed
@@ -69,6 +72,12 @@ services:
     App\Households\Domain\IdentityGenerator: '@App\Households\Infrastructure\Identity\Uuid7IdentityGenerator'
     App\Households\Domain\Households: '@App\Households\Infrastructure\Persistence\Doctrine\DoctrineHouseholds'
     App\Households\Domain\MemberCodeAllocator: '@App\Households\Infrastructure\Persistence\Doctrine\DoctrineMemberCodeAllocator'
+
+    # Bind the Households read-model port (LRA-38) to its Doctrine adapter.
+    # The adapter uses the DBAL Connection rather than the EntityManager;
+    # read paths never pay UnitOfWork costs and the projection shape can
+    # evolve independently of the aggregate.
+    App\Households\Application\Query\Port\MemberReadModel: '@App\Households\Infrastructure\Persistence\Doctrine\Read\DoctrineMemberReadModel'
 
     # Inject the command bus into the SecurityUserProvider so the password
     # upgrader can dispatch a ChangeUserPassword command.
@@ -110,4 +119,10 @@ when@test:
             public: true
         households.in_memory_member_code_allocator:
             alias: App\Households\Infrastructure\Persistence\InMemory\InMemoryMemberCodeAllocator
+            public: true
+        App\Households\Application\Query\Port\MemberReadModel:
+            alias: App\Households\Infrastructure\Persistence\Doctrine\Read\DoctrineMemberReadModel
+            public: true
+        households.in_memory_read_model:
+            alias: App\Households\Infrastructure\Persistence\InMemory\InMemoryMemberReadModel
             public: true
