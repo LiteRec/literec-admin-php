@@ -151,6 +151,33 @@ final class MemberLookupControllerTest extends WebTestCase
         self::assertSame(self::A_PRIMARY_CODE, $row->attr('data-code'));
     }
 
+    #[Test]
+    #[TestDox('When both `code` and `memberCode` are sent, `code` wins (documented alias precedence).')]
+    public function lookup_prefers_code_over_memberCode_when_both_present(): void
+    {
+        $client = static::createClient();
+        $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
+        $this->seedTwoHouseholds();
+
+        // memberCode points at A's primary; code points at B's primary.
+        // The controller documents `code` as the winner.
+        $client->request(
+            'GET',
+            sprintf(
+                '/admin/users/_lookup?memberCode=%s&code=%s',
+                self::A_PRIMARY_CODE,
+                self::B_PRIMARY_CODE,
+            ),
+        );
+
+        self::assertResponseIsSuccessful();
+        $body = (string) $client->getResponse()->getContent();
+
+        // B (the `code` value) is present; A (the `memberCode` value) is not.
+        self::assertStringContainsString('member-lookup-row-' . self::B_PRIMARY_ID, $body);
+        self::assertStringNotContainsString('member-lookup-row-' . self::A_PRIMARY_ID, $body);
+    }
+
     private function seedTwoHouseholds(): void
     {
         $repo = static::getContainer()->get(Households::class);
