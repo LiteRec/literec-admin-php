@@ -91,6 +91,7 @@ final class Version20260524175153 extends AbstractMigration
             )
         SQL);
         $this->addSql('CREATE INDEX IDX_household_residency_history_member ON household_residency_history (member_id)');
+        $this->addSql('CREATE INDEX IDX_household_residency_history_household ON household_residency_history (household_id)');
 
         $this->addSql('CREATE SEQUENCE household_member_code_seq START WITH 1 INCREMENT BY 1');
     }

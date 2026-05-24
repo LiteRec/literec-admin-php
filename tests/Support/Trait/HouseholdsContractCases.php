@@ -100,7 +100,7 @@ trait HouseholdsContractCases
     }
 
     #[Test]
-    #[TestDox('findByMemberId(): returns the parent household for a known member id.')]
+    #[TestDox('findByMemberId(): returns the parent household, fully hydrated, for a known member id.')]
     public function find_by_member_id_returns_parent_household(): void
     {
         $household = $this->buildHouseholdWithTwoMembers();
@@ -111,6 +111,16 @@ trait HouseholdsContractCases
         );
 
         self::assertSame(self::HOUSEHOLD_ID, $loaded->id()->value);
+
+        $loadedMemberIds = array_map(
+            static fn($m): string => $m->id()->value,
+            $loaded->members(),
+        );
+        sort($loadedMemberIds);
+        $expected = [self::PRIMARY_MEMBER_ID, self::SECOND_MEMBER_ID];
+        sort($expected);
+        self::assertCount(2, $loadedMemberIds);
+        self::assertSame($expected, $loadedMemberIds);
     }
 
     #[Test]
@@ -125,7 +135,7 @@ trait HouseholdsContractCases
     }
 
     #[Test]
-    #[TestDox('findByMemberCode(): returns the parent household for a known member code.')]
+    #[TestDox('findByMemberCode(): returns the parent household, fully hydrated, for a known member code.')]
     public function find_by_member_code_returns_parent_household(): void
     {
         $household = $this->buildHouseholdWithTwoMembers();
@@ -136,6 +146,16 @@ trait HouseholdsContractCases
         );
 
         self::assertSame(self::HOUSEHOLD_ID, $loaded->id()->value);
+
+        $loadedMemberCodes = array_map(
+            static fn($m): string => $m->code()->value,
+            $loaded->members(),
+        );
+        sort($loadedMemberCodes);
+        $expected = [self::PRIMARY_MEMBER_CODE, self::SECOND_MEMBER_CODE];
+        sort($expected);
+        self::assertCount(2, $loadedMemberCodes);
+        self::assertSame($expected, $loadedMemberCodes);
     }
 
     #[Test]

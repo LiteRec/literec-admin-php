@@ -64,7 +64,7 @@ final class DoctrineHouseholds implements Households
     public function findByMemberId(MemberId $id): Household
     {
         $household = $this->em->createQueryBuilder()
-            ->select('h', 'm')
+            ->select('h')
             ->from(Household::class, 'h')
             ->join('h.members', 'm')
             ->where('m.id = :id')
@@ -83,7 +83,7 @@ final class DoctrineHouseholds implements Households
     public function findByMemberCode(MemberCode $code): Household
     {
         $household = $this->em->createQueryBuilder()
-            ->select('h', 'm')
+            ->select('h')
             ->from(Household::class, 'h')
             ->join('h.members', 'm')
             ->where('m.code = :code')
