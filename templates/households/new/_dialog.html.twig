@@ -1,0 +1,81 @@
+{# HTMX fragment: Register Household dialog (LRA-40).
+
+   Server returns this fragment via either:
+     - GET  /admin/users/new            — initial render
+     - POST /admin/users/new (422)      — re-render on validation failure
+
+   On success the POST endpoint returns 200 with HX-Redirect: HTMX performs
+   a hard navigation to /admin/users/{householdId}/{memberId} so the dialog
+   never has to reconcile partial DOM after a write. #}
+{% set body %}
+    <form
+        id="register-household-form"
+        method="post"
+        action="{{ path('households_new_submit') }}"
+        hx-post="{{ path('households_new_submit') }}"
+        hx-target="closest .modal-root"
+        hx-swap="outerHTML"
+        novalidate
+    >
+        {% if form.vars.errors|length > 0 %}
+            <div
+                role="alert"
+                data-testid="form-error"
+                class="mb-4 rounded-md border border-danger/30 bg-danger/10 p-3 text-sm font-semibold text-danger"
+            >
+                {{ form_errors(form) }}
+            </div>
+        {% endif %}
+
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {{ form_row(form.householdName, { attr: { class: 'litrec-input' } }) }}
+            {{ form_row(form.memberCode, { attr: { class: 'litrec-input' } }) }}
+            {{ form_row(form.firstName, { attr: { class: 'litrec-input' } }) }}
+            {{ form_row(form.lastName, { attr: { class: 'litrec-input' } }) }}
+            {{ form_row(form.middleName, { attr: { class: 'litrec-input' } }) }}
+            {{ form_row(form.suffix, { attr: { class: 'litrec-input' } }) }}
+            {{ form_row(form.dobIso, { attr: { class: 'litrec-input' } }) }}
+            {{ form_row(form.genderCode, { attr: { class: 'litrec-input' } }) }}
+            {{ form_row(form.email, { attr: { class: 'litrec-input' } }) }}
+            {{ form_row(form.phone, { attr: { class: 'litrec-input' } }) }}
+            {{ form_row(form.residencyStatusCode, { attr: { class: 'litrec-input' } }) }}
+        </div>
+
+        <fieldset class="mt-6 border-t border-litrec-border pt-4">
+            <legend class="text-sm font-semibold text-litrec-text">Household address</legend>
+            <div class="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {{ form_row(form.street, { attr: { class: 'litrec-input' } }) }}
+                {{ form_row(form.unit, { attr: { class: 'litrec-input' } }) }}
+                {{ form_row(form.city, { attr: { class: 'litrec-input' } }) }}
+                {{ form_row(form.state, { attr: { class: 'litrec-input' } }) }}
+                {{ form_row(form.postalCode, { attr: { class: 'litrec-input' } }) }}
+                {{ form_row(form.country, { attr: { class: 'litrec-input' } }) }}
+            </div>
+        </fieldset>
+
+        {{ form_widget(form._token) }}
+
+        <div class="mt-6 flex items-center justify-end gap-2">
+            <button
+                type="button"
+                class="rounded-md border border-litrec-border bg-litrec-surface px-4 py-2 text-sm font-semibold text-litrec-text hover:bg-litrec-bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
+                @click="dismiss()"
+            >
+                Cancel
+            </button>
+            <button
+                type="submit"
+                data-testid="register-household-submit"
+                class="rounded-md bg-litrec-primary px-4 py-2 text-sm font-semibold text-litrec-on-primary shadow-sm hover:bg-litrec-primary-strong focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
+            >
+                Create Household
+            </button>
+        </div>
+    </form>
+{% endset %}
+
+{% include 'components/_modal.html.twig' with {
+    id: 'register-household-modal',
+    title: 'New Household',
+    body: body,
+} only %}

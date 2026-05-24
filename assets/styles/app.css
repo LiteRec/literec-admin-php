@@ -196,6 +196,28 @@
     display: none !important;
 }
 
+/* Shared input style used by Symfony form rows in dialogs (LRA-40). The
+   class is applied via {{ form_row(..., { attr: { class: 'litrec-input' } }) }}
+   so every text/email/date input gets the same Tailwind-derived treatment
+   without repeating a dozen utilities in every template. */
+.litrec-input {
+    display: block;
+    width: 100%;
+    margin-top: 0.25rem;
+    border-radius: 0.375rem;
+    border: 1px solid var(--lr-border);
+    background-color: var(--lr-surface);
+    padding: 0.5rem 0.75rem;
+    color: var(--lr-text);
+    font-size: 0.875rem;
+}
+
+.litrec-input:focus {
+    border-color: var(--lr-primary);
+    outline: none;
+    box-shadow: 0 0 0 1px var(--lr-primary);
+}
+
 /* HTMX request indicator — shown only while a request is in flight. */
 .htmx-indicator {
     display: none;

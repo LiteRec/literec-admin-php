@@ -3,18 +3,18 @@
 {% block page_title %}Users{% endblock %}
 
 {% block page_actions %}
-    {# Disabled until LRA-40 ships the dialog. Kept in the DOM (with its
-       data-testid) so functional tests can assert its presence; the
-       disabled attribute + aria-disabled prevent interaction without
-       relying on JavaScript. #}
+    {# LRA-40: opens the Register Household HTMX dialog. The fragment is
+       appended to <body> so it overlays the page; closing the modal removes
+       its root node and focus returns to this button. #}
     <button
         type="button"
         id="js-new-household"
         data-testid="open-new-household"
-        disabled
-        aria-disabled="true"
-        title="Coming soon — wired up in LRA-40."
-        class="cursor-not-allowed rounded-md bg-litrec-primary px-4 py-2 text-sm font-semibold text-litrec-on-primary opacity-60 shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
+        hx-get="{{ path('households_new_form') }}"
+        hx-target="body"
+        hx-swap="beforeend"
+        aria-haspopup="dialog"
+        class="rounded-md bg-litrec-primary px-4 py-2 text-sm font-semibold text-litrec-on-primary shadow-sm hover:bg-litrec-primary-strong focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
     >
         New Household
     </button>
