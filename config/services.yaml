@@ -117,6 +117,14 @@ services:
             $commandBus: '@command.bus'
         tags: ['controller.service_arguments']
 
+    # Wire the MemberLookupController (LRA-46) onto the query bus so its
+    # GET action can dispatch the SearchMembers query for the reusable
+    # Member Lookup dialog.
+    App\Households\Infrastructure\Http\Controller\MemberLookupController:
+        arguments:
+            $queryBus: '@query.bus'
+        tags: ['controller.service_arguments']
+
     # Wire the MemberDetailController (LRA-41 + LRA-43) onto both the query
     # bus (GetMemberDetail) and the command bus (UpdateMemberProfile for the
     # in-card Profile edit flow). The MemberTransactionHistory port (LRA-45)

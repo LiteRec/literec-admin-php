@@ -1,0 +1,197 @@
+{# Reusable Member Lookup dialog (LRA-46).
+
+   Embeds the shared modal shell (`components/_modal.html.twig`) and fills its
+   body with a filter form + an HTMX-swappable results region. Other epics
+   (Memberships, Rentals, Transactions) include this template once on any
+   page that needs to pick a household member, then invoke it programmatically:
+
+       openMemberLookup({
+           onSelected: ({ memberId, householdId, fullName, code }) => { ... }
+       });
+
+   The dialog dispatches a one-shot `member-selected` CustomEvent on `window`
+   with the row payload and then closes itself. `openMemberLookup` subscribes
+   the supplied `onSelected` callback to that event for a single fire and
+   unsubscribes immediately, so callers do not need to manage listeners.
+
+   Accessibility, focus trap, ESC + backdrop close, and focus return to the
+   invoker are all handled by the shared modal shell — this template adds
+   only the lookup-specific UI and behaviour. #}
+
+{% set body %}
+    <form
+        id="member-lookup-form"
+        hx-get="{{ path('member_lookup_search') }}"
+        hx-target="#member-lookup-results"
+        hx-swap="innerHTML"
+        hx-trigger="input changed delay:500ms, change, search"
+        aria-label="Search members"
+    >
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+                <label for="member-lookup-code" class="block text-sm font-medium text-litrec-text">Member code</label>
+                <input
+                    type="text"
+                    id="member-lookup-code"
+                    name="code"
+                    autocomplete="off"
+                    data-testid="member-lookup-input-code"
+                    class="mt-1 block w-full rounded-md border border-litrec-border bg-litrec-surface px-3 py-2 text-litrec-text focus:border-litrec-primary focus:outline-none focus:ring-1 focus:ring-litrec-primary"
+                >
+            </div>
+
+            <div>
+                <label for="member-lookup-lastName" class="block text-sm font-medium text-litrec-text">Last name</label>
+                <input
+                    type="text"
+                    id="member-lookup-lastName"
+                    name="lastName"
+                    autocomplete="off"
+                    data-testid="member-lookup-input-lastName"
+                    class="mt-1 block w-full rounded-md border border-litrec-border bg-litrec-surface px-3 py-2 text-litrec-text focus:border-litrec-primary focus:outline-none focus:ring-1 focus:ring-litrec-primary"
+                >
+            </div>
+
+            <div>
+                <label for="member-lookup-firstName" class="block text-sm font-medium text-litrec-text">First name</label>
+                <input
+                    type="text"
+                    id="member-lookup-firstName"
+                    name="firstName"
+                    autocomplete="off"
+                    data-testid="member-lookup-input-firstName"
+                    class="mt-1 block w-full rounded-md border border-litrec-border bg-litrec-surface px-3 py-2 text-litrec-text focus:border-litrec-primary focus:outline-none focus:ring-1 focus:ring-litrec-primary"
+                >
+            </div>
+
+            <div>
+                <label for="member-lookup-phone" class="block text-sm font-medium text-litrec-text">Phone</label>
+                <input
+                    type="text"
+                    id="member-lookup-phone"
+                    name="phone"
+                    autocomplete="off"
+                    data-testid="member-lookup-input-phone"
+                    class="mt-1 block w-full rounded-md border border-litrec-border bg-litrec-surface px-3 py-2 text-litrec-text focus:border-litrec-primary focus:outline-none focus:ring-1 focus:ring-litrec-primary"
+                >
+            </div>
+
+            <div class="sm:col-span-2">
+                <label for="member-lookup-email" class="block text-sm font-medium text-litrec-text">Email</label>
+                <input
+                    type="email"
+                    id="member-lookup-email"
+                    name="email"
+                    autocomplete="off"
+                    data-testid="member-lookup-input-email"
+                    class="mt-1 block w-full rounded-md border border-litrec-border bg-litrec-surface px-3 py-2 text-litrec-text focus:border-litrec-primary focus:outline-none focus:ring-1 focus:ring-litrec-primary"
+                >
+            </div>
+        </div>
+
+        {# Keyboard fallback for users without JS; HTMX fires on change. #}
+        <button type="submit" class="sr-only">Search</button>
+    </form>
+
+    <div
+        id="member-lookup-results"
+        data-testid="member-lookup-results"
+        class="mt-4"
+    >
+        {# Initial empty state so the dialog isn't bare on first open. The
+           HTMX form swaps real results in once a filter changes. #}
+        <p class="rounded-md border border-dashed border-litrec-border bg-litrec-surface p-4 text-center text-sm text-litrec-text-muted">
+            Enter a search filter to find members.
+        </p>
+    </div>
+
+    <div class="mt-6 flex items-center justify-end gap-2">
+        <button
+            type="button"
+            data-testid="member-lookup-cancel"
+            class="rounded-md border border-litrec-border bg-litrec-surface px-4 py-2 text-sm font-semibold text-litrec-text hover:bg-litrec-bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
+            @click="dismiss()"
+        >
+            Cancel
+        </button>
+    </div>
+{% endset %}
+
+{# Wrap the modal in an x-data island that:
+   1. Controls visibility via an `open` flag (the shared modal still uses
+      `x-show="open"` internally via its own Alpine scope; we control whether
+      this island renders the modal at all using a top-level <template>).
+   2. Exposes window.openMemberLookup({ onSelected }) for callers.
+   3. Listens once for `member-selected` and forwards to the caller's
+      callback before unsubscribing and closing the modal.
+
+   The shared modal removes itself from the DOM on dismiss (see
+   `dismiss()` in _modal.html.twig — it calls `this.$root.remove()`),
+   so we re-render via the Alpine `open` flag rather than relying on the
+   modal staying in the tree. #}
+<div
+    id="member-lookup-host"
+    x-data="memberLookupHost()"
+    @member-lookup-open.window="open()"
+>
+    <template x-if="visible">
+        {% include 'components/_modal.html.twig' with {
+            id: 'member-lookup-modal',
+            title: 'Find a Member',
+            body: body,
+        } only %}
+    </template>
+</div>
+
+<script>
+    // memberLookupHost: Alpine component that manages the dialog visibility
+    // and exposes the global openMemberLookup() hook. Defined inline so the
+    // component template is self-contained (no extra JS build step required
+    // for callers to embed it).
+    if (typeof window.memberLookupHost !== 'function') {
+        window.memberLookupHost = function () {
+            return {
+                visible: false,
+                _activeListener: null,
+                open() {
+                    this.visible = true;
+                },
+                init() {
+                    const self = this;
+                    // Window-level hook so any button on any page can open
+                    // the dialog without needing direct access to this
+                    // Alpine scope.
+                    window.openMemberLookup = function (options) {
+                        options = options || {};
+                        // Subscribe the caller's onSelected callback for
+                        // exactly one fire, then auto-close.
+                        if (self._activeListener) {
+                            window.removeEventListener('member-selected', self._activeListener);
+                            self._activeListener = null;
+                        }
+                        const listener = function (event) {
+                            window.removeEventListener('member-selected', listener);
+                            self._activeListener = null;
+                            self.visible = false;
+                            if (typeof options.onSelected === 'function') {
+                                try {
+                                    options.onSelected(event.detail);
+                                } catch (e) {
+                                    // Caller errors are surfaced via the
+                                    // console; the dialog still closes so
+                                    // the operator is not stuck.
+                                    console.error('openMemberLookup onSelected handler threw', e);
+                                }
+                            }
+                        };
+                        self._activeListener = listener;
+                        window.addEventListener('member-selected', listener);
+                        // Fire the window event that drives the visible flag
+                        // so callers can be wired from anywhere on the page.
+                        window.dispatchEvent(new CustomEvent('member-lookup-open'));
+                    };
+                },
+            };
+        };
+    }
+</script>
