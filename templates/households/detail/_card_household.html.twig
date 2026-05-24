@@ -76,8 +76,10 @@
                                 hx-target="#member-cards-lower"
                                 hx-swap="outerHTML"
                                 hx-push-url="{{ pushUrl }}"
+                                hx-trigger="click, keydown[key==='Enter']"
                                 role="button"
                                 tabindex="0"
+                                onkeydown="if (event.key === ' ') { event.preventDefault(); this.click(); }"
                             >
                                 <td class="px-3 py-2 text-litrec-text">
                                     {{ m.fullName }}
