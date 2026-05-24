@@ -14,6 +14,14 @@ doctrine:
             users_username: App\Users\Infrastructure\Persistence\Doctrine\Type\UsernameType
             users_hashed_password: App\Users\Infrastructure\Persistence\Doctrine\Type\HashedPasswordType
             users_roles: App\Users\Infrastructure\Persistence\Doctrine\Type\RolesType
+            # Custom DBAL types for the Households bounded-context value objects.
+            households_household_id: App\Households\Infrastructure\Persistence\Doctrine\Type\HouseholdIdType
+            households_member_id: App\Households\Infrastructure\Persistence\Doctrine\Type\MemberIdType
+            households_household_name: App\Households\Infrastructure\Persistence\Doctrine\Type\HouseholdNameType
+            households_member_code: App\Households\Infrastructure\Persistence\Doctrine\Type\MemberCodeType
+            households_email_address: App\Households\Infrastructure\Persistence\Doctrine\Type\EmailAddressType
+            households_phone_number: App\Households\Infrastructure\Persistence\Doctrine\Type\PhoneNumberType
+            households_date_of_birth: App\Households\Infrastructure\Persistence\Doctrine\Type\DateOfBirthType
     orm:
         validate_xml_mapping: true
         naming_strategy: doctrine.orm.naming_strategy.underscore
@@ -27,6 +35,12 @@ doctrine:
                 dir: '%kernel.project_dir%/src/Users/Infrastructure/Persistence/Doctrine/Mapping'
                 prefix: 'App\Users\Domain'
                 alias: Users
+            Households:
+                type: xml
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/Households/Infrastructure/Persistence/Doctrine/Mapping'
+                prefix: 'App\Households\Domain'
+                alias: Households
 
 when@test:
     doctrine:

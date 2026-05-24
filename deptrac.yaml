@@ -61,10 +61,19 @@ deptrac:
           collectors:
               - type: classLike
                 value: ^Symfony\\Component\\PasswordHasher\\.*
-        - name: Doctrine
+        - name: DoctrineCollections
           collectors:
               - type: classLike
-                value: ^Doctrine\\.*
+                value: ^Doctrine\\Common\\Collections\\.*
+        - name: Doctrine
+          collectors:
+              - type: bool
+                must:
+                    - type: classLike
+                      value: ^Doctrine\\.*
+                must_not:
+                    - type: layer
+                      value: DoctrineCollections
         - name: Twig
           collectors:
               - type: classLike
@@ -95,11 +104,19 @@ deptrac:
             - SymfonyPasswordHasher
             - PsrClock
             - Doctrine
+            - DoctrineCollections
             - Symfony
         # Households layers. Cross-context dependencies are forbidden:
         # HouseholdsDomain and UsersDomain are independent of each other.
+        # Doctrine\Common\Collections is the one ORM dependency the
+        # domain is allowed to import: the aggregate root holds its
+        # child entities in a typed Collection so the Doctrine
+        # one-to-many mapping can track changes. The library is
+        # intentionally framework-free and is considered a domain
+        # primitive on par with the SPL collection types.
         HouseholdsDomain:
             - PsrClock
+            - DoctrineCollections
         HouseholdsApplication:
             - HouseholdsDomain
             - SymfonyMessenger
@@ -110,6 +127,7 @@ deptrac:
             - SymfonyMessenger
             - PsrClock
             - Doctrine
+            - DoctrineCollections
             - Symfony
         # Legacy now covers only the two root controllers
         # (HomeController, DashboardController) that LRA-13 left in place
@@ -121,6 +139,7 @@ deptrac:
             - Legacy
             - Ui
             - Doctrine
+            - DoctrineCollections
             - Symfony
             - SymfonyPasswordHasher
             - SymfonyMessenger

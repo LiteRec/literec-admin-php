@@ -37,6 +37,7 @@ services:
             - '../src/Users/Application/Command/RegisterUser.php'
             - '../src/Users/Application/Command/ChangeUserPassword.php'
             - '../src/Users/Infrastructure/Persistence/Doctrine/Type/'
+            - '../src/Households/Infrastructure/Persistence/Doctrine/Type/'
             - '../src/Households/Domain/Household.php'
             - '../src/Households/Domain/HouseholdMember.php'
             - '../src/Households/Domain/Event/'
@@ -60,12 +61,14 @@ services:
     # Bind the Users\Domain Users repository port to its Doctrine adapter.
     App\Users\Domain\Users: '@App\Users\Infrastructure\Persistence\Doctrine\DoctrineUsers'
 
-    # Bind the Households\Domain identity port — UUID v7 generation is
-    # production-safe and stays at the top level. The persistence and
-    # member-code allocator ports resolve to in-memory adapters in dev/test
-    # only; LRA-37 introduces the production Doctrine implementations and
-    # adds top-level bindings then.
+    # Bind the Households\Domain ports to their production adapters.
+    # UUID v7 generation is provided by the Uuid7IdentityGenerator; the
+    # repository and member-code allocator are backed by Doctrine and
+    # Postgres respectively (LRA-37). In-memory adapters remain wired
+    # behind named aliases under when@test for contract tests.
     App\Households\Domain\IdentityGenerator: '@App\Households\Infrastructure\Identity\Uuid7IdentityGenerator'
+    App\Households\Domain\Households: '@App\Households\Infrastructure\Persistence\Doctrine\DoctrineHouseholds'
+    App\Households\Domain\MemberCodeAllocator: '@App\Households\Infrastructure\Persistence\Doctrine\DoctrineMemberCodeAllocator'
 
     # Inject the command bus into the SecurityUserProvider so the password
     # upgrader can dispatch a ChangeUserPassword command.
@@ -79,20 +82,12 @@ services:
             $selectedFacility: '%app.selected_facility_mock%'
             $buildVersion: '%app.build_version%'
 
-# Households persistence + member-code allocator are still in-memory
-# placeholders pending LRA-37's Doctrine adapters. Wire them in dev/test
-# only so a production cache:warmup explicitly fails until the real
-# adapters land instead of silently booting on a non-durable backing.
-when@dev:
-    services:
-        App\Households\Domain\Households:
-            alias: App\Households\Infrastructure\Persistence\InMemory\InMemoryHouseholds
-        App\Households\Domain\MemberCodeAllocator:
-            alias: App\Households\Infrastructure\Persistence\InMemory\InMemoryMemberCodeAllocator
-
 # Expose select context aliases to the test container so integration tests
 # can fetch them via static::getContainer()->get(...) without making them
-# public in production.
+# public in production. The Households repository and member-code
+# allocator are the Doctrine adapters (DAMA wraps each test in a
+# transaction); the InMemory adapters are still wired behind named
+# aliases so the shared contract test can target them deliberately.
 when@test:
     services:
         App\Users\Domain\IdentityGenerator:
@@ -101,12 +96,18 @@ when@test:
         App\Users\Domain\Users:
             alias: App\Users\Infrastructure\Persistence\Doctrine\DoctrineUsers
             public: true
-        App\Households\Domain\Households:
-            alias: App\Households\Infrastructure\Persistence\InMemory\InMemoryHouseholds
-            public: true
         App\Households\Domain\IdentityGenerator:
             alias: App\Households\Infrastructure\Identity\Uuid7IdentityGenerator
             public: true
+        App\Households\Domain\Households:
+            alias: App\Households\Infrastructure\Persistence\Doctrine\DoctrineHouseholds
+            public: true
         App\Households\Domain\MemberCodeAllocator:
+            alias: App\Households\Infrastructure\Persistence\Doctrine\DoctrineMemberCodeAllocator
+            public: true
+        households.in_memory_repository:
+            alias: App\Households\Infrastructure\Persistence\InMemory\InMemoryHouseholds
+            public: true
+        households.in_memory_member_code_allocator:
             alias: App\Households\Infrastructure\Persistence\InMemory\InMemoryMemberCodeAllocator
             public: true

@@ -36,6 +36,19 @@ final class HouseholdMember
     private bool $isActive;
     private ?string $deactivatedReason;
     private ?DateTimeImmutable $deactivatedAt;
+    /**
+     * Back-reference to the owning {@see Household}. Required by the
+     * Doctrine persistence mapping (many-to-one inverse) so that adding a
+     * member to a household persists the FK without a second flush. Set
+     * once by {@see Household::register()} / {@see Household::addMember()}
+     * via {@see self::attachToHousehold()} and never reassigned. The
+     * property is left uninitialized rather than nullable because the
+     * Doctrine many-to-one mapping is declared non-nullable; a
+     * HouseholdMember without an owning household is a programming error
+     * and surfaces immediately as a property-access error rather than as
+     * a silent NULL.
+     */
+    private Household $household;
 
     /**
      * Internal-to-aggregate constructor. Use {@see Household::register()} or
@@ -185,5 +198,26 @@ final class HouseholdMember
         $this->isActive = true;
         $this->deactivatedReason = null;
         $this->deactivatedAt = null;
+    }
+
+    /**
+     * @internal Called by {@see Household::register()} and
+     *           {@see Household::addMember()} to link a freshly-constructed
+     *           member to its owning aggregate so the Doctrine many-to-one
+     *           FK persists on flush. Idempotent: re-attaching to the same
+     *           household is a no-op; attaching to a different one is a
+     *           programming error.
+     */
+    public function attachToHousehold(Household $household): void
+    {
+        if (isset($this->household)) {
+            if ($this->household === $household) {
+                return;
+            }
+            throw new \LogicException(
+                'HouseholdMember is already attached to a different Household.',
+            );
+        }
+        $this->household = $household;
     }
 }
