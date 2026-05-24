@@ -57,6 +57,11 @@ services:
             - '../src/Households/Application/Query/Port/'
             - '../src/Households/Application/Query/SearchMembers.php'
             - '../src/Households/Application/Query/GetMemberDetail.php'
+            # LRA-45: Application/Port carries the read-side ACL port for
+            # member transaction history and its DTO/enum types. The port
+            # interface is bound explicitly below; the DTOs must not be
+            # auto-registered as services.
+            - '../src/Households/Application/Port/'
             - '../src/Kernel.php'
 
     # add more service definitions when explicit configuration is needed
@@ -83,6 +88,13 @@ services:
     # evolve independently of the aggregate.
     App\Households\Application\Query\Port\MemberReadModel: '@App\Households\Infrastructure\Persistence\Doctrine\Read\DoctrineMemberReadModel'
 
+    # LRA-45: bind the read-side ACL port for member transaction history
+    # to the stub adapter. The real Transactions bounded context does not
+    # exist yet; when it lands, a future ticket will replace this binding
+    # with the production adapter without touching the controller or
+    # template that consume the port.
+    App\Households\Application\Port\MemberTransactionHistory: '@App\Households\Infrastructure\Acl\Stub\StubMemberTransactionHistory'
+
     # Inject the command bus into the SecurityUserProvider so the password
     # upgrader can dispatch a ChangeUserPassword command.
     App\Users\Infrastructure\Security\SecurityUserProvider:
@@ -107,7 +119,9 @@ services:
 
     # Wire the MemberDetailController (LRA-41 + LRA-43) onto both the query
     # bus (GetMemberDetail) and the command bus (UpdateMemberProfile for the
-    # in-card Profile edit flow).
+    # in-card Profile edit flow). The MemberTransactionHistory port (LRA-45)
+    # is autowired by interface and resolves to the Stub adapter via the
+    # binding above.
     App\Households\Infrastructure\Http\Controller\MemberDetailController:
         arguments:
             $queryBus: '@query.bus'
@@ -155,4 +169,7 @@ when@test:
             public: true
         households.in_memory_read_model:
             alias: App\Households\Infrastructure\Persistence\InMemory\InMemoryMemberReadModel
+            public: true
+        App\Households\Application\Port\MemberTransactionHistory:
+            alias: App\Households\Infrastructure\Acl\Stub\StubMemberTransactionHistory
             public: true

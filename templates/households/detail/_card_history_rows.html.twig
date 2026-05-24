@@ -1,0 +1,92 @@
+{# Transaction History rows fragment (LRA-45).
+
+   Returns one of two shapes depending on `page.page`:
+
+   - page.page == 1: the full body — either the empty-state, or a
+     <div id="card-history-body"> wrapping a <table> with header, the
+     page-1 rows, and an optional "Load more" placeholder row at the
+     end. This is what replaces the lazy-load shim in _card_history.
+
+   - page.page  > 1: a bare sequence of <tr> rows followed (when more
+     pages remain) by the "Load more" placeholder row. The bag of <tr>
+     elements replaces the previous "Load more" row via HTMX
+     `hx-swap="outerHTML"`, so the rows slot into the existing <tbody>
+     and the new "Load more" placeholder ends up at the bottom — no
+     extra <thead> ever appears.
+
+   The "Load more" button is wrapped in its own <tr class="js-history-loadmore">
+   so HTMX `outerHTML` against that <tr> drops in the next page's <tr>s
+   plus a fresh placeholder. When `page.hasMore` is false, no placeholder
+   is emitted and the button simply disappears.
+
+   Expects:
+     - householdId: string (UUID v7)
+     - memberId:    string (UUID v7)
+     - page:        App\Households\Application\Port\MemberTransactionPage
+#}
+{% set kindBadgeMap = {
+    'SALE':       'bg-blue-100 text-blue-800',
+    'REFUND':     'bg-red-100 text-red-800',
+    'ADJUSTMENT': 'bg-gray-200 text-gray-800',
+    'MEMBERSHIP': 'bg-purple-100 text-purple-800',
+} %}
+
+{% if page.page == 1 %}
+    <div
+        id="card-history-body"
+        data-testid="card-history-body"
+        class="text-sm"
+    >
+        {% if page.items is empty %}
+            <p data-testid="history-empty-state" class="italic text-litrec-text-muted">
+                No transactions on file.
+            </p>
+        {% else %}
+            <div class="overflow-x-auto rounded-md border border-litrec-border">
+                <table data-testid="history-table" class="min-w-full divide-y divide-litrec-border text-sm">
+                    <thead class="bg-litrec-bg-muted text-left text-xs font-semibold uppercase tracking-wider text-litrec-text-muted">
+                        <tr>
+                            <th scope="col" class="px-3 py-2">Date</th>
+                            <th scope="col" class="px-3 py-2">Kind</th>
+                            <th scope="col" class="px-3 py-2">Description</th>
+                            <th scope="col" class="px-3 py-2 text-right">Amount</th>
+                            <th scope="col" class="px-3 py-2">Status</th>
+                            <th scope="col" class="px-3 py-2">Payment method</th>
+                        </tr>
+                    </thead>
+                    <tbody data-testid="history-tbody" class="divide-y divide-litrec-border">
+                        {% for row in page.items %}
+                            {% include 'households/detail/_card_history_row.html.twig' with {
+                                row: row,
+                                kindBadgeMap: kindBadgeMap,
+                            } only %}
+                        {% endfor %}
+                        {% if page.hasMore %}
+                            {% include 'households/detail/_card_history_loadmore.html.twig' with {
+                                householdId: householdId,
+                                memberId: memberId,
+                                nextPage: page.page + 1,
+                                pageSize: page.pageSize,
+                            } only %}
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+    </div>
+{% else %}
+    {% for row in page.items %}
+        {% include 'households/detail/_card_history_row.html.twig' with {
+            row: row,
+            kindBadgeMap: kindBadgeMap,
+        } only %}
+    {% endfor %}
+    {% if page.hasMore %}
+        {% include 'households/detail/_card_history_loadmore.html.twig' with {
+            householdId: householdId,
+            memberId: memberId,
+            nextPage: page.page + 1,
+            pageSize: page.pageSize,
+        } only %}
+    {% endif %}
+{% endif %}

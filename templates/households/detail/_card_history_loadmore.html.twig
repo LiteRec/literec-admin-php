@@ -1,0 +1,32 @@
+{# "Load more" placeholder row for the Transaction History card (LRA-45).
+
+   Wrapped in a <tr> so its `outerHTML` HTMX swap drops in valid table
+   structure (a sequence of <tr> rows plus a fresh placeholder). The
+   button's hx-target is the parent <tr>, not the button itself, so the
+   replacement happens at the row level.
+
+   Expects:
+     - householdId: string
+     - memberId:    string
+     - nextPage:    int
+     - pageSize:    int
+#}
+<tr class="js-history-loadmore" data-testid="history-loadmore-row">
+    <td colspan="6" class="px-3 py-3 text-center">
+        <button
+            type="button"
+            data-testid="history-loadmore"
+            hx-get="{{ path('member_history_page', {
+                householdId: householdId,
+                memberId: memberId,
+                page: nextPage,
+                pageSize: pageSize,
+            }) }}"
+            hx-target="closest tr"
+            hx-swap="outerHTML"
+            class="rounded-md border border-litrec-border bg-litrec-surface px-3 py-1.5 text-xs font-semibold text-litrec-text hover:bg-litrec-bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
+        >
+            Load more
+        </button>
+    </td>
+</tr>

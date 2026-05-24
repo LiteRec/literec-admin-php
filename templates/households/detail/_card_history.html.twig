@@ -1,6 +1,16 @@
-{# Placeholder for the Transaction History card (LRA-45). See
-   _card_household.html.twig for the URL-hash collapse-state contract;
-   this partial binds the `cards.history` key.
+{# Transaction History card (LRA-45). See _card_household.html.twig for the
+   URL-hash collapse-state contract; this partial binds the `cards.history`
+   key.
+
+   The card body is lazy-loaded: nothing fetches on initial page render. The
+   first time the user expands the <details>, an HTMX `toggle` trigger
+   (scoped `once`) fires a GET against `member_history_page` and swaps the
+   shim div with the page-1 fragment. Subsequent expand/collapse cycles
+   do nothing — the rows stay in the DOM and the collapse chrome just
+   shows/hides them.
+
+   The "Load more" button inside the fragment owns its own append
+   lifecycle (see _card_history_rows.html.twig).
 
    Expects:
      - detail: App\Households\Application\Query\Port\MemberDetail
@@ -18,8 +28,21 @@
             <span>Transaction History</span>
             <span aria-hidden="true" class="text-xs transition-transform group-open:rotate-180">▾</span>
         </summary>
-        <div class="border-t border-litrec-border px-5 py-4 text-sm text-litrec-text-muted">
-            Coming in LRA-45.
+        <div class="border-t border-litrec-border px-5 py-4">
+            <div
+                id="card-history-body"
+                data-testid="card-history-body"
+                hx-get="{{ path('member_history_page', {
+                    householdId: detail.household.householdId,
+                    memberId: detail.profile.memberId,
+                }) }}"
+                hx-trigger="toggle once from:closest details"
+                hx-swap="outerHTML"
+                hx-target="this"
+                class="text-sm text-litrec-text-muted"
+            >
+                <p data-testid="history-lazy-shim" class="italic">Transactions will load when this section is opened.</p>
+            </div>
         </div>
     </details>
 </div>
