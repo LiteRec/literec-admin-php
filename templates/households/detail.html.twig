@@ -67,16 +67,19 @@
         </div>
     </header>
 
-    {# Page-level Alpine state: parses the URL hash into a per-card open map
-       and writes it back whenever a card toggles. The default is "all open"
-       so a fresh navigation (no hash) shows every section expanded. #}
+    {# Page-level Alpine state: parses the URL hash into a per-card open
+       map and writes it back whenever a card toggles. Defaults: household
+       / profile / address open; history closed (LRA-45 lazy-loads it on
+       first expand and `toggle once from:closest details` cannot fire
+       when the <details> renders already open). The hash can explicitly
+       reopen history with `#history=open`. #}
     <div
         id="member-cards"
         data-testid="member-cards"
         class="grid grid-cols-1 gap-6 lg:grid-cols-2"
         x-data="{
             cards: (() => {
-                const defaults = { household: true, profile: true, address: true, history: true };
+                const defaults = { household: true, profile: true, address: true, history: false };
                 const hash = (window.location.hash || '').replace(/^#/, '');
                 if (hash === '') { return defaults; }
                 hash.split('&').forEach(pair => {
