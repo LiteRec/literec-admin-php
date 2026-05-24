@@ -1,0 +1,25 @@
+{# Placeholder for the Address & Residency card (LRA-44). See
+   _card_household.html.twig for the URL-hash collapse-state contract;
+   this partial binds the `cards.address` key.
+
+   Expects:
+     - detail: App\Households\Application\Query\Port\MemberDetail
+#}
+<div class="rounded-card border border-litrec-border bg-litrec-surface shadow-card">
+    <details
+        class="group"
+        :open="cards.address"
+        @toggle="cards.address = $event.target.open; syncHash()"
+    >
+        <summary
+            class="flex cursor-pointer list-none items-center justify-between gap-2 px-5 py-3 text-sm font-semibold uppercase tracking-wide text-litrec-text-muted"
+            :aria-expanded="cards.address.toString()"
+        >
+            <span>Address &amp; Residency</span>
+            <span aria-hidden="true" class="text-xs transition-transform group-open:rotate-180">▾</span>
+        </summary>
+        <div class="border-t border-litrec-border px-5 py-4 text-sm text-litrec-text-muted">
+            Coming in LRA-44.
+        </div>
+    </details>
+</div>

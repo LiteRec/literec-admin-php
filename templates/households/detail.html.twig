@@ -1,0 +1,111 @@
+{# Member detail page composite shell (LRA-41).
+
+   Hosts four card slots that are filled in by subsequent tickets:
+     - card-household  (LRA-42)
+     - card-profile    (LRA-43)
+     - card-address    (LRA-44)
+     - card-history    (LRA-45)
+
+   URL-hash collapse state
+   -----------------------
+   The page-level Alpine component on the cards wrapper parses the URL hash
+   into a map of `{ household: bool, profile: bool, address: bool, history: bool }`
+   on load, and writes the map back to the hash on every <details> toggle.
+   Hash format: `#household=open&profile=closed&address=open&history=open`.
+   Missing keys default to `open`, so a fresh page (no hash) shows everything
+   expanded. LRA-42–45 read/write the same map when adding card-specific
+   widgets.
+
+   Expects:
+     - detail: App\Households\Application\Query\Port\MemberDetail
+#}
+{% extends 'app.html.twig' %}
+
+{% block page_title %}{{ detail.profile.fullName }}{% endblock %}
+
+{% block page_body %}
+    {% include 'components/_breadcrumbs.html.twig' with {
+        trail: [
+            { label: 'Home', route: 'app_dashboard' },
+            { label: 'Users', route: 'users_index' },
+            { label: detail.household.householdName, route: null },
+            { label: detail.profile.fullName, route: null },
+        ],
+    } only %}
+
+    <header
+        data-testid="member-header"
+        class="mb-6 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 border-b border-litrec-border pb-4"
+    >
+        <div>
+            <h2 class="text-2xl font-bold text-litrec-text">{{ detail.profile.fullName }}</h2>
+            <p class="mt-1 text-sm text-litrec-text-muted">{{ detail.household.householdName }}</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+            {% if detail.profile.isActive %}
+                <span
+                    data-testid="badge-active"
+                    class="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-800"
+                >Active</span>
+            {% else %}
+                <span
+                    data-testid="badge-deactivated"
+                    class="inline-flex items-center rounded-full bg-gray-200 px-2 py-0.5 text-xs font-semibold text-gray-700"
+                >Deactivated</span>
+            {% endif %}
+            {% if detail.profile.isPrimary %}
+                <span
+                    data-testid="badge-primary"
+                    class="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-800"
+                >Primary</span>
+            {% else %}
+                <span
+                    data-testid="badge-secondary"
+                    class="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-700"
+                >Secondary</span>
+            {% endif %}
+        </div>
+    </header>
+
+    {# Page-level Alpine state: parses the URL hash into a per-card open map
+       and writes it back whenever a card toggles. The default is "all open"
+       so a fresh navigation (no hash) shows every section expanded. #}
+    <div
+        id="member-cards"
+        data-testid="member-cards"
+        class="grid grid-cols-1 gap-6 lg:grid-cols-2"
+        x-data="{
+            cards: (() => {
+                const defaults = { household: true, profile: true, address: true, history: true };
+                const hash = (window.location.hash || '').replace(/^#/, '');
+                if (hash === '') { return defaults; }
+                hash.split('&').forEach(pair => {
+                    const [key, value] = pair.split('=');
+                    if (key in defaults) {
+                        defaults[key] = value !== 'closed';
+                    }
+                });
+                return defaults;
+            })(),
+            syncHash() {
+                const parts = Object.entries(this.cards).map(
+                    ([key, open]) => key + '=' + (open ? 'open' : 'closed')
+                );
+                history.replaceState(null, '', '#' + parts.join('&'));
+            },
+        }"
+    >
+        <section data-testid="card-household">
+            {% include 'households/detail/_card_household.html.twig' with { detail: detail } only %}
+        </section>
+        <section data-testid="card-profile">
+            {% include 'households/detail/_card_profile.html.twig' with { detail: detail } only %}
+        </section>
+        <section data-testid="card-address">
+            {% include 'households/detail/_card_address.html.twig' with { detail: detail } only %}
+        </section>
+        <section data-testid="card-history" class="lg:col-span-2">
+            {% include 'households/detail/_card_history.html.twig' with { detail: detail } only %}
+        </section>
+    </div>
+{% endblock %}

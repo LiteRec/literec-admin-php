@@ -272,7 +272,10 @@ final class AddHouseholdController extends AbstractController
 
     private function hxRedirectTo(HouseholdId $householdId, MemberId $memberId): Response
     {
-        $target = sprintf('/admin/users/%s/%s', $householdId->value, $memberId->value);
+        $target = $this->generateUrl('member_detail', [
+            'householdId' => $householdId->value,
+            'memberId'    => $memberId->value,
+        ]);
 
         $response = new Response(null, Response::HTTP_OK);
         $response->headers->set('HX-Redirect', $target);
