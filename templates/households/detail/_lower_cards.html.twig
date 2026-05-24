@@ -1,0 +1,24 @@
+{# Wraps the three lower card slots (Profile, Address & Residency,
+   Transaction History) for the member detail page. Rendered both as part
+   of the full page (via detail.html.twig) and as the HTMX swap target of
+   the Household card's row-click handler (LRA-42).
+
+   The outer wrapper `#member-cards-lower` is the swap target; HTMX
+   replaces the whole element via `hx-swap="outerHTML"` and the lower
+   cards re-render against the new MemberDetail payload, while the
+   Household card itself stays in the DOM.
+
+   Expects:
+     - detail: App\Households\Application\Query\Port\MemberDetail
+#}
+<div id="member-cards-lower" data-testid="member-cards-lower" class="contents">
+    <section data-testid="card-profile">
+        {% include 'households/detail/_card_profile.html.twig' with { detail: detail } only %}
+    </section>
+    <section data-testid="card-address">
+        {% include 'households/detail/_card_address.html.twig' with { detail: detail } only %}
+    </section>
+    <section data-testid="card-history" class="lg:col-span-2">
+        {% include 'households/detail/_card_history.html.twig' with { detail: detail } only %}
+    </section>
+</div>

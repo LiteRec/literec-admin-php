@@ -233,6 +233,65 @@ trait MemberReadModelContractCases
         self::assertSame('US', $detail->address->country);
 
         self::assertSame(ResidencyStatus::Resident->value, $detail->residency->status);
+
+        // Household roster (LRA-42): every member of Household A appears,
+        // sorted by lastName / firstName / id ASC to match the list page.
+        self::assertCount(3, $detail->householdMembers);
+        $codes = array_map(
+            static fn($item): string => $item->memberCode,
+            $detail->householdMembers,
+        );
+        self::assertSame(
+            [
+                self::A_SECOND_CODE,   // Bob Brown
+                self::A_PRIMARY_CODE,  // Alice Smith
+                self::A_THIRD_CODE,    // Eli Underwood
+            ],
+            $codes,
+        );
+        // Active member is included in the roster.
+        $rosterIds = array_map(
+            static fn($item): string => $item->memberId,
+            $detail->householdMembers,
+        );
+        self::assertContains(self::A_PRIMARY_ID, $rosterIds);
+        // Primary flag is preserved per-row.
+        foreach ($detail->householdMembers as $item) {
+            self::assertSame(
+                $item->memberId === self::A_PRIMARY_ID,
+                $item->isPrimary,
+                sprintf('Expected isPrimary mismatch for member %s.', $item->memberId),
+            );
+        }
+    }
+
+    #[Test]
+    #[TestDox('memberDetail(): householdMembers contains deactivated members so the Household card can dim them.')]
+    public function member_detail_household_members_includes_deactivated(): void
+    {
+        $household = $this->buildHouseholdA();
+        $household->deactivateMember(
+            MemberId::fromString(self::A_THIRD_ID),
+            'left the household',
+            $this->clock(),
+        );
+        $this->seedHouseholds([$household]);
+
+        $detail = $this->readModel()->memberDetail(
+            HouseholdId::fromString(self::HOUSEHOLD_A),
+            MemberId::fromString(self::A_PRIMARY_ID),
+        );
+
+        self::assertCount(3, $detail->householdMembers);
+        $deactivated = null;
+        foreach ($detail->householdMembers as $item) {
+            if ($item->memberId === self::A_THIRD_ID) {
+                $deactivated = $item;
+                break;
+            }
+        }
+        self::assertNotNull($deactivated, 'Deactivated member should still appear in the household roster.');
+        self::assertFalse($deactivated->isActive);
     }
 
     #[Test]

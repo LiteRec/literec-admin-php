@@ -111,7 +111,41 @@ final class InMemoryMemberReadModel implements MemberReadModel
             $this->profile($member),
             $this->address($household),
             new MemberResidencyDto($member->residencyStatus()->value),
+            $this->householdMembers($household),
         );
+    }
+
+    /**
+     * Projects every member of the household to a {@see MemberListItem}
+     * (active and deactivated alike), sorted by lastName / firstName / id
+     * to match the Doctrine adapter's ORDER BY. Powers the Household card
+     * roster (LRA-42).
+     *
+     * @return list<MemberListItem>
+     */
+    private function householdMembers(Household $household): array
+    {
+        $members = $household->members();
+
+        usort($members, static function (HouseholdMember $a, HouseholdMember $b): int {
+            $byLast = strcasecmp($a->name()->lastName, $b->name()->lastName);
+            if ($byLast !== 0) {
+                return $byLast;
+            }
+            $byFirst = strcasecmp($a->name()->firstName, $b->name()->firstName);
+            if ($byFirst !== 0) {
+                return $byFirst;
+            }
+
+            return strcmp($a->id()->value, $b->id()->value);
+        });
+
+        $items = [];
+        foreach ($members as $member) {
+            $items[] = $this->toListItem($member, $household);
+        }
+
+        return $items;
     }
 
     private function matches(HouseholdMember $member, SearchMembersCriteria $c): bool

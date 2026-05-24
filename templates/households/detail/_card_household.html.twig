@@ -1,9 +1,15 @@
-{# Placeholder for the Household card (LRA-42).
+{# Household card (LRA-42).
+
+   Renders the household summary plus a clickable roster of every member
+   of the household. Clicking a row issues an HTMX GET against the
+   `member_detail_lower_cards` endpoint that replaces the lower three
+   cards in-place, while this card stays in the DOM. The card also hosts
+   the "Add Member" launcher that opens the LRA-40 dialog targeting the
+   current household.
 
    The wrapping <main> in detail.html.twig owns the collapse-state map
-   (`cards.household`). This partial binds the <details> open attribute to
+   (`cards.household`); this partial binds the <details> open attribute to
    `cards.household` and writes the URL hash on toggle via `syncHash()`.
-   LRA-42 replaces the body with the real household summary widget.
 
    Expects:
      - detail: App\Households\Application\Query\Port\MemberDetail
@@ -21,8 +27,77 @@
             <span>Household</span>
             <span aria-hidden="true" class="text-xs transition-transform group-open:rotate-180">▾</span>
         </summary>
-        <div class="border-t border-litrec-border px-5 py-4 text-sm text-litrec-text-muted">
-            Coming in LRA-42.
+        <div class="border-t border-litrec-border px-5 py-4">
+            <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
+                <div class="min-w-0">
+                    <h3
+                        data-testid="household-card-name"
+                        class="text-lg font-bold text-litrec-text"
+                    >{{ detail.household.householdName }}</h3>
+                    <p class="mt-1 text-xs text-litrec-text-muted">
+                        {{ detail.household.memberCount }} member{{ detail.household.memberCount == 1 ? '' : 's' }}
+                    </p>
+                </div>
+                <button
+                    type="button"
+                    data-testid="add-member"
+                    hx-get="{{ path('households_member_new_form', { householdId: detail.household.householdId }) }}"
+                    hx-target="body"
+                    hx-swap="beforeend"
+                    aria-haspopup="dialog"
+                    class="rounded-md bg-litrec-primary px-3 py-1.5 text-xs font-semibold text-litrec-on-primary shadow-sm hover:bg-litrec-primary-strong focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
+                >
+                    Add Member
+                </button>
+            </div>
+
+            <div class="overflow-x-auto rounded-md border border-litrec-border">
+                <table class="min-w-full divide-y divide-litrec-border text-sm">
+                    <thead class="bg-litrec-bg-muted text-left text-xs font-semibold uppercase tracking-wider text-litrec-text-muted">
+                        <tr>
+                            <th scope="col" class="px-3 py-2">Name</th>
+                            <th scope="col" class="px-3 py-2">Code</th>
+                            <th scope="col" class="px-3 py-2">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-litrec-border">
+                        {% for m in detail.householdMembers %}
+                            {% set isActiveMember = m.memberId == detail.profile.memberId %}
+                            {% set pushUrl = path('member_detail', { householdId: detail.household.householdId, memberId: m.memberId }) %}
+                            <tr
+                                data-testid="household-member-row-{{ m.memberId }}"
+                                {% if isActiveMember %}
+                                    aria-current="true"
+                                    class="cursor-pointer bg-litrec-primary/10 ring-1 ring-litrec-primary"
+                                {% else %}
+                                    class="cursor-pointer hover:bg-litrec-bg-muted {{ not m.isActive ? 'opacity-60' : '' }}"
+                                {% endif %}
+                                hx-get="{{ path('member_detail_lower_cards', { householdId: detail.household.householdId, memberId: m.memberId }) }}"
+                                hx-target="#member-cards-lower"
+                                hx-swap="outerHTML"
+                                hx-push-url="{{ pushUrl }}"
+                                role="button"
+                                tabindex="0"
+                            >
+                                <td class="px-3 py-2 text-litrec-text">
+                                    {{ m.fullName }}
+                                </td>
+                                <td class="whitespace-nowrap px-3 py-2 font-mono text-xs text-litrec-text-muted">
+                                    {{ m.memberCode }}
+                                </td>
+                                <td class="whitespace-nowrap px-3 py-2">
+                                    {% if m.isPrimary %}
+                                        <span class="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-800">Primary</span>
+                                    {% endif %}
+                                    {% if not m.isActive %}
+                                        <span class="ml-1 inline-flex items-center rounded-full bg-gray-200 px-2 py-0.5 text-xs font-semibold text-gray-700">Deactivated</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </details>
 </div>

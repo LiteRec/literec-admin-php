@@ -109,13 +109,51 @@ final class DoctrineMemberReadModel implements MemberReadModel
         }
 
         $summary = $this->loadHouseholdSummary($householdId, $this->str($row, 'household_name'));
+        $householdMembers = $this->loadHouseholdMembers($householdId);
 
         return new MemberDetail(
             $summary,
             $this->rowToProfile($row),
             $this->rowToAddress($row),
             new MemberResidencyDto($this->str($row, 'residency_status')),
+            $householdMembers,
         );
+    }
+
+    /**
+     * Loads every member of the household — including deactivated ones —
+     * for the Household card roster (LRA-42). Sorted to match the list page
+     * (lastName / firstName / id ASC).
+     *
+     * This is the third SELECT issued by {@see memberDetail()} (member row
+     * + summary aggregate + this list). The card needs the full roster
+     * regardless of `is_active` so staff can see who is currently
+     * deactivated; the row template dims those entries client-side.
+     *
+     * @return list<MemberListItem>
+     */
+    private function loadHouseholdMembers(HouseholdId $householdId): array
+    {
+        $sql = 'SELECT '
+            . 'm.id AS member_id, m.household_id, m.code, m.first_name, m.middle_name, '
+            . 'm.last_name, m.suffix, m.date_of_birth, m.phone, m.residency_status, '
+            . 'm.is_primary, m.is_active, '
+            . 'h.street, h.city, h.state '
+            . 'FROM household_members m '
+            . 'INNER JOIN households h ON h.id = m.household_id '
+            . 'WHERE m.household_id = :household_id '
+            . 'ORDER BY m.last_name ASC, m.first_name ASC, m.id ASC';
+
+        $rows = $this->connection->fetchAllAssociative($sql, [
+            'household_id' => $householdId->value,
+        ]);
+
+        $items = [];
+        foreach ($rows as $row) {
+            $items[] = $this->rowToListItem($row);
+        }
+
+        return $items;
     }
 
     /**
