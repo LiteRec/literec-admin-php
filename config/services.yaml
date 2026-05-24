@@ -60,12 +60,12 @@ services:
     # Bind the Users\Domain Users repository port to its Doctrine adapter.
     App\Users\Domain\Users: '@App\Users\Infrastructure\Persistence\Doctrine\DoctrineUsers'
 
-    # Bind the Households\Domain ports to their adapters. The persistence
-    # port currently resolves to the in-memory adapter; LRA-37 introduces
-    # the Doctrine implementations.
-    App\Households\Domain\Households: '@App\Households\Infrastructure\Persistence\InMemory\InMemoryHouseholds'
+    # Bind the Households\Domain identity port — UUID v7 generation is
+    # production-safe and stays at the top level. The persistence and
+    # member-code allocator ports resolve to in-memory adapters in dev/test
+    # only; LRA-37 introduces the production Doctrine implementations and
+    # adds top-level bindings then.
     App\Households\Domain\IdentityGenerator: '@App\Households\Infrastructure\Identity\Uuid7IdentityGenerator'
-    App\Households\Domain\MemberCodeAllocator: '@App\Households\Infrastructure\Persistence\InMemory\InMemoryMemberCodeAllocator'
 
     # Inject the command bus into the SecurityUserProvider so the password
     # upgrader can dispatch a ChangeUserPassword command.
@@ -79,9 +79,20 @@ services:
             $selectedFacility: '%app.selected_facility_mock%'
             $buildVersion: '%app.build_version%'
 
-# Expose select Users-context aliases to the test container so integration
-# tests can fetch them via static::getContainer()->get(...) without making
-# them public in production.
+# Households persistence + member-code allocator are still in-memory
+# placeholders pending LRA-37's Doctrine adapters. Wire them in dev/test
+# only so a production cache:warmup explicitly fails until the real
+# adapters land instead of silently booting on a non-durable backing.
+when@dev:
+    services:
+        App\Households\Domain\Households:
+            alias: App\Households\Infrastructure\Persistence\InMemory\InMemoryHouseholds
+        App\Households\Domain\MemberCodeAllocator:
+            alias: App\Households\Infrastructure\Persistence\InMemory\InMemoryMemberCodeAllocator
+
+# Expose select context aliases to the test container so integration tests
+# can fetch them via static::getContainer()->get(...) without making them
+# public in production.
 when@test:
     services:
         App\Users\Domain\IdentityGenerator:

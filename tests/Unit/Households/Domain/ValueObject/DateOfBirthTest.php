@@ -71,6 +71,33 @@ final class DateOfBirthTest extends TestCase
     }
 
     #[Test]
+    #[TestDox('::parse() parses and accepts a past ISO date against the clock.')]
+    public function parse_accepts_valid_past_date(): void
+    {
+        $dob = DateOfBirth::parse('1990-05-12', $this->clock);
+
+        self::assertEquals(new DateTimeImmutable('1990-05-12'), $dob->value());
+    }
+
+    #[Test]
+    #[TestDox('::parse() rejects an ISO date in the future relative to the clock.')]
+    public function parse_rejects_future_date(): void
+    {
+        $this->expectException(InvalidDateOfBirth::class);
+
+        DateOfBirth::parse('2999-01-01', $this->clock);
+    }
+
+    #[Test]
+    #[TestDox('::parse() rejects a malformed string with InvalidDateOfBirth.')]
+    public function parse_rejects_malformed_string(): void
+    {
+        $this->expectException(InvalidDateOfBirth::class);
+
+        DateOfBirth::parse('not-a-date', $this->clock);
+    }
+
+    #[Test]
     #[TestDox('::fromString() rejects a malformed string with InvalidDateOfBirth.')]
     public function from_string_rejects_malformed(): void
     {

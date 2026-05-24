@@ -9,6 +9,12 @@ namespace App\Households\Application\Command;
  *
  * memberCode is optional; when null the handler allocates one via the
  * {@see \App\Households\Domain\MemberCodeAllocator} port.
+ *
+ * isPrimary marks the new member as the household's primary contact. The
+ * skeleton aggregate does not currently enforce "at most one primary" —
+ * the controller layer (LRA-40 dialog flow) is responsible for clearing
+ * the previous primary before submitting this command if needed. A
+ * follow-up ticket may move that invariant into the aggregate.
  */
 final readonly class AddMemberToHousehold
 {

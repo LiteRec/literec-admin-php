@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace App\Households\Application\Command;
 
+/**
+ * Primitive-only command DTO for updating a household's mailing address.
+ * The address lives on the household aggregate — all members share it.
+ */
 final readonly class UpdateHouseholdAddress
 {
     public function __construct(
