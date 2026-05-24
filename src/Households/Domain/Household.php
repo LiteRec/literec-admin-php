@@ -28,6 +28,8 @@ use App\Households\Domain\ValueObject\PersonName;
 use App\Households\Domain\ValueObject\PhoneNumber;
 use App\Households\Domain\ValueObject\ResidencyStatus;
 use DateTimeImmutable;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Psr\Clock\ClockInterface;
 
 /**
@@ -54,12 +56,20 @@ final class Household
     private HouseholdId $id;
     private HouseholdName $name;
     private Address $address;
-    /** @var list<HouseholdMember> */
-    private array $members;
+    /**
+     * Held as a Doctrine-compatible {@see Collection} so the persistence
+     * adapter can map this aggregate via a one-to-many association. The
+     * public {@see self::members()} accessor still returns a plain list to
+     * keep the domain API framework-agnostic for callers.
+     *
+     * @var Collection<int, HouseholdMember>
+     */
+    private Collection $members;
     private DateTimeImmutable $createdAt;
 
     private function __construct()
     {
+        $this->members = new ArrayCollection();
     }
 
     public static function register(
@@ -80,7 +90,6 @@ final class Household
         $household->id = $id;
         $household->name = $name;
         $household->address = $address;
-        $household->members = [];
         $household->createdAt = $clock->now();
 
         $household->recordThat(new HouseholdRegistered($id, $name, $household->createdAt));
@@ -96,7 +105,8 @@ final class Household
             $primaryMemberResidency,
             true,
         );
-        $household->members[] = $primary;
+        $primary->attachToHousehold($household);
+        $household->members->add($primary);
         $household->recordThat(new MemberAddedToHousehold(
             $id,
             $primaryMemberId,
@@ -134,10 +144,10 @@ final class Household
      */
     public function members(): array
     {
-        return array_map(
+        return array_values(array_map(
             static fn(HouseholdMember $m): HouseholdMember => clone $m,
-            $this->members,
-        );
+            $this->members->toArray(),
+        ));
     }
 
     public function registeredAt(): DateTimeImmutable
@@ -177,7 +187,8 @@ final class Household
             $residencyStatus,
             $isPrimary,
         );
-        $this->members[] = $member;
+        $member->attachToHousehold($this);
+        $this->members->add($member);
 
         $this->recordThat(new MemberAddedToHousehold(
             $this->id,
@@ -191,21 +202,19 @@ final class Household
 
     public function removeMember(MemberId $memberId, ClockInterface $clock): void
     {
-        $next = [];
-        $removed = false;
+        $removed = null;
         foreach ($this->members as $existing) {
             if ($existing->id()->equals($memberId)) {
-                $removed = true;
-                continue;
+                $removed = $existing;
+                break;
             }
-            $next[] = $existing;
         }
 
-        if (!$removed) {
+        if ($removed === null) {
             throw MemberNotFound::inHousehold($this->id, $memberId);
         }
 
-        $this->members = $next;
+        $this->members->removeElement($removed);
         $this->recordThat(new MemberRemovedFromHousehold($this->id, $memberId, $clock->now()));
     }
 
