@@ -3,12 +3,12 @@
 {% block title %}{{ block('page_title') }} — LiteRecAdmin{% endblock %}
 
 {% block body %}
-    <div class="flex min-h-screen flex-col bg-litrec-bg text-litrec-ink">
-        <header class="border-b border-litrec-edge bg-white">
+    <div class="flex min-h-screen flex-col bg-litrec-bg text-litrec-text">
+        <header class="border-b border-litrec-border bg-litrec-surface">
             <div class="mx-auto flex max-w-7xl items-center justify-between gap-6 px-6 py-3">
-                <a href="{{ path('app_dashboard') }}" class="text-lg font-bold text-litrec-ink">LiteRecAdmin</a>
+                <a href="{{ path('app_dashboard') }}" class="text-lg font-bold text-litrec-primary">LiteRecAdmin</a>
 
-                <div class="flex items-center gap-3 text-sm text-litrec-edge sm:gap-6">
+                <div class="flex items-center gap-3 text-sm text-litrec-text-muted sm:gap-6">
                     <span data-testid="selected-facility" class="hidden md:block">
                         <span class="sr-only">Selected facility: </span>{{ selected_facility() }}
                     </span>
@@ -16,11 +16,11 @@
                         <span class="hidden max-w-[10rem] truncate md:block">
                             <span class="sr-only">Signed in as </span>
                             <span aria-hidden="true">Signed in as </span>
-                            <strong class="text-litrec-ink">{{ app.user.username }}</strong>
+                            <strong class="text-litrec-text">{{ app.user.username }}</strong>
                         </span>
                         <form method="post" action="{{ path('app_logout') }}" class="shrink-0">
                             <input type="hidden" name="_csrf_token" value="{{ csrf_token('logout') }}">
-                            <button type="submit" aria-label="Sign out of your account" class="whitespace-nowrap rounded-md bg-litrec-edge px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-litrec-ink focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-ink">
+                            <button type="submit" aria-label="Sign out of your account" class="whitespace-nowrap rounded-md bg-litrec-primary px-3 py-1.5 text-sm font-semibold text-litrec-on-primary shadow-sm hover:bg-litrec-primary-strong focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary">
                                 Sign out
                             </button>
                         </form>
@@ -47,8 +47,8 @@
             {% block page_body %}{% endblock %}
         </main>
 
-        <footer class="border-t border-litrec-edge bg-white">
-            <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-3 text-xs text-litrec-edge">
+        <footer class="border-t border-litrec-border bg-litrec-surface">
+            <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-3 text-xs text-litrec-text-muted">
                 <span>© {{ 'now'|date('Y') }} LiteRec</span>
                 <span>build {{ build_version() }}</span>
             </div>

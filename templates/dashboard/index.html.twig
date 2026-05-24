@@ -19,19 +19,19 @@
 
     {# Two-column layout at lg: transactions on the left, schedule on the right. #}
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <section aria-labelledby="transactions-heading" class="lg:col-span-2 rounded-xl border border-litrec-edge bg-white shadow-card">
-            <header class="border-b border-litrec-edge px-5 py-3">
-                <h2 id="transactions-heading" class="text-base font-semibold text-litrec-ink">Recent Transactions</h2>
+        <section aria-labelledby="transactions-heading" class="lg:col-span-2 rounded-card border border-litrec-border bg-litrec-surface shadow-card">
+            <header class="border-b border-litrec-border px-5 py-3">
+                <h2 id="transactions-heading" class="text-base font-semibold text-litrec-text">Recent Transactions</h2>
             </header>
-            <ul class="divide-y divide-litrec-bg">
+            <ul class="divide-y divide-litrec-border">
                 {% for tx in dashboard.recentTransactions %}
                     <li class="flex items-center justify-between gap-4 px-5 py-3">
                         <div class="min-w-0">
-                            <p class="truncate text-sm font-semibold text-litrec-ink">{{ tx.userName }}</p>
-                            <p class="text-xs text-litrec-edge">{{ tx.method }} · {{ tx.at|date('g:i A') }}</p>
+                            <p class="truncate text-sm font-semibold text-litrec-text">{{ tx.userName }}</p>
+                            <p class="text-xs text-litrec-text-muted">{{ tx.method }} · {{ tx.at|date('g:i A') }}</p>
                         </div>
                         <div class="flex items-center gap-3 text-right">
-                            <span class="text-sm font-semibold text-litrec-ink">{{ tx.amountFormatted }}</span>
+                            <span class="text-sm font-semibold text-litrec-text">{{ tx.amountFormatted }}</span>
                             {% include 'components/_status_badge.html.twig' with { status: tx.status.value } only %}
                         </div>
                     </li>
@@ -39,15 +39,15 @@
             </ul>
         </section>
 
-        <section aria-labelledby="schedule-heading" class="rounded-xl border border-litrec-edge bg-white shadow-card">
-            <header class="border-b border-litrec-edge px-5 py-3">
-                <h2 id="schedule-heading" class="text-base font-semibold text-litrec-ink">Today's Schedule</h2>
+        <section aria-labelledby="schedule-heading" class="rounded-card border border-litrec-border bg-litrec-surface shadow-card">
+            <header class="border-b border-litrec-border px-5 py-3">
+                <h2 id="schedule-heading" class="text-base font-semibold text-litrec-text">Today's Schedule</h2>
             </header>
-            <ul class="divide-y divide-litrec-bg">
+            <ul class="divide-y divide-litrec-border">
                 {% for item in dashboard.todaysSchedule %}
                     <li class="px-5 py-3">
-                        <p class="text-sm font-semibold text-litrec-ink">{{ item.timeLabel }} — {{ item.facility }}</p>
-                        <p class="text-xs text-litrec-edge">{{ item.partyName }}</p>
+                        <p class="text-sm font-semibold text-litrec-text">{{ item.timeLabel }} — {{ item.facility }}</p>
+                        <p class="text-xs text-litrec-text-muted">{{ item.partyName }}</p>
                     </li>
                 {% endfor %}
             </ul>
@@ -56,12 +56,12 @@
 
     {# Quick Links tile grid. #}
     <section aria-labelledby="quicklinks-heading" class="mt-8">
-        <h2 id="quicklinks-heading" class="mb-3 text-sm font-semibold uppercase tracking-wide text-litrec-edge">Quick Links</h2>
+        <h2 id="quicklinks-heading" class="mb-3 text-sm font-semibold uppercase tracking-wide text-litrec-text-muted">Quick Links</h2>
         <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
             {% for link in dashboard.quickLinks %}
                 <a
                     href="{{ path(link.route) }}"
-                    class="rounded-lg border border-litrec-edge bg-white px-3 py-4 text-center text-sm font-semibold text-litrec-ink shadow-card hover:bg-litrec-bg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-ink"
+                    class="rounded-card border border-litrec-border bg-litrec-surface px-3 py-4 text-center text-sm font-semibold text-litrec-text shadow-card hover:bg-litrec-bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
                 >
                     {{ link.label }}
                 </a>

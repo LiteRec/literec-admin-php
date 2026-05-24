@@ -5,7 +5,7 @@
 {% set current_route = app.request is not null ? app.request.attributes.get('_route') : null %}
 {% set nav = main_navigation() %}
 
-<nav class="border-b border-litrec-edge bg-white" aria-label="Main navigation" x-data="{ openIndex: null }">
+<nav class="border-b border-litrec-border bg-litrec-surface" aria-label="Main navigation" x-data="{ openIndex: null }">
     {# Desktop (≥ lg / 1024px): horizontal menubar with dropdowns. Below lg
        the menubar would force the two-word "Cash Register" label onto two
        lines, so the mobile hamburger panel below takes over up to 1023px. #}
@@ -26,7 +26,7 @@
                     <a
                         role="menuitem"
                         href="{{ path(item.route) }}"
-                        class="inline-flex items-center whitespace-nowrap pl-4 pr-2 py-3 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-inset focus:ring-litrec-ink {{ active ? 'bg-litrec-edge text-white' : 'text-litrec-ink hover:bg-litrec-bg' }}"
+                        class="inline-flex items-center whitespace-nowrap pl-4 pr-2 py-3 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-inset focus:ring-litrec-primary {{ active ? 'bg-litrec-primary text-litrec-on-primary' : 'text-litrec-text hover:bg-litrec-bg-muted' }}"
                     >
                         {{ item.label }}
                     </a>
@@ -39,7 +39,7 @@
                             aria-haspopup="true"
                             :aria-expanded="openIndex === {{ index }} ? 'true' : 'false'"
                             aria-label="Toggle {{ item.label }} menu"
-                            class="inline-flex items-center pl-1 pr-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-inset focus:ring-litrec-ink {{ active ? 'bg-litrec-edge text-white' : 'text-litrec-ink hover:bg-litrec-bg' }}"
+                            class="inline-flex items-center pl-1 pr-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-inset focus:ring-litrec-primary {{ active ? 'bg-litrec-primary text-litrec-on-primary' : 'text-litrec-text hover:bg-litrec-bg-muted' }}"
                         >
                             <span aria-hidden="true">▾</span>
                         </button>
@@ -50,14 +50,14 @@
                             x-cloak
                             @keydown.arrow-down.prevent="$focus.next()"
                             @keydown.arrow-up.prevent="$focus.previous()"
-                            class="absolute left-0 top-full z-10 min-w-[16rem] border border-litrec-edge bg-white py-1 shadow-card"
+                            class="absolute left-0 top-full z-10 min-w-[16rem] border border-litrec-border bg-litrec-surface py-1 shadow-card"
                         >
                             {% for child in item.children %}
                                 <li role="none">
                                     <a
                                         role="menuitem"
                                         href="{{ path(child.route) }}"
-                                        class="block px-4 py-2 text-sm text-litrec-ink hover:bg-litrec-bg focus:bg-litrec-bg focus:outline-none"
+                                        class="block px-4 py-2 text-sm text-litrec-text hover:bg-litrec-bg-muted focus:bg-litrec-bg-muted focus:outline-none"
                                     >
                                         {{ child.label }}
                                     </a>
@@ -75,29 +75,29 @@
        cramping at the md breakpoint. #}
     <div class="lg:hidden" x-data="{ mobileOpen: false }">
         <div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
-            <span class="text-sm font-semibold text-litrec-ink">Menu</span>
+            <span class="text-sm font-semibold text-litrec-text">Menu</span>
             <button
                 type="button"
                 @click="mobileOpen = !mobileOpen"
                 :aria-expanded="mobileOpen ? 'true' : 'false'"
                 aria-controls="main-nav-mobile-panel"
                 aria-label="Toggle main navigation"
-                class="rounded-md border border-litrec-edge px-3 py-1.5 text-sm text-litrec-ink hover:bg-litrec-bg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-ink"
+                class="rounded-md border border-litrec-border px-3 py-1.5 text-sm text-litrec-text hover:bg-litrec-bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
             >
                 <span x-text="mobileOpen ? 'Close' : 'Open'"></span>
             </button>
         </div>
 
-        <div id="main-nav-mobile-panel" x-show="mobileOpen" x-cloak class="border-t border-litrec-edge bg-white">
+        <div id="main-nav-mobile-panel" x-show="mobileOpen" x-cloak class="border-t border-litrec-border bg-litrec-surface">
             <ul class="px-6 py-3">
                 {% for item in nav.items %}
-                    <li class="border-b border-litrec-bg py-2 last:border-b-0">
-                        <a href="{{ path(item.route) }}" class="block text-sm font-semibold text-litrec-ink hover:text-litrec-edge">{{ item.label }}</a>
+                    <li class="border-b border-litrec-bg-muted py-2 last:border-b-0">
+                        <a href="{{ path(item.route) }}" class="block text-sm font-semibold text-litrec-text hover:text-litrec-primary">{{ item.label }}</a>
                         {% if item.hasChildren() %}
                             <ul class="mt-1 pl-4">
                                 {% for child in item.children %}
                                     <li>
-                                        <a href="{{ path(child.route) }}" class="block py-1 text-sm text-litrec-edge hover:text-litrec-ink">{{ child.label }}</a>
+                                        <a href="{{ path(child.route) }}" class="block py-1 text-sm text-litrec-text-muted hover:text-litrec-text">{{ child.label }}</a>
                                     </li>
                                 {% endfor %}
                             </ul>
