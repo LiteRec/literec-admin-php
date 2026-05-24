@@ -5,36 +5,176 @@
 @source "../../assets";
 
 /*
- * Design tokens for LiteRecAdmin. Every token below is exposed as a Tailwind
- * utility (e.g. --color-litrec-ink → text-litrec-ink, bg-litrec-ink,
- * border-litrec-ink).
+ * Design tokens for LiteRecAdmin — Eagleton palette.
+ *
+ * Every token is published as a Tailwind utility (e.g. --color-litrec-ink
+ * → text-litrec-ink, bg-litrec-ink, border-litrec-ink). The @theme block
+ * binds each Tailwind variable to a neutral semantic CSS variable
+ * (--lr-*), and the :root rules below choose light or dark Eagleton
+ * values. Light is the default; @media (prefers-color-scheme: dark) and
+ * the explicit [data-theme="dark"] / [data-theme="light"] attributes
+ * select between modes.
  *
  * Colors
- *   litrec-bg, litrec-edge, litrec-ink — brand palette carried over from the
- *       legacy Adobe Flex login so the rebuild reads as the same application
- *       to existing staff.
- *   success, warning, danger, info — semantic state colors for badges,
- *       alerts, and dashboard KPIs.
+ *   litrec-bg            — page background.
+ *   litrec-bg-muted      — subtle background fills (table stripes, inset panels).
+ *   litrec-surface       — card / panel surface.
+ *   litrec-edge          — divider / hairline border (also legacy alias for primary).
+ *   litrec-border        — explicit border color (same idea as litrec-edge but semantic).
+ *   litrec-ink           — primary text / interactive primary color.
+ *   litrec-text          — body text (alias of litrec-ink, kept for clarity).
+ *   litrec-text-muted    — secondary text.
+ *   litrec-primary       — Eagleton brand primary (deep navy in light, soft blue in dark).
+ *   litrec-primary-strong — hover / pressed variant of primary.
+ *   litrec-secondary     — Eagleton brand secondary (warm gold).
+ *   litrec-secondary-strong — hover / pressed variant of secondary.
+ *   litrec-accent        — Eagleton brand accent (forest green).
+ *   litrec-sidebar-bg    — full-bleed sidebar background (used for nav strips).
+ *   litrec-sidebar-text  — text color on sidebar-bg.
+ *   success / warning / danger / info — semantic state colors.
  *
  * Typography
  *   --font-sans — the single application sans stack.
- *   --text-h1 .. --text-h4 — heading scale used by the page header component
- *       and feature templates.
+ *   --text-h1 .. --text-h4 — heading scale used by _page_header and feature templates.
  *   --text-body — default body font size.
  *
  * Surface
  *   --radius-card — corner radius for cards, panels, and modals.
+ *   --radius-card-sm — tighter radius for inline badges / pills.
  *   --shadow-card — resting shadow for cards and panels.
  */
-@theme {
-    --color-litrec-bg: #b9c9d9;
-    --color-litrec-edge: #45637f;
-    --color-litrec-ink: #0b333c;
 
-    --color-success: #15803d;
-    --color-warning: #ca8a04;
-    --color-danger: #b91c1c;
-    --color-info: #1d4ed8;
+:root {
+    color-scheme: light;
+
+    --lr-bg: #fafcfd;
+    --lr-bg-muted: #f0f5f8;
+    --lr-surface: #ffffff;
+    --lr-border: #d8e4ec;
+    --lr-text: #0a1820;
+    --lr-text-muted: #4a6070;
+    --lr-primary: #1c3d5a;
+    --lr-primary-strong: #0f2840;
+    --lr-on-primary: #fafcfd;
+    --lr-secondary: #b8860b;
+    --lr-secondary-strong: #8a6508;
+    --lr-on-secondary: #0a1820;
+    --lr-accent: #2e5847;
+    --lr-on-accent: #fafcfd;
+    --lr-sidebar-bg: #0f2840;
+    --lr-sidebar-text: #fafcfd;
+
+    --lr-success: #15803d;
+    --lr-warning: #ca8a04;
+    --lr-danger: #b91c1c;
+    --lr-info: #1d4ed8;
+
+    --lr-shadow-card: 0 1px 2px rgb(0 0 0 / 0.05), 0 1px 3px rgb(0 0 0 / 0.08);
+}
+
+/* OS-level dark mode — applies when the user has not set an explicit
+   data-theme override on <html>. */
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme]) {
+        color-scheme: dark;
+
+        --lr-bg: #101820;
+        --lr-bg-muted: #080c10;
+        --lr-surface: #1a2530;
+        --lr-border: #2a3a48;
+        --lr-text: #f0f5f8;
+        --lr-text-muted: #8aa8c0;
+        --lr-primary: #a8c5e2;
+        --lr-primary-strong: #c8ddf0;
+        --lr-on-primary: #0a1820;
+        --lr-secondary: #daa520;
+        --lr-secondary-strong: #f0c040;
+        --lr-on-secondary: #0a1820;
+        --lr-accent: #5a9e7c;
+        --lr-on-accent: #0a1820;
+        --lr-sidebar-bg: #080c10;
+        --lr-sidebar-text: #f0f5f8;
+
+        --lr-shadow-card: 0 1px 2px rgb(0 0 0 / 0.35), 0 1px 3px rgb(0 0 0 / 0.45);
+    }
+}
+
+/* Explicit overrides take precedence over the OS preference. */
+:root[data-theme="dark"] {
+    color-scheme: dark;
+
+    --lr-bg: #101820;
+    --lr-bg-muted: #080c10;
+    --lr-surface: #1a2530;
+    --lr-border: #2a3a48;
+    --lr-text: #f0f5f8;
+    --lr-text-muted: #8aa8c0;
+    --lr-primary: #a8c5e2;
+    --lr-primary-strong: #c8ddf0;
+    --lr-on-primary: #0a1820;
+    --lr-secondary: #daa520;
+    --lr-secondary-strong: #f0c040;
+    --lr-on-secondary: #0a1820;
+    --lr-accent: #5a9e7c;
+    --lr-on-accent: #0a1820;
+    --lr-sidebar-bg: #080c10;
+    --lr-sidebar-text: #f0f5f8;
+
+    --lr-shadow-card: 0 1px 2px rgb(0 0 0 / 0.35), 0 1px 3px rgb(0 0 0 / 0.45);
+}
+
+:root[data-theme="light"] {
+    color-scheme: light;
+
+    --lr-bg: #fafcfd;
+    --lr-bg-muted: #f0f5f8;
+    --lr-surface: #ffffff;
+    --lr-border: #d8e4ec;
+    --lr-text: #0a1820;
+    --lr-text-muted: #4a6070;
+    --lr-primary: #1c3d5a;
+    --lr-primary-strong: #0f2840;
+    --lr-on-primary: #fafcfd;
+    --lr-secondary: #b8860b;
+    --lr-secondary-strong: #8a6508;
+    --lr-on-secondary: #0a1820;
+    --lr-accent: #2e5847;
+    --lr-on-accent: #fafcfd;
+    --lr-sidebar-bg: #0f2840;
+    --lr-sidebar-text: #fafcfd;
+
+    --lr-shadow-card: 0 1px 2px rgb(0 0 0 / 0.05), 0 1px 3px rgb(0 0 0 / 0.08);
+}
+
+@theme {
+    /* Legacy aliases — kept so existing templates that use
+       bg-litrec-bg / text-litrec-ink / border-litrec-edge continue to render.
+       The values themselves now follow the active Eagleton mode. */
+    --color-litrec-bg: var(--lr-bg);
+    --color-litrec-edge: var(--lr-border);
+    --color-litrec-ink: var(--lr-text);
+
+    /* Semantic Eagleton tokens. */
+    --color-litrec-bg-muted: var(--lr-bg-muted);
+    --color-litrec-surface: var(--lr-surface);
+    --color-litrec-border: var(--lr-border);
+    --color-litrec-text: var(--lr-text);
+    --color-litrec-text-muted: var(--lr-text-muted);
+    --color-litrec-primary: var(--lr-primary);
+    --color-litrec-primary-strong: var(--lr-primary-strong);
+    --color-litrec-on-primary: var(--lr-on-primary);
+    --color-litrec-secondary: var(--lr-secondary);
+    --color-litrec-secondary-strong: var(--lr-secondary-strong);
+    --color-litrec-on-secondary: var(--lr-on-secondary);
+    --color-litrec-accent: var(--lr-accent);
+    --color-litrec-on-accent: var(--lr-on-accent);
+    --color-litrec-sidebar-bg: var(--lr-sidebar-bg);
+    --color-litrec-sidebar-text: var(--lr-sidebar-text);
+
+    --color-success: var(--lr-success);
+    --color-warning: var(--lr-warning);
+    --color-danger: var(--lr-danger);
+    --color-info: var(--lr-info);
 
     --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 
@@ -44,8 +184,9 @@
     --text-h4: 1.125rem;
     --text-body: 0.875rem;
 
-    --radius-card: 0.75rem;
-    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.05), 0 1px 3px rgb(0 0 0 / 0.1);
+    --radius-card: 0.25rem;
+    --radius-card-sm: 0.125rem;
+    --shadow-card: var(--lr-shadow-card);
 }
 
 /* Hide x-cloak elements until Alpine.js has initialised. */

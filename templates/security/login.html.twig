@@ -6,14 +6,14 @@
     <main class="flex min-h-screen items-center justify-center bg-litrec-bg p-6">
         <div
             data-gsap="card"
-            class="w-full max-w-md rounded-xl border-2 border-litrec-edge bg-white p-8 shadow-lg"
+            class="w-full max-w-md rounded-card border border-litrec-border bg-litrec-surface p-8 shadow-card"
             x-data="{ submitting: false }"
         >
-            <h1 class="text-2xl font-bold text-litrec-ink">LiteRecAdmin</h1>
-            <p class="mt-1 text-sm text-litrec-edge">Sign in to continue.</p>
+            <h1 class="text-2xl font-bold text-litrec-primary">LiteRecAdmin</h1>
+            <p class="mt-1 text-sm text-litrec-text-muted">Sign in to continue.</p>
 
             {% if error %}
-                <p role="alert" class="mt-4 text-sm font-semibold text-red-700">
+                <p role="alert" class="mt-4 text-sm font-semibold text-danger">
                     {{ error.messageKey|trans(error.messageData, 'security') }}
                 </p>
             {% endif %}
@@ -25,7 +25,7 @@
                 x-on:submit="submitting = true"
             >
                 <div>
-                    <label for="username" class="block text-sm font-medium text-litrec-ink">Username</label>
+                    <label for="username" class="block text-sm font-medium text-litrec-text">Username</label>
                     <input
                         type="text"
                         id="username"
@@ -34,19 +34,19 @@
                         required
                         autofocus
                         autocomplete="username"
-                        class="mt-1 block w-full rounded-md border border-litrec-edge px-3 py-2 text-litrec-ink focus:border-litrec-ink focus:outline-none focus:ring-1 focus:ring-litrec-ink"
+                        class="mt-1 block w-full rounded-md border border-litrec-border bg-litrec-surface px-3 py-2 text-litrec-text focus:border-litrec-primary focus:outline-none focus:ring-1 focus:ring-litrec-primary"
                     >
                 </div>
 
                 <div>
-                    <label for="password" class="block text-sm font-medium text-litrec-ink">Password</label>
+                    <label for="password" class="block text-sm font-medium text-litrec-text">Password</label>
                     <input
                         type="password"
                         id="password"
                         name="_password"
                         required
                         autocomplete="current-password"
-                        class="mt-1 block w-full rounded-md border border-litrec-edge px-3 py-2 text-litrec-ink focus:border-litrec-ink focus:outline-none focus:ring-1 focus:ring-litrec-ink"
+                        class="mt-1 block w-full rounded-md border border-litrec-border bg-litrec-surface px-3 py-2 text-litrec-text focus:border-litrec-primary focus:outline-none focus:ring-1 focus:ring-litrec-primary"
                     >
                 </div>
 
@@ -54,7 +54,7 @@
 
                 <button
                     type="submit"
-                    class="w-full rounded-md bg-litrec-edge px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-litrec-ink focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-ink disabled:cursor-not-allowed disabled:opacity-60"
+                    class="w-full rounded-md bg-litrec-primary px-4 py-2 text-sm font-semibold text-litrec-on-primary shadow-sm hover:bg-litrec-primary-strong focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary disabled:cursor-not-allowed disabled:opacity-60"
                     :disabled="submitting"
                     x-text="submitting ? 'Signing in…' : 'Login'"
                 >Login</button>
