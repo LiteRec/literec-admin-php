@@ -1,0 +1,51 @@
+{% extends 'app.html.twig' %}
+
+{# Dev-only smoke surface for the reusable Member Lookup dialog (LRA-46).
+   Mirrors the eventual integration pattern: any page that wants to pick a
+   member embeds `components/member_lookup_dialog.html.twig` once, then
+   invokes `openMemberLookup({ onSelected })` from a trigger button. #}
+
+{% block page_title %}Member Lookup Demo (dev only){% endblock %}
+
+{% block page_body %}
+    <div class="space-y-4">
+        <p class="text-sm text-litrec-text-muted">
+            This page is a dev/test-only demo surface for the reusable Member Lookup dialog.
+            It is not registered in production. Click the button below to open the dialog,
+            then select a row — the selected payload is written to the panel underneath as JSON
+            so you can verify the event shape.
+        </p>
+
+        <button
+            type="button"
+            data-testid="open-member-lookup"
+            class="rounded-md bg-litrec-primary px-4 py-2 text-sm font-semibold text-litrec-on-primary shadow-sm hover:bg-litrec-primary-strong focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
+            onclick="openMemberLookup({
+                onSelected: function (payload) {
+                    var pre = document.getElementById('last-selected');
+                    if (pre) {
+                        pre.textContent = JSON.stringify(payload, null, 2);
+                    }
+                    console.info('member-selected', payload);
+                }
+            })"
+        >
+            Open Member Lookup
+        </button>
+
+        <section aria-labelledby="last-selected-heading" class="rounded-card border border-litrec-border bg-litrec-surface p-4 shadow-card">
+            <h2 id="last-selected-heading" class="mb-2 text-sm font-semibold text-litrec-text">Last selected payload</h2>
+            <pre
+                id="last-selected"
+                data-testid="last-selected"
+                class="overflow-x-auto rounded-md bg-litrec-bg-muted p-3 text-xs text-litrec-text"
+            ><em class="text-litrec-text-muted">No selection yet.</em></pre>
+        </section>
+    </div>
+
+    {# Embed the dialog markup once on the page. The shared Alpine host
+       controls visibility via window-level events, so the embed location
+       does not matter functionally — placing it at the bottom keeps the
+       rendered DOM order tidy. #}
+    {% include 'components/member_lookup_dialog.html.twig' %}
+{% endblock %}

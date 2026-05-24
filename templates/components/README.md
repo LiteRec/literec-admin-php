@@ -22,3 +22,57 @@ so callers pass parameters explicitly — no globals, no implicit context.
   function instead of receiving parameters; its source of truth is
   `App\Ui\Navigation\MainNavigation` and the structure is intentionally
   centralised, not passed through every render.
+
+## Member Lookup Dialog (LRA-46)
+
+Reusable HTMX/Alpine dialog for picking a household member from anywhere in
+the staff-admin UI. The component renders the shared `_modal.html.twig`
+shell, a five-field filter form (`code`, `lastName`, `firstName`, `phone`,
+`email`), and an HTMX-swappable results region backed by
+`GET /admin/users/_lookup` (route name: `member_lookup_search`).
+
+- **Import path:** `components/member_lookup_dialog.html.twig`
+- **Props:** none — embed the template once on any page that needs the dialog.
+- **Results partial:** `components/member_lookup_dialog/_results.html.twig`
+  (rendered by `MemberLookupController` into `#member-lookup-results`).
+
+### Exposed events
+
+The dialog dispatches a one-shot `member-selected` `CustomEvent` on `window`
+when a row is clicked, then closes itself. The `detail` shape is:
+
+```js
+{
+    memberId: '019571bf-…',     // UUID v7 of the member
+    householdId: '019571bf-…',  // UUID v7 of the owning household
+    fullName: 'Alice Smith',    // display name from the read model
+    code: 'M000010',            // member code
+}
+```
+
+### Usage
+
+Embed the dialog once on the page, then call the JS hook from any trigger:
+
+```twig
+{# In your page template, after page_body content: #}
+{% include 'components/member_lookup_dialog.html.twig' %}
+```
+
+```html
+<button
+    type="button"
+    onclick="openMemberLookup({
+        onSelected: function (payload) {
+            console.log('selected', payload.memberId, payload.fullName);
+        }
+    })"
+>
+    Pick a member
+</button>
+```
+
+`openMemberLookup` subscribes the callback to `member-selected` for exactly
+one fire and then unsubscribes, so callers do not need to manage listeners.
+Focus, ESC, backdrop close, and focus return are inherited from the shared
+modal shell.
