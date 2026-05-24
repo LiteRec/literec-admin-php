@@ -16,6 +16,18 @@ deptrac:
           collectors:
               - type: directory
                 value: src/Users/Infrastructure/.*
+        - name: HouseholdsDomain
+          collectors:
+              - type: directory
+                value: src/Households/Domain/.*
+        - name: HouseholdsApplication
+          collectors:
+              - type: directory
+                value: src/Households/Application/.*
+        - name: HouseholdsInfrastructure
+          collectors:
+              - type: directory
+                value: src/Households/Infrastructure/.*
         - name: Legacy
           collectors:
               # Two non-Users root controllers remain at src/Controller/ awaiting
@@ -81,6 +93,21 @@ deptrac:
             - UsersApplication
             - SymfonyMessenger
             - SymfonyPasswordHasher
+            - PsrClock
+            - Doctrine
+            - Symfony
+        # Households layers. Cross-context dependencies are forbidden:
+        # HouseholdsDomain and UsersDomain are independent of each other.
+        HouseholdsDomain:
+            - PsrClock
+        HouseholdsApplication:
+            - HouseholdsDomain
+            - SymfonyMessenger
+            - PsrClock
+        HouseholdsInfrastructure:
+            - HouseholdsDomain
+            - HouseholdsApplication
+            - SymfonyMessenger
             - PsrClock
             - Doctrine
             - Symfony
