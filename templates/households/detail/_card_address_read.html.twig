@@ -1,0 +1,17 @@
+{# Address & Residency card body — both sub-cards in read mode (LRA-44).
+
+   Rendered as the default body of _card_address and never swapped as a
+   whole by HTMX (the two sub-card bodies own their own swap lifecycles).
+   The Cancel button in either sub-card edit form re-renders the parent
+   `#member-cards-lower` so the whole address card returns to a clean
+   read state in a single round-trip.
+
+   Expects:
+     - detail: App\Households\Application\Query\Port\MemberDetail
+#}
+<div class="border-t border-litrec-border px-5 py-4">
+    <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {% include 'households/detail/_address_sub_card_read.html.twig' with { detail: detail } only %}
+        {% include 'households/detail/_residency_sub_card_read.html.twig' with { detail: detail } only %}
+    </div>
+</div>

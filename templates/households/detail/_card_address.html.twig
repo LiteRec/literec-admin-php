@@ -1,6 +1,13 @@
-{# Placeholder for the Address & Residency card (LRA-44). See
-   _card_household.html.twig for the URL-hash collapse-state contract;
-   this partial binds the `cards.address` key.
+{# Address & Residency card (LRA-44). See _card_household.html.twig for the
+   URL-hash collapse-state contract; this partial binds the `cards.address`
+   key.
+
+   The card hosts two independent sub-cards (Address and Residency), each
+   with its own read/edit swap target so a failure or pending edit in one
+   does not affect the other. The two sub-card bodies live under their own
+   ids (`#address-sub-card-body`, `#residency-sub-card-body`) and the
+   surrounding card chrome (collapse-state <details>/<summary>) stays put
+   across all swaps.
 
    Expects:
      - detail: App\Households\Application\Query\Port\MemberDetail
@@ -18,8 +25,6 @@
             <span>Address &amp; Residency</span>
             <span aria-hidden="true" class="text-xs transition-transform group-open:rotate-180">▾</span>
         </summary>
-        <div class="border-t border-litrec-border px-5 py-4 text-sm text-litrec-text-muted">
-            Coming in LRA-44.
-        </div>
+        {% include 'households/detail/_card_address_read.html.twig' with { detail: detail } only %}
     </details>
 </div>

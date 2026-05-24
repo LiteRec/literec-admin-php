@@ -115,9 +115,34 @@ final class DoctrineMemberReadModel implements MemberReadModel
             $summary,
             $this->rowToProfile($row),
             $this->rowToAddress($row),
-            new MemberResidencyDto($this->str($row, 'residency_status')),
+            new MemberResidencyDto(
+                $this->str($row, 'residency_status'),
+                $this->loadLatestResidencyEffectiveFrom($memberId),
+            ),
             $householdMembers,
         );
+    }
+
+    /**
+     * Looks up the effective-from date of the most recent
+     * `household_residency_history` row for the member, or null when no
+     * row exists. The history table is the only persistent record of
+     * residency changes; the column on `household_members` only carries
+     * the current status, not when it took effect.
+     */
+    private function loadLatestResidencyEffectiveFrom(MemberId $memberId): ?string
+    {
+        $sql = 'SELECT effective_from FROM household_residency_history '
+            . 'WHERE member_id = :member_id '
+            . 'ORDER BY effective_from DESC, id DESC LIMIT 1';
+
+        $value = $this->connection->fetchOne($sql, ['member_id' => $memberId->value]);
+
+        if ($value === false || $value === null) {
+            return null;
+        }
+
+        return $this->normalizeDate($value);
     }
 
     /**

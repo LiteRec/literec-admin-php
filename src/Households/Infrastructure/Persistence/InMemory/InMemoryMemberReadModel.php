@@ -110,7 +110,7 @@ final class InMemoryMemberReadModel implements MemberReadModel
             $this->householdSummary($household),
             $this->profile($member),
             $this->address($household),
-            new MemberResidencyDto($member->residencyStatus()->value),
+            new MemberResidencyDto($member->residencyStatus()->value, null),
             $this->householdMembers($household),
         );
     }

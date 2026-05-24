@@ -8,12 +8,23 @@ use App\Households\Domain\Exception\InvalidAddress;
 
 /**
  * Composite postal address. Country is an ISO 3166-1 alpha-2 code
- * (two uppercase ASCII letters). Per-country postal-code validation is
- * out of scope for this VO and lives in a downstream ticket.
+ * (two uppercase ASCII letters).
+ *
+ * Per-country postal-code validation (LRA-44):
+ *   - US: 5 digits or ZIP+4 (`12345` or `12345-6789`).
+ *   - CA: `A1A 1A1` — letter-digit-letter, space, digit-letter-digit.
+ *   - GB: 2–10 characters; format itself is intentionally loose because
+ *     full BS 7666 validation is out of scope.
+ *   - Other countries: any non-empty trimmed string.
+ *
+ * The VO normalises CA codes to uppercase to match Canada Post conventions;
+ * other countries keep the trimmed input as-is.
  */
 final readonly class Address
 {
     private const COUNTRY_PATTERN = '/^[A-Z]{2}$/';
+    private const US_ZIP_PATTERN = '/^\d{5}(-\d{4})?$/';
+    private const CA_POSTAL_PATTERN = '/^[A-Z]\d[A-Z] \d[A-Z]\d$/';
 
     public string $street;
     public ?string $unit;
@@ -81,7 +92,43 @@ final readonly class Address
             throw InvalidAddress::invalidCountry($countryUp);
         }
 
-        return new self($streetT, $unitT, $cityT, $stateT, $postalT, $countryUp);
+        $postalNormalised = self::validatePostalCode($postalT, $countryUp);
+
+        return new self($streetT, $unitT, $cityT, $stateT, $postalNormalised, $countryUp);
+    }
+
+    /**
+     * Validates the postal code against the per-country rules and returns
+     * the normalised form for storage. CA codes are uppercased; other
+     * countries keep the trimmed input as-is.
+     */
+    private static function validatePostalCode(string $postal, string $country): string
+    {
+        switch ($country) {
+            case 'US':
+                if (preg_match(self::US_ZIP_PATTERN, $postal) !== 1) {
+                    throw InvalidAddress::invalidPostalCode($country);
+                }
+
+                return $postal;
+            case 'CA':
+                $up = strtoupper($postal);
+                if (preg_match(self::CA_POSTAL_PATTERN, $up) !== 1) {
+                    throw InvalidAddress::invalidPostalCode($country);
+                }
+
+                return $up;
+            case 'GB':
+                $len = strlen($postal);
+                if ($len < 2 || $len > 10) {
+                    throw InvalidAddress::invalidPostalCode($country);
+                }
+
+                return $postal;
+            default:
+                // emptyField guard already ran on the trimmed value.
+                return $postal;
+        }
     }
 
     public function equals(self $other): bool

@@ -1,0 +1,71 @@
+{# Address sub-card — edit mode (LRA-44).
+
+   Returned by GET  /admin/users/{h}/{m}/address/edit and re-rendered on
+   422 by POST /admin/users/{h}/address. Replaces #address-sub-card-body
+   in-place via outerHTML swap. On submit success the POST endpoint returns
+   _address_sub_card_read.html.twig, swapping the sub-card back to read
+   mode with the updated values.
+
+   Expects:
+     - form: Symfony FormView bound to UpdateHouseholdAddressInput
+     - householdId: string (UUID v7) — for the submit URL
+     - memberId: string (UUID v7)    — for the Cancel re-fetch route
+#}
+<div id="address-sub-card-body" data-testid="address-sub-card-body" class="rounded-md border border-litrec-border bg-litrec-bg-muted/40 p-4">
+    <form
+        method="post"
+        action="{{ path('household_address_submit', { householdId: householdId }) }}"
+        hx-post="{{ path('household_address_submit', { householdId: householdId }) }}"
+        hx-target="#address-sub-card-body"
+        hx-swap="outerHTML"
+        novalidate
+    >
+        <h3 class="mb-3 text-xs font-semibold uppercase tracking-wide text-litrec-text-muted">Edit mailing address</h3>
+
+        {% if form.vars.errors|length > 0 %}
+            <div
+                role="alert"
+                data-testid="address-form-error"
+                class="mb-4 rounded-md border border-danger/30 bg-danger/10 p-3 text-sm font-semibold text-danger"
+            >
+                {{ form_errors(form) }}
+            </div>
+        {% endif %}
+
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {{ form_row(form.street, { attr: { class: 'litrec-input' } }) }}
+            {{ form_row(form.unit, { attr: { class: 'litrec-input' } }) }}
+            {{ form_row(form.city, { attr: { class: 'litrec-input' } }) }}
+            {{ form_row(form.state, { attr: { class: 'litrec-input' } }) }}
+            {{ form_row(form.postalCode, { attr: { class: 'litrec-input' } }) }}
+            {{ form_row(form.country, { attr: { class: 'litrec-input' } }) }}
+        </div>
+
+        {# memberId is not part of the household-scoped address command;
+           it travels as a hidden field so the controller can re-render the
+           member-scoped lower-cards on Cancel or after a successful save. #}
+        <input type="hidden" name="member_context_id" value="{{ memberId }}">
+
+        {{ form_widget(form._token) }}
+
+        <div class="mt-6 flex items-center justify-end gap-2">
+            <button
+                type="button"
+                data-testid="address-cancel"
+                hx-get="{{ path('member_detail_lower_cards', { householdId: householdId, memberId: memberId }) }}"
+                hx-target="#member-cards-lower"
+                hx-swap="outerHTML"
+                class="rounded-md border border-litrec-border bg-litrec-surface px-4 py-2 text-sm font-semibold text-litrec-text hover:bg-litrec-bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
+            >
+                Cancel
+            </button>
+            <button
+                type="submit"
+                data-testid="address-save"
+                class="rounded-md bg-litrec-primary px-4 py-2 text-sm font-semibold text-litrec-on-primary shadow-sm hover:bg-litrec-primary-strong focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
+            >
+                Save
+            </button>
+        </div>
+    </form>
+</div>
