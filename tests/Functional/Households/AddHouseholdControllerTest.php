@@ -169,33 +169,13 @@ final class AddHouseholdControllerTest extends WebTestCase
     }
 
     #[Test]
-    #[TestDox('POST /admin/users/{unknown}/members/new returns 404 when the household does not exist.')]
-    public function post_add_member_to_unknown_household_returns_404(): void
+    #[TestDox('GET /admin/users/{unknown}/members/new returns 404 when the household does not exist.')]
+    public function get_add_member_form_for_unknown_household_returns_404(): void
     {
         $client = static::createClient();
         $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
 
-        // We cannot GET the form for an unknown household and then submit it
-        // (the GET handler does not validate existence — that is checked at
-        // command-handler time), so we POST directly with a synthesised
-        // payload. The CSRF token id is stateful per session; we obtain a
-        // valid token by first GETing a sibling form for an unrelated
-        // (also unknown) id. The CSRF protection in `add_member` flow is
-        // bound to the token id, not the URL.
-        $crawler = $client->request('GET', '/admin/users/' . self::UNKNOWN_HOUSEHOLD_ID . '/members/new');
-        self::assertResponseIsSuccessful();
-
-        $form = $crawler->selectButton('Add Member')->form([
-            'add_member[firstName]' => 'Ghost',
-            'add_member[lastName]' => 'Member',
-            'add_member[dobIso]' => '1990-01-01',
-            'add_member[genderCode]' => 'U',
-            'add_member[email]' => 'ghost@example.com',
-            'add_member[phone]' => '5550000',
-            'add_member[residencyStatusCode]' => 'RESIDENT',
-        ]);
-
-        $client->submit($form);
+        $client->request('GET', '/admin/users/' . self::UNKNOWN_HOUSEHOLD_ID . '/members/new');
 
         self::assertResponseStatusCodeSame(404);
     }
