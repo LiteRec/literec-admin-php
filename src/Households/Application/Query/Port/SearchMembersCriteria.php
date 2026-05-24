@@ -29,21 +29,36 @@ final readonly class SearchMembersCriteria
     public const int MIN_PAGE_SIZE = 1;
     public const int MAX_PAGE_SIZE = 100;
 
+    public ?string $memberCode;
+    public ?string $lastName;
+    public ?string $firstName;
+    public ?string $receipt;
+    public ?string $phone;
+    public ?string $orgName;
+    public ?string $email;
+    public ?string $gateway;
+    public bool $primaryOnly;
+    public bool $includeMerged;
+    public bool $includeDeleted;
+    public bool $recentOnly;
+    public int $page;
+    public int $pageSize;
+
     public function __construct(
-        public ?string $memberCode = null,
-        public ?string $lastName = null,
-        public ?string $firstName = null,
-        public ?string $receipt = null,
-        public ?string $phone = null,
-        public ?string $orgName = null,
-        public ?string $email = null,
-        public ?string $gateway = null,
-        public bool $primaryOnly = false,
-        public bool $includeMerged = false,
-        public bool $includeDeleted = false,
-        public bool $recentOnly = false,
-        public int $page = 1,
-        public int $pageSize = 20,
+        ?string $memberCode = null,
+        ?string $lastName = null,
+        ?string $firstName = null,
+        ?string $receipt = null,
+        ?string $phone = null,
+        ?string $orgName = null,
+        ?string $email = null,
+        ?string $gateway = null,
+        bool $primaryOnly = false,
+        bool $includeMerged = false,
+        bool $includeDeleted = false,
+        bool $recentOnly = false,
+        int $page = 1,
+        int $pageSize = 20,
     ) {
         if ($page < self::MIN_PAGE) {
             throw new InvalidArgumentException(
@@ -60,5 +75,36 @@ final readonly class SearchMembersCriteria
                 ),
             );
         }
+
+        $this->memberCode    = self::nullIfBlank($memberCode);
+        $this->lastName      = self::nullIfBlank($lastName);
+        $this->firstName     = self::nullIfBlank($firstName);
+        $this->receipt       = self::nullIfBlank($receipt);
+        $this->phone         = self::nullIfBlank($phone);
+        $this->orgName       = self::nullIfBlank($orgName);
+        $this->email         = self::nullIfBlank($email);
+        $this->gateway       = self::nullIfBlank($gateway);
+        $this->primaryOnly   = $primaryOnly;
+        $this->includeMerged = $includeMerged;
+        $this->includeDeleted = $includeDeleted;
+        $this->recentOnly    = $recentOnly;
+        $this->page          = $page;
+        $this->pageSize      = $pageSize;
+    }
+
+    /**
+     * Normalises caller input so an empty form field does not become a
+     * `LIKE '%%'` filter at the database boundary. Whitespace-only
+     * strings are treated as blank.
+     */
+    private static function nullIfBlank(?string $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $trimmed = trim($value);
+
+        return $trimmed === '' ? null : $value;
     }
 }

@@ -190,16 +190,19 @@ final class InMemoryMemberReadModel implements MemberReadModel
 
         if ($primary === null) {
             // Households always have a primary at registration. An empty
-            // members list (or a list with no primary) is a programming
-            // error in the aggregate; throw an explicit exception so
-            // tests catch the fixture defect instead of warning on
-            // undefined array offset.
+            // members list, or a non-empty list with no member marked
+            // primary, is a programming error in the aggregate — throw
+            // an explicit exception so tests catch the invariant breach
+            // instead of silently fabricating a primary or hitting an
+            // undefined offset.
             if ($members === []) {
                 throw new \LogicException(
                     'HouseholdSummary requested for a household with no members.',
                 );
             }
-            $primary = $members[0];
+            throw new \LogicException(
+                'HouseholdSummary requested for a household with no primary member.',
+            );
         }
 
         return new HouseholdSummary(
