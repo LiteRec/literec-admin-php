@@ -3,13 +3,18 @@
 {% block page_title %}Users{% endblock %}
 
 {% block page_actions %}
+    {# Disabled until LRA-40 ships the dialog. Kept in the DOM (with its
+       data-testid) so functional tests can assert its presence; the
+       disabled attribute + aria-disabled prevent interaction without
+       relying on JavaScript. #}
     <button
         type="button"
         id="js-new-household"
         data-testid="open-new-household"
-        x-data
-        @click.prevent="/* LRA-40 wires this to the new-household dialog */"
-        class="rounded-md bg-litrec-primary px-4 py-2 text-sm font-semibold text-litrec-on-primary shadow-sm hover:bg-litrec-primary-strong focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
+        disabled
+        aria-disabled="true"
+        title="Coming soon — wired up in LRA-40."
+        class="cursor-not-allowed rounded-md bg-litrec-primary px-4 py-2 text-sm font-semibold text-litrec-on-primary opacity-60 shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
     >
         New Household
     </button>

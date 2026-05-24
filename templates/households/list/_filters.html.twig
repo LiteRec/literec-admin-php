@@ -79,7 +79,7 @@
                     id="filter-primaryOnly"
                     name="primaryOnly"
                     value="1"
-                    {% if q.get('primaryOnly') == '1' %}checked{% endif %}
+                    {% if q.get('primaryOnly') in ['1', 'true', 'on', 'yes', true] %}checked{% endif %}
                     class="rounded border-litrec-border text-litrec-primary focus:ring-litrec-primary"
                 >
                 Primary members only
@@ -90,7 +90,7 @@
                     id="filter-includeDeleted"
                     name="includeDeleted"
                     value="1"
-                    {% if q.get('includeDeleted') == '1' %}checked{% endif %}
+                    {% if q.get('includeDeleted') in ['1', 'true', 'on', 'yes', true] %}checked{% endif %}
                     class="rounded border-litrec-border text-litrec-primary focus:ring-litrec-primary"
                 >
                 Include deactivated
