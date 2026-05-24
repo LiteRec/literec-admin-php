@@ -19,10 +19,12 @@
  *   litrec-bg            — page background.
  *   litrec-bg-muted      — subtle background fills (table stripes, inset panels).
  *   litrec-surface       — card / panel surface.
- *   litrec-edge          — divider / hairline border (also legacy alias for primary).
- *   litrec-border        — explicit border color (same idea as litrec-edge but semantic).
- *   litrec-ink           — primary text / interactive primary color.
- *   litrec-text          — body text (alias of litrec-ink, kept for clarity).
+ *   litrec-edge          — legacy alias for the border token (maps to --lr-border).
+ *                           Kept so templates predating this palette keep rendering.
+ *   litrec-border        — explicit border / divider colour (maps to --lr-border).
+ *   litrec-ink           — legacy alias for the body-text token (maps to --lr-text).
+ *                           Kept so templates predating this palette keep rendering.
+ *   litrec-text          — body text colour (maps to --lr-text).
  *   litrec-text-muted    — secondary text.
  *   litrec-primary       — Eagleton brand primary (deep navy in light, soft blue in dark).
  *   litrec-primary-strong — hover / pressed variant of primary.
