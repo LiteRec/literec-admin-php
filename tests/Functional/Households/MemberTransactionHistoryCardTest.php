@@ -62,8 +62,8 @@ final class MemberTransactionHistoryCardTest extends WebTestCase
     }
 
     #[Test]
-    #[TestDox('History card is collapsed and renders the lazy-load shim, not the rows, on initial page render.')]
-    public function history_card_is_collapsed_and_does_not_fetch_on_initial_render(): void
+    #[TestDox('History card defers fetch until the user toggles it open (lazy-load shim present, rows absent).')]
+    public function history_card_defers_fetch_until_toggled(): void
     {
         $client = static::createClient();
         $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
