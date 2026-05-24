@@ -7,6 +7,7 @@ namespace App\Households\Infrastructure\Http\Controller;
 use App\Households\Application\Command\ChangeMemberResidency;
 use App\Households\Application\Command\UpdateHouseholdAddress;
 use App\Households\Application\Command\UpdateMemberProfile;
+use App\Households\Application\Port\MemberTransactionHistory;
 use App\Households\Application\Query\GetMemberDetail;
 use App\Households\Application\Query\Port\MemberDetail;
 use App\Households\Domain\Exception\HouseholdNotFound;
@@ -17,6 +18,8 @@ use App\Households\Domain\Exception\InvalidHouseholdId;
 use App\Households\Domain\Exception\InvalidMemberId;
 use App\Households\Domain\Exception\InvalidPersonName;
 use App\Households\Domain\Exception\MemberNotFound;
+use App\Households\Domain\ValueObject\HouseholdId as HouseholdIdVo;
+use App\Households\Domain\ValueObject\MemberId as MemberIdVo;
 use App\Households\Infrastructure\Http\Form\ChangeMemberResidencyFormType;
 use App\Households\Infrastructure\Http\Form\ChangeMemberResidencyInput;
 use App\Households\Infrastructure\Http\Form\UpdateHouseholdAddressFormType;
@@ -29,6 +32,7 @@ use Symfony\Component\Form\FormError;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -61,10 +65,24 @@ final class MemberDetailController extends AbstractController
     private const string UUID_V7_REGEX
         = '[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}';
 
+    /**
+     * Default page size used by the Transaction History card when the
+     * client does not specify one. Matched by the initial lazy-load
+     * trigger emitted from {@see _card_history.html.twig}.
+     */
+    private const int HISTORY_DEFAULT_PAGE_SIZE = 20;
+
+    /**
+     * Hard cap on the Transaction History page size to keep a single
+     * request bounded. Out-of-range values produce HTTP 400.
+     */
+    private const int HISTORY_MAX_PAGE_SIZE = 50;
+
     public function __construct(
         private readonly MessageBusInterface $queryBus,
         private readonly MessageBusInterface $commandBus,
         private readonly ClockInterface $clock,
+        private readonly MemberTransactionHistory $transactionHistory,
     ) {
     }
 
@@ -436,6 +454,78 @@ final class MemberDetailController extends AbstractController
 
         return $this->render('households/detail/_residency_sub_card_read.html.twig', [
             'detail' => $detail,
+        ]);
+    }
+
+    /**
+     * HTMX fragment endpoint that returns a single page of the member's
+     * transaction history (LRA-45). The History card body lazy-loads
+     * page 1 the first time the user expands the card; the "Load more"
+     * button in the response triggers subsequent pages, each one
+     * appended into the table via HTMX's `outerHTML` swap on the
+     * button's `<tr>` placeholder.
+     *
+     * Page-size validation is enforced at the boundary: out-of-range
+     * values return HTTP 400 rather than being silently clamped, so a
+     * caller that asks for too much is told so instead of getting a
+     * smaller answer than requested.
+     *
+     * The existence of the (household, member) pair is not pre-checked
+     * here: the stub adapter naturally returns an empty page for an
+     * unknown member, and the cost of an extra detail query per
+     * scrolled page is wasteful. When a real Transactions ACL adapter
+     * lands, it owns the unknown-member behaviour for its own backend.
+     */
+    #[Route(
+        '/admin/users/{householdId}/{memberId}/history',
+        name: 'member_history_page',
+        requirements: [
+            'householdId' => self::UUID_V7_REGEX,
+            'memberId'    => self::UUID_V7_REGEX,
+        ],
+        methods: ['GET'],
+    )]
+    public function historyPage(string $householdId, string $memberId, Request $request): Response
+    {
+        $page = $request->query->getInt('page', 1);
+        $pageSize = $request->query->getInt('pageSize', self::HISTORY_DEFAULT_PAGE_SIZE);
+
+        if ($page < 1) {
+            throw new BadRequestHttpException(
+                sprintf('page must be >= 1, got %d.', $page),
+            );
+        }
+        if ($pageSize < 1 || $pageSize > self::HISTORY_MAX_PAGE_SIZE) {
+            throw new BadRequestHttpException(
+                sprintf(
+                    'pageSize must be between 1 and %d, got %d.',
+                    self::HISTORY_MAX_PAGE_SIZE,
+                    $pageSize,
+                ),
+            );
+        }
+
+        try {
+            $householdIdVo = HouseholdIdVo::fromString($householdId);
+            $memberIdVo = MemberIdVo::fromString($memberId);
+        } catch (InvalidHouseholdId | InvalidMemberId) {
+            // Route requirements already enforce UUID v7, so this is
+            // defence in depth — surface as 404 to match the rest of
+            // the member-scoped endpoints.
+            throw $this->createNotFoundException('Member not found.');
+        }
+
+        $pageDto = $this->transactionHistory->page(
+            $householdIdVo,
+            $memberIdVo,
+            $page,
+            $pageSize,
+        );
+
+        return $this->render('households/detail/_card_history_rows.html.twig', [
+            'householdId' => $householdId,
+            'memberId' => $memberId,
+            'page' => $pageDto,
         ]);
     }
 
