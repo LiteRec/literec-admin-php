@@ -78,6 +78,10 @@ deptrac:
           collectors:
               - type: classLike
                 value: ^Twig\\.*
+        - name: Faker
+          collectors:
+              - type: classLike
+                value: ^Faker\\.*
         - name: Symfony
           collectors:
               - type: bool
@@ -106,6 +110,7 @@ deptrac:
             - Doctrine
             - DoctrineCollections
             - Symfony
+            - Faker
         # Households layers. Cross-context dependencies are forbidden:
         # HouseholdsDomain and UsersDomain are independent of each other.
         # Doctrine\Common\Collections is the one ORM dependency the

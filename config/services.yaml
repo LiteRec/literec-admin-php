@@ -20,6 +20,9 @@ parameters:
     # version via the APP_BUILD_VERSION environment variable.
     app.build_version: '%env(default:default_build_version:string:APP_BUILD_VERSION)%'
     default_build_version: 'dev'
+    # Default Faker seed for fixture loads. Override via FIXTURE_SEED env
+    # to switch to a different but still stable dataset.
+    default_fixture_seed: 1
 
 services:
     # default configuration for services in *this* file
@@ -181,3 +184,18 @@ when@test:
         App\Households\Application\Port\MemberTransactionHistory:
             alias: App\Households\Infrastructure\Acl\Stub\StubMemberTransactionHistory
             public: true
+        # Seeded Faker generator for fixture loads. Test env mirrors the
+        # dev binding below so integration tests that exercise fixtures
+        # see identical output.
+        Faker\Generator:
+            factory: ['App\Users\Infrastructure\Fixtures\SeededFakerFactory', 'create']
+            arguments:
+                $seed: '%env(int:default:default_fixture_seed:FIXTURE_SEED)%'
+
+when@dev:
+    services:
+        # Seeded Faker generator for fixture loads in the dev env.
+        Faker\Generator:
+            factory: ['App\Users\Infrastructure\Fixtures\SeededFakerFactory', 'create']
+            arguments:
+                $seed: '%env(int:default:default_fixture_seed:FIXTURE_SEED)%'

@@ -1,0 +1,94 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Users\Infrastructure\Fixtures;
+
+use App\Users\Application\Command\RegisterUser;
+use App\Users\Domain\ValueObject\Role;
+use Doctrine\Bundle\FixturesBundle\Fixture;
+use Doctrine\Bundle\FixturesBundle\FixtureGroupInterface;
+use Doctrine\Persistence\ObjectManager;
+use Faker\Generator;
+use Symfony\Component\Messenger\MessageBusInterface;
+
+/**
+ * Seeds the Users bounded context by dispatching RegisterUser commands.
+ *
+ * Writes flow through the application layer — no direct aggregate
+ * construction, no EntityManager, no repository calls. The fixture is
+ * registered against the dev, test, and demo groups; the test group is
+ * minimal (curated personas only) by setting FIXTURE_USER_COUNT=0.
+ */
+final class UsersFixtures extends Fixture implements FixtureGroupInterface
+{
+    public const ADMIN_USERNAME = 'admin';
+    /** @var list<string> */
+    public const CURATED_MEMBER_USERNAMES = [
+        'member-1',
+        'member-2',
+        'member-3',
+        'member-4',
+        'member-5',
+    ];
+
+    private const DEFAULT_BULK_COUNT = 25;
+    // Caps FIXTURE_USER_COUNT so the Faker unique() pool cannot exhaust
+    // and throw OverflowException. 5000 is far above any realistic dev
+    // dataset and well inside Faker's userName() entropy budget.
+    private const MAX_BULK_COUNT = 5000;
+    private const SHARED_PASSWORD = 'fixture-password-1234';
+
+    public function __construct(
+        private readonly MessageBusInterface $commandBus,
+        private readonly Generator $faker,
+    ) {
+    }
+
+    public function load(ObjectManager $manager): void
+    {
+        $this->dispatch(new RegisterUser(self::ADMIN_USERNAME, self::SHARED_PASSWORD, [Role::Admin->value]));
+
+        foreach (self::CURATED_MEMBER_USERNAMES as $username) {
+            $this->dispatch(new RegisterUser($username, self::SHARED_PASSWORD, [Role::User->value]));
+        }
+
+        $bulkCount = $this->bulkCount();
+        for ($i = 1; $i <= $bulkCount; $i++) {
+            // Cap the Faker portion so the composite username stays inside
+            // Username::MAX_LENGTH even in the unlikely case Faker emits a
+            // long handle. The 32-char ceiling leaves ample headroom under
+            // the 180-char limit while keeping usernames human-readable.
+            $fakerHandle = mb_substr($this->faker->unique()->userName(), 0, 32, 'UTF-8');
+            $username = sprintf('faker-user-%04d-%s', $i, $fakerHandle);
+            $this->dispatch(new RegisterUser($username, self::SHARED_PASSWORD, [Role::User->value]));
+        }
+    }
+
+    public static function getGroups(): array
+    {
+        return ['dev', 'test', 'demo'];
+    }
+
+    private function dispatch(RegisterUser $command): void
+    {
+        // RegisterUser is not routed to an async transport, so dispatch()
+        // runs the handler inline and any exception surfaces here.
+        $this->commandBus->dispatch($command);
+    }
+
+    private function bulkCount(): int
+    {
+        $raw = $_ENV['FIXTURE_USER_COUNT'] ?? $_SERVER['FIXTURE_USER_COUNT'] ?? null;
+        if ($raw === null || $raw === '') {
+            return self::DEFAULT_BULK_COUNT;
+        }
+
+        $value = filter_var($raw, FILTER_VALIDATE_INT);
+        if ($value === false || $value < 0) {
+            return self::DEFAULT_BULK_COUNT;
+        }
+
+        return min($value, self::MAX_BULK_COUNT);
+    }
+}
