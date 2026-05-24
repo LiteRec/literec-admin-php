@@ -20,4 +20,12 @@ final class InvalidAddress extends DomainException implements HouseholdsDomainEx
             $iso,
         ));
     }
+
+    public static function invalidPostalCode(string $country): self
+    {
+        return new self(sprintf(
+            'Address postal code is not valid for country "%s".',
+            $country,
+        ));
+    }
 }

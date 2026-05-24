@@ -1,0 +1,63 @@
+{# Residency sub-card — edit mode (LRA-44).
+
+   Returned by GET  /admin/users/{h}/{m}/residency/edit and re-rendered on
+   422 by POST /admin/users/{h}/{m}/residency. Replaces
+   #residency-sub-card-body in-place via outerHTML swap. On submit success
+   the POST endpoint returns _residency_sub_card_read.html.twig, swapping
+   the sub-card back to read mode with the new status.
+
+   Expects:
+     - form: Symfony FormView bound to ChangeMemberResidencyInput
+     - householdId: string (UUID v7)
+     - memberId: string (UUID v7)
+#}
+<div id="residency-sub-card-body" data-testid="residency-sub-card-body" class="rounded-md border border-litrec-border bg-litrec-bg-muted/40 p-4">
+    <form
+        method="post"
+        action="{{ path('member_residency_submit', { householdId: householdId, memberId: memberId }) }}"
+        hx-post="{{ path('member_residency_submit', { householdId: householdId, memberId: memberId }) }}"
+        hx-target="#residency-sub-card-body"
+        hx-swap="outerHTML"
+        novalidate
+    >
+        <h3 class="mb-3 text-xs font-semibold uppercase tracking-wide text-litrec-text-muted">Change residency</h3>
+
+        {% if form.vars.errors|length > 0 %}
+            <div
+                role="alert"
+                data-testid="residency-form-error"
+                class="mb-4 rounded-md border border-danger/30 bg-danger/10 p-3 text-sm font-semibold text-danger"
+            >
+                {{ form_errors(form) }}
+            </div>
+        {% endif %}
+
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {{ form_row(form.residencyStatusCode, { attr: { class: 'litrec-input' } }) }}
+            {{ form_row(form.effectiveFromIso, { attr: { class: 'litrec-input' } }) }}
+            {{ form_row(form.reason, { attr: { class: 'litrec-input' } }) }}
+        </div>
+
+        {{ form_widget(form._token) }}
+
+        <div class="mt-6 flex items-center justify-end gap-2">
+            <button
+                type="button"
+                data-testid="residency-cancel"
+                hx-get="{{ path('member_detail_lower_cards', { householdId: householdId, memberId: memberId }) }}"
+                hx-target="#member-cards-lower"
+                hx-swap="outerHTML"
+                class="rounded-md border border-litrec-border bg-litrec-surface px-4 py-2 text-sm font-semibold text-litrec-text hover:bg-litrec-bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
+            >
+                Cancel
+            </button>
+            <button
+                type="submit"
+                data-testid="residency-save"
+                class="rounded-md bg-litrec-primary px-4 py-2 text-sm font-semibold text-litrec-on-primary shadow-sm hover:bg-litrec-primary-strong focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
+            >
+                Save
+            </button>
+        </div>
+    </form>
+</div>

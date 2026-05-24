@@ -1,0 +1,41 @@
+{# Address sub-card — read mode (LRA-44).
+
+   Renders the household's mailing address. US addresses use a multi-line
+   block layout; other countries fall back to a single-line summary. The
+   wrapping #address-sub-card-body element is the HTMX `outerHTML` swap
+   target so the Edit button stays inside the swappable region.
+
+   Expects:
+     - detail: App\Households\Application\Query\Port\MemberDetail
+#}
+<div id="address-sub-card-body" data-testid="address-sub-card-body" class="rounded-md border border-litrec-border bg-litrec-bg-muted/40 p-4">
+    <div class="mb-3 flex items-center justify-between">
+        <h3 class="text-xs font-semibold uppercase tracking-wide text-litrec-text-muted">Mailing address</h3>
+        <button
+            type="button"
+            data-testid="address-edit"
+            aria-haspopup="false"
+            hx-get="{{ path('member_address_edit_form', { householdId: detail.household.householdId, memberId: detail.profile.memberId }) }}"
+            hx-target="#address-sub-card-body"
+            hx-swap="outerHTML"
+            class="rounded-md border border-litrec-border bg-litrec-surface px-3 py-1.5 text-xs font-semibold text-litrec-text hover:bg-litrec-bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
+        >
+            Edit Address
+        </button>
+    </div>
+
+    {% if detail.address.country == 'US' %}
+        <address data-testid="address-block" class="not-italic text-sm text-litrec-text">
+            <div data-testid="address-street">{{ detail.address.street }}</div>
+            {% if detail.address.unit is not null and detail.address.unit != '' %}
+                <div data-testid="address-unit">{{ detail.address.unit }}</div>
+            {% endif %}
+            <div data-testid="address-city-state-zip">{{ detail.address.city }}, {{ detail.address.state }} {{ detail.address.postalCode }}</div>
+            <div data-testid="address-country">{{ detail.address.country }}</div>
+        </address>
+    {% else %}
+        <p data-testid="address-single-line" class="text-sm text-litrec-text">
+            {{ detail.address.street }}{% if detail.address.unit is not null and detail.address.unit != '' %}, {{ detail.address.unit }}{% endif %}, {{ detail.address.city }}, {{ detail.address.state }} {{ detail.address.postalCode }}, {{ detail.address.country }}
+        </p>
+    {% endif %}
+</div>

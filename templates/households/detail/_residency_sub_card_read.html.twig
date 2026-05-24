@@ -1,0 +1,51 @@
+{# Residency sub-card — read mode (LRA-44).
+
+   Renders the member's current residency status as a badge plus an
+   "as of" effective-from date when the history table has an entry for
+   the member. The wrapping #residency-sub-card-body element is the HTMX
+   `outerHTML` swap target.
+
+   Expects:
+     - detail: App\Households\Application\Query\Port\MemberDetail
+#}
+{% set statusLabelMap = {
+    'RESIDENT': 'Resident',
+    'NON_RESIDENT': 'Non-resident',
+    'MEMBER': 'Member',
+    'STAFF': 'Staff',
+} %}
+{% set statusLabel = statusLabelMap[detail.residency.status] ?? detail.residency.status %}
+<div id="residency-sub-card-body" data-testid="residency-sub-card-body" class="rounded-md border border-litrec-border bg-litrec-bg-muted/40 p-4">
+    <div class="mb-3 flex items-center justify-between">
+        <h3 class="text-xs font-semibold uppercase tracking-wide text-litrec-text-muted">Residency</h3>
+        <button
+            type="button"
+            data-testid="residency-edit"
+            aria-haspopup="false"
+            hx-get="{{ path('member_residency_edit_form', { householdId: detail.household.householdId, memberId: detail.profile.memberId }) }}"
+            hx-target="#residency-sub-card-body"
+            hx-swap="outerHTML"
+            class="rounded-md border border-litrec-border bg-litrec-surface px-3 py-1.5 text-xs font-semibold text-litrec-text hover:bg-litrec-bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
+        >
+            Change Residency
+        </button>
+    </div>
+
+    <div class="flex flex-col gap-2">
+        <span
+            data-testid="residency-status-badge"
+            class="inline-flex w-fit items-center rounded-full bg-litrec-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-litrec-primary"
+        >
+            {{ statusLabel }}
+        </span>
+        {% if detail.residency.effectiveFromIso is not null %}
+            <p data-testid="residency-effective-from" class="text-xs text-litrec-text-muted">
+                As of {{ detail.residency.effectiveFromIso }}
+            </p>
+        {% else %}
+            <p data-testid="residency-effective-from-missing" class="text-xs text-litrec-text-muted">
+                No residency change recorded yet.
+            </p>
+        {% endif %}
+    </div>
+</div>
