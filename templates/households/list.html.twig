@@ -1,0 +1,38 @@
+{% extends 'app.html.twig' %}
+
+{% block page_title %}Users{% endblock %}
+
+{% block page_actions %}
+    <button
+        type="button"
+        id="js-new-household"
+        data-testid="open-new-household"
+        x-data
+        @click.prevent="/* LRA-40 wires this to the new-household dialog */"
+        class="rounded-md bg-litrec-primary px-4 py-2 text-sm font-semibold text-litrec-on-primary shadow-sm hover:bg-litrec-primary-strong focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
+    >
+        New Household
+    </button>
+    {% if exportDuplicatesEnabled %}
+        <button
+            type="button"
+            data-testid="export-duplicates"
+            class="rounded-md border border-litrec-border bg-litrec-surface px-4 py-2 text-sm font-semibold text-litrec-text hover:bg-litrec-bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
+        >
+            Export Duplicates
+        </button>
+    {% endif %}
+{% endblock %}
+
+{% block page_body %}
+    {% include 'households/list/_filters.html.twig' %}
+
+    <div
+        id="members-table"
+        data-testid="members-table"
+        class="mt-6 transition-opacity htmx-request:opacity-50"
+        hx-indicator="this"
+    >
+        {% include 'households/list/_table.html.twig' %}
+    </div>
+{% endblock %}

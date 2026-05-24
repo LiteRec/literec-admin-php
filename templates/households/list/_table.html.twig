@@ -1,0 +1,125 @@
+{# Members table partial. Rendered both as part of the full list page and
+   as the HTMX swap target when filters or pagination change. Expects:
+     - page: PageOfMembers
+     - criteria: SearchMembersCriteria #}
+{% set baseQuery = app.request.query.all %}
+
+{% if page.items|length == 0 %}
+    {% include 'components/_empty_state.html.twig' with {
+        title: 'No members found',
+        message: 'No members match your filters.',
+        ctaLabel: 'Clear filters',
+        ctaRoute: 'users_index',
+    } only %}
+{% else %}
+    <div class="overflow-x-auto rounded-card border border-litrec-border bg-litrec-surface shadow-card">
+        <table class="min-w-full divide-y divide-litrec-border text-sm">
+            <thead class="bg-litrec-bg-muted text-left text-xs font-semibold uppercase tracking-wider text-litrec-text-muted">
+                <tr>
+                    <th scope="col" class="px-4 py-3">Code</th>
+                    <th scope="col" class="px-4 py-3">Full name</th>
+                    <th scope="col" class="px-4 py-3">DOB</th>
+                    <th scope="col" class="px-4 py-3">Phone</th>
+                    <th scope="col" class="px-4 py-3">Address</th>
+                    <th scope="col" class="px-4 py-3">Status</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-litrec-border">
+                {% for item in page.items %}
+                    {% set rowHref = '/admin/users/' ~ item.householdId ~ '/' ~ item.memberId %}
+                    <tr
+                        data-testid="member-row-{{ item.memberId }}"
+                        class="hover:bg-litrec-bg-muted"
+                    >
+                        <td class="whitespace-nowrap px-4 py-2 font-mono text-xs text-litrec-text">
+                            <a href="{{ rowHref }}" class="text-litrec-primary hover:underline">{{ item.memberCode }}</a>
+                        </td>
+                        <td class="px-4 py-2 text-litrec-text">
+                            <a href="{{ rowHref }}" class="hover:underline">{{ item.fullName }}</a>
+                        </td>
+                        <td class="whitespace-nowrap px-4 py-2 text-litrec-text-muted">
+                            {% if item.dobIso %}{{ item.dobIso }}{% else %}—{% endif %}
+                        </td>
+                        <td class="whitespace-nowrap px-4 py-2 text-litrec-text-muted">
+                            {% if item.phone %}{{ item.phone }}{% else %}—{% endif %}
+                        </td>
+                        <td class="px-4 py-2 text-litrec-text-muted">
+                            {{ item.addressShort }}
+                        </td>
+                        <td class="whitespace-nowrap px-4 py-2">
+                            {% if item.isActive %}
+                                <span class="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-800">Active</span>
+                            {% else %}
+                                <span class="inline-flex items-center rounded-full bg-gray-200 px-2 py-0.5 text-xs font-semibold text-gray-700">Deactivated</span>
+                            {% endif %}
+                            {% if item.isPrimary %}
+                                <span class="ml-1 inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-800">Primary</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {# Pagination footer. Previous/Next reuse the current query string with
+       the page param overridden, so active filters survive navigation. #}
+    {% set totalPages = page.totalPages() %}
+    <nav
+        aria-label="Members pagination"
+        class="mt-4 flex items-center justify-between text-sm text-litrec-text-muted"
+    >
+        <span data-testid="pagination-status">
+            Page {{ page.page }} of {{ totalPages > 0 ? totalPages : 1 }}
+        </span>
+
+        <div class="flex items-center gap-2">
+            {% set prevDisabled = page.page <= 1 %}
+            {% set nextDisabled = page.page >= totalPages %}
+            {% set prevQuery = baseQuery|merge({ page: page.page - 1 }) %}
+            {% set nextQuery = baseQuery|merge({ page: page.page + 1 }) %}
+
+            {% if prevDisabled %}
+                <span
+                    aria-disabled="true"
+                    class="cursor-not-allowed rounded-md border border-litrec-border bg-litrec-bg-muted px-3 py-1 text-xs font-semibold text-litrec-text-muted opacity-60"
+                >
+                    Previous
+                </span>
+            {% else %}
+                <a
+                    href="{{ path('users_index', prevQuery) }}"
+                    hx-get="{{ path('households_members_table', prevQuery) }}"
+                    hx-target="#members-table"
+                    hx-swap="innerHTML"
+                    hx-push-url="true"
+                    data-testid="pagination-previous"
+                    class="rounded-md border border-litrec-border bg-litrec-surface px-3 py-1 text-xs font-semibold text-litrec-text hover:bg-litrec-bg-muted focus:outline-none focus:ring-2 focus:ring-litrec-primary"
+                >
+                    Previous
+                </a>
+            {% endif %}
+
+            {% if nextDisabled %}
+                <span
+                    aria-disabled="true"
+                    class="cursor-not-allowed rounded-md border border-litrec-border bg-litrec-bg-muted px-3 py-1 text-xs font-semibold text-litrec-text-muted opacity-60"
+                >
+                    Next
+                </span>
+            {% else %}
+                <a
+                    href="{{ path('users_index', nextQuery) }}"
+                    hx-get="{{ path('households_members_table', nextQuery) }}"
+                    hx-target="#members-table"
+                    hx-swap="innerHTML"
+                    hx-push-url="true"
+                    data-testid="pagination-next"
+                    class="rounded-md border border-litrec-border bg-litrec-surface px-3 py-1 text-xs font-semibold text-litrec-text hover:bg-litrec-bg-muted focus:outline-none focus:ring-2 focus:ring-litrec-primary"
+                >
+                    Next
+                </a>
+            {% endif %}
+        </div>
+    </nav>
+{% endif %}

@@ -11,6 +11,10 @@ parameters:
     # header. Will be driven by the user's actual facility selection once the
     # Facilities context lands; until then the shell needs a concrete value.
     app.selected_facility_mock: 'Main Facility'
+    # Hide the "Export Duplicates" action on the View Members page until the
+    # downstream report exists. The button is rendered only when this flag is
+    # true so the page does not advertise a feature operators cannot use.
+    app.users_export_duplicates_enabled: false
     # Build version surfaced in the app shell footer. Defaults to "dev" so
     # locally-run instances still render something; CI/CD provides the real
     # version via the APP_BUILD_VERSION environment variable.
@@ -84,6 +88,15 @@ services:
     App\Users\Infrastructure\Security\SecurityUserProvider:
         arguments:
             $commandBus: '@command.bus'
+
+    # Wire the SearchMembersController (LRA-39) onto the query bus so its
+    # GET actions can dispatch the SearchMembers query, and pass the
+    # export-duplicates feature flag through as a constructor arg.
+    App\Households\Infrastructure\Http\Controller\SearchMembersController:
+        arguments:
+            $queryBus: '@query.bus'
+            $exportDuplicatesEnabled: '%app.users_export_duplicates_enabled%'
+        tags: ['controller.service_arguments']
 
     # App shell Twig globals (selected facility, build version).
     App\Ui\Twig\AppShellExtension:
