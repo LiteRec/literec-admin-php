@@ -93,10 +93,11 @@ services:
 
 # Expose select context aliases to the test container so integration tests
 # can fetch them via static::getContainer()->get(...) without making them
-# public in production. The Households repository and member-code
-# allocator are the Doctrine adapters (DAMA wraps each test in a
-# transaction); the InMemory adapters are still wired behind named
-# aliases so the shared contract test can target them deliberately.
+# public in production. The Households repository, member-code allocator,
+# and read model all resolve to the Doctrine adapters (DAMA wraps each
+# write-path test in a transaction); the InMemory adapters are still
+# wired behind named aliases (households.in_memory_*) so the shared
+# contract tests can target them deliberately.
 when@test:
     services:
         App\Users\Domain\IdentityGenerator:
