@@ -272,7 +272,8 @@ final class AddressResidencyCardTest extends WebTestCase
             'SELECT COUNT(*) FROM household_residency_history WHERE member_id = :m',
             ['m' => self::US_PRIMARY_ID],
         );
-        self::assertSame(0, is_numeric($count) ? (int) $count : -1);
+        self::assertTrue(is_numeric($count));
+        self::assertSame(0, (int) $count);
     }
 
     #[Test]

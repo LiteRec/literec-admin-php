@@ -40,7 +40,7 @@
         </span>
         {% if detail.residency.effectiveFromIso is not null %}
             <p data-testid="residency-effective-from" class="text-xs text-litrec-text-muted">
-                As of {{ detail.residency.effectiveFromIso }}
+                As of {{ detail.residency.effectiveFromIso|date('M j, Y') }}
             </p>
         {% else %}
             <p data-testid="residency-effective-from-missing" class="text-xs text-litrec-text-muted">
