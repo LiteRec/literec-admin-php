@@ -98,6 +98,13 @@ services:
             $exportDuplicatesEnabled: '%app.users_export_duplicates_enabled%'
         tags: ['controller.service_arguments']
 
+    # Wire the AddHouseholdController (LRA-40) onto the command bus so its
+    # POST actions can dispatch RegisterHousehold and AddMemberToHousehold.
+    App\Households\Infrastructure\Http\Controller\AddHouseholdController:
+        arguments:
+            $commandBus: '@command.bus'
+        tags: ['controller.service_arguments']
+
     # App shell Twig globals (selected facility, build version).
     App\Ui\Twig\AppShellExtension:
         arguments:

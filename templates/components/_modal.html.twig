@@ -1,0 +1,66 @@
+{# Reusable HTMX/Alpine modal shell (LRA-40).
+
+   Renders an ARIA-compliant dialog overlay that is appended to <body>
+   beforeend by the invoking HTMX request. Closing the dialog removes the
+   root node so the focus naturally returns to the original invoker.
+
+   @param string  id        DOM id for the dialog root. Default: "modal".
+   @param string  title     Visible heading shown in the modal header.
+   @param string  body      Pre-rendered HTML body content (raw block string).
+   @param ?string headingId Override for the heading element id used by
+                            aria-labelledby. Default: "{id}-title".
+
+   Reused by LRA-46 (Member Lookup). Body content is passed in raw so the
+   parent template can render arbitrary markup (forms, search results, etc.)
+   without coupling the component to a specific use case.
+#}
+{% set id = id|default('modal') %}
+{% set headingId = headingId|default(id ~ '-title') %}
+<div
+    id="{{ id }}"
+    class="modal-root fixed inset-0 z-50 flex items-center justify-center p-4"
+    x-data="{ open: true, dismiss() { this.open = false; this.$root.remove(); } }"
+    x-show="open"
+    x-cloak
+    @keydown.escape.window="dismiss()"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="{{ headingId }}"
+>
+    {# Backdrop. Clicking it dismisses the dialog; the dialog body uses
+       @click.outside on its container so internal clicks do NOT propagate
+       to here. #}
+    <div
+        class="absolute inset-0 bg-black/40"
+        aria-hidden="true"
+        @click="dismiss()"
+    ></div>
+
+    {# Dialog container. x-trap.noscroll.inert traps focus inside the dialog,
+       locks page scroll, and applies the `inert` attribute to siblings so
+       assistive tech ignores the rest of the page while the dialog is open.
+       First focusable child receives focus automatically; on close, focus
+       is returned to the element that opened the dialog. #}
+    <div
+        class="relative z-10 w-full max-w-2xl rounded-card border border-litrec-border bg-litrec-surface p-6 shadow-card"
+        x-trap.noscroll.inert="open"
+        @click.outside="dismiss()"
+    >
+        <div class="mb-4 flex items-start justify-between gap-4">
+            <h2 id="{{ headingId }}" class="text-lg font-semibold text-litrec-text">{{ title }}</h2>
+            <button
+                type="button"
+                aria-label="Close"
+                class="rounded-md p-1 text-litrec-text-muted hover:bg-litrec-bg-muted focus:outline-none focus:ring-2 focus:ring-litrec-primary"
+                @click="dismiss()"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-5 w-5" aria-hidden="true">
+                    <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
+                </svg>
+            </button>
+        </div>
+        <div>
+            {{ body|raw }}
+        </div>
+    </div>
+</div>
