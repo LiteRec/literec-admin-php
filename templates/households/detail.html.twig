@@ -98,14 +98,9 @@
         <section data-testid="card-household">
             {% include 'households/detail/_card_household.html.twig' with { detail: detail } only %}
         </section>
-        <section data-testid="card-profile">
-            {% include 'households/detail/_card_profile.html.twig' with { detail: detail } only %}
-        </section>
-        <section data-testid="card-address">
-            {% include 'households/detail/_card_address.html.twig' with { detail: detail } only %}
-        </section>
-        <section data-testid="card-history" class="lg:col-span-2">
-            {% include 'households/detail/_card_history.html.twig' with { detail: detail } only %}
-        </section>
+        {# Lower cards live in their own wrapper so HTMX can swap them as a
+           group when the active member changes from the Household card,
+           without re-rendering the Household card itself. #}
+        {% include 'households/detail/_lower_cards.html.twig' with { detail: detail } only %}
     </div>
 {% endblock %}

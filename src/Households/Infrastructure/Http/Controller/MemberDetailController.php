@@ -72,6 +72,41 @@ final class MemberDetailController extends AbstractController
     }
 
     /**
+     * HTMX partial endpoint that returns only the three lower cards
+     * (Profile, Address, History) for the requested member. The Household
+     * card (LRA-42) wraps this endpoint to switch the active member
+     * without re-rendering itself; HTMX swaps `#member-cards-lower` with
+     * the response body and the client-side `hx-push-url` keeps the
+     * browser URL in sync with the new (householdId, memberId) tuple.
+     *
+     * Uses an underscore-prefixed path segment to keep the partial route
+     * out of the canonical user-facing URL space served by the main
+     * member-detail route — same controller, same query, different view
+     * shape.
+     */
+    #[Route(
+        '/admin/users/{householdId}/{memberId}/_lower-cards',
+        name: 'member_detail_lower_cards',
+        requirements: [
+            'householdId' => self::UUID_V7_REGEX,
+            'memberId'    => self::UUID_V7_REGEX,
+        ],
+        methods: ['GET'],
+    )]
+    public function lowerCards(string $householdId, string $memberId): Response
+    {
+        try {
+            $detail = $this->runQuery($householdId, $memberId);
+        } catch (MemberNotFound | HouseholdNotFound | InvalidHouseholdId | InvalidMemberId) {
+            throw $this->createNotFoundException('Member not found.');
+        }
+
+        return $this->render('households/detail/_lower_cards.html.twig', [
+            'detail' => $detail,
+        ]);
+    }
+
+    /**
      * Dispatches the GetMemberDetail query and unwraps Messenger's
      * HandlerFailedException so the original domain exceptions reach the
      * caller. Domain exceptions cannot leak through HandleTrait's
