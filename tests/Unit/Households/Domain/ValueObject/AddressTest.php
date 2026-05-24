@@ -125,10 +125,20 @@ final class AddressTest extends TestCase
     }
 
     #[Test]
+    // Structural / shape failures.
     #[TestWith(['K1A0B1'])]
     #[TestWith(['1K1 0B1'])]
     #[TestWith(['K1A-0B1'])]
     #[TestWith(['ABCDE'])]
+    // Canada Post restricted-letter failures. D, F, I, O, Q, U are never
+    // used anywhere in a postal code; W and Z are forbidden in position 1
+    // (the leading letter), allowed in positions 3 and 5.
+    #[TestWith(['D1A 0B1'])] // D in position 1
+    #[TestWith(['F1A 0B1'])] // F in position 1
+    #[TestWith(['W1A 0B1'])] // W not allowed in position 1
+    #[TestWith(['Z1A 0B1'])] // Z not allowed in position 1
+    #[TestWith(['K1D 0B1'])] // D in position 3
+    #[TestWith(['K1A 0Q1'])] // Q in position 5
     #[TestDox('Rejects a malformed Canadian postal code with InvalidAddress.')]
     public function rejects_invalid_ca_postal_code(string $postal): void
     {
@@ -148,7 +158,7 @@ final class AddressTest extends TestCase
 
     #[Test]
     #[TestWith(['A'])]
-    #[TestWith(['this-is-eleven'])]
+    #[TestWith(['12345678901'])]
     #[TestDox('Rejects a GB postal code outside the 2-10 character range.')]
     public function rejects_invalid_gb_postal_code(string $postal): void
     {

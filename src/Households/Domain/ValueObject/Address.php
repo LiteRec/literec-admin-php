@@ -24,7 +24,7 @@ final readonly class Address
 {
     private const COUNTRY_PATTERN = '/^[A-Z]{2}$/';
     private const US_ZIP_PATTERN = '/^\d{5}(-\d{4})?$/';
-    private const CA_POSTAL_PATTERN = '/^[A-Z]\d[A-Z] \d[A-Z]\d$/';
+    private const CA_POSTAL_PATTERN = '/^[ABCEGHJKLMNPRSTVXY]\d[ABCEGHJKLMNPRSTVWXYZ] \d[ABCEGHJKLMNPRSTVWXYZ]\d$/';
 
     public string $street;
     public ?string $unit;

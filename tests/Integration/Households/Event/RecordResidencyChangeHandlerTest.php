@@ -107,7 +107,8 @@ final class RecordResidencyChangeHandlerTest extends KernelTestCase
         ));
 
         $row = $this->connection()->fetchAssociative(
-            'SELECT reason FROM household_residency_history WHERE member_id = :m',
+            'SELECT reason FROM household_residency_history '
+            . 'WHERE member_id = :m ORDER BY id DESC LIMIT 1',
             ['m' => self::MEMBER_ID],
         );
 
