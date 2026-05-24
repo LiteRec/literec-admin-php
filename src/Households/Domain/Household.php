@@ -36,6 +36,16 @@ use Psr\Clock\ClockInterface;
  * Owns a list of {@see HouseholdMember} child entities and a single
  * household-level {@see Address}. Every state change records a domain event;
  * a Messenger middleware dispatches those post-transaction.
+ *
+ * On the email/phone parameters: the aggregate accepts them as nullable on
+ * the member-level mutators ({@see self::register()}, {@see self::addMember()},
+ * {@see self::updateMemberContact()}) so contact-only edits — including
+ * "remove email", "remove phone" — can be expressed without re-asking for
+ * other profile fields. The command DTOs in the Application layer
+ * ({@see \App\Households\Application\Command\RegisterHousehold},
+ * {@see \App\Households\Application\Command\AddMemberToHousehold}) currently
+ * require both at registration/add time because the legacy "view users" UI
+ * never created a member without contact info; LRA-43 may relax that.
  */
 final class Household
 {

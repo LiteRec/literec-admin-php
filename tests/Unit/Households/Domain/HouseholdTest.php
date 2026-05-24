@@ -14,6 +14,7 @@ use App\Households\Domain\Event\MemberReactivated;
 use App\Households\Domain\Event\MemberRemovedFromHousehold;
 use App\Households\Domain\Event\MemberResidencyChanged;
 use App\Households\Domain\Exception\DuplicateMemberCode;
+use App\Households\Domain\Exception\DuplicateMemberId;
 use App\Households\Domain\Exception\MemberNotFound;
 use App\Households\Domain\Household;
 use App\Households\Domain\ValueObject\Address;
@@ -107,6 +108,28 @@ final class HouseholdTest extends TestCase
         $household->addMember(
             MemberId::fromString(self::SECOND_MEMBER_ID),
             MemberCode::of('M0001'),
+            PersonName::of('Bob', 'Smith'),
+            DateOfBirth::of(new DateTimeImmutable('1992-03-04'), $this->clock),
+            Gender::Male,
+            null,
+            null,
+            ResidencyStatus::Resident,
+            false,
+            $this->clock,
+        );
+    }
+
+    #[Test]
+    #[TestDox('::addMember() throws DuplicateMemberId when the same id is added twice within a household.')]
+    public function add_member_rejects_duplicate_id(): void
+    {
+        $household = $this->register();
+
+        $this->expectException(DuplicateMemberId::class);
+
+        $household->addMember(
+            MemberId::fromString(self::PRIMARY_MEMBER_ID),
+            MemberCode::of('M0002'),
             PersonName::of('Bob', 'Smith'),
             DateOfBirth::of(new DateTimeImmutable('1992-03-04'), $this->clock),
             Gender::Male,

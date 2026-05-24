@@ -10,12 +10,17 @@ use DomainException;
 
 final class MemberNotFound extends DomainException implements HouseholdsDomainException
 {
+    /**
+     * @param HouseholdId $householdId Not embedded in the message — see the
+     *                                 codebase-wide convention of keeping
+     *                                 caller-controlled identifiers out of
+     *                                 exception text.
+     * @param MemberId    $memberId    Same — not embedded in the message.
+     */
     public static function inHousehold(HouseholdId $householdId, MemberId $memberId): self
     {
-        return new self(sprintf(
-            'Household "%s" has no member with id "%s".',
-            $householdId->value,
-            $memberId->value,
-        ));
+        unset($householdId, $memberId);
+
+        return new self('The household has no member with the supplied id.');
     }
 }
