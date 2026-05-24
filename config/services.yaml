@@ -105,11 +105,13 @@ services:
             $commandBus: '@command.bus'
         tags: ['controller.service_arguments']
 
-    # Wire the MemberDetailController (LRA-41) onto the query bus so its
-    # GET action can dispatch the GetMemberDetail query.
+    # Wire the MemberDetailController (LRA-41 + LRA-43) onto both the query
+    # bus (GetMemberDetail) and the command bus (UpdateMemberProfile for the
+    # in-card Profile edit flow).
     App\Households\Infrastructure\Http\Controller\MemberDetailController:
         arguments:
             $queryBus: '@query.bus'
+            $commandBus: '@command.bus'
         tags: ['controller.service_arguments']
 
     # App shell Twig globals (selected facility, build version).

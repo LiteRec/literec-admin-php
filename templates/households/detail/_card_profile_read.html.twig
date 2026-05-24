@@ -1,0 +1,77 @@
+{# Profile card — read mode (LRA-43).
+
+   Rendered both as the default Profile card body (via _card_profile) and
+   as the swap target returned after a successful POST to
+   /admin/users/{h}/{m}/profile. The wrapping #card-profile-body element
+   in _card_profile.html.twig is restored via `outerHTML` swap so the
+   "Edit" button stays inside the swappable region.
+
+   Expects:
+     - detail: App\Households\Application\Query\Port\MemberDetail
+#}
+{% set genderLabelMap = { 'F': 'Female', 'M': 'Male', 'O': 'Other', 'U': 'Unspecified' } %}
+{% set genderLabel = genderLabelMap[detail.profile.genderCode] ?? detail.profile.genderCode %}
+<div id="card-profile-body" data-testid="card-profile-body" class="border-t border-litrec-border px-5 py-4">
+    <div class="mb-3 flex items-center justify-end">
+        <button
+            type="button"
+            data-testid="profile-edit"
+            aria-haspopup="false"
+            hx-get="{{ path('member_profile_edit_form', { householdId: detail.household.householdId, memberId: detail.profile.memberId }) }}"
+            hx-target="#card-profile-body"
+            hx-swap="outerHTML"
+            class="rounded-md border border-litrec-border bg-litrec-surface px-3 py-1.5 text-xs font-semibold text-litrec-text hover:bg-litrec-bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
+        >
+            Edit
+        </button>
+    </div>
+
+    <dl class="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+        <div>
+            <dt class="text-xs font-semibold uppercase tracking-wide text-litrec-text-muted">First name</dt>
+            <dd data-testid="profile-first-name" class="mt-1 text-litrec-text">{{ detail.profile.firstName }}</dd>
+        </div>
+        <div>
+            <dt class="text-xs font-semibold uppercase tracking-wide text-litrec-text-muted">Middle name</dt>
+            <dd data-testid="profile-middle-name" class="mt-1 text-litrec-text">{{ detail.profile.middleName ?? '—' }}</dd>
+        </div>
+        <div>
+            <dt class="text-xs font-semibold uppercase tracking-wide text-litrec-text-muted">Last name</dt>
+            <dd data-testid="profile-last-name" class="mt-1 text-litrec-text">{{ detail.profile.lastName }}</dd>
+        </div>
+        <div>
+            <dt class="text-xs font-semibold uppercase tracking-wide text-litrec-text-muted">Suffix</dt>
+            <dd data-testid="profile-suffix" class="mt-1 text-litrec-text">{{ detail.profile.suffix ?? '—' }}</dd>
+        </div>
+        <div>
+            <dt class="text-xs font-semibold uppercase tracking-wide text-litrec-text-muted">Date of birth</dt>
+            {# dobIso is already a yyyy-MM-dd string from the read model. Echo
+               it as-is to avoid UTC date-shift bugs in the browser locale. #}
+            <dd data-testid="profile-dob" class="mt-1 text-litrec-text">{{ detail.profile.dobIso ?? '—' }}</dd>
+        </div>
+        <div>
+            <dt class="text-xs font-semibold uppercase tracking-wide text-litrec-text-muted">Gender</dt>
+            <dd data-testid="profile-gender" class="mt-1 text-litrec-text">{{ genderLabel }}</dd>
+        </div>
+        {% if detail.profile.email is not null %}
+            <div>
+                <dt class="text-xs font-semibold uppercase tracking-wide text-litrec-text-muted">Email</dt>
+                <dd data-testid="profile-email" class="mt-1 text-litrec-text">{{ detail.profile.email }}</dd>
+            </div>
+        {% endif %}
+        {% if detail.profile.phone is not null %}
+            <div>
+                <dt class="text-xs font-semibold uppercase tracking-wide text-litrec-text-muted">Phone</dt>
+                <dd data-testid="profile-phone" class="mt-1 text-litrec-text">{{ detail.profile.phone }}</dd>
+            </div>
+        {% endif %}
+        <div>
+            <dt class="text-xs font-semibold uppercase tracking-wide text-litrec-text-muted">Primary</dt>
+            <dd data-testid="profile-primary" class="mt-1 text-litrec-text">{{ detail.profile.isPrimary ? 'Yes' : 'No' }}</dd>
+        </div>
+        <div>
+            <dt class="text-xs font-semibold uppercase tracking-wide text-litrec-text-muted">Active</dt>
+            <dd data-testid="profile-active" class="mt-1 text-litrec-text">{{ detail.profile.isActive ? 'Yes' : 'No' }}</dd>
+        </div>
+    </dl>
+</div>
