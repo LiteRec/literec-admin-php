@@ -1,6 +1,11 @@
-{# Placeholder for the Profile card (LRA-43). See _card_household.html.twig
-   for the URL-hash collapse-state contract; this partial binds the
-   `cards.profile` key.
+{# Profile card (LRA-43). See _card_household.html.twig for the URL-hash
+   collapse-state contract; this partial binds the `cards.profile` key.
+
+   The card chrome (collapse-state <details>/<summary>) stays put across
+   read/edit swaps. The swappable body lives in #card-profile-body — both
+   _card_profile_read.html.twig and _card_profile_edit.html.twig render
+   that same wrapper as their root element so HTMX outerHTML swaps target
+   a stable anchor.
 
    Expects:
      - detail: App\Households\Application\Query\Port\MemberDetail
@@ -18,8 +23,6 @@
             <span>Profile</span>
             <span aria-hidden="true" class="text-xs transition-transform group-open:rotate-180">▾</span>
         </summary>
-        <div class="border-t border-litrec-border px-5 py-4 text-sm text-litrec-text-muted">
-            Coming in LRA-43.
-        </div>
+        {% include 'households/detail/_card_profile_read.html.twig' with { detail: detail } only %}
     </details>
 </div>
