@@ -37,6 +37,18 @@ services:
             - '../src/Users/Application/Command/RegisterUser.php'
             - '../src/Users/Application/Command/ChangeUserPassword.php'
             - '../src/Users/Infrastructure/Persistence/Doctrine/Type/'
+            - '../src/Households/Domain/Household.php'
+            - '../src/Households/Domain/HouseholdMember.php'
+            - '../src/Households/Domain/Event/'
+            - '../src/Households/Domain/Exception/'
+            - '../src/Households/Domain/ValueObject/'
+            - '../src/Households/Domain/AggregateRoot.php'
+            - '../src/Households/Application/Command/RegisterHousehold.php'
+            - '../src/Households/Application/Command/AddMemberToHousehold.php'
+            - '../src/Households/Application/Command/UpdateMemberProfile.php'
+            - '../src/Households/Application/Command/UpdateHouseholdAddress.php'
+            - '../src/Households/Application/Command/ChangeMemberResidency.php'
+            - '../src/Households/Application/Command/DeactivateMember.php'
             - '../src/Kernel.php'
 
     # add more service definitions when explicit configuration is needed
@@ -47,6 +59,13 @@ services:
 
     # Bind the Users\Domain Users repository port to its Doctrine adapter.
     App\Users\Domain\Users: '@App\Users\Infrastructure\Persistence\Doctrine\DoctrineUsers'
+
+    # Bind the Households\Domain ports to their adapters. The persistence
+    # port currently resolves to the in-memory adapter; LRA-37 introduces
+    # the Doctrine implementations.
+    App\Households\Domain\Households: '@App\Households\Infrastructure\Persistence\InMemory\InMemoryHouseholds'
+    App\Households\Domain\IdentityGenerator: '@App\Households\Infrastructure\Identity\Uuid7IdentityGenerator'
+    App\Households\Domain\MemberCodeAllocator: '@App\Households\Infrastructure\Persistence\InMemory\InMemoryMemberCodeAllocator'
 
     # Inject the command bus into the SecurityUserProvider so the password
     # upgrader can dispatch a ChangeUserPassword command.
@@ -70,4 +89,13 @@ when@test:
             public: true
         App\Users\Domain\Users:
             alias: App\Users\Infrastructure\Persistence\Doctrine\DoctrineUsers
+            public: true
+        App\Households\Domain\Households:
+            alias: App\Households\Infrastructure\Persistence\InMemory\InMemoryHouseholds
+            public: true
+        App\Households\Domain\IdentityGenerator:
+            alias: App\Households\Infrastructure\Identity\Uuid7IdentityGenerator
+            public: true
+        App\Households\Domain\MemberCodeAllocator:
+            alias: App\Households\Infrastructure\Persistence\InMemory\InMemoryMemberCodeAllocator
             public: true
