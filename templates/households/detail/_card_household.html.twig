@@ -1,0 +1,28 @@
+{# Placeholder for the Household card (LRA-42).
+
+   The wrapping <main> in detail.html.twig owns the collapse-state map
+   (`cards.household`). This partial binds the <details> open attribute to
+   `cards.household` and writes the URL hash on toggle via `syncHash()`.
+   LRA-42 replaces the body with the real household summary widget.
+
+   Expects:
+     - detail: App\Households\Application\Query\Port\MemberDetail
+#}
+<div class="rounded-card border border-litrec-border bg-litrec-surface shadow-card">
+    <details
+        class="group"
+        :open="cards.household"
+        @toggle="cards.household = $event.target.open; syncHash()"
+    >
+        <summary
+            class="flex cursor-pointer list-none items-center justify-between gap-2 px-5 py-3 text-sm font-semibold uppercase tracking-wide text-litrec-text-muted"
+            :aria-expanded="cards.household.toString()"
+        >
+            <span>Household</span>
+            <span aria-hidden="true" class="text-xs transition-transform group-open:rotate-180">▾</span>
+        </summary>
+        <div class="border-t border-litrec-border px-5 py-4 text-sm text-litrec-text-muted">
+            Coming in LRA-42.
+        </div>
+    </details>
+</div>

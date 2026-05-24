@@ -30,7 +30,7 @@
             </thead>
             <tbody class="divide-y divide-litrec-border">
                 {% for item in page.items %}
-                    {% set rowHref = '/admin/users/' ~ item.householdId ~ '/' ~ item.memberId %}
+                    {% set rowHref = path('member_detail', { householdId: item.householdId, memberId: item.memberId }) %}
                     <tr
                         data-testid="member-row-{{ item.memberId }}"
                         class="hover:bg-litrec-bg-muted"

@@ -1,0 +1,25 @@
+{# Placeholder for the Transaction History card (LRA-45). See
+   _card_household.html.twig for the URL-hash collapse-state contract;
+   this partial binds the `cards.history` key.
+
+   Expects:
+     - detail: App\Households\Application\Query\Port\MemberDetail
+#}
+<div class="rounded-card border border-litrec-border bg-litrec-surface shadow-card">
+    <details
+        class="group"
+        :open="cards.history"
+        @toggle="cards.history = $event.target.open; syncHash()"
+    >
+        <summary
+            class="flex cursor-pointer list-none items-center justify-between gap-2 px-5 py-3 text-sm font-semibold uppercase tracking-wide text-litrec-text-muted"
+            :aria-expanded="cards.history.toString()"
+        >
+            <span>Transaction History</span>
+            <span aria-hidden="true" class="text-xs transition-transform group-open:rotate-180">▾</span>
+        </summary>
+        <div class="border-t border-litrec-border px-5 py-4 text-sm text-litrec-text-muted">
+            Coming in LRA-45.
+        </div>
+    </details>
+</div>
