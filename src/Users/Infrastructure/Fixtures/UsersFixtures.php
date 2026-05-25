@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Users\Infrastructure\Fixtures;
 
+use App\Shared\Infrastructure\Fixtures\FixtureEnv;
 use App\Users\Application\Command\RegisterUser;
 use App\Users\Domain\ValueObject\Role;
 use Doctrine\Bundle\FixturesBundle\Fixture;
@@ -91,28 +92,11 @@ final class UsersFixtures extends Fixture implements FixtureGroupInterface
 
     private function bulkCount(): int
     {
-        $raw = $_ENV['FIXTURE_USER_COUNT'] ?? $_SERVER['FIXTURE_USER_COUNT'] ?? null;
-        if ($raw === null || $raw === '') {
-            return self::DEFAULT_BULK_COUNT;
-        }
-
-        $value = filter_var($raw, FILTER_VALIDATE_INT);
-        if ($value === false || $value < 0) {
-            return self::DEFAULT_BULK_COUNT;
-        }
-
-        return min($value, self::MAX_BULK_COUNT);
+        return FixtureEnv::bulkCount('FIXTURE_USER_COUNT', self::DEFAULT_BULK_COUNT, self::MAX_BULK_COUNT);
     }
 
     private function seedValue(): int
     {
-        $raw = $_ENV['FIXTURE_SEED'] ?? $_SERVER['FIXTURE_SEED'] ?? null;
-        if ($raw === null || $raw === '') {
-            return self::DEFAULT_SEED;
-        }
-
-        $value = filter_var($raw, FILTER_VALIDATE_INT);
-
-        return $value === false ? self::DEFAULT_SEED : $value;
+        return FixtureEnv::seed(self::DEFAULT_SEED);
     }
 }

@@ -43,6 +43,14 @@ deptrac:
               # admin pages.
               - type: directory
                 value: src/Ui/.*
+        - name: SharedInfrastructure
+          collectors:
+              # Cross-cutting infrastructure helpers consumed by multiple
+              # bounded contexts (e.g. fixture env readers). Lives outside
+              # any context so its imports do not violate the "no
+              # cross-context dependencies" rule.
+              - type: directory
+                value: src/Shared/Infrastructure/.*
 
         # External-code layers are matched by namespace prefix rather than by
         # composer package list. This avoids depending on the exact direct/transitive
@@ -111,6 +119,7 @@ deptrac:
             - DoctrineCollections
             - Symfony
             - Faker
+            - SharedInfrastructure
         # Households layers. Cross-context dependencies are forbidden:
         # HouseholdsDomain and UsersDomain are independent of each other.
         # Doctrine\Common\Collections is the one ORM dependency the
@@ -135,6 +144,7 @@ deptrac:
             - DoctrineCollections
             - Symfony
             - Faker
+            - SharedInfrastructure
         # Legacy now covers only the two root controllers
         # (HomeController, DashboardController) that LRA-13 left in place
         # because they belong to bounded contexts (Reports, Scheduling)
@@ -155,3 +165,4 @@ deptrac:
             - Symfony
             - Twig
             - PsrClock
+        SharedInfrastructure: []
