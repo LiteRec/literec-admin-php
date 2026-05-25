@@ -36,5 +36,21 @@ framework:
             Symfony\Component\Notifier\Message\ChatMessage: async
             Symfony\Component\Notifier\Message\SmsMessage: async
 
-            # Route your messages to the transports
-            # 'App\Message\YourMessage': async
+            # LRA-69: route the Catalog LineSold integration event to the
+            # async transport so downstream subscribers (Inventory, future
+            # Programs / Memberships / Rentals) run out-of-band after the
+            # writing transaction commits. The producer publishes the
+            # event via the event.bus with DispatchAfterCurrentBusStamp;
+            # the command.bus doctrine_transaction middleware enforces
+            # post-commit dispatch.
+            App\Catalog\Integration\Event\LineSold: async
+
+when@test:
+    framework:
+        messenger:
+            transports:
+                # LRA-69: in-memory transport so the functional contract
+                # test for the LineSold post-commit guarantee can assert
+                # whether the event was actually published without
+                # depending on the real broker.
+                async: 'in-memory://'
