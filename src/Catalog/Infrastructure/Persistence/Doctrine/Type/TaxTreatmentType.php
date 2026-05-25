@@ -41,7 +41,16 @@ final class TaxTreatmentType extends JsonType
             );
         }
 
-        return TaxTreatment::of((bool) $decoded['applyTax'], (bool) $decoded['taxIncludedInFee']);
+        $applyTax = $decoded['applyTax'];
+        $taxIncludedInFee = $decoded['taxIncludedInFee'];
+
+        if (! is_bool($applyTax) || ! is_bool($taxIncludedInFee)) {
+            throw new UnexpectedValueException(
+                'TaxTreatment column members must be JSON booleans.'
+            );
+        }
+
+        return TaxTreatment::of($applyTax, $taxIncludedInFee);
     }
 
     public function convertToDatabaseValue(mixed $value, AbstractPlatform $platform): ?string

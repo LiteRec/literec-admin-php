@@ -37,6 +37,15 @@ final class DoctrineListings implements Listings
 
     public function save(Listing $listing): void
     {
+        // save() only persists updates to aggregates that already exist;
+        // new aggregates must go through add(). Doctrine treats a
+        // never-persisted entity as detached at flush(), silently
+        // discarding the call, so we explicitly check the UnitOfWork
+        // to keep the port's contract.
+        if (! $this->em->contains($listing)) {
+            throw ListingNotFound::byId($listing->id()->value);
+        }
+
         $this->em->flush();
     }
 

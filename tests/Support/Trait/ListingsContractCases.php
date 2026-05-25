@@ -113,6 +113,20 @@ trait ListingsContractCases
     }
 
     #[Test]
+    #[TestDox(
+        'save() throws ListingNotFound when the listing has never been persisted '
+        . '(callers must use add() for new aggregates).'
+    )]
+    public function save_unknown_listing_throws(): void
+    {
+        $listing = $this->makeListing(self::ID_A, 'NEW-1', ListingKind::Inventory, 'Brand new');
+
+        $this->expectException(ListingNotFound::class);
+
+        $this->listings()->save($listing);
+    }
+
+    #[Test]
     #[TestDox('save() persists modifications made through aggregate behaviour methods.')]
     public function save_persists_updates(): void
     {
