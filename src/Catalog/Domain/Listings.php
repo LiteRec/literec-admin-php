@@ -30,6 +30,9 @@ interface Listings
 
     /**
      * Persists modifications to an existing listing.
+     *
+     * @throws ListingNotFound when no listing with the given id has been
+     *         persisted yet. Use {@see add()} to register new listings.
      */
     public function save(Listing $listing): void;
 

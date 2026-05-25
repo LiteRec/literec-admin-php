@@ -37,10 +37,11 @@ final class InMemoryListings implements Listings
     public function save(Listing $listing): void
     {
         // save() only persists updates to aggregates that already exist;
-        // duplicate-code detection is the responsibility of add() (and
-        // the database unique constraint behind the Doctrine adapter)
-        // because the Listing aggregate exposes no code mutator that
-        // could introduce a collision at this stage.
+        // new aggregates must go through add().
+        if (! isset($this->byId[$listing->id()->value])) {
+            throw ListingNotFound::byId($listing->id()->value);
+        }
+
         $this->byId[$listing->id()->value] = $listing;
     }
 
