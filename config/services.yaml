@@ -160,6 +160,17 @@ services:
 # contract tests can target them deliberately.
 when@test:
     services:
+        # LRA-69: register the LineSold post-commit contract test fixtures
+        # (command + handler) so the functional KernelTestCase can dispatch
+        # the failing command on the command bus and observe the rollback
+        # path. These classes live under tests/ which the production
+        # autoload pass does not scan.
+        App\Tests\Functional\Catalog\Integration\FailingPublishHandler:
+            autowire: true
+            autoconfigure: true
+            tags:
+                - { name: messenger.message_handler, bus: command.bus }
+
         App\Users\Domain\IdentityGenerator:
             alias: App\Users\Infrastructure\Identity\Uuid7IdentityGenerator
             public: true
