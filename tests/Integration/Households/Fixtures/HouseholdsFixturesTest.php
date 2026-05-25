@@ -26,7 +26,13 @@ final class HouseholdsFixturesTest extends KernelTestCase
     )]
     public function loads_curated_households_and_bulk_batch_through_the_command_bus(): void
     {
+        $previousEnv = $_ENV['FIXTURE_HOUSEHOLD_COUNT'] ?? null;
+        $previousServer = $_SERVER['FIXTURE_HOUSEHOLD_COUNT'] ?? null;
+        $previousProcess = getenv('FIXTURE_HOUSEHOLD_COUNT');
+
         $_ENV['FIXTURE_HOUSEHOLD_COUNT'] = '2';
+        $_SERVER['FIXTURE_HOUSEHOLD_COUNT'] = '2';
+        putenv('FIXTURE_HOUSEHOLD_COUNT=2');
         try {
             $container = static::getContainer();
 
@@ -85,8 +91,35 @@ final class HouseholdsFixturesTest extends KernelTestCase
                 ),
                 'Miller Senior household must record at least one residency-history entry.',
             );
+
+            self::assertGreaterThanOrEqual(
+                1,
+                $this->countOne(
+                    $connection,
+                    'SELECT COUNT(*) FROM household_members hm '
+                    . 'JOIN households h ON h.id = hm.household_id '
+                    . "WHERE h.name = 'Brown Inactive' "
+                    . 'AND hm.is_active = false '
+                    . 'AND hm.deactivated_at IS NOT NULL',
+                ),
+                'Brown Inactive should include at least one deactivated member.',
+            );
         } finally {
-            unset($_ENV['FIXTURE_HOUSEHOLD_COUNT']);
+            if ($previousEnv === null) {
+                unset($_ENV['FIXTURE_HOUSEHOLD_COUNT']);
+            } else {
+                $_ENV['FIXTURE_HOUSEHOLD_COUNT'] = $previousEnv;
+            }
+            if ($previousServer === null) {
+                unset($_SERVER['FIXTURE_HOUSEHOLD_COUNT']);
+            } else {
+                $_SERVER['FIXTURE_HOUSEHOLD_COUNT'] = $previousServer;
+            }
+            if ($previousProcess === false) {
+                putenv('FIXTURE_HOUSEHOLD_COUNT');
+            } else {
+                putenv('FIXTURE_HOUSEHOLD_COUNT=' . $previousProcess);
+            }
         }
     }
 
