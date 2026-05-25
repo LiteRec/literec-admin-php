@@ -95,6 +95,29 @@ final class CatalogQueryHandlersTest extends TestCase
         $single = ($handler)(new FindListingsByKind('PROGRAM', 0, 1));
         self::assertCount(1, $single);
         self::assertSame('PRG-1', $single[0]->code);
+
+        $second = ($handler)(new FindListingsByKind('PROGRAM', 1, 1));
+        self::assertCount(1, $second);
+        self::assertSame('PRG-2', $second[0]->code);
+
+        $beyondLast = ($handler)(new FindListingsByKind('PROGRAM', 2, 10));
+        self::assertSame([], $beyondLast);
+    }
+
+    #[Test]
+    #[TestDox('FindListingsByKind constructor rejects negative offset and non-positive limit at the bus boundary.')]
+    public function find_by_kind_rejects_bad_pagination(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        new FindListingsByKind('PROGRAM', -1, 10);
+    }
+
+    #[Test]
+    #[TestDox('FindListingsByKind constructor rejects a zero limit.')]
+    public function find_by_kind_rejects_zero_limit(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        new FindListingsByKind('PROGRAM', 0, 0);
     }
 
     #[Test]
