@@ -109,7 +109,8 @@ final class CatalogQueryHandlersTest extends TestCase
     public function find_by_kind_rejects_bad_pagination(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        new FindListingsByKind('PROGRAM', -1, 10);
+        $query = new FindListingsByKind('PROGRAM', -1, 10);
+        self::fail(sprintf('Expected exception was not thrown; got %s.', $query::class));
     }
 
     #[Test]
@@ -117,7 +118,8 @@ final class CatalogQueryHandlersTest extends TestCase
     public function find_by_kind_rejects_zero_limit(): void
     {
         $this->expectException(\InvalidArgumentException::class);
-        new FindListingsByKind('PROGRAM', 0, 0);
+        $query = new FindListingsByKind('PROGRAM', 0, 0);
+        self::fail(sprintf('Expected exception was not thrown; got %s.', $query::class));
     }
 
     #[Test]
