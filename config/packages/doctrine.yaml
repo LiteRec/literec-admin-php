@@ -29,6 +29,14 @@ doctrine:
             catalog_ledger_account: App\Catalog\Infrastructure\Persistence\Doctrine\Type\LedgerAccountType
             catalog_tax_treatment: App\Catalog\Infrastructure\Persistence\Doctrine\Type\TaxTreatmentType
             catalog_fees: App\Catalog\Infrastructure\Persistence\Doctrine\Type\FeesType
+            # Custom DBAL types for the Inventory bounded-context value objects.
+            inventory_vendor_id: App\Inventory\Infrastructure\Persistence\Doctrine\Type\VendorIdType
+            inventory_vendor_code: App\Inventory\Infrastructure\Persistence\Doctrine\Type\VendorCodeType
+            inventory_vendor_name: App\Inventory\Infrastructure\Persistence\Doctrine\Type\VendorNameType
+            inventory_vendor_contact: App\Inventory\Infrastructure\Persistence\Doctrine\Type\VendorContactType
+            inventory_vendor_address: App\Inventory\Infrastructure\Persistence\Doctrine\Type\VendorAddressType
+            inventory_email_address: App\Inventory\Infrastructure\Persistence\Doctrine\Type\EmailAddressType
+            inventory_phone_number: App\Inventory\Infrastructure\Persistence\Doctrine\Type\PhoneNumberType
     orm:
         validate_xml_mapping: true
         naming_strategy: doctrine.orm.naming_strategy.underscore
@@ -54,6 +62,12 @@ doctrine:
                 dir: '%kernel.project_dir%/src/Catalog/Infrastructure/Persistence/Doctrine/Mapping'
                 prefix: 'App\Catalog\Domain'
                 alias: Catalog
+            Inventory:
+                type: xml
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/Inventory/Infrastructure/Persistence/Doctrine/Mapping'
+                prefix: 'App\Inventory\Domain'
+                alias: Inventory
 
 when@test:
     doctrine:

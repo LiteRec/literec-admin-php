@@ -65,6 +65,12 @@ services:
             # interface is bound explicitly below; the DTOs must not be
             # auto-registered as services.
             - '../src/Households/Application/Port/'
+            - '../src/Inventory/Infrastructure/Persistence/Doctrine/Type/'
+            - '../src/Inventory/Domain/Vendor.php'
+            - '../src/Inventory/Domain/AggregateRoot.php'
+            - '../src/Inventory/Domain/Event/'
+            - '../src/Inventory/Domain/Exception/'
+            - '../src/Inventory/Domain/ValueObject/'
             - '../src/Kernel.php'
 
     # add more service definitions when explicit configuration is needed
@@ -92,9 +98,11 @@ services:
     App\Catalog\Domain\IdentityGenerator: '@App\Catalog\Infrastructure\Identity\Uuid7IdentityGenerator'
 
     # Bind the Inventory ports to their production adapters. The
-    # Uuid7IdentityGenerator mirrors the Catalog binding; repository
-    # ports land in LRA-72/76/77.
+    # Uuid7IdentityGenerator mirrors the Catalog binding; the Vendors
+    # repository port is wired to the Doctrine adapter (LRA-72).
+    # Remaining repository ports land in LRA-76/77.
     App\Inventory\Domain\IdentityGenerator: '@App\Inventory\Infrastructure\Identity\Uuid7IdentityGenerator'
+    App\Inventory\Domain\Vendors: '@App\Inventory\Infrastructure\Persistence\Doctrine\DoctrineVendors'
 
     # Bind the Households read-model port (LRA-38) to its Doctrine adapter.
     # The adapter uses the DBAL Connection rather than the EntityManager;
@@ -223,6 +231,16 @@ when@test:
         # through the private container.
         App\Inventory\Domain\IdentityGenerator:
             alias: App\Inventory\Infrastructure\Identity\Uuid7IdentityGenerator
+            public: true
+        # Inventory Vendors (LRA-72). Production binding stays on the
+        # Doctrine adapter; the in-memory adapter is wired behind a
+        # named alias so the shared contract test can target it
+        # deliberately without changing the production wiring.
+        App\Inventory\Domain\Vendors:
+            alias: App\Inventory\Infrastructure\Persistence\Doctrine\DoctrineVendors
+            public: true
+        inventory.in_memory_vendors_repository:
+            alias: App\Inventory\Infrastructure\Persistence\InMemory\InMemoryVendors
             public: true
         # Seeded Faker generator for fixture loads. Test env mirrors the
         # dev binding below so integration tests that exercise fixtures
