@@ -14,4 +14,11 @@ final class QuantityWouldGoNegative extends DomainException implements Inventory
             sprintf('Cannot subtract %d units from %d units: result would be negative.', $by, $from),
         );
     }
+
+    public static function ofRawValue(int $units): self
+    {
+        return new self(
+            sprintf('Quantity must be zero or positive; got %d units.', $units),
+        );
+    }
 }
