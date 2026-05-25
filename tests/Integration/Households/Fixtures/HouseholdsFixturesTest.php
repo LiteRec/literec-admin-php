@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Integration\Households\Fixtures;
 
 use App\Households\Infrastructure\Fixtures\HouseholdsFixtures;
+use App\Tests\Support\Trait\TruncatesFixtureTables;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Faker\Generator;
@@ -19,6 +20,8 @@ use Symfony\Component\Messenger\MessageBusInterface;
 #[Group('slow')]
 final class HouseholdsFixturesTest extends KernelTestCase
 {
+    use TruncatesFixtureTables;
+
     #[Test]
     #[TestDox(
         'Loads four curated households + a small bulk batch via the command bus, '
@@ -40,6 +43,11 @@ final class HouseholdsFixturesTest extends KernelTestCase
             $faker = $container->get(Generator::class);
             $em = $container->get(EntityManagerInterface::class);
             $connection = $em->getConnection();
+
+            // Truncate so the fixture starts from a clean slate when
+            // an earlier composer db:reset-test or sibling slow test
+            // has already populated the database.
+            $this->truncateFixtureTables($connection);
 
             $fixture = new HouseholdsFixtures($commandBus, $faker);
             $fixture->load($em);

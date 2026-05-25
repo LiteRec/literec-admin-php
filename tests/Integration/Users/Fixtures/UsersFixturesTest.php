@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Integration\Users\Fixtures;
 
+use App\Tests\Support\Trait\TruncatesFixtureTables;
 use App\Users\Domain\Users;
 use App\Users\Domain\ValueObject\Role;
 use App\Users\Domain\ValueObject\Username;
@@ -21,6 +22,8 @@ use Symfony\Component\Messenger\MessageBusInterface;
 #[Group('slow')]
 final class UsersFixturesTest extends KernelTestCase
 {
+    use TruncatesFixtureTables;
+
     #[Test]
     #[TestDox(
         'Loads admin + curated members + a small bulk batch via the command bus '
@@ -35,6 +38,11 @@ final class UsersFixturesTest extends KernelTestCase
             $commandBus = $container->get(MessageBusInterface::class);
             $faker = $container->get(Generator::class);
             $em = $container->get(EntityManagerInterface::class);
+
+            // Truncate so the fixture's curated personas can re-register
+            // without colliding with rows from a prior fixture load
+            // (e.g. composer db:reset-test run before the suite).
+            $this->truncateFixtureTables($em->getConnection());
 
             $fixture = new UsersFixtures($commandBus, $faker);
             $fixture->load($em);

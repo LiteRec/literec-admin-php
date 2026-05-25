@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Integration\Fixtures;
 
 use App\Households\Infrastructure\Fixtures\HouseholdsFixtures;
+use App\Tests\Support\Trait\TruncatesFixtureTables;
 use App\Users\Infrastructure\Fixtures\UsersFixtures;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
@@ -31,6 +32,8 @@ use Symfony\Component\Messenger\MessageBusInterface;
 #[Group('slow')]
 final class DeterminismTest extends KernelTestCase
 {
+    use TruncatesFixtureTables;
+
     private const SEED = 1;
     private const USER_COUNT = '3';
     private const HOUSEHOLD_COUNT = '2';
@@ -125,12 +128,8 @@ final class DeterminismTest extends KernelTestCase
 
     private function truncateAll(): void
     {
-        $connection = static::getContainer()
-            ->get(EntityManagerInterface::class)
-            ->getConnection();
-        $connection->executeStatement(
-            'TRUNCATE household_residency_history, household_members, households, "user" '
-            . 'RESTART IDENTITY CASCADE'
+        $this->truncateFixtureTables(
+            static::getContainer()->get(EntityManagerInterface::class)->getConnection(),
         );
     }
 
