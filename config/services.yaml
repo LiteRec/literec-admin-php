@@ -85,6 +85,11 @@ services:
     App\Households\Domain\Households: '@App\Households\Infrastructure\Persistence\Doctrine\DoctrineHouseholds'
     App\Households\Domain\MemberCodeAllocator: '@App\Households\Infrastructure\Persistence\Doctrine\DoctrineMemberCodeAllocator'
 
+    # Bind the Catalog repository port (LRA-66) to its Doctrine adapter.
+    # IdentityGenerator and the application/command bindings land in later
+    # Catalog tickets.
+    App\Catalog\Domain\Listings: '@App\Catalog\Infrastructure\Persistence\Doctrine\DoctrineListings'
+
     # Bind the Households read-model port (LRA-38) to its Doctrine adapter.
     # The adapter uses the DBAL Connection rather than the EntityManager;
     # read paths never pay UnitOfWork costs and the projection shape can
@@ -183,6 +188,16 @@ when@test:
             public: true
         App\Households\Application\Port\MemberTransactionHistory:
             alias: App\Households\Infrastructure\Acl\Stub\StubMemberTransactionHistory
+            public: true
+        # Catalog (LRA-66). Production binding stays on the Doctrine
+        # adapter; the in-memory adapter is wired behind a named alias so
+        # the shared contract test can target it deliberately without
+        # changing the production wiring.
+        App\Catalog\Domain\Listings:
+            alias: App\Catalog\Infrastructure\Persistence\Doctrine\DoctrineListings
+            public: true
+        catalog.in_memory_repository:
+            alias: App\Catalog\Infrastructure\Persistence\InMemory\InMemoryListings
             public: true
         # Seeded Faker generator for fixture loads. Test env mirrors the
         # dev binding below so integration tests that exercise fixtures
