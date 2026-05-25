@@ -168,8 +168,6 @@ when@test:
         App\Tests\Functional\Catalog\Integration\FailingPublishHandler:
             autowire: true
             autoconfigure: true
-            tags:
-                - { name: messenger.message_handler, bus: command.bus }
 
         App\Users\Domain\IdentityGenerator:
             alias: App\Users\Infrastructure\Identity\Uuid7IdentityGenerator
