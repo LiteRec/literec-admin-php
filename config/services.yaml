@@ -85,10 +85,11 @@ services:
     App\Households\Domain\Households: '@App\Households\Infrastructure\Persistence\Doctrine\DoctrineHouseholds'
     App\Households\Domain\MemberCodeAllocator: '@App\Households\Infrastructure\Persistence\Doctrine\DoctrineMemberCodeAllocator'
 
-    # Bind the Catalog repository port (LRA-66) to its Doctrine adapter.
-    # IdentityGenerator and the application/command bindings land in later
-    # Catalog tickets.
+    # Bind the Catalog ports to their production adapters. Command
+    # handlers auto-register through #[AsMessageHandler]; the event bus
+    # is injected by service argument resolution.
     App\Catalog\Domain\Listings: '@App\Catalog\Infrastructure\Persistence\Doctrine\DoctrineListings'
+    App\Catalog\Domain\IdentityGenerator: '@App\Catalog\Infrastructure\Identity\Uuid7IdentityGenerator'
 
     # Bind the Households read-model port (LRA-38) to its Doctrine adapter.
     # The adapter uses the DBAL Connection rather than the EntityManager;
@@ -198,6 +199,9 @@ when@test:
             public: true
         catalog.in_memory_repository:
             alias: App\Catalog\Infrastructure\Persistence\InMemory\InMemoryListings
+            public: true
+        App\Catalog\Domain\IdentityGenerator:
+            alias: App\Catalog\Infrastructure\Identity\Uuid7IdentityGenerator
             public: true
         # Seeded Faker generator for fixture loads. Test env mirrors the
         # dev binding below so integration tests that exercise fixtures
