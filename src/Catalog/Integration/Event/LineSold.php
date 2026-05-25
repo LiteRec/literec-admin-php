@@ -14,8 +14,9 @@ use InvalidArgumentException;
  * — for example, deducting on-hand stock or activating a membership.
  *
  * Contract:
- *   - Fields are primitive-only so the envelope can be serialised onto
- *     any Messenger transport without leaking domain types.
+ *   - Fields use wire-safe scalars plus \DateTimeImmutable so the
+ *     envelope can be serialised onto any Messenger transport without
+ *     leaking Catalog domain types.
  *   - Field set is additive-only. Never repurpose, rename, or remove a
  *     field; introduce a new event class if a breaking change is needed.
  *   - Ordering guarantee: dispatched only after the writing transaction
