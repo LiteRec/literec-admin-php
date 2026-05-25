@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Households\Infrastructure\Fixtures;
 
+use App\Shared\Infrastructure\Fixtures\FixtureEnv;
 use App\Households\Application\Command\AddMemberToHousehold;
 use App\Households\Application\Command\ChangeMemberResidency;
 use App\Households\Application\Command\DeactivateMember;
@@ -382,28 +383,11 @@ final class HouseholdsFixtures extends Fixture implements FixtureGroupInterface,
 
     private function bulkCount(): int
     {
-        $raw = $_ENV['FIXTURE_HOUSEHOLD_COUNT'] ?? $_SERVER['FIXTURE_HOUSEHOLD_COUNT'] ?? null;
-        if ($raw === null || $raw === '') {
-            return self::DEFAULT_BULK_COUNT;
-        }
-
-        $value = filter_var($raw, FILTER_VALIDATE_INT);
-        if ($value === false || $value < 0) {
-            return self::DEFAULT_BULK_COUNT;
-        }
-
-        return min($value, self::MAX_BULK_COUNT);
+        return FixtureEnv::bulkCount('FIXTURE_HOUSEHOLD_COUNT', self::DEFAULT_BULK_COUNT, self::MAX_BULK_COUNT);
     }
 
     private function seedValue(): int
     {
-        $raw = $_ENV['FIXTURE_SEED'] ?? $_SERVER['FIXTURE_SEED'] ?? null;
-        if ($raw === null || $raw === '') {
-            return self::DEFAULT_SEED;
-        }
-
-        $value = filter_var($raw, FILTER_VALIDATE_INT);
-
-        return $value === false ? self::DEFAULT_SEED : $value;
+        return FixtureEnv::seed(self::DEFAULT_SEED);
     }
 }
