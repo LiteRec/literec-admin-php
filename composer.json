@@ -110,6 +110,20 @@
             "@php bin/console tailwind:build",
             "phpunit --testsuite=all --group=slow"
         ],
+        "db:reset": [
+            "@php bin/console doctrine:database:drop --if-exists --force --env=dev",
+            "@php bin/console doctrine:database:create --env=dev",
+            "@php bin/console doctrine:migrations:migrate -n --env=dev",
+            "@php bin/console doctrine:fixtures:load -n --group=dev --env=dev"
+        ],
+        "db:reset-test": [
+            "@php bin/console doctrine:database:drop --if-exists --force --env=test",
+            "@php bin/console doctrine:database:create --env=test",
+            "@php bin/console doctrine:migrations:migrate -n --env=test",
+            "@php bin/console doctrine:fixtures:load -n --group=test --env=test"
+        ],
+        "fixtures:dev": "@php bin/console doctrine:fixtures:load -n --group=dev --env=dev",
+        "fixtures:test": "@php bin/console doctrine:fixtures:load -n --group=test --env=test",
         "qa": [
             "@cs",
             "@stan",
@@ -127,6 +141,10 @@
         "test:integration": "Run the Integration testsuite (KernelTestCase + Postgres)",
         "test:functional": "Build Tailwind, then run the Functional testsuite (WebTestCase + Postgres)",
         "test:slow": "Build Tailwind, then run only the tests in the slow group",
+        "db:reset": "Drop, recreate, migrate, and reseed the dev database from fixtures (group dev)",
+        "db:reset-test": "Drop, recreate, migrate, and reseed the test database from fixtures (group test)",
+        "fixtures:dev": "Load fixtures (group dev) into the dev database (no drop/migrate)",
+        "fixtures:test": "Load fixtures (group test) into the test database (no drop/migrate)",
         "qa": "Run all quality gates: coding standards, static analysis, architecture and tests"
     },
     "conflict": {
