@@ -21,7 +21,10 @@ final readonly class Quantity
     private function __construct(int $units)
     {
         if ($units < 0) {
-            throw QuantityWouldGoNegative::subtracting(0, -$units);
+            // Use the raw-value constructor, not subtracting(): negating
+            // PHP_INT_MIN overflows to a float and would TypeError the
+            // int-typed parameter.
+            throw QuantityWouldGoNegative::ofRawValue($units);
         }
 
         $this->units = $units;

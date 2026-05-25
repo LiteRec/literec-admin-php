@@ -52,6 +52,7 @@ final class QuantityTest extends TestCase
         yield '-1'              => [-1];
         yield '-1000'           => [-1000];
         yield 'PHP_INT_MIN + 1' => [PHP_INT_MIN + 1];
+        yield 'PHP_INT_MIN'     => [PHP_INT_MIN];
     }
 
     #[Test]
