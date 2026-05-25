@@ -28,6 +28,26 @@ deptrac:
           collectors:
               - type: directory
                 value: src/Households/Infrastructure/.*
+        - name: CatalogDomain
+          collectors:
+              - type: directory
+                value: src/Catalog/Domain/.*
+        - name: CatalogApplication
+          collectors:
+              - type: directory
+                value: src/Catalog/Application/.*
+        - name: CatalogInfrastructure
+          collectors:
+              - type: directory
+                value: src/Catalog/Infrastructure/.*
+        - name: CatalogIntegration
+          collectors:
+              # Published-language DTOs other contexts subscribe to.
+              # Must remain free of any framework or infrastructure imports
+              # so consumers can reference them without pulling Catalog
+              # internals.
+              - type: directory
+                value: src/Catalog/Integration/.*
         - name: Legacy
           collectors:
               # Two non-Users root controllers remain at src/Controller/ awaiting
@@ -145,6 +165,30 @@ deptrac:
             - Symfony
             - Faker
             - SharedInfrastructure
+        # Catalog layers. CatalogDomain is framework-free and owns the
+        # cross-cutting "sellable thing" concept (Listing aggregate, fees,
+        # tax treatment, GL account). CatalogIntegration holds the
+        # published-language DTOs other contexts subscribe to and depends
+        # on nothing — consumers reference these without pulling Catalog
+        # internals.
+        CatalogDomain:
+            - PsrClock
+        CatalogApplication:
+            - CatalogDomain
+            - SymfonyMessenger
+            - PsrClock
+        CatalogInfrastructure:
+            - CatalogDomain
+            - CatalogApplication
+            - CatalogIntegration
+            - SymfonyMessenger
+            - PsrClock
+            - Doctrine
+            - DoctrineCollections
+            - Symfony
+            - Faker
+            - SharedInfrastructure
+        CatalogIntegration: []
         # Legacy now covers only the two root controllers
         # (HomeController, DashboardController) that LRA-13 left in place
         # because they belong to bounded contexts (Reports, Scheduling)
