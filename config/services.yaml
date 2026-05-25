@@ -91,6 +91,11 @@ services:
     App\Catalog\Domain\Listings: '@App\Catalog\Infrastructure\Persistence\Doctrine\DoctrineListings'
     App\Catalog\Domain\IdentityGenerator: '@App\Catalog\Infrastructure\Identity\Uuid7IdentityGenerator'
 
+    # Bind the Inventory ports to their production adapters. The
+    # Uuid7IdentityGenerator mirrors the Catalog binding; repository
+    # ports land in LRA-72/76/77.
+    App\Inventory\Domain\IdentityGenerator: '@App\Inventory\Infrastructure\Identity\Uuid7IdentityGenerator'
+
     # Bind the Households read-model port (LRA-38) to its Doctrine adapter.
     # The adapter uses the DBAL Connection rather than the EntityManager;
     # read paths never pay UnitOfWork costs and the projection shape can
@@ -211,6 +216,13 @@ when@test:
             public: true
         App\Catalog\Domain\IdentityGenerator:
             alias: App\Catalog\Infrastructure\Identity\Uuid7IdentityGenerator
+            public: true
+        # Inventory (LRA-71). Production binding stays on the same
+        # adapter; the public alias lets the kernel integration test
+        # for Uuid7IdentityGenerator resolve the port without going
+        # through the private container.
+        App\Inventory\Domain\IdentityGenerator:
+            alias: App\Inventory\Infrastructure\Identity\Uuid7IdentityGenerator
             public: true
         # Seeded Faker generator for fixture loads. Test env mirrors the
         # dev binding below so integration tests that exercise fixtures
