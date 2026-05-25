@@ -134,6 +134,7 @@ deptrac:
             - Doctrine
             - DoctrineCollections
             - Symfony
+            - Faker
         # Legacy now covers only the two root controllers
         # (HomeController, DashboardController) that LRA-13 left in place
         # because they belong to bounded contexts (Reports, Scheduling)
