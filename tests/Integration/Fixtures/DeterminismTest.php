@@ -53,6 +53,9 @@ final class DeterminismTest extends KernelTestCase
         $_SERVER['FIXTURE_SEED'] = (string) self::SEED;
 
         try {
+            // Pre-truncate so the first snapshot is not contaminated
+            // by data left over from earlier tests in the same suite.
+            $this->truncateAll();
             $first = $this->loadAndSnapshot();
             $this->truncateAll();
             $second = $this->loadAndSnapshot();
@@ -139,23 +142,44 @@ final class DeterminismTest extends KernelTestCase
         return $connection->fetchAllAssociative($sql);
     }
 
-    private function captureEnv(string $key): ?string
+    /**
+     * @return array{env: ?string, server: ?string}
+     */
+    private function captureEnv(string $key): array
     {
-        if (!array_key_exists($key, $_ENV)) {
+        return [
+            'env' => $this->captureFrom($_ENV, $key),
+            'server' => $this->captureFrom($_SERVER, $key),
+        ];
+    }
+
+    /**
+     * @param array<array-key, mixed> $source
+     */
+    private function captureFrom(array $source, string $key): ?string
+    {
+        if (!array_key_exists($key, $source)) {
             return null;
         }
-        $value = $_ENV[$key];
+        $value = $source[$key];
 
         return is_scalar($value) ? (string) $value : null;
     }
 
-    private function restoreEnv(string $key, ?string $previous): void
+    /**
+     * @param array{env: ?string, server: ?string} $previous
+     */
+    private function restoreEnv(string $key, array $previous): void
     {
-        if ($previous === null) {
-            unset($_ENV[$key], $_SERVER[$key]);
-            return;
+        if ($previous['env'] === null) {
+            unset($_ENV[$key]);
+        } else {
+            $_ENV[$key] = $previous['env'];
         }
-        $_ENV[$key] = $previous;
-        $_SERVER[$key] = $previous;
+        if ($previous['server'] === null) {
+            unset($_SERVER[$key]);
+        } else {
+            $_SERVER[$key] = $previous['server'];
+        }
     }
 }
