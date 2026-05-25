@@ -37,6 +37,12 @@ final class HouseholdsFixtures extends Fixture implements FixtureGroupInterface,
 {
     private const DEFAULT_BULK_COUNT = 25;
     private const MAX_BULK_COUNT = 1000;
+    private const DEFAULT_SEED = 1;
+    // Offset between the per-iteration seed used by UsersFixtures and
+    // the one used here. The two contexts share the FIXTURE_SEED but
+    // keep their Faker sequences disjoint so the same surname does not
+    // appear at the same index in both fixtures.
+    private const SEED_OFFSET = 10_000;
 
     /** @var list<string> */
     private const US_STATE_ABBREVIATIONS = [
@@ -55,6 +61,12 @@ final class HouseholdsFixtures extends Fixture implements FixtureGroupInterface,
 
     public function load(ObjectManager $manager): void
     {
+        // Re-seed at the entry point so the Faker sequence inside this
+        // fixture is reproducible even when framework code between
+        // fixtures (or between curated/bulk phases here) consumes
+        // process-wide mt_rand state via random_int / mt_rand calls.
+        $this->faker->seed($this->seedValue());
+
         $this->loadCurated();
         $this->loadBulk();
     }
@@ -69,7 +81,7 @@ final class HouseholdsFixtures extends Fixture implements FixtureGroupInterface,
 
     public static function getGroups(): array
     {
-        return ['dev', 'demo'];
+        return ['dev', 'test', 'demo'];
     }
 
     private function loadCurated(): void
@@ -236,17 +248,26 @@ final class HouseholdsFixtures extends Fixture implements FixtureGroupInterface,
 
     private function loadBulk(): void
     {
+        $baseSeed = $this->seedValue();
         $bulkCount = $this->bulkCount();
         $genders = [Gender::Female, Gender::Male, Gender::Other, Gender::Unspecified];
         $residencies = [ResidencyStatus::Resident, ResidencyStatus::NonResident, ResidencyStatus::Member];
 
         for ($i = 1; $i <= $bulkCount; $i++) {
+            // Re-seed per iteration so Faker output is independent of
+            // however much mt_rand state the surrounding framework
+            // consumed since the previous iteration. The counter prefix
+            // in email and household name guarantees uniqueness; the
+            // SEED_OFFSET keeps Households' sequence separate from
+            // UsersFixtures' so identical surnames don't appear across
+            // contexts at the same index.
+            $this->faker->seed($baseSeed + self::SEED_OFFSET + $i);
             $surname = $this->faker->lastName();
             $headFirst = $this->faker->firstName();
             $householdName = sprintf('%s Household %04d', $surname, $i);
             $headGender = $genders[$this->faker->numberBetween(0, 3)];
             $headResidency = $residencies[$this->faker->numberBetween(0, 2)];
-            $headEmail = sprintf('head-%04d-%s', $i, $this->faker->unique()->safeEmail());
+            $headEmail = sprintf('head-%04d-%s', $i, $this->faker->safeEmail());
 
             $householdId = $this->registerHousehold(new RegisterHousehold(
                 householdName: $householdName,
@@ -270,7 +291,7 @@ final class HouseholdsFixtures extends Fixture implements FixtureGroupInterface,
 
             $additionalMembers = $this->faker->numberBetween(0, 4);
             for ($m = 1; $m <= $additionalMembers; $m++) {
-                $memberEmail = sprintf('member-%04d-%d-%s', $i, $m, $this->faker->unique()->safeEmail());
+                $memberEmail = sprintf('member-%04d-%d-%s', $i, $m, $this->faker->safeEmail());
                 $this->addMember(
                     householdId: $householdId,
                     firstName: $this->faker->firstName(),
@@ -372,5 +393,17 @@ final class HouseholdsFixtures extends Fixture implements FixtureGroupInterface,
         }
 
         return min($value, self::MAX_BULK_COUNT);
+    }
+
+    private function seedValue(): int
+    {
+        $raw = $_ENV['FIXTURE_SEED'] ?? $_SERVER['FIXTURE_SEED'] ?? null;
+        if ($raw === null || $raw === '') {
+            return self::DEFAULT_SEED;
+        }
+
+        $value = filter_var($raw, FILTER_VALIDATE_INT);
+
+        return $value === false ? self::DEFAULT_SEED : $value;
     }
 }
