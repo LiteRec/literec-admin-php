@@ -38,6 +38,7 @@ final class UsersFixtures extends Fixture implements FixtureGroupInterface
     // dataset and well inside Faker's userName() entropy budget.
     private const MAX_BULK_COUNT = 5000;
     private const SHARED_PASSWORD = 'fixture-password-1234';
+    private const DEFAULT_SEED = 1;
 
     public function __construct(
         private readonly MessageBusInterface $commandBus,
@@ -47,19 +48,30 @@ final class UsersFixtures extends Fixture implements FixtureGroupInterface
 
     public function load(ObjectManager $manager): void
     {
+        // Re-seed at the entry point so the Faker sequence inside this
+        // fixture is reproducible even when framework code between
+        // fixtures consumes process-wide mt_rand state. Faker::seed()
+        // calls mt_srand(), which any random_int / mt_rand caller in
+        // the surrounding framework can perturb.
+        $this->faker->seed($this->seedValue());
+
         $this->dispatch(new RegisterUser(self::ADMIN_USERNAME, self::SHARED_PASSWORD, [Role::Admin->value]));
 
         foreach (self::CURATED_MEMBER_USERNAMES as $username) {
             $this->dispatch(new RegisterUser($username, self::SHARED_PASSWORD, [Role::User->value]));
         }
 
+        $baseSeed = $this->seedValue();
         $bulkCount = $this->bulkCount();
         for ($i = 1; $i <= $bulkCount; $i++) {
-            // Cap the Faker portion so the composite username stays inside
-            // Username::MAX_LENGTH even in the unlikely case Faker emits a
-            // long handle. The 32-char ceiling leaves ample headroom under
-            // the 180-char limit while keeping usernames human-readable.
-            $fakerHandle = mb_substr($this->faker->unique()->userName(), 0, 32, 'UTF-8');
+            // Re-seed per iteration so Faker output is independent of
+            // however much process-wide mt_rand state the surrounding
+            // framework (command bus, hasher, UUID generation) consumed
+            // since the previous iteration. The counter prefix
+            // guarantees uniqueness; the 32-char cap keeps the
+            // composite username well under Username::MAX_LENGTH.
+            $this->faker->seed($baseSeed + $i);
+            $fakerHandle = mb_substr($this->faker->userName(), 0, 32, 'UTF-8');
             $username = sprintf('faker-user-%04d-%s', $i, $fakerHandle);
             $this->dispatch(new RegisterUser($username, self::SHARED_PASSWORD, [Role::User->value]));
         }
@@ -90,5 +102,17 @@ final class UsersFixtures extends Fixture implements FixtureGroupInterface
         }
 
         return min($value, self::MAX_BULK_COUNT);
+    }
+
+    private function seedValue(): int
+    {
+        $raw = $_ENV['FIXTURE_SEED'] ?? $_SERVER['FIXTURE_SEED'] ?? null;
+        if ($raw === null || $raw === '') {
+            return self::DEFAULT_SEED;
+        }
+
+        $value = filter_var($raw, FILTER_VALIDATE_INT);
+
+        return $value === false ? self::DEFAULT_SEED : $value;
     }
 }
