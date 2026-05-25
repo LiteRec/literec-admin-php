@@ -260,6 +260,18 @@ final class ListingTest extends TestCase
     }
 
     #[Test]
+    #[TestDox('::rename() rejects a name longer than 255 characters with InvalidListingName.')]
+    public function rename_rejects_overlong_name(): void
+    {
+        $listing = $this->register();
+        $listing->releaseEvents();
+
+        $this->expectException(InvalidListingName::class);
+
+        $listing->rename(str_repeat('a', 256), $this->clock);
+    }
+
+    #[Test]
     #[TestDox('::archive() records ListingArchived and flips the archived flag.')]
     public function archive_records_event(): void
     {
