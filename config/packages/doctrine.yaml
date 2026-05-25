@@ -22,6 +22,13 @@ doctrine:
             households_email_address: App\Households\Infrastructure\Persistence\Doctrine\Type\EmailAddressType
             households_phone_number: App\Households\Infrastructure\Persistence\Doctrine\Type\PhoneNumberType
             households_date_of_birth: App\Households\Infrastructure\Persistence\Doctrine\Type\DateOfBirthType
+            # Custom DBAL types for the Catalog bounded-context value objects.
+            catalog_listing_id: App\Catalog\Infrastructure\Persistence\Doctrine\Type\ListingIdType
+            catalog_listing_code: App\Catalog\Infrastructure\Persistence\Doctrine\Type\ListingCodeType
+            catalog_listing_kind: App\Catalog\Infrastructure\Persistence\Doctrine\Type\ListingKindType
+            catalog_ledger_account: App\Catalog\Infrastructure\Persistence\Doctrine\Type\LedgerAccountType
+            catalog_tax_treatment: App\Catalog\Infrastructure\Persistence\Doctrine\Type\TaxTreatmentType
+            catalog_fees: App\Catalog\Infrastructure\Persistence\Doctrine\Type\FeesType
     orm:
         validate_xml_mapping: true
         naming_strategy: doctrine.orm.naming_strategy.underscore
@@ -41,6 +48,12 @@ doctrine:
                 dir: '%kernel.project_dir%/src/Households/Infrastructure/Persistence/Doctrine/Mapping'
                 prefix: 'App\Households\Domain'
                 alias: Households
+            Catalog:
+                type: xml
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/Catalog/Infrastructure/Persistence/Doctrine/Mapping'
+                prefix: 'App\Catalog\Domain'
+                alias: Catalog
 
 when@test:
     doctrine:
