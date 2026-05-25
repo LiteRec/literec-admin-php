@@ -28,10 +28,38 @@ deptrac:
           collectors:
               - type: directory
                 value: src/Households/Infrastructure/.*
+        - name: CatalogPublishedLanguage
+          collectors:
+              # Narrow published-language subset of Catalog\Domain that
+              # downstream contexts (currently Inventory) are allowed to
+              # import directly. Distinct from CatalogIntegration (the
+              # integration-event namespace) so consumers can name the
+              # cross-context value objects without pulling in the rest
+              # of Catalog\Domain. The CatalogDomain collector below
+              # subtracts these types via a bool/must_not layer
+              # reference so each class belongs to exactly one layer.
+              # InvalidListingId is included because it is part of the
+              # ListingId construction contract — consumers that build
+              # a ListingId from a string must be able to name the
+              # exception type. Every addition to this layer expands
+              # the cross-context API surface; keep the list short.
+              - type: classLike
+                value: '^App\\Catalog\\Domain\\ValueObject\\ListingId$'
+              - type: classLike
+                value: '^App\\Catalog\\Domain\\ListingKind$'
+              - type: classLike
+                value: '^App\\Catalog\\Domain\\Exception\\InvalidListingId$'
         - name: CatalogDomain
           collectors:
-              - type: directory
-                value: src/Catalog/Domain/.*
+              # Everything under Catalog\Domain except the published-language
+              # types exported via CatalogPublishedLanguage above.
+              - type: bool
+                must:
+                    - type: directory
+                      value: src/Catalog/Domain/.*
+                must_not:
+                    - type: layer
+                      value: CatalogPublishedLanguage
         - name: CatalogApplication
           collectors:
               - type: directory
@@ -48,6 +76,25 @@ deptrac:
               # internals.
               - type: directory
                 value: src/Catalog/Integration/.*
+        - name: InventoryDomain
+          collectors:
+              - type: directory
+                value: src/Inventory/Domain/.*
+        - name: InventoryApplication
+          collectors:
+              - type: directory
+                value: src/Inventory/Application/.*
+        - name: InventoryInfrastructure
+          collectors:
+              - type: directory
+                value: src/Inventory/Infrastructure/.*
+        - name: InventoryIntegration
+          collectors:
+              # Outbound Inventory published-language DTOs (introduced by
+              # LRA-83's StockConsumptionFailed event). Same contract as
+              # CatalogIntegration: pure DTOs, no framework imports.
+              - type: directory
+                value: src/Inventory/Integration/.*
         - name: Legacy
           collectors:
               # Two non-Users root controllers remain at src/Controller/ awaiting
@@ -170,17 +217,35 @@ deptrac:
         # tax treatment, GL account). CatalogIntegration holds the
         # published-language DTOs other contexts subscribe to and depends
         # on nothing — consumers reference these without pulling Catalog
-        # internals.
+        # internals. CatalogPublishedLanguage is the narrow subset of
+        # Catalog\Domain (currently ListingId + ListingKind) that other
+        # contexts are allowed to import directly; CatalogDomain itself
+        # is allowed to import it because subtracting these types from
+        # CatalogDomain's collector means peers in Catalog\Domain see
+        # them as belonging to a separate layer.
+        # CatalogPublishedLanguage classes are still part of Catalog\Domain
+        # semantically — they happen to be the narrow subset exported to
+        # other contexts. They are allowed to reach back into the rest of
+        # CatalogDomain for their own implementation needs (e.g. ListingId
+        # references InvalidListingId which implements CatalogDomainException).
+        # The boundary we are enforcing is one-way: Inventory may not
+        # reach into CatalogDomain, but CatalogPublishedLanguage may.
+        CatalogPublishedLanguage:
+            - CatalogDomain
+            - PsrClock
         CatalogDomain:
             - PsrClock
+            - CatalogPublishedLanguage
         CatalogApplication:
             - CatalogDomain
+            - CatalogPublishedLanguage
             - SymfonyMessenger
             - PsrClock
         CatalogInfrastructure:
             - CatalogDomain
             - CatalogApplication
             - CatalogIntegration
+            - CatalogPublishedLanguage
             - SymfonyMessenger
             - PsrClock
             - Doctrine
@@ -189,6 +254,44 @@ deptrac:
             - Faker
             - SharedInfrastructure
         CatalogIntegration: []
+        # Inventory layers. Mirrors the Catalog/Households layouts.
+        # InventoryDomain may import CatalogPublishedLanguage (ListingId
+        # and ListingKind only) but is forbidden from importing the rest
+        # of Catalog\Domain — preserving the "cross-context references
+        # only via published-language types" rule from the project's
+        # DDD conventions. DoctrineCollections is allowed in the domain
+        # on the same Households precedent: aggregate roots may hold
+        # child entities in a typed Collection so Doctrine ORM can
+        # track child-collection changes for the one-to-many mappings
+        # introduced later in this sprint (LRA-74 batches, LRA-77 PO
+        # lines). Cross-context command dispatch (e.g. the atomic
+        # Catalog+Inventory create in LRA-78) lives only in
+        # InventoryInfrastructure and is granted by adding
+        # CatalogApplication to that layer in the ticket that
+        # introduces it — not here.
+        InventoryDomain:
+            - PsrClock
+            - DoctrineCollections
+            - CatalogPublishedLanguage
+        InventoryApplication:
+            - InventoryDomain
+            - CatalogPublishedLanguage
+            - SymfonyMessenger
+            - PsrClock
+        InventoryInfrastructure:
+            - InventoryDomain
+            - InventoryApplication
+            - InventoryIntegration
+            - CatalogIntegration
+            - CatalogPublishedLanguage
+            - SymfonyMessenger
+            - PsrClock
+            - Doctrine
+            - DoctrineCollections
+            - Symfony
+            - Faker
+            - SharedInfrastructure
+        InventoryIntegration: []
         # Legacy now covers only the two root controllers
         # (HomeController, DashboardController) that LRA-13 left in place
         # because they belong to bounded contexts (Reports, Scheduling)
