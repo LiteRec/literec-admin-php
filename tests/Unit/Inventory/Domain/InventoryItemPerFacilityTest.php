@@ -234,6 +234,36 @@ final class InventoryItemPerFacilityTest extends TestCase
     }
 
     #[Test]
+    #[TestDox('Transferred-in batches sit AFTER pre-existing destination batches in FIFO order.')]
+    public function transfer_orders_new_destination_batches_after_existing(): void
+    {
+        $item = $this->registerItem();
+        $this->receiveAt($item, $this->main, self::BATCH_A1, 2, 400);
+        $this->receiveAt($item, $this->lakeside, self::BATCH_B1, 1, 300);
+        $item->releaseEvents();
+
+        $this->advanceClock();
+        $item->transferStock(
+            $this->main,
+            $this->lakeside,
+            Quantity::ofUnits(1),
+            $this->clock,
+            $this->sequentialIdentityGenerator(),
+        );
+        $item->releaseEvents();
+
+        // Consume one unit at lakeside — should drain BATCH_B1 first (oldest).
+        $item->consume($this->lakeside, Quantity::ofUnits(1), StockMovementReason::SALE, $this->clock);
+
+        $events = $item->releaseEvents();
+        self::assertCount(1, $events);
+        $event = $events[0];
+        self::assertInstanceOf(StockMovementRecorded::class, $event);
+        self::assertSame(self::BATCH_B1, $event->stockBatchId->value, 'pre-existing batch must consume first');
+        self::assertSame(300, $event->costPerUnit->cents);
+    }
+
+    #[Test]
     #[TestDox('Transfer from a facility to itself throws CannotTransferToSameFacility.')]
     public function transfer_to_same_facility_throws(): void
     {
