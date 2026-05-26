@@ -102,6 +102,10 @@ final class CatalogIntegrationListenerTest extends TestCase
         self::assertInstanceOf(StockConsumptionFailed::class, $event);
         self::assertSame(StockConsumptionFailed::REASON_UNKNOWN_INVENTORY_ITEM, $event->reasonCode);
         self::assertSame(self::TRANSACTION_ID, $event->transactionId);
+        self::assertSame(self::LISTING_ID, $event->listingId);
+        self::assertSame('MAIN', $event->facilityCode);
+        self::assertNull($event->offendingInventoryItemId);
+        self::assertNull($event->offendingLinkId);
     }
 
     #[Test]
@@ -223,6 +227,8 @@ final class CatalogIntegrationListenerTest extends TestCase
         self::assertCount(1, $failures);
         self::assertSame(StockConsumptionFailed::REASON_LINK_VIOLATION, $failures[0]->reasonCode);
         self::assertSame(self::LINK_ID, $failures[0]->offendingLinkId);
+        self::assertSame(self::ITEM_ID, $failures[0]->offendingInventoryItemId);
+        self::assertSame(self::TRANSACTION_ID, $failures[0]->transactionId);
     }
 
     #[Test]
@@ -245,6 +251,8 @@ final class CatalogIntegrationListenerTest extends TestCase
         ));
         self::assertCount(1, $failures);
         self::assertSame(StockConsumptionFailed::REASON_INSUFFICIENT_STOCK, $failures[0]->reasonCode);
+        self::assertSame(self::ITEM_ID, $failures[0]->offendingInventoryItemId);
+        self::assertNull($failures[0]->offendingLinkId);
     }
 
     private function lineSoldFor(string $listingId, string $facility, int $qty): LineSold

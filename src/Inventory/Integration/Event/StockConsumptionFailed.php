@@ -53,6 +53,16 @@ final readonly class StockConsumptionFailed
         if ($facilityCode === '') {
             throw new InvalidArgumentException('StockConsumptionFailed.facilityCode must not be empty.');
         }
+        if ($offendingInventoryItemId === '') {
+            throw new InvalidArgumentException(
+                'StockConsumptionFailed.offendingInventoryItemId must be null or a non-empty string.',
+            );
+        }
+        if ($offendingLinkId === '') {
+            throw new InvalidArgumentException(
+                'StockConsumptionFailed.offendingLinkId must be null or a non-empty string.',
+            );
+        }
         if (
             ! in_array(
                 $reasonCode,
