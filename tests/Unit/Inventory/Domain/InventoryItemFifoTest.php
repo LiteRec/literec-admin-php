@@ -14,6 +14,7 @@ use App\Inventory\Domain\Exception\InvalidStockReturn;
 use App\Inventory\Domain\InventoryItem;
 use App\Inventory\Domain\ValueObject\Comment;
 use App\Inventory\Domain\ValueObject\CostPerUnit;
+use App\Inventory\Domain\ValueObject\FacilityCode;
 use App\Inventory\Domain\ValueObject\InventoryItemId;
 use App\Inventory\Domain\ValueObject\PosColor;
 use App\Inventory\Domain\ValueObject\PurchaseOrderLineId;
@@ -38,12 +39,15 @@ final class InventoryItemFifoTest extends TestCase
     private const BATCH_1 = '019571bf-5d51-7000-b500-000000000301';
     private const BATCH_2 = '019571bf-5d51-7000-b500-000000000302';
     private const BATCH_3 = '019571bf-5d51-7000-b500-000000000303';
+    private const FACILITY = 'MAIN';
 
+    private FacilityCode $facility;
     private MockClock $clock;
 
     protected function setUp(): void
     {
         $this->clock = new MockClock(new DateTimeImmutable('2026-05-25 10:00:00'));
+        $this->facility = FacilityCode::fromString(self::FACILITY);
     }
 
     #[Test]
@@ -54,6 +58,7 @@ final class InventoryItemFifoTest extends TestCase
         $item->releaseEvents();
 
         $id = $item->receiveBatch(
+            $this->facility,
             Quantity::ofUnits(10),
             CostPerUnit::ofCents(250),
             null,
@@ -63,13 +68,15 @@ final class InventoryItemFifoTest extends TestCase
         );
 
         self::assertSame(self::BATCH_1, $id->value);
-        self::assertSame(10, $item->totalOnHand()->units);
+        self::assertSame(10, $item->totalOnHandAt($this->facility)->units);
 
         $events = $item->releaseEvents();
         self::assertCount(1, $events);
-        self::assertInstanceOf(StockReceived::class, $events[0]);
-        self::assertSame(self::BATCH_1, $events[0]->stockBatchId->value);
-        self::assertSame(10, $events[0]->quantity->units);
+        $event = $events[0];
+        self::assertInstanceOf(StockReceived::class, $event);
+        self::assertSame(self::BATCH_1, $event->stockBatchId->value);
+        self::assertSame(self::FACILITY, $event->facilityCode->value);
+        self::assertSame(10, $event->quantity->units);
     }
 
     #[Test]
@@ -81,6 +88,7 @@ final class InventoryItemFifoTest extends TestCase
         $this->expectException(InvalidStockBatchQuantity::class);
 
         $item->receiveBatch(
+            $this->facility,
             Quantity::zero(),
             CostPerUnit::ofCents(100),
             null,
@@ -98,7 +106,7 @@ final class InventoryItemFifoTest extends TestCase
         $this->receiveBatch($item, self::BATCH_1, units: 10, costCents: 250);
         $item->releaseEvents();
 
-        $item->consume(Quantity::ofUnits(3), StockMovementReason::SALE, $this->clock);
+        $item->consume($this->facility, Quantity::ofUnits(3), StockMovementReason::SALE, $this->clock);
 
         $events = $item->releaseEvents();
         self::assertCount(1, $events);
@@ -107,7 +115,7 @@ final class InventoryItemFifoTest extends TestCase
         self::assertSame(3, $events[0]->quantityConsumed->units);
         self::assertSame(250, $events[0]->costPerUnit->cents);
         self::assertSame(StockMovementReason::SALE, $events[0]->reason);
-        self::assertSame(7, $item->totalOnHand()->units);
+        self::assertSame(7, $item->totalOnHandAt($this->facility)->units);
     }
 
     #[Test]
@@ -117,7 +125,7 @@ final class InventoryItemFifoTest extends TestCase
         $item = $this->registerWithTwoBatches(b1Units: 4, b1Cost: 100, b2Units: 10, b2Cost: 200);
         $item->releaseEvents();
 
-        $item->consume(Quantity::ofUnits(7), StockMovementReason::RENTAL_CHECKOUT, $this->clock);
+        $item->consume($this->facility, Quantity::ofUnits(7), StockMovementReason::RENTAL_CHECKOUT, $this->clock);
 
         $events = $item->releaseEvents();
         self::assertCount(2, $events);
@@ -135,7 +143,7 @@ final class InventoryItemFifoTest extends TestCase
         self::assertSame(3, $second->quantityConsumed->units);
         self::assertSame(200, $second->costPerUnit->cents);
 
-        self::assertSame(7, $item->totalOnHand()->units);
+        self::assertSame(7, $item->totalOnHandAt($this->facility)->units);
     }
 
     #[Test]
@@ -146,9 +154,9 @@ final class InventoryItemFifoTest extends TestCase
         $this->receiveBatch($item, self::BATCH_1, units: 5, costCents: 100);
         $item->releaseEvents();
 
-        $item->consume(Quantity::ofUnits(5), StockMovementReason::SALE, $this->clock);
+        $item->consume($this->facility, Quantity::ofUnits(5), StockMovementReason::SALE, $this->clock);
 
-        self::assertSame(0, $item->totalOnHand()->units);
+        self::assertSame(0, $item->totalOnHandAt($this->facility)->units);
         self::assertCount(1, $item->releaseEvents());
     }
 
@@ -160,7 +168,7 @@ final class InventoryItemFifoTest extends TestCase
         $item->releaseEvents();
 
         try {
-            $item->consume(Quantity::ofUnits(10), StockMovementReason::SALE, $this->clock);
+            $item->consume($this->facility, Quantity::ofUnits(10), StockMovementReason::SALE, $this->clock);
             self::fail('Expected InsufficientStock to be thrown.');
         } catch (InsufficientStock $e) {
             self::assertSame(10, $e->requested->units);
@@ -168,7 +176,7 @@ final class InventoryItemFifoTest extends TestCase
             self::assertSame(self::ITEM_ID, $e->inventoryItemId->value);
         }
 
-        self::assertSame(6, $item->totalOnHand()->units, 'no batches should have mutated');
+        self::assertSame(6, $item->totalOnHandAt($this->facility)->units, 'no batches should have mutated');
         self::assertSame([], $item->releaseEvents(), 'no StockMovementRecorded events on failure');
     }
 
@@ -182,7 +190,7 @@ final class InventoryItemFifoTest extends TestCase
         $this->receiveBatch($item, self::BATCH_1, units: 3, costCents: 100);
         $item->releaseEvents();
 
-        $item->consume(Quantity::ofUnits(4), StockMovementReason::SALE, $this->clock);
+        $item->consume($this->facility, Quantity::ofUnits(4), StockMovementReason::SALE, $this->clock);
 
         $events = $item->releaseEvents();
         self::assertCount(2, $events);
@@ -203,7 +211,7 @@ final class InventoryItemFifoTest extends TestCase
     {
         $item = $this->registerWithTwoBatchesAndConsume(consumeUnits: 7);
 
-        $item->returnUnits(Quantity::ofUnits(3), $this->clock);
+        $item->returnUnits($this->facility, Quantity::ofUnits(3), $this->clock);
 
         // After consume(7): BATCH_1 fully consumed (5), BATCH_2 partially (2 of 5).
         // Returning 3 LIFO restores up to consumed-quantity per batch: BATCH_2 can
@@ -220,7 +228,7 @@ final class InventoryItemFifoTest extends TestCase
         self::assertSame(self::BATCH_1, $second->stockBatchId->value);
         self::assertSame(1, $second->quantityRestored->units);
         self::assertSame(100, $second->costPerUnit->cents);
-        self::assertSame(6, $item->totalOnHand()->units);
+        self::assertSame(6, $item->totalOnHandAt($this->facility)->units);
     }
 
     #[Test]
@@ -229,7 +237,7 @@ final class InventoryItemFifoTest extends TestCase
     {
         $item = $this->registerWithTwoBatchesAndConsume(consumeUnits: 8);
 
-        $item->returnUnits(Quantity::ofUnits(7), $this->clock);
+        $item->returnUnits($this->facility, Quantity::ofUnits(7), $this->clock);
 
         // After consume(8): BATCH_1 fully consumed (5), BATCH_2 partial (3 of 5).
         // Returning 7 LIFO restores 3 to BATCH_2 (its consumed cap) and 4 to BATCH_1.
@@ -243,7 +251,7 @@ final class InventoryItemFifoTest extends TestCase
         self::assertSame(3, $first->quantityRestored->units);
         self::assertSame(self::BATCH_1, $second->stockBatchId->value);
         self::assertSame(4, $second->quantityRestored->units);
-        self::assertSame(9, $item->totalOnHand()->units);
+        self::assertSame(9, $item->totalOnHandAt($this->facility)->units);
     }
 
     #[Test]
@@ -252,18 +260,18 @@ final class InventoryItemFifoTest extends TestCase
     {
         $item = $this->registerItem();
         $this->receiveBatch($item, self::BATCH_1, units: 5, costCents: 100);
-        $item->consume(Quantity::ofUnits(2), StockMovementReason::SALE, $this->clock);
+        $item->consume($this->facility, Quantity::ofUnits(2), StockMovementReason::SALE, $this->clock);
         $item->releaseEvents();
 
         try {
-            $item->returnUnits(Quantity::ofUnits(3), $this->clock);
+            $item->returnUnits($this->facility, Quantity::ofUnits(3), $this->clock);
             self::fail('Expected InvalidStockReturn.');
         } catch (InvalidStockReturn $e) {
             self::assertSame(3, $e->requested->units);
             self::assertSame(2, $e->restorable->units);
         }
 
-        self::assertSame(3, $item->totalOnHand()->units, 'no batches mutated on failure');
+        self::assertSame(3, $item->totalOnHandAt($this->facility)->units, 'no batches mutated on failure');
         self::assertSame([], $item->releaseEvents());
     }
 
@@ -275,10 +283,10 @@ final class InventoryItemFifoTest extends TestCase
         $this->receiveBatch($item, self::BATCH_1, units: 5, costCents: 100);
         $item->releaseEvents();
 
-        $item->consume(Quantity::zero(), StockMovementReason::SALE, $this->clock);
+        $item->consume($this->facility, Quantity::zero(), StockMovementReason::SALE, $this->clock);
 
         self::assertSame([], $item->releaseEvents());
-        self::assertSame(5, $item->totalOnHand()->units);
+        self::assertSame(5, $item->totalOnHandAt($this->facility)->units);
     }
 
     #[Test]
@@ -287,13 +295,13 @@ final class InventoryItemFifoTest extends TestCase
     {
         $item = $this->registerItem();
         $this->receiveBatch($item, self::BATCH_1, units: 5, costCents: 100);
-        $item->consume(Quantity::ofUnits(2), StockMovementReason::SALE, $this->clock);
+        $item->consume($this->facility, Quantity::ofUnits(2), StockMovementReason::SALE, $this->clock);
         $item->releaseEvents();
 
-        $item->returnUnits(Quantity::zero(), $this->clock);
+        $item->returnUnits($this->facility, Quantity::zero(), $this->clock);
 
         self::assertSame([], $item->releaseEvents());
-        self::assertSame(3, $item->totalOnHand()->units);
+        self::assertSame(3, $item->totalOnHandAt($this->facility)->units);
     }
 
     #[Test]
@@ -307,6 +315,7 @@ final class InventoryItemFifoTest extends TestCase
         $comment = Comment::of('Restock from main supplier');
 
         $item->receiveBatch(
+            $this->facility,
             Quantity::ofUnits(2),
             CostPerUnit::ofCents(500),
             $poLineId,
@@ -317,17 +326,18 @@ final class InventoryItemFifoTest extends TestCase
 
         $events = $item->releaseEvents();
         self::assertCount(1, $events);
-        self::assertInstanceOf(StockReceived::class, $events[0]);
-        self::assertNotNull($events[0]->sourceLineId);
-        self::assertSame(self::BATCH_3, $events[0]->sourceLineId->value);
-        self::assertNotNull($events[0]->comments);
-        self::assertSame('Restock from main supplier', $events[0]->comments->value);
+        $event = $events[0];
+        self::assertInstanceOf(StockReceived::class, $event);
+        self::assertNotNull($event->sourceLineId);
+        self::assertSame(self::BATCH_3, $event->sourceLineId->value);
+        self::assertNotNull($event->comments);
+        self::assertSame('Restock from main supplier', $event->comments->value);
     }
 
     private function registerWithTwoBatchesAndConsume(int $consumeUnits): InventoryItem
     {
         $item = $this->registerWithTwoBatches(b1Units: 5, b1Cost: 100, b2Units: 5, b2Cost: 200);
-        $item->consume(Quantity::ofUnits($consumeUnits), StockMovementReason::SALE, $this->clock);
+        $item->consume($this->facility, Quantity::ofUnits($consumeUnits), StockMovementReason::SALE, $this->clock);
         $item->releaseEvents();
 
         return $item;
@@ -360,6 +370,7 @@ final class InventoryItemFifoTest extends TestCase
     private function receiveBatch(InventoryItem $item, string $batchId, int $units, int $costCents): void
     {
         $item->receiveBatch(
+            $this->facility,
             Quantity::ofUnits($units),
             CostPerUnit::ofCents($costCents),
             null,

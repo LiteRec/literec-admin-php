@@ -15,6 +15,7 @@ use App\Inventory\Domain\Event\InventoryItemTrackingChanged;
 use App\Inventory\Domain\Exception\InventoryItemIsArchived;
 use App\Inventory\Domain\InventoryItem;
 use App\Inventory\Domain\ValueObject\CostPerUnit;
+use App\Inventory\Domain\ValueObject\FacilityCode;
 use App\Inventory\Domain\ValueObject\InventoryItemId;
 use App\Inventory\Domain\ValueObject\PosColor;
 use App\Inventory\Domain\ValueObject\Quantity;
@@ -358,9 +359,11 @@ final class InventoryItemTest extends TestCase
         yield 'updateReorderThreshold' => [
             static fn(InventoryItem $i, ClockInterface $c) => $i->updateReorderThreshold(ReorderThreshold::none(), $c),
         ];
+        $facility = FacilityCode::fromString('MAIN');
         yield 'receiveBatch' => [
-            static function (InventoryItem $i, ClockInterface $c): void {
+            static function (InventoryItem $i, ClockInterface $c) use ($facility): void {
                 $i->receiveBatch(
+                    $facility,
                     Quantity::ofUnits(1),
                     CostPerUnit::zero(),
                     null,
@@ -372,6 +375,7 @@ final class InventoryItemTest extends TestCase
         ];
         yield 'consume' => [
             static fn(InventoryItem $i, ClockInterface $c) => $i->consume(
+                $facility,
                 Quantity::ofUnits(1),
                 StockMovementReason::SALE,
                 $c,
@@ -379,8 +383,35 @@ final class InventoryItemTest extends TestCase
         ];
         yield 'returnUnits' => [
             static fn(InventoryItem $i, ClockInterface $c) => $i->returnUnits(
+                $facility,
                 Quantity::ofUnits(1),
                 $c,
+            ),
+        ];
+        yield 'transferStock' => [
+            static fn(InventoryItem $i, ClockInterface $c) => $i->transferStock(
+                $facility,
+                FacilityCode::fromString('OTHER'),
+                Quantity::ofUnits(1),
+                $c,
+                new class implements \App\Inventory\Domain\IdentityGenerator {
+                    public function nextInventoryItemId(): \App\Inventory\Domain\ValueObject\InventoryItemId
+                    {
+                        throw new \LogicException('not used');
+                    }
+                    public function nextStockBatchId(): \App\Inventory\Domain\ValueObject\StockBatchId
+                    {
+                        return StockBatchId::fromString('019571bf-5d51-7000-b500-0000000004ff');
+                    }
+                    public function nextStockMovementId(): \App\Inventory\Domain\ValueObject\StockMovementId
+                    {
+                        throw new \LogicException('not used');
+                    }
+                    public function nextVendorId(): \App\Inventory\Domain\ValueObject\VendorId
+                    {
+                        throw new \LogicException('not used');
+                    }
+                },
             ),
         ];
     }

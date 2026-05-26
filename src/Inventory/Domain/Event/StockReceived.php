@@ -6,6 +6,7 @@ namespace App\Inventory\Domain\Event;
 
 use App\Inventory\Domain\ValueObject\Comment;
 use App\Inventory\Domain\ValueObject\CostPerUnit;
+use App\Inventory\Domain\ValueObject\FacilityCode;
 use App\Inventory\Domain\ValueObject\InventoryItemId;
 use App\Inventory\Domain\ValueObject\PurchaseOrderLineId;
 use App\Inventory\Domain\ValueObject\Quantity;
@@ -24,6 +25,7 @@ final readonly class StockReceived
     public function __construct(
         public InventoryItemId $inventoryItemId,
         public StockBatchId $stockBatchId,
+        public FacilityCode $facilityCode,
         public Quantity $quantity,
         public CostPerUnit $costPerUnit,
         public ?PurchaseOrderLineId $sourceLineId,
