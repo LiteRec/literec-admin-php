@@ -7,6 +7,7 @@ namespace App\Inventory\Infrastructure\Identity;
 use App\Inventory\Domain\IdentityGenerator;
 use App\Inventory\Domain\ValueObject\ComboId;
 use App\Inventory\Domain\ValueObject\InventoryItemId;
+use App\Inventory\Domain\ValueObject\ItemGroupId;
 use App\Inventory\Domain\ValueObject\PurchaseOrderId;
 use App\Inventory\Domain\ValueObject\PurchaseOrderLineId;
 use App\Inventory\Domain\ValueObject\StockBatchId;
@@ -54,5 +55,10 @@ final class Uuid7IdentityGenerator implements IdentityGenerator
     public function nextComboId(): ComboId
     {
         return ComboId::fromString(UuidV7::generate($this->clock->now()));
+    }
+
+    public function nextItemGroupId(): ItemGroupId
+    {
+        return ItemGroupId::fromString(UuidV7::generate($this->clock->now()));
     }
 }

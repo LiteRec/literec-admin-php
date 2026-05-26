@@ -423,6 +423,10 @@ final class InventoryItemTest extends TestCase
                     {
                         throw new \LogicException('not used');
                     }
+                    public function nextItemGroupId(): \App\Inventory\Domain\ValueObject\ItemGroupId
+                    {
+                        throw new \LogicException('not used');
+                    }
                 },
             ),
         ];
