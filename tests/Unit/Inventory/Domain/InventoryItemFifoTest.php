@@ -114,10 +114,7 @@ final class InventoryItemFifoTest extends TestCase
     #[TestDox('Multi-batch consume walks oldest first and emits one event per batch touched.')]
     public function multi_batch_consume_spans_two_batches(): void
     {
-        $item = $this->registerItem();
-        $this->receiveBatch($item, self::BATCH_1, units: 4, costCents: 100);
-        $this->advanceClock();
-        $this->receiveBatch($item, self::BATCH_2, units: 10, costCents: 200);
+        $item = $this->registerWithTwoBatches(b1Units: 4, b1Cost: 100, b2Units: 10, b2Cost: 200);
         $item->releaseEvents();
 
         $item->consume(Quantity::ofUnits(7), StockMovementReason::RENTAL_CHECKOUT, $this->clock);
@@ -159,10 +156,7 @@ final class InventoryItemFifoTest extends TestCase
     #[TestDox('Insufficient stock throws InsufficientStock atomically and mutates no batches.')]
     public function insufficient_stock_is_atomic(): void
     {
-        $item = $this->registerItem();
-        $this->receiveBatch($item, self::BATCH_1, units: 4, costCents: 100);
-        $this->advanceClock();
-        $this->receiveBatch($item, self::BATCH_2, units: 2, costCents: 200);
+        $item = $this->registerWithTwoBatches(b1Units: 4, b1Cost: 100, b2Units: 2, b2Cost: 200);
         $item->releaseEvents();
 
         try {
@@ -207,12 +201,7 @@ final class InventoryItemFifoTest extends TestCase
     #[TestDox('returnUnits() restores units LIFO on the most-recently-consumed batch.')]
     public function return_units_restores_lifo(): void
     {
-        $item = $this->registerItem();
-        $this->receiveBatch($item, self::BATCH_1, units: 5, costCents: 100);
-        $this->advanceClock();
-        $this->receiveBatch($item, self::BATCH_2, units: 5, costCents: 200);
-        $item->consume(Quantity::ofUnits(7), StockMovementReason::SALE, $this->clock);
-        $item->releaseEvents();
+        $item = $this->registerWithTwoBatchesAndConsume(consumeUnits: 7);
 
         $item->returnUnits(Quantity::ofUnits(3), $this->clock);
 
@@ -238,12 +227,7 @@ final class InventoryItemFifoTest extends TestCase
     #[TestDox('returnUnits() walks LIFO across multiple consumed batches when needed.')]
     public function return_units_spans_multiple_batches(): void
     {
-        $item = $this->registerItem();
-        $this->receiveBatch($item, self::BATCH_1, units: 5, costCents: 100);
-        $this->advanceClock();
-        $this->receiveBatch($item, self::BATCH_2, units: 5, costCents: 200);
-        $item->consume(Quantity::ofUnits(8), StockMovementReason::SALE, $this->clock);
-        $item->releaseEvents();
+        $item = $this->registerWithTwoBatchesAndConsume(consumeUnits: 8);
 
         $item->returnUnits(Quantity::ofUnits(7), $this->clock);
 
@@ -338,6 +322,25 @@ final class InventoryItemFifoTest extends TestCase
         self::assertSame(self::BATCH_3, $events[0]->sourceLineId->value);
         self::assertNotNull($events[0]->comments);
         self::assertSame('Restock from main supplier', $events[0]->comments->value);
+    }
+
+    private function registerWithTwoBatchesAndConsume(int $consumeUnits): InventoryItem
+    {
+        $item = $this->registerWithTwoBatches(b1Units: 5, b1Cost: 100, b2Units: 5, b2Cost: 200);
+        $item->consume(Quantity::ofUnits($consumeUnits), StockMovementReason::SALE, $this->clock);
+        $item->releaseEvents();
+
+        return $item;
+    }
+
+    private function registerWithTwoBatches(int $b1Units, int $b1Cost, int $b2Units, int $b2Cost): InventoryItem
+    {
+        $item = $this->registerItem();
+        $this->receiveBatch($item, self::BATCH_1, units: $b1Units, costCents: $b1Cost);
+        $this->advanceClock();
+        $this->receiveBatch($item, self::BATCH_2, units: $b2Units, costCents: $b2Cost);
+
+        return $item;
     }
 
     private function registerItem(): InventoryItem
