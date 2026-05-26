@@ -6,6 +6,7 @@ namespace App\Inventory\Domain;
 
 use App\Inventory\Domain\ValueObject\ComboId;
 use App\Inventory\Domain\ValueObject\InventoryItemId;
+use App\Inventory\Domain\ValueObject\ItemGroupId;
 use App\Inventory\Domain\ValueObject\PurchaseOrderId;
 use App\Inventory\Domain\ValueObject\PurchaseOrderLineId;
 use App\Inventory\Domain\ValueObject\StockBatchId;
@@ -34,4 +35,6 @@ interface IdentityGenerator
     public function nextPurchaseOrderLineId(): PurchaseOrderLineId;
 
     public function nextComboId(): ComboId;
+
+    public function nextItemGroupId(): ItemGroupId;
 }

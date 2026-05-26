@@ -19,6 +19,7 @@ use App\Inventory\Domain\ValueObject\PosColor;
 use App\Inventory\Domain\ValueObject\PurchaseOrderId;
 use App\Inventory\Domain\ValueObject\PurchaseOrderLineId;
 use App\Inventory\Domain\ValueObject\ComboId;
+use App\Inventory\Domain\ValueObject\ItemGroupId;
 use App\Inventory\Domain\ValueObject\Quantity;
 use App\Inventory\Domain\ValueObject\ReorderThreshold;
 use App\Inventory\Domain\ValueObject\StockBatchId;
@@ -372,6 +373,11 @@ final class InventoryItemPerFacilityTest extends TestCase
             }
 
             public function nextComboId(): ComboId
+            {
+                throw new \LogicException('not used');
+            }
+
+            public function nextItemGroupId(): ItemGroupId
             {
                 throw new \LogicException('not used');
             }

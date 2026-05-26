@@ -7,6 +7,7 @@ namespace App\Tests\Support\Fake;
 use App\Inventory\Domain\IdentityGenerator;
 use App\Inventory\Domain\ValueObject\ComboId;
 use App\Inventory\Domain\ValueObject\InventoryItemId;
+use App\Inventory\Domain\ValueObject\ItemGroupId;
 use App\Inventory\Domain\ValueObject\PurchaseOrderId;
 use App\Inventory\Domain\ValueObject\PurchaseOrderLineId;
 use App\Inventory\Domain\ValueObject\StockBatchId;
@@ -47,6 +48,9 @@ final class SequenceInventoryIdentityGenerator implements IdentityGenerator
     /** @var list<ComboId> */
     private array $comboQueue;
 
+    /** @var list<ItemGroupId> */
+    private array $itemGroupQueue;
+
     /**
      * @param list<InventoryItemId>    $inventoryItemIds
      * @param list<StockBatchId>       $stockBatchIds
@@ -55,6 +59,7 @@ final class SequenceInventoryIdentityGenerator implements IdentityGenerator
      * @param list<PurchaseOrderId>    $purchaseOrderIds
      * @param list<PurchaseOrderLineId> $purchaseOrderLineIds
      * @param list<ComboId>            $comboIds
+     * @param list<ItemGroupId>        $itemGroupIds
      */
     public function __construct(
         array $inventoryItemIds = [],
@@ -64,6 +69,7 @@ final class SequenceInventoryIdentityGenerator implements IdentityGenerator
         array $purchaseOrderIds = [],
         array $purchaseOrderLineIds = [],
         array $comboIds = [],
+        array $itemGroupIds = [],
     ) {
         $this->inventoryItemQueue = $inventoryItemIds;
         $this->stockBatchQueue = $stockBatchIds;
@@ -72,6 +78,7 @@ final class SequenceInventoryIdentityGenerator implements IdentityGenerator
         $this->purchaseOrderQueue = $purchaseOrderIds;
         $this->purchaseOrderLineQueue = $purchaseOrderLineIds;
         $this->comboQueue = $comboIds;
+        $this->itemGroupQueue = $itemGroupIds;
     }
 
     public function nextInventoryItemId(): InventoryItemId
@@ -107,6 +114,11 @@ final class SequenceInventoryIdentityGenerator implements IdentityGenerator
     public function nextComboId(): ComboId
     {
         return self::shift($this->comboQueue, 'ComboId');
+    }
+
+    public function nextItemGroupId(): ItemGroupId
+    {
+        return self::shift($this->itemGroupQueue, 'ItemGroupId');
     }
 
     /**

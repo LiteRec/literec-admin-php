@@ -121,6 +121,11 @@ services:
     # the test container can exercise the handler flow end-to-end.
     App\Inventory\Domain\Combos: '@App\Inventory\Infrastructure\Persistence\Stub\UnimplementedCombos'
     App\Inventory\Domain\ComboGraphResolver: '@App\Inventory\Infrastructure\Persistence\InMemory\RepositoryBackedComboGraphResolver'
+    # Item groups (LRA-81): same fail-loud production binding pattern
+    # as Combos. The Doctrine adapter + migration land in a focused
+    # follow-up; the InMemory adapter is wired for the test container
+    # under when@test below.
+    App\Inventory\Domain\ItemGroups: '@App\Inventory\Infrastructure\Persistence\Stub\UnimplementedItemGroups'
 
     # Bind the Households read-model port (LRA-38) to its Doctrine adapter.
     # The adapter uses the DBAL Connection rather than the EntityManager;
@@ -289,6 +294,10 @@ when@test:
         # InMemory adapter for tests.
         App\Inventory\Domain\Combos:
             alias: App\Inventory\Infrastructure\Persistence\InMemory\InMemoryCombos
+            public: true
+        # Override the production ItemGroups stub for tests.
+        App\Inventory\Domain\ItemGroups:
+            alias: App\Inventory\Infrastructure\Persistence\InMemory\InMemoryItemGroups
             public: true
         # Seeded Faker generator for fixture loads. Test env mirrors the
         # dev binding below so integration tests that exercise fixtures
