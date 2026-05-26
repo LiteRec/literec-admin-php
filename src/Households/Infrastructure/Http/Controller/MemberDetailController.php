@@ -11,7 +11,6 @@ use App\Households\Application\Port\MemberTransactionHistory;
 use App\Households\Application\Query\GetMemberDetail;
 use App\Households\Application\Query\Port\MemberDetail;
 use App\Households\Domain\Exception\HouseholdNotFound;
-use App\Households\Domain\Exception\HouseholdsDomainException;
 use App\Households\Domain\Exception\InvalidAddress;
 use App\Households\Domain\Exception\InvalidDateOfBirth;
 use App\Households\Domain\Exception\InvalidHouseholdId;
@@ -26,6 +25,7 @@ use App\Households\Infrastructure\Http\Form\UpdateHouseholdAddressFormType;
 use App\Households\Infrastructure\Http\Form\UpdateHouseholdAddressInput;
 use App\Households\Infrastructure\Http\Form\UpdateMemberProfileFormType;
 use App\Households\Infrastructure\Http\Form\UpdateMemberProfileInput;
+use App\Shared\Domain\Exception\SharedDomainException;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
@@ -229,7 +229,7 @@ final class MemberDetailController extends AbstractController
             }
 
             return $this->renderEditPartial($form, $householdId, $memberId, Response::HTTP_UNPROCESSABLE_ENTITY);
-        } catch (HouseholdsDomainException $exception) {
+        } catch (SharedDomainException $exception) {
             $form->addError(new FormError($exception->getMessage()));
 
             return $this->renderEditPartial($form, $householdId, $memberId, Response::HTTP_UNPROCESSABLE_ENTITY);
@@ -342,7 +342,7 @@ final class MemberDetailController extends AbstractController
             $this->applyAddressErrorToForm($form, $exception);
 
             return $this->renderAddressEditPartial($form, $householdId, $memberId, Response::HTTP_UNPROCESSABLE_ENTITY);
-        } catch (HouseholdsDomainException $exception) {
+        } catch (SharedDomainException $exception) {
             $form->addError(new FormError($exception->getMessage()));
 
             return $this->renderAddressEditPartial($form, $householdId, $memberId, Response::HTTP_UNPROCESSABLE_ENTITY);
@@ -435,7 +435,7 @@ final class MemberDetailController extends AbstractController
             $this->dispatchCommandUnwrapping($command);
         } catch (MemberNotFound | HouseholdNotFound | InvalidHouseholdId | InvalidMemberId) {
             throw $this->createNotFoundException('Member not found.');
-        } catch (HouseholdsDomainException $exception) {
+        } catch (SharedDomainException $exception) {
             $form->addError(new FormError($exception->getMessage()));
 
             return $this->renderResidencyEditPartial(

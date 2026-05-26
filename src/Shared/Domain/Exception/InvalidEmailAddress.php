@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Inventory\Domain\Exception;
+namespace App\Shared\Domain\Exception;
 
 use DomainException;
 
-final class InvalidEmailAddress extends DomainException implements InventoryDomainException
+final class InvalidEmailAddress extends DomainException implements SharedDomainException
 {
     public const MAX_LENGTH = 254;
 

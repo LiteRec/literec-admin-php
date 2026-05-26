@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Households\Infrastructure\Persistence\Doctrine\Type;
 
-use App\Households\Domain\ValueObject\PhoneNumber;
+use App\Shared\Domain\ValueObject\PhoneNumber;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Types\Type;
 

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Inventory\Infrastructure\Persistence\Doctrine\Type;
 
-use App\Inventory\Domain\Exception\InvalidPhoneNumber;
-use App\Inventory\Domain\ValueObject\PhoneNumber;
+use App\Shared\Domain\Exception\InvalidPhoneNumber;
+use App\Shared\Domain\ValueObject\PhoneNumber;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Types\Type;
 use UnexpectedValueException;

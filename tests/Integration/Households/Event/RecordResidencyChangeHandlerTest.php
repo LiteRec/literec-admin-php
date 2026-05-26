@@ -9,7 +9,7 @@ use App\Households\Domain\Household;
 use App\Households\Domain\Households;
 use App\Households\Domain\ValueObject\Address;
 use App\Households\Domain\ValueObject\DateOfBirth;
-use App\Households\Domain\ValueObject\EmailAddress;
+use App\Shared\Domain\ValueObject\EmailAddress;
 use App\Households\Domain\ValueObject\Gender;
 use App\Households\Domain\ValueObject\HouseholdId;
 use App\Households\Domain\ValueObject\HouseholdName;

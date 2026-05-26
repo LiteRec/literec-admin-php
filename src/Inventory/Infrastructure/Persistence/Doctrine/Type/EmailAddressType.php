@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Inventory\Infrastructure\Persistence\Doctrine\Type;
 
-use App\Inventory\Domain\Exception\InvalidEmailAddress;
-use App\Inventory\Domain\ValueObject\EmailAddress;
+use App\Shared\Domain\Exception\InvalidEmailAddress;
+use App\Shared\Domain\ValueObject\EmailAddress;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Types\Type;
 use UnexpectedValueException;

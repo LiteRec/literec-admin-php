@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Households\Domain\ValueObject;
+namespace App\Shared\Domain\ValueObject;
 
-use App\Households\Domain\Exception\InvalidPhoneNumber;
+use App\Shared\Domain\Exception\InvalidPhoneNumber;
 use Stringable;
 
 /**
@@ -42,7 +42,12 @@ final readonly class PhoneNumber implements Stringable
         $hasPlus = str_starts_with($stripped, '+');
         $digits = $hasPlus ? substr($stripped, 1) : $stripped;
 
-        if ($digits === '' || preg_match('/^[0-9]+$/', $digits) !== 1) {
+        // A lone "+" leaves no digits — that is empty, not illegal.
+        if ($digits === '') {
+            throw InvalidPhoneNumber::empty();
+        }
+
+        if (preg_match('/^[0-9]+$/', $digits) !== 1) {
             throw InvalidPhoneNumber::illegalCharacters();
         }
 
