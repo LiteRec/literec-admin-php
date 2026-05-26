@@ -283,6 +283,7 @@ final class InventoryItem
             $comments,
             $clock,
         );
+        $batch->attachToItem($this);
         $this->batches->add($batch);
 
         $this->updatedAt = $clock->now();
@@ -466,6 +467,7 @@ final class InventoryItem
                 null,
                 $clock,
             );
+            $newBatch->attachToItem($this);
             $this->batches->add($newBatch);
 
             $destSlices[] = new TransferLineItem($newBatchId, $slice->quantity, $slice->costPerUnit);

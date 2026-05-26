@@ -14,6 +14,7 @@ use App\Inventory\Domain\ValueObject\PurchaseOrderLineId;
 use App\Inventory\Domain\ValueObject\Quantity;
 use App\Inventory\Domain\ValueObject\StockBatchId;
 use DateTimeImmutable;
+use LogicException;
 use Psr\Clock\ClockInterface;
 
 /**
@@ -40,6 +41,17 @@ final class StockBatch
     private CostPerUnit $costPerUnit;
     private ?PurchaseOrderLineId $sourceLineId;
     private ?Comment $comments;
+    /**
+     * Back-reference to the owning {@see InventoryItem}, required by the
+     * Doctrine persistence many-to-one mapping so the FK persists on
+     * flush without a second round-trip. Set once by
+     * {@see InventoryItem::receiveBatch()} via {@see self::attachToItem()};
+     * re-attaching to the same item is a no-op, reassignment is a
+     * programming error. Left uninitialised (not nullable) so a
+     * StockBatch without an owning aggregate surfaces immediately as a
+     * property-access error rather than as a silent NULL.
+     */
+    private InventoryItem $item;
 
     private function __construct()
     {
@@ -120,6 +132,39 @@ final class StockBatch
     public function comments(): ?Comment
     {
         return $this->comments;
+    }
+
+    /**
+     * @internal Called by {@see InventoryItem::receiveBatch()} to link a
+     *           freshly-constructed batch to its owning aggregate so the
+     *           Doctrine many-to-one FK persists on flush. Idempotent
+     *           re-attach to the same item is a no-op; attaching to a
+     *           different item is a programming error.
+     */
+    public function attachToItem(InventoryItem $item): void
+    {
+        if (isset($this->item)) {
+            if ($this->item === $item) {
+                return;
+            }
+            throw new LogicException(
+                'StockBatch is already attached to a different InventoryItem.',
+            );
+        }
+        $this->item = $item;
+    }
+
+    /**
+     * @internal Doctrine #[PostLoad] lifecycle callback. Re-populates the
+     *           scalar {@see $itemId} cache from the hydrated parent
+     *           association so domain code that reads `itemId()` after a
+     *           DB load sees the same value the in-memory factory set.
+     */
+    public function hydrateItemId(): void
+    {
+        if (isset($this->item)) {
+            $this->itemId = $this->item->id();
+        }
     }
 
     public function isEmpty(): bool
