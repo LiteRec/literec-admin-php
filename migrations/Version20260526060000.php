@@ -75,6 +75,10 @@ final class Version20260526060000 extends AbstractMigration
                 CONSTRAINT FK_inventory_po_lines_order
                     FOREIGN KEY (purchase_order_id) REFERENCES inventory_purchase_orders (id)
                     ON DELETE CASCADE,
+                CONSTRAINT CK_inventory_po_lines_ordered_positive
+                    CHECK (ordered_quantity > 0),
+                CONSTRAINT CK_inventory_po_lines_received_non_negative
+                    CHECK (received_quantity >= 0),
                 CONSTRAINT CK_inventory_po_lines_received_le_ordered
                     CHECK (received_quantity <= ordered_quantity)
             )
