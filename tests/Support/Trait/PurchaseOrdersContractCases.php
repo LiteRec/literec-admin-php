@@ -161,11 +161,16 @@ trait PurchaseOrdersContractCases
         $b = $this->makeDraft(self::PO_B, self::VENDOR_A, self::FACILITY_MAIN, [[self::LINE_B1, 1, 100]]);
         $this->purchaseOrders()->add($b);
 
+        // PO_C shares PO_B's createdAt instant; the id-ASC tie-break must put PO_B before PO_C.
+        $c = $this->makeDraft(self::PO_C, self::VENDOR_A, self::FACILITY_MAIN, [[self::LINE_C1, 1, 100]]);
+        $this->purchaseOrders()->add($c);
+
         $rows = $this->purchaseOrders()->byStatus(PurchaseOrderStatus::Draft, 0, 10);
 
-        self::assertCount(2, $rows);
-        self::assertSame(self::PO_B, $rows[0]->id()->value, 'newer first by createdAt DESC');
-        self::assertSame(self::PO_A, $rows[1]->id()->value);
+        self::assertCount(3, $rows);
+        self::assertSame(self::PO_B, $rows[0]->id()->value, 'newer createdAt + earlier id wins');
+        self::assertSame(self::PO_C, $rows[1]->id()->value, 'tie-break by id ASC at same createdAt');
+        self::assertSame(self::PO_A, $rows[2]->id()->value, 'older createdAt last');
     }
 
     #[Test]
