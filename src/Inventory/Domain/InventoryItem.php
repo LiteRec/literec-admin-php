@@ -15,11 +15,15 @@ use App\Inventory\Domain\Event\InventoryItemTrackingChanged;
 use App\Inventory\Domain\Event\StockMovementRecorded;
 use App\Inventory\Domain\Event\StockReceived;
 use App\Inventory\Domain\Event\StockReturned;
+use App\Inventory\Domain\Event\StockTransferredIn;
+use App\Inventory\Domain\Event\StockTransferredOut;
+use App\Inventory\Domain\Exception\CannotTransferToSameFacility;
 use App\Inventory\Domain\Exception\InsufficientStock;
 use App\Inventory\Domain\Exception\InvalidStockReturn;
 use App\Inventory\Domain\Exception\InventoryItemIsArchived;
 use App\Inventory\Domain\ValueObject\Comment;
 use App\Inventory\Domain\ValueObject\CostPerUnit;
+use App\Inventory\Domain\ValueObject\FacilityCode;
 use App\Inventory\Domain\ValueObject\InventoryItemId;
 use App\Inventory\Domain\ValueObject\PosColor;
 use App\Inventory\Domain\ValueObject\PurchaseOrderLineId;
@@ -27,6 +31,7 @@ use App\Inventory\Domain\ValueObject\Quantity;
 use App\Inventory\Domain\ValueObject\ReorderThreshold;
 use App\Inventory\Domain\ValueObject\StockBatchId;
 use App\Inventory\Domain\ValueObject\StockMovementReason;
+use App\Inventory\Domain\ValueObject\TransferLineItem;
 use App\Inventory\Domain\ValueObject\VendorId;
 use DateTimeImmutable;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -248,7 +253,17 @@ final class InventoryItem
         return $total;
     }
 
+    public function totalOnHandAt(FacilityCode $facility): Quantity
+    {
+        $total = Quantity::zero();
+        foreach ($this->batchesAt($facility) as $batch) {
+            $total = $total->add($batch->remainingQuantity());
+        }
+        return $total;
+    }
+
     public function receiveBatch(
+        FacilityCode $facility,
         Quantity $quantity,
         CostPerUnit $cost,
         ?PurchaseOrderLineId $sourceLineId,
@@ -261,6 +276,7 @@ final class InventoryItem
         $batch = StockBatch::receive(
             $newBatchId,
             $this->id,
+            $facility,
             $quantity,
             $cost,
             $sourceLineId,
@@ -273,6 +289,7 @@ final class InventoryItem
         $this->recordThat(new StockReceived(
             $this->id,
             $newBatchId,
+            $facility,
             $quantity,
             $cost,
             $sourceLineId,
@@ -283,16 +300,20 @@ final class InventoryItem
         return $newBatchId;
     }
 
-    public function consume(Quantity $quantity, StockMovementReason $reason, ClockInterface $clock): void
-    {
+    public function consume(
+        FacilityCode $facility,
+        Quantity $quantity,
+        StockMovementReason $reason,
+        ClockInterface $clock,
+    ): void {
         $this->guardNotArchived();
 
         if ($quantity->isZero()) {
             return;
         }
 
-        $sorted = $this->sortedBatches();
-        $available = $this->totalOnHand();
+        $sliceBatches = $this->batchesAt($facility);
+        $available = $this->totalOnHandAt($facility);
 
         if ($quantity->units > $available->units) {
             throw InsufficientStock::for($this->id, $quantity, $available);
@@ -301,7 +322,7 @@ final class InventoryItem
         $occurredAt = $clock->now();
         $outstanding = $quantity;
 
-        foreach ($sorted as $batch) {
+        foreach ($sliceBatches as $batch) {
             if ($outstanding->isZero()) {
                 break;
             }
@@ -325,7 +346,7 @@ final class InventoryItem
         $this->updatedAt = $occurredAt;
     }
 
-    public function returnUnits(Quantity $quantity, ClockInterface $clock): void
+    public function returnUnits(FacilityCode $facility, Quantity $quantity, ClockInterface $clock): void
     {
         $this->guardNotArchived();
 
@@ -333,8 +354,10 @@ final class InventoryItem
             return;
         }
 
+        $sliceBatches = $this->batchesAt($facility);
+
         $totalConsumed = Quantity::zero();
-        foreach ($this->batches as $batch) {
+        foreach ($sliceBatches as $batch) {
             $totalConsumed = $totalConsumed->add($batch->consumedQuantity());
         }
 
@@ -342,10 +365,9 @@ final class InventoryItem
             throw InvalidStockReturn::for($this->id, $quantity, $totalConsumed);
         }
 
-        $reverseConsumed = $this->sortedBatches();
-        // LIFO on the most-recently-consumed: walk batches in reverse
-        // received-order, restoring to any batch that has consumed units.
-        $reverseConsumed = array_reverse($reverseConsumed);
+        // LIFO at this facility: walk that facility's batches in reverse
+        // received-order, restoring to any batch with consumed units.
+        $reverseConsumed = array_reverse($sliceBatches);
 
         $occurredAt = $clock->now();
         $outstanding = $quantity;
@@ -372,6 +394,94 @@ final class InventoryItem
                 $occurredAt,
             ));
         }
+
+        $this->updatedAt = $occurredAt;
+    }
+
+    public function transferStock(
+        FacilityCode $from,
+        FacilityCode $to,
+        Quantity $quantity,
+        ClockInterface $clock,
+        IdentityGenerator $identityGenerator,
+    ): void {
+        $this->guardNotArchived();
+
+        if ($from->equals($to)) {
+            throw CannotTransferToSameFacility::for($from);
+        }
+
+        if ($quantity->isZero()) {
+            return;
+        }
+
+        $sourceBatches = $this->batchesAt($from);
+        $available = $this->totalOnHandAt($from);
+
+        if ($quantity->units > $available->units) {
+            throw InsufficientStock::for($this->id, $quantity, $available);
+        }
+
+        $occurredAt = $clock->now();
+        $outstanding = $quantity;
+
+        /** @var list<TransferLineItem> $sourceSlices */
+        $sourceSlices = [];
+
+        foreach ($sourceBatches as $batch) {
+            if ($outstanding->isZero()) {
+                break;
+            }
+            if ($batch->isEmpty()) {
+                continue;
+            }
+
+            $consumed = $batch->consume($outstanding);
+            $outstanding = $outstanding->subtract($consumed);
+
+            $sourceSlices[] = new TransferLineItem($batch->id(), $consumed, $batch->costPerUnit());
+
+            $this->recordThat(new StockMovementRecorded(
+                $this->id,
+                $batch->id(),
+                $consumed,
+                $batch->costPerUnit(),
+                StockMovementReason::TRANSFER_OUT,
+                $occurredAt,
+            ));
+        }
+
+        /** @var list<TransferLineItem> $destSlices */
+        $destSlices = [];
+
+        foreach ($sourceSlices as $slice) {
+            $newBatchId = $identityGenerator->nextStockBatchId();
+            $newBatch = StockBatch::receive(
+                $newBatchId,
+                $this->id,
+                $to,
+                $slice->quantity,
+                $slice->costPerUnit,
+                null,
+                null,
+                $clock,
+            );
+            $this->batches->add($newBatch);
+
+            $destSlices[] = new TransferLineItem($newBatchId, $slice->quantity, $slice->costPerUnit);
+
+            $this->recordThat(new StockMovementRecorded(
+                $this->id,
+                $newBatchId,
+                $slice->quantity,
+                $slice->costPerUnit,
+                StockMovementReason::TRANSFER_IN,
+                $occurredAt,
+            ));
+        }
+
+        $this->recordThat(new StockTransferredOut($this->id, $from, $to, $sourceSlices, $occurredAt));
+        $this->recordThat(new StockTransferredIn($this->id, $from, $to, $destSlices, $occurredAt));
 
         $this->updatedAt = $occurredAt;
     }
@@ -426,14 +536,27 @@ final class InventoryItem
     private function sortedBatches(): array
     {
         $batches = iterator_to_array($this->batches, false);
-        usort(
-            $batches,
-            static function (StockBatch $a, StockBatch $b): int {
-                $cmp = $a->receivedAt() <=> $b->receivedAt();
-                return $cmp !== 0 ? $cmp : strcmp($a->id()->value, $b->id()->value);
-            },
-        );
+        usort($batches, self::fifoCompare(...));
         return $batches;
+    }
+
+    /**
+     * @return list<StockBatch>
+     */
+    private function batchesAt(FacilityCode $facility): array
+    {
+        $sliced = array_values(array_filter(
+            iterator_to_array($this->batches, false),
+            static fn (StockBatch $b): bool => $b->facilityCode()->equals($facility),
+        ));
+        usort($sliced, self::fifoCompare(...));
+        return $sliced;
+    }
+
+    private static function fifoCompare(StockBatch $a, StockBatch $b): int
+    {
+        $cmp = $a->receivedAt() <=> $b->receivedAt();
+        return $cmp !== 0 ? $cmp : strcmp($a->id()->value, $b->id()->value);
     }
 
     private static function vendorIdsEqual(?VendorId $a, ?VendorId $b): bool

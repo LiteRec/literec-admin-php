@@ -8,6 +8,7 @@ use App\Inventory\Domain\Exception\InvalidStockBatchQuantity;
 use App\Inventory\Domain\Exception\StockBatchExhausted;
 use App\Inventory\Domain\ValueObject\Comment;
 use App\Inventory\Domain\ValueObject\CostPerUnit;
+use App\Inventory\Domain\ValueObject\FacilityCode;
 use App\Inventory\Domain\ValueObject\InventoryItemId;
 use App\Inventory\Domain\ValueObject\PurchaseOrderLineId;
 use App\Inventory\Domain\ValueObject\Quantity;
@@ -32,6 +33,7 @@ final class StockBatch
 {
     private StockBatchId $id;
     private InventoryItemId $itemId;
+    private FacilityCode $facilityCode;
     private DateTimeImmutable $receivedAt;
     private Quantity $originalQuantity;
     private Quantity $remainingQuantity;
@@ -50,6 +52,7 @@ final class StockBatch
     public static function receive(
         StockBatchId $id,
         InventoryItemId $itemId,
+        FacilityCode $facilityCode,
         Quantity $quantity,
         CostPerUnit $costPerUnit,
         ?PurchaseOrderLineId $sourceLineId,
@@ -63,6 +66,7 @@ final class StockBatch
         $batch = new self();
         $batch->id = $id;
         $batch->itemId = $itemId;
+        $batch->facilityCode = $facilityCode;
         $batch->receivedAt = $clock->now();
         $batch->originalQuantity = $quantity;
         $batch->remainingQuantity = $quantity;
@@ -81,6 +85,11 @@ final class StockBatch
     public function itemId(): InventoryItemId
     {
         return $this->itemId;
+    }
+
+    public function facilityCode(): FacilityCode
+    {
+        return $this->facilityCode;
     }
 
     public function receivedAt(): DateTimeImmutable
