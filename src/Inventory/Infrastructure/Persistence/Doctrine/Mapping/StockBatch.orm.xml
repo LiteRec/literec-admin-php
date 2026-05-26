@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<doctrine-mapping xmlns="http://doctrine-project.org/schemas/orm/doctrine-mapping"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping
+                                      https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
+
+    <!--
+        StockBatch child entity owned by the InventoryItem aggregate.
+        The composite index (item_id, facility_code, received_at, id)
+        backs per-facility FIFO lookups; the (facility_code, item_id)
+        index supports per-facility totals across many items.
+    -->
+    <entity name="App\Inventory\Domain\StockBatch" table="inventory_stock_batches">
+
+        <indexes>
+            <index name="IDX_inventory_stock_batches_fifo" columns="item_id,facility_code,received_at,id"/>
+            <index name="IDX_inventory_stock_batches_facility" columns="facility_code,item_id"/>
+        </indexes>
+
+        <lifecycle-callbacks>
+            <lifecycle-callback type="postLoad" method="hydrateItemId"/>
+        </lifecycle-callbacks>
+
+        <id name="id" type="inventory_stock_batch_id" column="id"/>
+
+        <field name="facilityCode"      column="facility_code"       type="inventory_facility_code"            nullable="false"/>
+        <field name="receivedAt"        column="received_at"         type="datetime_immutable"                 nullable="false"/>
+        <field name="originalQuantity"  column="original_quantity"   type="inventory_quantity"                 nullable="false"/>
+        <field name="remainingQuantity" column="remaining_quantity"  type="inventory_quantity"                 nullable="false"/>
+        <field name="costPerUnit"       column="cost_per_unit_cents" type="inventory_cost_per_unit"            nullable="false"/>
+        <field name="sourceLineId"      column="source_line_id"      type="inventory_purchase_order_line_id"   nullable="true"/>
+        <field name="comments"          column="comments"            type="inventory_comment"                  nullable="true"/>
+
+        <many-to-one field="item" target-entity="App\Inventory\Domain\InventoryItem" inversed-by="batches">
+            <join-column name="item_id" referenced-column-name="id" nullable="false" on-delete="RESTRICT"/>
+        </many-to-one>
+
+    </entity>
+
+</doctrine-mapping>
