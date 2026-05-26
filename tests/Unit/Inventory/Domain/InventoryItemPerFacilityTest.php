@@ -381,6 +381,11 @@ final class InventoryItemPerFacilityTest extends TestCase
             {
                 throw new \LogicException('not used');
             }
+
+            public function nextItemLinkId(): \App\Inventory\Domain\ValueObject\ItemLinkId
+            {
+                throw new \LogicException('not used');
+            }
         };
     }
 }

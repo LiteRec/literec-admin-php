@@ -126,6 +126,8 @@ services:
     # follow-up; the InMemory adapter is wired for the test container
     # under when@test below.
     App\Inventory\Domain\ItemGroups: '@App\Inventory\Infrastructure\Persistence\Stub\UnimplementedItemGroups'
+    # Item links (LRA-82): same fail-loud pattern. Doctrine adapter + migration land in a focused follow-up.
+    App\Inventory\Domain\ItemLinks: '@App\Inventory\Infrastructure\Persistence\Stub\UnimplementedItemLinks'
 
     # Bind the Households read-model port (LRA-38) to its Doctrine adapter.
     # The adapter uses the DBAL Connection rather than the EntityManager;
@@ -298,6 +300,10 @@ when@test:
         # Override the production ItemGroups stub for tests.
         App\Inventory\Domain\ItemGroups:
             alias: App\Inventory\Infrastructure\Persistence\InMemory\InMemoryItemGroups
+            public: true
+        # Override the production ItemLinks stub for tests.
+        App\Inventory\Domain\ItemLinks:
+            alias: App\Inventory\Infrastructure\Persistence\InMemory\InMemoryItemLinks
             public: true
         # Seeded Faker generator for fixture loads. Test env mirrors the
         # dev binding below so integration tests that exercise fixtures
