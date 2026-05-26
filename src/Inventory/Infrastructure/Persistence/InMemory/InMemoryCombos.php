@@ -10,6 +10,7 @@ use App\Inventory\Domain\Combos;
 use App\Inventory\Domain\Exception\ComboNotFound;
 use App\Inventory\Domain\ValueObject\ComboId;
 use App\Inventory\Domain\ValueObject\InventoryItemId;
+use LogicException;
 
 /**
  * Array-backed adapter for the {@see Combos} port. Used by unit tests
@@ -23,6 +24,12 @@ final class InMemoryCombos implements Combos
 
     public function add(Combo $combo): void
     {
+        if (isset($this->byId[$combo->id()->value])) {
+            throw new LogicException(sprintf(
+                'Combo %s already exists; use save() to update.',
+                $combo->id()->value,
+            ));
+        }
         $this->byId[$combo->id()->value] = $combo;
     }
 

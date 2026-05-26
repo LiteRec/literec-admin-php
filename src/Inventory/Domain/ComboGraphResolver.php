@@ -12,9 +12,9 @@ use App\Inventory\Domain\ValueObject\InventoryItemId;
  *
  * 1. Is this inventory item itself a combo? (enforces the no-nesting
  *    rule — combos may only contain atomic items.)
- * 2. Which combos transitively reference this inventory item? (used
- *    for cycle detection — Combo A's validation must reject any
- *    component whose graph eventually points back at A.)
+ * 2. Which inventory items does this item expand into? (used for cycle
+ *    detection — Combo A's BFS rejects any reachable id already in its
+ *    component set. Forward graph direction: parent → children.)
  *
  * Implementations live in Infrastructure and are typically backed by
  * the inventory_combo_components table; an InMemory adapter exists
