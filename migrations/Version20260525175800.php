@@ -21,9 +21,10 @@ use Doctrine\Migrations\AbstractMigration;
  *   - UNIQUE on code so DoctrineVendors::add() can surface duplicates
  *     via UniqueConstraintViolationException → DuplicateVendorCode.
  *   - archived to back the listActive() browse path.
- *   - functional index on LOWER(name) to back the searchByName() path,
- *     which uses LOWER(...) LIKE ... ESCAPE '!' to perform a
- *     case-insensitive partial match.
+ *   - GIN trigram index on LOWER(name) (pg_trgm) to back the
+ *     searchByName() path, which uses LOWER(...) LIKE '%query%'
+ *     ESCAPE '!'. A plain btree functional index does not accelerate
+ *     leading-wildcard LIKE; pg_trgm's gin_trgm_ops does.
  */
 final class Version20260525175800 extends AbstractMigration
 {
@@ -57,7 +58,16 @@ final class Version20260525175800 extends AbstractMigration
 
         $this->addSql('CREATE UNIQUE INDEX UNIQ_inventory_vendors_code ON inventory_vendors (code)');
         $this->addSql('CREATE INDEX IDX_inventory_vendors_archived ON inventory_vendors (archived)');
-        $this->addSql('CREATE INDEX IDX_inventory_vendors_name_lower ON inventory_vendors (LOWER(name))');
+
+        // pg_trgm + GIN index for case-insensitive partial-name search.
+        // A plain b-tree on LOWER(name) does not accelerate the
+        // leading-wildcard `LIKE '%...%'` pattern DoctrineVendors::
+        // searchByName() emits; gin_trgm_ops does.
+        $this->addSql('CREATE EXTENSION IF NOT EXISTS pg_trgm');
+        $this->addSql(
+            'CREATE INDEX IDX_inventory_vendors_name_trgm '
+            . 'ON inventory_vendors USING gin (LOWER(name) gin_trgm_ops)',
+        );
     }
 
     public function down(Schema $schema): void
@@ -68,5 +78,7 @@ final class Version20260525175800 extends AbstractMigration
         );
 
         $this->addSql('DROP TABLE IF EXISTS inventory_vendors');
+        // The pg_trgm extension is left installed — other migrations may
+        // depend on it. Removing the extension is a separate concern.
     }
 }

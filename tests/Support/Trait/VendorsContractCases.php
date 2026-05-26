@@ -30,6 +30,7 @@ trait VendorsContractCases
     private const ID_A = '019571bf-5d51-7000-b500-000000000030';
     private const ID_B = '019571bf-5d51-7000-b500-000000000031';
     private const ID_C = '019571bf-5d51-7000-b500-000000000032';
+    private const ID_D = '019571bf-5d51-7000-b500-000000000033';
 
     abstract protected function vendors(): Vendors;
 
@@ -169,6 +170,11 @@ trait VendorsContractCases
     {
         $this->vendors()->add($this->makeVendor(self::ID_A, 'V1', '50% Off Vendor'));
         $this->vendors()->add($this->makeVendor(self::ID_B, 'V2', 'Plain Vendor'));
+        // Decoy: would match an unescaped "50%" pattern via the trailing
+        // wildcard wrap searchByName() applies. If %/_ were not escaped,
+        // this row would also surface and the assertCount(1) below
+        // would fail.
+        $this->vendors()->add($this->makeVendor(self::ID_D, 'V4', '500 Deals Vendor'));
 
         $percentLiteral = $this->vendors()->searchByName('50%', 0, 10);
         self::assertCount(1, $percentLiteral);

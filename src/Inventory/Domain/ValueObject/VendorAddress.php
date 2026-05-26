@@ -120,7 +120,9 @@ final readonly class VendorAddress
 
                 return $up;
             case 'GB':
-                $len = mb_strlen($postal, 'UTF-8');
+                // UK postcodes are ASCII by spec; strlen is sufficient
+                // and avoids depending on ext-mbstring for this branch.
+                $len = strlen($postal);
                 if ($len < 2 || $len > 10) {
                     throw InvalidVendorAddress::invalidPostalCode($country);
                 }

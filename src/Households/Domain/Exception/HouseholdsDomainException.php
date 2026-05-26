@@ -14,10 +14,14 @@ use App\Shared\Domain\Exception\SharedDomainException;
  * translate domain failures into stable status codes without inspecting
  * exception messages.
  *
- * Extends {@see SharedDomainException} so listeners that catch the
- * per-context marker still observe invalid-VO failures raised from
- * shared-kernel value objects when they bubble up through Households
- * code paths.
+ * Inheritance direction: every {@see HouseholdsDomainException} IS a
+ * {@see SharedDomainException}, so catching `SharedDomainException`
+ * always observes Households failures. The reverse is NOT true —
+ * an exception that only implements `SharedDomainException` (for
+ * example, {@see App\Shared\Domain\Exception\InvalidEmailAddress}
+ * raised from a shared-kernel VO call) is NOT caught by code that
+ * type-hints `HouseholdsDomainException`. Catchers that need to
+ * handle both should target `SharedDomainException` directly.
  */
 interface HouseholdsDomainException extends SharedDomainException
 {

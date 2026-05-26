@@ -51,12 +51,24 @@ interface Vendors
     /**
      * Case-insensitive partial match on the vendor name.
      *
+     * Pagination preconditions (callers must normalise/validate at the
+     * entry point — application services or HTTP controllers — before
+     * dispatching; this contract does not re-validate at runtime):
+     *   - $offset >= 0
+     *   - $limit  >= 1
+     *
      * @return list<Vendor>
      */
     public function searchByName(string $query, int $offset, int $limit): array;
 
     /**
      * Lists non-archived vendors ordered by code ASC.
+     *
+     * Pagination preconditions (callers must normalise/validate at the
+     * entry point — application services or HTTP controllers — before
+     * dispatching; this contract does not re-validate at runtime):
+     *   - $offset >= 0
+     *   - $limit  >= 1
      *
      * @return list<Vendor>
      */
