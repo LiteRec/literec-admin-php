@@ -111,6 +111,14 @@ services:
     App\Inventory\Domain\Vendors: '@App\Inventory\Infrastructure\Persistence\Doctrine\DoctrineVendors'
     App\Inventory\Domain\InventoryItems: '@App\Inventory\Infrastructure\Persistence\Doctrine\DoctrineInventoryItems'
     App\Inventory\Domain\PurchaseOrders: '@App\Inventory\Infrastructure\Persistence\Doctrine\DoctrinePurchaseOrders'
+    # Combo persistence (LRA-80): InMemory adapter wired as production
+    # binding while the domain + write services land. The Doctrine
+    # adapter + migration ship in a focused follow-up; until then the
+    # InMemory adapter loses state between requests, which is
+    # acceptable because no production code path dispatches a Combo
+    # command yet.
+    App\Inventory\Domain\Combos: '@App\Inventory\Infrastructure\Persistence\InMemory\InMemoryCombos'
+    App\Inventory\Domain\ComboGraphResolver: '@App\Inventory\Infrastructure\Persistence\InMemory\RepositoryBackedComboGraphResolver'
 
     # Bind the Households read-model port (LRA-38) to its Doctrine adapter.
     # The adapter uses the DBAL Connection rather than the EntityManager;
@@ -269,6 +277,17 @@ when@test:
             public: true
         inventory.in_memory_purchase_orders_repository:
             alias: App\Inventory\Infrastructure\Persistence\InMemory\InMemoryPurchaseOrders
+            public: true
+        # Combos (LRA-80). Wired as InMemory in production (see top of
+        # this file) while the Doctrine adapter + migration are in
+        # flight; the test container exposes the same alias publicly so
+        # integration tests can fetch the repo and inspect persisted
+        # state.
+        App\Inventory\Domain\Combos:
+            alias: App\Inventory\Infrastructure\Persistence\InMemory\InMemoryCombos
+            public: true
+        App\Inventory\Domain\ComboGraphResolver:
+            alias: App\Inventory\Infrastructure\Persistence\InMemory\RepositoryBackedComboGraphResolver
             public: true
         # Seeded Faker generator for fixture loads. Test env mirrors the
         # dev binding below so integration tests that exercise fixtures

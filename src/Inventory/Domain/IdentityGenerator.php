@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Inventory\Domain;
 
+use App\Inventory\Domain\ValueObject\ComboId;
 use App\Inventory\Domain\ValueObject\InventoryItemId;
 use App\Inventory\Domain\ValueObject\PurchaseOrderId;
 use App\Inventory\Domain\ValueObject\PurchaseOrderLineId;
@@ -31,4 +32,6 @@ interface IdentityGenerator
     public function nextPurchaseOrderId(): PurchaseOrderId;
 
     public function nextPurchaseOrderLineId(): PurchaseOrderLineId;
+
+    public function nextComboId(): ComboId;
 }
