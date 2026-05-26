@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Unit\Inventory\Application\Command;
 
-use App\Catalog\Domain\ValueObject\ListingId;
 use App\Inventory\Application\Command\TransferStockBetweenFacilities;
 use App\Inventory\Application\Command\TransferStockBetweenFacilitiesHandler;
 use App\Inventory\Domain\Event\StockTransferredIn;
@@ -13,17 +12,13 @@ use App\Inventory\Domain\Exception\CannotTransferToSameFacility;
 use App\Inventory\Domain\Exception\InsufficientStock;
 use App\Inventory\Domain\Exception\InventoryItemNotFound;
 use App\Inventory\Domain\Exception\QuantityWouldGoNegative;
-use App\Inventory\Domain\InventoryItem;
-use App\Inventory\Domain\ValueObject\CostPerUnit;
 use App\Inventory\Domain\ValueObject\FacilityCode;
 use App\Inventory\Domain\ValueObject\InventoryItemId;
-use App\Inventory\Domain\ValueObject\PosColor;
-use App\Inventory\Domain\ValueObject\Quantity;
-use App\Inventory\Domain\ValueObject\ReorderThreshold;
 use App\Inventory\Domain\ValueObject\StockBatchId;
 use App\Inventory\Infrastructure\Persistence\InMemory\InMemoryInventoryItems;
 use App\Tests\Support\Fake\RecordingMessageBus;
 use App\Tests\Support\Fake\SequenceInventoryIdentityGenerator;
+use App\Tests\Support\Trait\SeedsInventoryItemWithBatch;
 use DateTimeImmutable;
 use PHPUnit\Framework\Attributes\Small;
 use PHPUnit\Framework\Attributes\Test;
@@ -34,6 +29,8 @@ use Symfony\Component\Clock\MockClock;
 #[Small]
 final class TransferStockBetweenFacilitiesHandlerTest extends TestCase
 {
+    use SeedsInventoryItemWithBatch;
+
     private const ITEM = '019571bf-5d51-7000-b500-000000001300';
     private const LISTING = '019571bf-5d51-7000-b500-000000001301';
     private const SEED_BATCH = '019571bf-5d51-7000-b500-000000001302';
@@ -60,27 +57,16 @@ final class TransferStockBetweenFacilitiesHandlerTest extends TestCase
             $this->eventBus,
         );
 
-        $item = InventoryItem::register(
-            InventoryItemId::fromString(self::ITEM),
-            ListingId::fromString(self::LISTING),
-            null,
-            PosColor::default(),
-            true,
-            false,
-            ReorderThreshold::none(),
+        $this->seedItemWithBatch(
+            $this->items,
             $this->clock,
+            self::ITEM,
+            self::LISTING,
+            'MAIN',
+            self::SEED_BATCH,
+            10,
+            400,
         );
-        $item->receiveBatch(
-            FacilityCode::fromString('MAIN'),
-            Quantity::ofUnits(10),
-            CostPerUnit::ofCents(400),
-            null,
-            null,
-            StockBatchId::fromString(self::SEED_BATCH),
-            $this->clock,
-        );
-        $item->releaseEvents();
-        $this->items->add($item);
     }
 
     #[Test]
