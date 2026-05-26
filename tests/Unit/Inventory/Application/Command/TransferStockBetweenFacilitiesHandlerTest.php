@@ -82,10 +82,22 @@ final class TransferStockBetweenFacilitiesHandlerTest extends TestCase
         $messages = $this->eventBus->dispatchedMessages();
         // Expect: 1 SMR(OUT), 1 SMR(IN), 1 StockTransferredOut, 1 StockTransferredIn.
         self::assertCount(4, $messages);
-        $txOut = $messages[2];
-        $txIn = $messages[3];
-        self::assertInstanceOf(StockTransferredOut::class, $txOut);
-        self::assertInstanceOf(StockTransferredIn::class, $txIn);
+
+        // Filter by class instead of relying on dispatch order so adding a
+        // future event ahead of the transfer pair does not silently break
+        // these assertions.
+        $txOuts = array_values(array_filter(
+            $messages,
+            static fn (object $m): bool => $m instanceof StockTransferredOut,
+        ));
+        $txIns = array_values(array_filter(
+            $messages,
+            static fn (object $m): bool => $m instanceof StockTransferredIn,
+        ));
+        self::assertCount(1, $txOuts);
+        self::assertCount(1, $txIns);
+        $txOut = $txOuts[0];
+        $txIn = $txIns[0];
         self::assertSame('MAIN', $txOut->fromFacility->value);
         self::assertSame('LAKESIDE', $txOut->toFacility->value);
         self::assertCount(1, $txIn->lineItems);
