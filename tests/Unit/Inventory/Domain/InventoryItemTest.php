@@ -14,9 +14,13 @@ use App\Inventory\Domain\Event\InventoryItemReorderThresholdUpdated;
 use App\Inventory\Domain\Event\InventoryItemTrackingChanged;
 use App\Inventory\Domain\Exception\InventoryItemIsArchived;
 use App\Inventory\Domain\InventoryItem;
+use App\Inventory\Domain\ValueObject\CostPerUnit;
 use App\Inventory\Domain\ValueObject\InventoryItemId;
 use App\Inventory\Domain\ValueObject\PosColor;
+use App\Inventory\Domain\ValueObject\Quantity;
 use App\Inventory\Domain\ValueObject\ReorderThreshold;
+use App\Inventory\Domain\ValueObject\StockBatchId;
+use App\Inventory\Domain\ValueObject\StockMovementReason;
 use App\Inventory\Domain\ValueObject\VendorId;
 use Closure;
 use DateTimeImmutable;
@@ -353,6 +357,31 @@ final class InventoryItemTest extends TestCase
         ];
         yield 'updateReorderThreshold' => [
             static fn(InventoryItem $i, ClockInterface $c) => $i->updateReorderThreshold(ReorderThreshold::none(), $c),
+        ];
+        yield 'receiveBatch' => [
+            static function (InventoryItem $i, ClockInterface $c): void {
+                $i->receiveBatch(
+                    Quantity::ofUnits(1),
+                    CostPerUnit::zero(),
+                    null,
+                    null,
+                    StockBatchId::fromString('019571bf-5d51-7000-b500-0000000003ff'),
+                    $c,
+                );
+            },
+        ];
+        yield 'consume' => [
+            static fn(InventoryItem $i, ClockInterface $c) => $i->consume(
+                Quantity::ofUnits(1),
+                StockMovementReason::SALE,
+                $c,
+            ),
+        ];
+        yield 'returnUnits' => [
+            static fn(InventoryItem $i, ClockInterface $c) => $i->returnUnits(
+                Quantity::ofUnits(1),
+                $c,
+            ),
         ];
     }
 

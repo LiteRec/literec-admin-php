@@ -12,12 +12,25 @@ use App\Inventory\Domain\Event\InventoryItemRegistered;
 use App\Inventory\Domain\Event\InventoryItemRentableChanged;
 use App\Inventory\Domain\Event\InventoryItemReorderThresholdUpdated;
 use App\Inventory\Domain\Event\InventoryItemTrackingChanged;
+use App\Inventory\Domain\Event\StockMovementRecorded;
+use App\Inventory\Domain\Event\StockReceived;
+use App\Inventory\Domain\Event\StockReturned;
+use App\Inventory\Domain\Exception\InsufficientStock;
+use App\Inventory\Domain\Exception\InvalidStockReturn;
 use App\Inventory\Domain\Exception\InventoryItemIsArchived;
+use App\Inventory\Domain\ValueObject\Comment;
+use App\Inventory\Domain\ValueObject\CostPerUnit;
 use App\Inventory\Domain\ValueObject\InventoryItemId;
 use App\Inventory\Domain\ValueObject\PosColor;
+use App\Inventory\Domain\ValueObject\PurchaseOrderLineId;
+use App\Inventory\Domain\ValueObject\Quantity;
 use App\Inventory\Domain\ValueObject\ReorderThreshold;
+use App\Inventory\Domain\ValueObject\StockBatchId;
+use App\Inventory\Domain\ValueObject\StockMovementReason;
 use App\Inventory\Domain\ValueObject\VendorId;
 use DateTimeImmutable;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Psr\Clock\ClockInterface;
 
 /**
@@ -61,12 +74,16 @@ final class InventoryItem
 
     private DateTimeImmutable $updatedAt;
 
+    /** @var Collection<int, StockBatch> */
+    private Collection $batches;
+
     private function __construct()
     {
         // Intentionally empty. Construction goes through the
         // self::register(...) named factory so every InventoryItem is
         // born valid and emits an InventoryItemRegistered domain event;
         // direct instantiation is impossible.
+        $this->batches = new ArrayCollection();
     }
 
     public static function register(
@@ -214,6 +231,151 @@ final class InventoryItem
         $this->recordThat(new InventoryItemReorderThresholdUpdated($this->id, $reorderThreshold, $this->updatedAt));
     }
 
+    /**
+     * @return list<StockBatch>
+     */
+    public function batches(): array
+    {
+        return $this->sortedBatches();
+    }
+
+    public function totalOnHand(): Quantity
+    {
+        $total = Quantity::zero();
+        foreach ($this->batches as $batch) {
+            $total = $total->add($batch->remainingQuantity());
+        }
+        return $total;
+    }
+
+    public function receiveBatch(
+        Quantity $quantity,
+        CostPerUnit $cost,
+        ?PurchaseOrderLineId $sourceLineId,
+        ?Comment $comments,
+        StockBatchId $newBatchId,
+        ClockInterface $clock,
+    ): StockBatchId {
+        $this->guardNotArchived();
+
+        $batch = StockBatch::receive(
+            $newBatchId,
+            $this->id,
+            $quantity,
+            $cost,
+            $sourceLineId,
+            $comments,
+            $clock,
+        );
+        $this->batches->add($batch);
+
+        $this->updatedAt = $clock->now();
+        $this->recordThat(new StockReceived(
+            $this->id,
+            $newBatchId,
+            $quantity,
+            $cost,
+            $sourceLineId,
+            $comments,
+            $this->updatedAt,
+        ));
+
+        return $newBatchId;
+    }
+
+    public function consume(Quantity $quantity, StockMovementReason $reason, ClockInterface $clock): void
+    {
+        $this->guardNotArchived();
+
+        if ($quantity->isZero()) {
+            return;
+        }
+
+        $sorted = $this->sortedBatches();
+        $available = $this->totalOnHand();
+
+        if ($quantity->units > $available->units) {
+            throw InsufficientStock::for($this->id, $quantity, $available);
+        }
+
+        $occurredAt = $clock->now();
+        $outstanding = $quantity;
+
+        foreach ($sorted as $batch) {
+            if ($outstanding->isZero()) {
+                break;
+            }
+            if ($batch->isEmpty()) {
+                continue;
+            }
+
+            $consumed = $batch->consume($outstanding);
+            $outstanding = $outstanding->subtract($consumed);
+
+            $this->recordThat(new StockMovementRecorded(
+                $this->id,
+                $batch->id(),
+                $consumed,
+                $batch->costPerUnit(),
+                $reason,
+                $occurredAt,
+            ));
+        }
+
+        $this->updatedAt = $occurredAt;
+    }
+
+    public function returnUnits(Quantity $quantity, ClockInterface $clock): void
+    {
+        $this->guardNotArchived();
+
+        if ($quantity->isZero()) {
+            return;
+        }
+
+        $totalConsumed = Quantity::zero();
+        foreach ($this->batches as $batch) {
+            $totalConsumed = $totalConsumed->add($batch->consumedQuantity());
+        }
+
+        if ($quantity->units > $totalConsumed->units) {
+            throw InvalidStockReturn::for($this->id, $quantity, $totalConsumed);
+        }
+
+        $reverseConsumed = $this->sortedBatches();
+        // LIFO on the most-recently-consumed: walk batches in reverse
+        // received-order, restoring to any batch that has consumed units.
+        $reverseConsumed = array_reverse($reverseConsumed);
+
+        $occurredAt = $clock->now();
+        $outstanding = $quantity;
+
+        foreach ($reverseConsumed as $batch) {
+            if ($outstanding->isZero()) {
+                break;
+            }
+            if ($batch->consumedQuantity()->isZero()) {
+                continue;
+            }
+
+            $restored = $batch->restore($outstanding);
+            if ($restored->isZero()) {
+                continue;
+            }
+            $outstanding = $outstanding->subtract($restored);
+
+            $this->recordThat(new StockReturned(
+                $this->id,
+                $batch->id(),
+                $restored,
+                $batch->costPerUnit(),
+                $occurredAt,
+            ));
+        }
+
+        $this->updatedAt = $occurredAt;
+    }
+
     public function archive(ClockInterface $clock): void
     {
         if ($this->archived) {
@@ -256,6 +418,22 @@ final class InventoryItem
         if ($this->archived) {
             throw InventoryItemIsArchived::for($this->id);
         }
+    }
+
+    /**
+     * @return list<StockBatch>
+     */
+    private function sortedBatches(): array
+    {
+        $batches = iterator_to_array($this->batches, false);
+        usort(
+            $batches,
+            static function (StockBatch $a, StockBatch $b): int {
+                $cmp = $a->receivedAt() <=> $b->receivedAt();
+                return $cmp !== 0 ? $cmp : strcmp($a->id()->value, $b->id()->value);
+            },
+        );
+        return $batches;
     }
 
     private static function vendorIdsEqual(?VendorId $a, ?VendorId $b): bool
