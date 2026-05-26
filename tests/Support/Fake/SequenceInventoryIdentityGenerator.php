@@ -59,12 +59,12 @@ final class SequenceInventoryIdentityGenerator implements IdentityGenerator
         array $purchaseOrderIds = [],
         array $purchaseOrderLineIds = [],
     ) {
-        $this->inventoryItemQueue = array_values($inventoryItemIds);
-        $this->stockBatchQueue = array_values($stockBatchIds);
-        $this->stockMovementQueue = array_values($stockMovementIds);
-        $this->vendorQueue = array_values($vendorIds);
-        $this->purchaseOrderQueue = array_values($purchaseOrderIds);
-        $this->purchaseOrderLineQueue = array_values($purchaseOrderLineIds);
+        $this->inventoryItemQueue = $inventoryItemIds;
+        $this->stockBatchQueue = $stockBatchIds;
+        $this->stockMovementQueue = $stockMovementIds;
+        $this->vendorQueue = $vendorIds;
+        $this->purchaseOrderQueue = $purchaseOrderIds;
+        $this->purchaseOrderLineQueue = $purchaseOrderLineIds;
     }
 
     public function nextInventoryItemId(): InventoryItemId
