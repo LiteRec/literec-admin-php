@@ -411,6 +411,14 @@ final class InventoryItemTest extends TestCase
                     {
                         throw new \LogicException('not used');
                     }
+                    public function nextPurchaseOrderId(): \App\Inventory\Domain\ValueObject\PurchaseOrderId
+                    {
+                        throw new \LogicException('not used');
+                    }
+                    public function nextPurchaseOrderLineId(): \App\Inventory\Domain\ValueObject\PurchaseOrderLineId
+                    {
+                        throw new \LogicException('not used');
+                    }
                 },
             ),
         ];

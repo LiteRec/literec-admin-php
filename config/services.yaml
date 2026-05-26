@@ -110,6 +110,7 @@ services:
     App\Inventory\Domain\IdentityGenerator: '@App\Inventory\Infrastructure\Identity\Uuid7IdentityGenerator'
     App\Inventory\Domain\Vendors: '@App\Inventory\Infrastructure\Persistence\Doctrine\DoctrineVendors'
     App\Inventory\Domain\InventoryItems: '@App\Inventory\Infrastructure\Persistence\Doctrine\DoctrineInventoryItems'
+    App\Inventory\Domain\PurchaseOrders: '@App\Inventory\Infrastructure\Persistence\Doctrine\DoctrinePurchaseOrders'
 
     # Bind the Households read-model port (LRA-38) to its Doctrine adapter.
     # The adapter uses the DBAL Connection rather than the EntityManager;
@@ -258,6 +259,16 @@ when@test:
             public: true
         inventory.in_memory_inventory_items_repository:
             alias: App\Inventory\Infrastructure\Persistence\InMemory\InMemoryInventoryItems
+            public: true
+        # Inventory PurchaseOrders (LRA-77). Production binding stays on
+        # the Doctrine adapter; the in-memory adapter is wired behind a
+        # named alias so the shared contract test can target it
+        # deliberately without changing the production wiring.
+        App\Inventory\Domain\PurchaseOrders:
+            alias: App\Inventory\Infrastructure\Persistence\Doctrine\DoctrinePurchaseOrders
+            public: true
+        inventory.in_memory_purchase_orders_repository:
+            alias: App\Inventory\Infrastructure\Persistence\InMemory\InMemoryPurchaseOrders
             public: true
         # Seeded Faker generator for fixture loads. Test env mirrors the
         # dev binding below so integration tests that exercise fixtures
