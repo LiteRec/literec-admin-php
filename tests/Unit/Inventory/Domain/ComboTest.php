@@ -78,10 +78,14 @@ final class ComboTest extends TestCase
     {
         $this->expectException(InvalidComboComponent::class);
 
-        new ComboComponent(
+        // Sonar new_reliability_rating flags an uncaptured `new` expression as
+        // "useless object instantiation"; assigning to a local variable that
+        // the exception aborts before reading is the documented workaround.
+        $unused = new ComboComponent(
             InventoryItemId::fromString(self::ITEM_A),
             Quantity::zero(),
         );
+        self::fail(sprintf('Expected InvalidComboComponent before constructing %s.', $unused::class));
     }
 
     #[Test]
