@@ -54,6 +54,8 @@ final class ComboTest extends TestCase
         self::assertInstanceOf(ComboDefined::class, $event);
         self::assertSame(self::COMBO_ID, $event->comboId->value);
         self::assertCount(2, $event->components);
+        self::assertSame(self::ITEM_A, $event->components[0]->componentItemId->value);
+        self::assertSame(self::ITEM_B, $event->components[1]->componentItemId->value);
         self::assertFalse($combo->isArchived());
     }
 

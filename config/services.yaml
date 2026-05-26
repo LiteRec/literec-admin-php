@@ -111,13 +111,15 @@ services:
     App\Inventory\Domain\Vendors: '@App\Inventory\Infrastructure\Persistence\Doctrine\DoctrineVendors'
     App\Inventory\Domain\InventoryItems: '@App\Inventory\Infrastructure\Persistence\Doctrine\DoctrineInventoryItems'
     App\Inventory\Domain\PurchaseOrders: '@App\Inventory\Infrastructure\Persistence\Doctrine\DoctrinePurchaseOrders'
-    # Combo persistence (LRA-80): InMemory adapter wired as production
-    # binding while the domain + write services land. The Doctrine
-    # adapter + migration ship in a focused follow-up; until then the
-    # InMemory adapter loses state between requests, which is
-    # acceptable because no production code path dispatches a Combo
-    # command yet.
-    App\Inventory\Domain\Combos: '@App\Inventory\Infrastructure\Persistence\InMemory\InMemoryCombos'
+    # Combo persistence (LRA-80): the Doctrine adapter + migration ship
+    # in a focused follow-up. Production binding is the
+    # UnimplementedCombos stub that throws on every method call so the
+    # container compiles cleanly (combo handlers can autowire) but any
+    # accidental Combo command dispatch fails immediately rather than
+    # writing to non-durable storage. The InMemory adapters are wired
+    # behind the same port aliases under when@dev / when@test below so
+    # the test container can exercise the handler flow end-to-end.
+    App\Inventory\Domain\Combos: '@App\Inventory\Infrastructure\Persistence\Stub\UnimplementedCombos'
     App\Inventory\Domain\ComboGraphResolver: '@App\Inventory\Infrastructure\Persistence\InMemory\RepositoryBackedComboGraphResolver'
 
     # Bind the Households read-model port (LRA-38) to its Doctrine adapter.
@@ -283,11 +285,10 @@ when@test:
         # flight; the test container exposes the same alias publicly so
         # integration tests can fetch the repo and inspect persisted
         # state.
+        # Override the production Combos stub binding with the
+        # InMemory adapter for tests.
         App\Inventory\Domain\Combos:
             alias: App\Inventory\Infrastructure\Persistence\InMemory\InMemoryCombos
-            public: true
-        App\Inventory\Domain\ComboGraphResolver:
-            alias: App\Inventory\Infrastructure\Persistence\InMemory\RepositoryBackedComboGraphResolver
             public: true
         # Seeded Faker generator for fixture loads. Test env mirrors the
         # dev binding below so integration tests that exercise fixtures

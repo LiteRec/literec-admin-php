@@ -59,6 +59,7 @@ final class Combo
 
     private function __construct()
     {
+        // Intentionally empty: aggregate creation goes through self::define().
     }
 
     /**
