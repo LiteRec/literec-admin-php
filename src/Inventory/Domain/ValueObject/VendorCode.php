@@ -16,6 +16,8 @@ use Stringable;
  */
 final readonly class VendorCode implements Stringable
 {
+    public const MAX_LENGTH = 32;
+
     private const PATTERN = '/^[A-Z0-9][A-Z0-9_-]{0,31}$/';
 
     public string $value;

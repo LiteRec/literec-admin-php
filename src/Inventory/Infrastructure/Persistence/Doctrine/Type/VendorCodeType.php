@@ -20,7 +20,7 @@ final class VendorCodeType extends Type
 
     public function getSQLDeclaration(array $column, AbstractPlatform $platform): string
     {
-        return $platform->getStringTypeDeclarationSQL(['length' => 32]);
+        return $platform->getStringTypeDeclarationSQL(['length' => VendorCode::MAX_LENGTH]);
     }
 
     public function convertToPHPValue(mixed $value, AbstractPlatform $platform): ?VendorCode

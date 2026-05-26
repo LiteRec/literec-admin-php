@@ -110,6 +110,18 @@ deptrac:
               # admin pages.
               - type: directory
                 value: src/Ui/.*
+        - name: SharedDomain
+          collectors:
+              # Shared kernel: framework-free value objects and exceptions
+              # that multiple bounded contexts genuinely need (EmailAddress,
+              # PhoneNumber, ...). Each consuming context grants
+              # SharedDomain access from its Domain and Application layers.
+              # The shared marker SharedDomainException is the supertype of
+              # every per-context domain-exception marker so HTTP listeners
+              # still observe shared-kernel failures via the context
+              # marker they catch.
+              - type: directory
+                value: src/Shared/Domain/.*
         - name: SharedInfrastructure
           collectors:
               # Cross-cutting infrastructure helpers consumed by multiple
@@ -198,13 +210,16 @@ deptrac:
         HouseholdsDomain:
             - PsrClock
             - DoctrineCollections
+            - SharedDomain
         HouseholdsApplication:
             - HouseholdsDomain
+            - SharedDomain
             - SymfonyMessenger
             - PsrClock
         HouseholdsInfrastructure:
             - HouseholdsDomain
             - HouseholdsApplication
+            - SharedDomain
             - SymfonyMessenger
             - PsrClock
             - Doctrine
@@ -273,9 +288,11 @@ deptrac:
             - PsrClock
             - DoctrineCollections
             - CatalogPublishedLanguage
+            - SharedDomain
         InventoryApplication:
             - InventoryDomain
             - CatalogPublishedLanguage
+            - SharedDomain
             - SymfonyMessenger
             - PsrClock
         InventoryInfrastructure:
@@ -284,6 +301,7 @@ deptrac:
             - InventoryIntegration
             - CatalogIntegration
             - CatalogPublishedLanguage
+            - SharedDomain
             - SymfonyMessenger
             - PsrClock
             - Doctrine
@@ -311,5 +329,11 @@ deptrac:
             - Ui
             - Symfony
             - Twig
+            - PsrClock
+        # Shared kernel: must remain framework-free so every consuming
+        # context can depend on it from its Domain and Application layers.
+        # PsrClock is the only allowed external import (mirrors the
+        # per-context Domain rule).
+        SharedDomain:
             - PsrClock
         SharedInfrastructure: []

@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace App\Households\Domain;
 
 use App\Households\Domain\ValueObject\DateOfBirth;
-use App\Households\Domain\ValueObject\EmailAddress;
 use App\Households\Domain\ValueObject\Gender;
 use App\Households\Domain\ValueObject\MemberCode;
 use App\Households\Domain\ValueObject\MemberId;
 use App\Households\Domain\ValueObject\PersonName;
-use App\Households\Domain\ValueObject\PhoneNumber;
 use App\Households\Domain\ValueObject\ResidencyStatus;
+use App\Shared\Domain\ValueObject\EmailAddress;
+use App\Shared\Domain\ValueObject\PhoneNumber;
 use DateTimeImmutable;
 
 /**

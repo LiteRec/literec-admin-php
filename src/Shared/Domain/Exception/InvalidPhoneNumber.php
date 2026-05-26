@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Households\Domain\Exception;
+namespace App\Shared\Domain\Exception;
 
 use DomainException;
 
-final class InvalidPhoneNumber extends DomainException implements HouseholdsDomainException
+final class InvalidPhoneNumber extends DomainException implements SharedDomainException
 {
     public const MAX_LENGTH = 32;
 

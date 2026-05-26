@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Households\Domain\ValueObject;
+namespace App\Shared\Domain\ValueObject;
 
-use App\Households\Domain\Exception\InvalidEmailAddress;
+use App\Shared\Domain\Exception\InvalidEmailAddress;
 use Stringable;
 
 final readonly class EmailAddress implements Stringable

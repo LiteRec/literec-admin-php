@@ -9,7 +9,6 @@ use App\Households\Application\Command\RegisterHousehold;
 use App\Households\Domain\Exception\DuplicateMemberCode;
 use App\Households\Domain\Exception\DuplicateMemberId;
 use App\Households\Domain\Exception\HouseholdNotFound;
-use App\Households\Domain\Exception\HouseholdsDomainException;
 use App\Households\Domain\Households;
 use App\Households\Domain\ValueObject\HouseholdId;
 use App\Households\Domain\ValueObject\MemberId;
@@ -17,6 +16,7 @@ use App\Households\Infrastructure\Http\Form\AddMemberFormType;
 use App\Households\Infrastructure\Http\Form\AddMemberInput;
 use App\Households\Infrastructure\Http\Form\RegisterHouseholdFormType;
 use App\Households\Infrastructure\Http\Form\RegisterHouseholdInput;
+use App\Shared\Domain\Exception\SharedDomainException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\Form\FormInterface;
@@ -87,7 +87,7 @@ final class AddHouseholdController extends AbstractController
 
         try {
             $householdId = $this->runRegister($input);
-        } catch (HouseholdsDomainException $exception) {
+        } catch (SharedDomainException $exception) {
             $this->applyDomainErrorToForm($form, $exception);
 
             return $this->render(
@@ -153,7 +153,7 @@ final class AddHouseholdController extends AbstractController
             $memberId = $this->runAddMember($householdId, $input);
         } catch (HouseholdNotFound) {
             throw $this->createNotFoundException('Household not found.');
-        } catch (HouseholdsDomainException $exception) {
+        } catch (SharedDomainException $exception) {
             $this->applyDomainErrorToForm($form, $exception);
 
             return $this->render(
@@ -293,7 +293,7 @@ final class AddHouseholdController extends AbstractController
      */
     private function applyDomainErrorToForm(
         FormInterface $form,
-        HouseholdsDomainException $exception,
+        SharedDomainException $exception,
     ): void {
         if (
             $exception instanceof DuplicateMemberCode

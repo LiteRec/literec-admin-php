@@ -71,6 +71,12 @@ services:
             - '../src/Inventory/Domain/Event/'
             - '../src/Inventory/Domain/Exception/'
             - '../src/Inventory/Domain/ValueObject/'
+            # Shared kernel: framework-free VOs and exceptions consumed
+            # by multiple bounded contexts. Excluded from autowiring so
+            # they are not registered as services (same treatment the
+            # per-context Domain folders receive above).
+            - '../src/Shared/Domain/ValueObject/'
+            - '../src/Shared/Domain/Exception/'
             - '../src/Kernel.php'
 
     # add more service definitions when explicit configuration is needed
