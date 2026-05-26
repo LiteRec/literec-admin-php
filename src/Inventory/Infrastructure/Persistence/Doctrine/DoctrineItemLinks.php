@@ -50,7 +50,10 @@ final class DoctrineItemLinks implements ItemLinks
             // on the primary key) so it surfaces as a genuine
             // integrity error rather than a misleading
             // DuplicateItemLink.
-            if (str_contains($e->getMessage(), self::PAIR_UNIQUE_CONSTRAINT)) {
+            // PostgreSQL lowercases unquoted identifiers in error
+            // diagnostics, so compare case-insensitively against the
+            // declared mixed-case name.
+            if (stripos($e->getMessage(), self::PAIR_UNIQUE_CONSTRAINT) !== false) {
                 throw DuplicateItemLink::forPair($link->masterItemId(), $link->linkedItemId());
             }
             throw $e;
