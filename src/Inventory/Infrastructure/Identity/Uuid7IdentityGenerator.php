@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Inventory\Infrastructure\Identity;
 
 use App\Inventory\Domain\IdentityGenerator;
+use App\Inventory\Domain\ValueObject\ComboId;
 use App\Inventory\Domain\ValueObject\InventoryItemId;
 use App\Inventory\Domain\ValueObject\PurchaseOrderId;
 use App\Inventory\Domain\ValueObject\PurchaseOrderLineId;
@@ -48,5 +49,10 @@ final class Uuid7IdentityGenerator implements IdentityGenerator
     public function nextPurchaseOrderLineId(): PurchaseOrderLineId
     {
         return PurchaseOrderLineId::fromString(UuidV7::generate($this->clock->now()));
+    }
+
+    public function nextComboId(): ComboId
+    {
+        return ComboId::fromString(UuidV7::generate($this->clock->now()));
     }
 }
