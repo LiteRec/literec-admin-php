@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Integration\Inventory\Persistence;
 
 use App\Inventory\Domain\Vendors;
+use App\Inventory\Infrastructure\Persistence\Doctrine\DoctrineVendors;
 use App\Tests\Support\Trait\VendorsContractCases;
 use DateTimeImmutable;
 use PHPUnit\Framework\Attributes\Medium;
@@ -33,7 +34,11 @@ final class DoctrineVendorsContractTest extends KernelTestCase
     protected function vendors(): Vendors
     {
         $vendors = static::getContainer()->get(Vendors::class);
-        self::assertInstanceOf(Vendors::class, $vendors);
+        // Lock the integration test to the Doctrine adapter — if the
+        // production binding ever switches to a different concrete
+        // implementation, this suite should fail loudly so a separate
+        // contract test is added for the new adapter.
+        self::assertInstanceOf(DoctrineVendors::class, $vendors);
 
         return $vendors;
     }

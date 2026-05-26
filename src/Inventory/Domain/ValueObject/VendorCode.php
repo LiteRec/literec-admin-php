@@ -18,13 +18,14 @@ final readonly class VendorCode implements Stringable
 {
     public const MAX_LENGTH = 32;
 
-    private const PATTERN = '/^[A-Z0-9][A-Z0-9_-]{0,31}$/';
-
     public string $value;
 
     private function __construct(string $value)
     {
-        if (preg_match(self::PATTERN, $value) !== 1) {
+        // Pattern derives from MAX_LENGTH so adjusting one side adjusts both.
+        $pattern = sprintf('/^[A-Z0-9][A-Z0-9_-]{0,%d}$/', self::MAX_LENGTH - 1);
+
+        if (preg_match($pattern, $value) !== 1) {
             throw InvalidVendorCode::for($value);
         }
 

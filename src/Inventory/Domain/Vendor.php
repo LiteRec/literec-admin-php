@@ -62,6 +62,10 @@ final class Vendor
 
     private function __construct()
     {
+        // Intentionally empty. Construction goes through the
+        // self::register(...) named factory so every Vendor is born
+        // valid and emits a VendorRegistered domain event; direct
+        // instantiation is impossible.
     }
 
     public static function register(
