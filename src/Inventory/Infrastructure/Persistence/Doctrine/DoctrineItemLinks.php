@@ -24,6 +24,15 @@ use Doctrine\ORM\EntityManagerInterface;
  */
 final class DoctrineItemLinks implements ItemLinks
 {
+    /**
+     * Name of the (master_item_id, linked_item_id) unique constraint
+     * declared in ItemLink.orm.xml and the LRA-93 migration. PostgreSQL
+     * embeds this name in the unique_violation diagnostic message; we
+     * use it to distinguish a duplicate-pair violation from any other
+     * unique-constraint failure (e.g. an id collision).
+     */
+    private const string PAIR_UNIQUE_CONSTRAINT = 'UNIQ_inventory_item_links_pair';
+
     public function __construct(private readonly EntityManagerInterface $em)
     {
     }
@@ -33,8 +42,18 @@ final class DoctrineItemLinks implements ItemLinks
         try {
             $this->em->persist($link);
             $this->em->flush();
-        } catch (UniqueConstraintViolationException) {
-            throw DuplicateItemLink::forPair($link->masterItemId(), $link->linkedItemId());
+        } catch (UniqueConstraintViolationException $e) {
+            // PostgreSQL surfaces the violated constraint name in the
+            // driver-level message; map only the (master, linked) pair
+            // constraint to a domain exception, rethrow anything else
+            // (e.g. an astronomically improbable UUID v7 id collision
+            // on the primary key) so it surfaces as a genuine
+            // integrity error rather than a misleading
+            // DuplicateItemLink.
+            if (str_contains($e->getMessage(), self::PAIR_UNIQUE_CONSTRAINT)) {
+                throw DuplicateItemLink::forPair($link->masterItemId(), $link->linkedItemId());
+            }
+            throw $e;
         }
     }
 
