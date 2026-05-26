@@ -10,7 +10,7 @@
         port — no GeneratedValue strategy here.
 
         Cross-context reference to Catalog's Listing is stored as a
-        plain inventory_listing_id column; no Doctrine association
+        plain catalog_listing_id column; no Doctrine association
         across the Inventory/Catalog boundary (Deptrac enforces this).
 
         StockBatch child entities are persisted via a one-to-many on
@@ -32,7 +32,7 @@
 
         <id name="id" type="inventory_item_id"/>
 
-        <field name="listingId"        column="listing_id"         type="inventory_listing_id"          nullable="false"/>
+        <field name="listingId"        column="listing_id"         type="catalog_listing_id"          nullable="false"/>
         <field name="primaryVendorId"  column="primary_vendor_id"  type="inventory_vendor_id"           nullable="true"/>
         <field name="posColor"         column="pos_color"          type="inventory_pos_color"           nullable="false"/>
         <field name="trackInventory"   column="track_inventory"    type="boolean"                       nullable="false">

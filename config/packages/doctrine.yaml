@@ -38,7 +38,6 @@ doctrine:
             inventory_email_address: App\Inventory\Infrastructure\Persistence\Doctrine\Type\EmailAddressType
             inventory_phone_number: App\Inventory\Infrastructure\Persistence\Doctrine\Type\PhoneNumberType
             inventory_item_id: App\Inventory\Infrastructure\Persistence\Doctrine\Type\InventoryItemIdType
-            inventory_listing_id: App\Inventory\Infrastructure\Persistence\Doctrine\Type\ListingIdType
             inventory_stock_batch_id: App\Inventory\Infrastructure\Persistence\Doctrine\Type\StockBatchIdType
             inventory_purchase_order_line_id: App\Inventory\Infrastructure\Persistence\Doctrine\Type\PurchaseOrderLineIdType
             inventory_facility_code: App\Inventory\Infrastructure\Persistence\Doctrine\Type\FacilityCodeType
