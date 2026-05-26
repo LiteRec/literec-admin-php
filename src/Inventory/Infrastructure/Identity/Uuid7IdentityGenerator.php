@@ -6,6 +6,8 @@ namespace App\Inventory\Infrastructure\Identity;
 
 use App\Inventory\Domain\IdentityGenerator;
 use App\Inventory\Domain\ValueObject\InventoryItemId;
+use App\Inventory\Domain\ValueObject\PurchaseOrderId;
+use App\Inventory\Domain\ValueObject\PurchaseOrderLineId;
 use App\Inventory\Domain\ValueObject\StockBatchId;
 use App\Inventory\Domain\ValueObject\StockMovementId;
 use App\Inventory\Domain\ValueObject\VendorId;
@@ -36,5 +38,15 @@ final class Uuid7IdentityGenerator implements IdentityGenerator
     public function nextVendorId(): VendorId
     {
         return VendorId::fromString(UuidV7::generate($this->clock->now()));
+    }
+
+    public function nextPurchaseOrderId(): PurchaseOrderId
+    {
+        return PurchaseOrderId::fromString(UuidV7::generate($this->clock->now()));
+    }
+
+    public function nextPurchaseOrderLineId(): PurchaseOrderLineId
+    {
+        return PurchaseOrderLineId::fromString(UuidV7::generate($this->clock->now()));
     }
 }

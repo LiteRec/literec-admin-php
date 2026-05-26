@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Inventory\Domain;
 
 use App\Inventory\Domain\ValueObject\InventoryItemId;
+use App\Inventory\Domain\ValueObject\PurchaseOrderId;
+use App\Inventory\Domain\ValueObject\PurchaseOrderLineId;
 use App\Inventory\Domain\ValueObject\StockBatchId;
 use App\Inventory\Domain\ValueObject\StockMovementId;
 use App\Inventory\Domain\ValueObject\VendorId;
@@ -25,4 +27,8 @@ interface IdentityGenerator
     public function nextStockMovementId(): StockMovementId;
 
     public function nextVendorId(): VendorId;
+
+    public function nextPurchaseOrderId(): PurchaseOrderId;
+
+    public function nextPurchaseOrderLineId(): PurchaseOrderLineId;
 }

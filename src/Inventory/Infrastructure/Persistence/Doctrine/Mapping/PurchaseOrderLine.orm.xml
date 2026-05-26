@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<doctrine-mapping xmlns="http://doctrine-project.org/schemas/orm/doctrine-mapping"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping
+                                      https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
+
+    <entity name="App\Inventory\Domain\PurchaseOrderLine" table="inventory_purchase_order_lines">
+
+        <indexes>
+            <index name="IDX_inventory_po_lines_order" columns="purchase_order_id"/>
+            <index name="IDX_inventory_po_lines_item" columns="item_id"/>
+        </indexes>
+
+        <id name="id" type="inventory_purchase_order_line_id" column="id"/>
+
+        <field name="itemId"            column="item_id"             type="inventory_item_id"          nullable="false"/>
+        <field name="orderedQuantity"   column="ordered_quantity"    type="inventory_quantity"         nullable="false"/>
+        <field name="receivedQuantity"  column="received_quantity"   type="inventory_quantity"         nullable="false"/>
+        <field name="costPerUnit"       column="cost_per_unit_cents" type="inventory_cost_per_unit"    nullable="false"/>
+        <field name="createdAt"         column="created_at"          type="datetime_immutable"         nullable="false"/>
+
+        <many-to-one field="purchaseOrder" target-entity="App\Inventory\Domain\PurchaseOrder" inversed-by="lines">
+            <join-column name="purchase_order_id" referenced-column-name="id" nullable="false" on-delete="CASCADE"/>
+        </many-to-one>
+
+    </entity>
+
+</doctrine-mapping>

@@ -46,6 +46,7 @@ doctrine:
             inventory_quantity: App\Inventory\Infrastructure\Persistence\Doctrine\Type\QuantityType
             inventory_cost_per_unit: App\Inventory\Infrastructure\Persistence\Doctrine\Type\CostPerUnitType
             inventory_comment: App\Inventory\Infrastructure\Persistence\Doctrine\Type\CommentType
+            inventory_purchase_order_id: App\Inventory\Infrastructure\Persistence\Doctrine\Type\PurchaseOrderIdType
     orm:
         validate_xml_mapping: true
         naming_strategy: doctrine.orm.naming_strategy.underscore

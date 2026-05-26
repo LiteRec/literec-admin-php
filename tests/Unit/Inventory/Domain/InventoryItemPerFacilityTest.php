@@ -16,6 +16,8 @@ use App\Inventory\Domain\ValueObject\CostPerUnit;
 use App\Inventory\Domain\ValueObject\FacilityCode;
 use App\Inventory\Domain\ValueObject\InventoryItemId;
 use App\Inventory\Domain\ValueObject\PosColor;
+use App\Inventory\Domain\ValueObject\PurchaseOrderId;
+use App\Inventory\Domain\ValueObject\PurchaseOrderLineId;
 use App\Inventory\Domain\ValueObject\Quantity;
 use App\Inventory\Domain\ValueObject\ReorderThreshold;
 use App\Inventory\Domain\ValueObject\StockBatchId;
@@ -354,6 +356,16 @@ final class InventoryItemPerFacilityTest extends TestCase
             }
 
             public function nextVendorId(): VendorId
+            {
+                throw new \LogicException('not used');
+            }
+
+            public function nextPurchaseOrderId(): PurchaseOrderId
+            {
+                throw new \LogicException('not used');
+            }
+
+            public function nextPurchaseOrderLineId(): PurchaseOrderLineId
             {
                 throw new \LogicException('not used');
             }
