@@ -77,13 +77,22 @@ final class InMemoryItemGroups implements ItemGroups
 
     public function forItem(InventoryItemId $itemId): array
     {
-        $result = [];
+        $matches = [];
         foreach ($this->byId as $group) {
-            if ($group->hasMember($itemId)) {
-                $result[] = $group;
+            $addedAt = $group->membershipAddedAt($itemId);
+            if ($addedAt !== null) {
+                $matches[] = ['group' => $group, 'added' => $addedAt];
             }
         }
-        return $result;
+
+        // Newest-first to match the Doctrine adapter contract pinned by
+        // ItemGroupsContractCases::for_item_returns_matches_in_recency_order.
+        usort(
+            $matches,
+            static fn (array $a, array $b): int => $b['added'] <=> $a['added'],
+        );
+
+        return array_map(static fn (array $m): ItemGroup => $m['group'], $matches);
     }
 
     public function availableAtFacility(FacilityCode $facility): array

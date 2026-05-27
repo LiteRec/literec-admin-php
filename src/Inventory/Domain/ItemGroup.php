@@ -175,6 +175,11 @@ final class ItemGroup
 
     public function removeItem(InventoryItemId $itemId, ClockInterface $clock): void
     {
+        // Removal is allowed even after archive — admins still need to
+        // prune stray items from archived groups for historical
+        // accuracy. The aggregate test
+        // archive_then_remove_item_still_emits_event_and_clears_membership
+        // pins this behaviour.
         $membership = $this->membershipFor($itemId);
         if ($membership === null) {
             return;
@@ -194,6 +199,17 @@ final class ItemGroup
         $this->archived = true;
         $this->updatedAt = $clock->now();
         $this->recordThat(new ItemGroupArchived($this->id, $this->updatedAt));
+    }
+
+    /**
+     * Returns the added_at timestamp of the membership for the given
+     * item, or null when the item is not a member. Lets the InMemory
+     * adapter sort forItem() results by recency without exposing the
+     * full membership entity.
+     */
+    public function membershipAddedAt(InventoryItemId $itemId): ?DateTimeImmutable
+    {
+        return $this->membershipFor($itemId)?->addedAt();
     }
 
     private function membershipFor(InventoryItemId $itemId): ?ItemGroupMembership
