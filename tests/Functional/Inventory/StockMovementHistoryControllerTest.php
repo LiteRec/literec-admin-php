@@ -44,6 +44,8 @@ final class StockMovementHistoryControllerTest extends WebTestCase
     private const string ROUTE_MOVEMENTS = '/admin/inventory/%s/history/_movements';
     private const string ROUTE_BATCHES = '/admin/inventory/%s/history/_batches';
     private const string ROUTE_EXPORT = '/admin/inventory/%s/history.csv';
+    private const string HISTORY_COUNT_SELECTOR = 'span#history-count';
+    private const string SINGLE_MOVEMENT_COUNT_TEXT = 'Showing 1 of 1 movements';
 
     #[Test]
     #[TestDox('GET /admin/inventory/{itemId}/history returns 200 with one movement row + matching count.')]
@@ -56,7 +58,7 @@ final class StockMovementHistoryControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('main h1', 'Stock Movement History');
         self::assertSelectorExists('table[data-testid="history-table"]');
-        self::assertSelectorTextContains('span#history-count', 'Showing 1 of 1 movements');
+        self::assertSelectorTextContains(self::HISTORY_COUNT_SELECTOR, self::SINGLE_MOVEMENT_COUNT_TEXT);
     }
 
     #[Test]
@@ -70,7 +72,15 @@ final class StockMovementHistoryControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         // The CONSUMED row counts as 1; the RECEIVED row from seed is excluded.
-        self::assertSelectorTextContains('span#history-count', 'Showing 1 of 1 movements');
+        self::assertSelectorTextContains(self::HISTORY_COUNT_SELECTOR, self::SINGLE_MOVEMENT_COUNT_TEXT);
+        // Reinforce: assert actual table contents reflect the filter.
+        // Kinds render as human labels via StockMovementKind::label(),
+        // so the visible text is "Consumed" / "Received", not the raw
+        // enum value.
+        $tbodyText = (string) $client->getCrawler()
+            ->filter('table[data-testid="history-table"] tbody')->text();
+        self::assertStringContainsString('Consumed', $tbodyText);
+        self::assertStringNotContainsString('Received', $tbodyText);
     }
 
     #[Test]
@@ -83,7 +93,7 @@ final class StockMovementHistoryControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         // Still shows the one seeded RECEIVED row.
-        self::assertSelectorTextContains('span#history-count', 'Showing 1 of 1 movements');
+        self::assertSelectorTextContains(self::HISTORY_COUNT_SELECTOR, self::SINGLE_MOVEMENT_COUNT_TEXT);
     }
 
     #[Test]
@@ -117,6 +127,9 @@ final class StockMovementHistoryControllerTest extends WebTestCase
         self::assertStringStartsWith('text/csv', $contentType);
         $disposition = (string) $client->getResponse()->headers->get('Content-Disposition');
         self::assertStringStartsWith('attachment', $disposition);
+        // history-<itemId8>-<timestamp>.csv naming contract from the spec.
+        self::assertStringContainsString('filename="history-019571bf-', $disposition);
+        self::assertStringContainsString('.csv"', $disposition);
 
         // StreamedResponse: the callback writes to php://output during
         // sendContent(); capture it with output buffering. Re-call is

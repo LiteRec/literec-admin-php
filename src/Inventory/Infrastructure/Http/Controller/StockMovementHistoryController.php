@@ -311,6 +311,14 @@ final class StockMovementHistoryController extends AbstractController
         if ($parsed === false) {
             return null;
         }
+        // createFromFormat silently normalizes invalid dates like
+        // 2026-02-31 → 2026-03-03 and returns a DateTimeImmutable, so we
+        // round-trip back to the same Y-m-d string to confirm strict
+        // validity. Anything that mutates is treated as a parse failure
+        // and the filter just disables itself.
+        if ($parsed->format('Y-m-d') !== $raw) {
+            return null;
+        }
         return $startOfDay
             ? $parsed->setTime(0, 0, 0)
             : $parsed->setTime(23, 59, 59);
