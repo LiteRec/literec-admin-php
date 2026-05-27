@@ -1,0 +1,57 @@
+{# Inventory Item modal dialog (LRA-86). HTMX fragment returned by:
+     - GET  /admin/inventory/new                — render Create dialog
+     - GET  /admin/inventory/{itemId}/edit      — render Edit dialog
+     - POST .../new   (422)                     — re-render on validation failure
+     - POST .../edit  (422)                     — re-render on validation failure
+
+   On success the POST endpoints return 200 with `HX-Trigger:
+   inventoryItemSaved` and `HX-Reswap: none`, which causes:
+     1. HTMX to skip swapping (the dialog stays in the DOM untouched),
+     2. The page's #inventory-table region to re-fetch itself because
+        it is listening for `inventoryItemSaved from:body`,
+     3. The Alpine modal listener below to call dismiss() and remove
+        the dialog root.
+#}
+{% set body %}
+    {% include 'inventory/item/_form.html.twig' with {
+        form: form,
+        formAction: formAction,
+        submitLabel: submitLabel,
+    } only %}
+{% endset %}
+
+{% set modalId = 'inventory-item-' ~ mode ~ '-modal' %}
+
+<div
+    id="{{ modalId }}-wrapper"
+    @inventory-item-saved.window="$el.querySelector('.modal-root')?.remove()"
+>
+    {% include 'components/_modal.html.twig' with {
+        id: modalId,
+        title: modalTitle,
+        body: body,
+    } only %}
+</div>
+
+<script>
+    // Bridge HTMX's HX-Trigger response header onto a window CustomEvent
+    // the Alpine wrapper above is listening for. The handler is kept on
+    // window.__inventoryItemDialogListener so re-rendering the dialog
+    // (open → 422 → re-render → close → re-open) does NOT leak more
+    // copies of the listener onto document.body.
+    (function () {
+        if (window.__inventoryItemDialogListener) {
+            document.body.removeEventListener('htmx:afterOnLoad', window.__inventoryItemDialogListener);
+        }
+
+        window.__inventoryItemDialogListener = function (evt) {
+            var xhr = evt.detail && evt.detail.xhr;
+            var trigger = xhr && xhr.getResponseHeader ? xhr.getResponseHeader('HX-Trigger') : null;
+            if (trigger && trigger.indexOf('inventoryItemSaved') !== -1) {
+                window.dispatchEvent(new CustomEvent('inventory-item-saved'));
+            }
+        };
+
+        document.body.addEventListener('htmx:afterOnLoad', window.__inventoryItemDialogListener);
+    })();
+</script>

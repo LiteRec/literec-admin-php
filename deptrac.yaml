@@ -64,11 +64,13 @@ deptrac:
           collectors:
               # Everything under Catalog\Application except the
               # cross-bus commands explicitly published for downstream
-              # contexts via CatalogCrossBusCommands. Without this
-              # subtraction the cross-bus DTO would belong to two
-              # layers and deptrac's match-once-then-stop semantics
-              # could route the dependency through CatalogApplication
-              # instead of the narrow whitelist.
+              # contexts via CatalogCrossBusCommands and the narrow
+              # query DTOs/view types exported via
+              # CatalogCrossContextQueries. Without these subtractions
+              # the published types would belong to two layers and
+              # deptrac's match-once-then-stop semantics could route
+              # the dependency through CatalogApplication instead of
+              # the narrow whitelist.
               - type: bool
                 must:
                     - type: directory
@@ -76,21 +78,48 @@ deptrac:
                 must_not:
                     - type: layer
                       value: CatalogCrossBusCommands
+                    - type: layer
+                      value: CatalogCrossContextQueries
+        - name: CatalogCrossContextQueries
+          collectors:
+              # Narrow allow-list of Catalog read-side DTOs that
+              # downstream contexts may import. LRA-86 needs
+              # GetListingDetail + its view types so the Inventory
+              # Edit Item dialog can pre-fill name/code/fees/ledger
+              # from the Catalog Listing. New entries here require
+              # deliberate review — same contract as
+              # CatalogCrossBusCommands.
+              - type: classLike
+                value: '^App\\Catalog\\Application\\Query\\GetListingDetail$'
+              - type: classLike
+                value: '^App\\Catalog\\Application\\Query\\View\\ListingDetailView$'
+              - type: classLike
+                value: '^App\\Catalog\\Application\\Query\\View\\FeeView$'
         - name: CatalogCrossBusCommands
           collectors:
               # Narrow allow-list of Catalog command DTOs that
-              # downstream contexts may import directly. Currently
-              # exactly the RegisterListing DTO consumed by the
-              # Inventory cross-bus RegisterInventoryItem handler
-              # introduced in LRA-98. New entries here require a
-              # deliberate review — every addition is a coupling
-              # surface across bounded contexts. Pattern is anchored
-              # with $ so RegisterListingHandler (the Catalog
-              # internal handler that mutates the aggregate) stays
-              # in CatalogApplication and keeps its access to
-              # CatalogDomain.
+              # downstream contexts may import directly.
+              # LRA-98 added RegisterListing for the cross-bus
+              # RegisterInventoryItem orchestration. LRA-86 added the
+              # four Listing update DTOs so the Edit Inventory Item
+              # controller can dispatch each Catalog-side change
+              # independently from the Inventory-side update.
+              # New entries here require deliberate review — every
+              # addition is a coupling surface across bounded
+              # contexts. Patterns are anchored with $ so the
+              # matching *Handler classes (which mutate the
+              # aggregate) stay in CatalogApplication and keep
+              # their access to CatalogDomain.
               - type: classLike
                 value: '^App\\Catalog\\Application\\Command\\RegisterListing$'
+              - type: classLike
+                value: '^App\\Catalog\\Application\\Command\\RenameListing$'
+              - type: classLike
+                value: '^App\\Catalog\\Application\\Command\\UpdateListingFees$'
+              - type: classLike
+                value: '^App\\Catalog\\Application\\Command\\UpdateListingLedgerAccount$'
+              - type: classLike
+                value: '^App\\Catalog\\Application\\Command\\UpdateListingTaxTreatment$'
         - name: CatalogInfrastructure
           collectors:
               - type: directory
@@ -196,6 +225,15 @@ deptrac:
           collectors:
               - type: classLike
                 value: ^Faker\\.*
+        - name: Picqer
+          collectors:
+              # picqer/php-barcode-generator. Allowed only inside
+              # InventoryInfrastructure (the CODE128 renderer
+              # adapter at src/Inventory/Infrastructure/Barcode/).
+              # The Inventory Domain port BarcodeRenderer is what
+              # Application and Domain code depend on.
+              - type: classLike
+                value: ^Picqer\\.*
         - name: Symfony
           collectors:
               - type: bool
@@ -282,6 +320,7 @@ deptrac:
             - CatalogDomain
             - CatalogPublishedLanguage
             - CatalogCrossBusCommands
+            - CatalogCrossContextQueries
             - SymfonyMessenger
             - PsrClock
         CatalogInfrastructure:
@@ -297,6 +336,13 @@ deptrac:
             - Faker
             - SharedInfrastructure
         CatalogIntegration: []
+        # CatalogCrossContextQueries holds read-side DTOs published
+        # to downstream contexts (currently GetListingDetail,
+        # ListingDetailView, FeeView for the LRA-86 Edit Inventory
+        # Item dialog). Same emptiness contract as
+        # CatalogCrossBusCommands — these types carry only primitives
+        # and other published-language DTOs.
+        CatalogCrossContextQueries: []
         # CatalogCrossBusCommands holds only primitive command DTOs
         # (currently App\Catalog\Application\Command\RegisterListing).
         # They carry no outgoing dependencies beyond scalar primitives,
@@ -337,6 +383,21 @@ deptrac:
             - InventoryIntegration
             - CatalogIntegration
             - CatalogPublishedLanguage
+            # LRA-86: the InventoryItemFormController dispatches
+            # Catalog Listing update DTOs (RenameListing,
+            # UpdateListingFees, UpdateListingLedgerAccount,
+            # UpdateListingTaxTreatment) directly because the
+            # Edit Inventory Item dialog edits both context's
+            # state in a single submission. The four DTOs are
+            # whitelisted under CatalogCrossBusCommands.
+            - CatalogCrossBusCommands
+            # LRA-86: the same controller also needs the
+            # GetListingDetail query DTO and its view types
+            # (ListingDetailView, FeeView) to pre-fill the edit
+            # form with the Listing's current name/code/fees.
+            # CatalogCrossContextQueries is the narrow whitelist
+            # that exposes exactly those types.
+            - CatalogCrossContextQueries
             - SharedDomain
             - SymfonyMessenger
             - PsrClock
@@ -344,6 +405,7 @@ deptrac:
             - DoctrineCollections
             - Symfony
             - Faker
+            - Picqer
             - SharedInfrastructure
         InventoryIntegration: []
         # Legacy now covers only the two root controllers

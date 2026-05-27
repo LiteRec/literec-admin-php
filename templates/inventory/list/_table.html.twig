@@ -103,7 +103,17 @@
                     >
                         <td class="whitespace-nowrap px-4 py-2 font-mono text-xs text-litrec-text"
                             data-testid="inventory-code-{{ item.inventoryItemId }}">
-                            {{ item.listingCode }}
+                            <button
+                                type="button"
+                                hx-get="{{ path('inventory_item_edit', { itemId: item.inventoryItemId }) }}"
+                                hx-target="body"
+                                hx-swap="beforeend"
+                                aria-haspopup="dialog"
+                                data-testid="edit-inventory-item-{{ item.inventoryItemId }}"
+                                class="font-mono text-xs text-litrec-primary hover:underline focus:outline-none focus:ring-2 focus:ring-litrec-primary"
+                            >
+                                {{ item.listingCode }}
+                            </button>
                         </td>
                         <td class="px-4 py-2 text-litrec-text">
                             {{ item.name }}
