@@ -171,6 +171,13 @@ services:
             $exportDuplicatesEnabled: '%app.users_export_duplicates_enabled%'
         tags: ['controller.service_arguments']
 
+    # Wire the ListInventoryController (LRA-85) onto the query bus so its
+    # GET actions can dispatch the ListInventory query (LRA-97).
+    App\Inventory\Infrastructure\Http\Controller\ListInventoryController:
+        arguments:
+            $queryBus: '@query.bus'
+        tags: ['controller.service_arguments']
+
     # Wire the AddHouseholdController (LRA-40) onto the command bus so its
     # POST actions can dispatch RegisterHousehold and AddMemberToHousehold.
     App\Households\Infrastructure\Http\Controller\AddHouseholdController:

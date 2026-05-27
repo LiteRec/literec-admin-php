@@ -23,11 +23,11 @@ final class PlaceholderController extends AbstractController
         return $this->stub('Cash Register');
     }
 
-    #[Route('/cash-register/inventory', name: 'inventory_index', methods: ['GET'])]
-    public function inventoryIndex(): Response
-    {
-        return $this->stub('Inventory');
-    }
+    // The Inventory list page (route name `inventory_index`) is now served
+    // by App\Inventory\Infrastructure\Http\Controller\ListInventoryController
+    // at /admin/inventory (LRA-85). The placeholder stub was removed when
+    // the real controller landed; the navigation continues to reference
+    // the same `inventory_index` route name so no nav changes were needed.
 
     #[Route('/cash-register/pos-transactions', name: 'pos_transactions_index', methods: ['GET'])]
     public function posTransactionsIndex(): Response

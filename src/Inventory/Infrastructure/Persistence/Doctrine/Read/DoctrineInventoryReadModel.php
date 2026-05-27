@@ -101,7 +101,7 @@ final readonly class DoctrineInventoryReadModel implements InventoryReadModel
             . 'l.name AS name, '
             . 'l.kind AS kind, '
             . $facilityQtySql . ' AS total_quantity, '
-            . 'i.reorder_threshold_units AS reorder_threshold, '
+            . 'i.reorder_threshold AS reorder_threshold, '
             . 'i.archived AS archived '
             . 'FROM inventory_items i '
             . 'JOIN catalog_listings l ON l.id = i.listing_id '
@@ -246,16 +246,16 @@ final readonly class DoctrineInventoryReadModel implements InventoryReadModel
                 . 'i.listing_id AS listing_id, '
                 . ':facility AS facility_code, '
                 . 'COALESCE(SUM(sb.remaining_quantity), 0) AS on_hand, '
-                . 'i.reorder_threshold_units AS reorder_threshold, '
+                . 'i.reorder_threshold AS reorder_threshold, '
                 . 'i.primary_vendor_id AS primary_vendor_id '
                 . 'FROM inventory_items i '
                 . 'LEFT JOIN inventory_stock_batches sb '
                 . 'ON sb.item_id = i.id AND sb.facility_code = :facility '
                 . 'WHERE i.archived = false '
                 . 'GROUP BY i.id, i.listing_id, '
-                . 'i.reorder_threshold_units, i.primary_vendor_id '
-                . 'HAVING COALESCE(SUM(sb.remaining_quantity), 0) <= i.reorder_threshold_units '
-                . 'ORDER BY (i.reorder_threshold_units - COALESCE(SUM(sb.remaining_quantity), 0)) DESC';
+                . 'i.reorder_threshold, i.primary_vendor_id '
+                . 'HAVING COALESCE(SUM(sb.remaining_quantity), 0) <= i.reorder_threshold '
+                . 'ORDER BY (i.reorder_threshold - COALESCE(SUM(sb.remaining_quantity), 0)) DESC';
         } else {
             // All-facilities scan: an item appears once per facility
             // it has stock at, and only when that facility's sum is
@@ -268,15 +268,15 @@ final readonly class DoctrineInventoryReadModel implements InventoryReadModel
                 . 'i.listing_id AS listing_id, '
                 . 'sb.facility_code AS facility_code, '
                 . 'SUM(sb.remaining_quantity) AS on_hand, '
-                . 'i.reorder_threshold_units AS reorder_threshold, '
+                . 'i.reorder_threshold AS reorder_threshold, '
                 . 'i.primary_vendor_id AS primary_vendor_id '
                 . 'FROM inventory_items i '
                 . 'JOIN inventory_stock_batches sb ON sb.item_id = i.id '
                 . 'WHERE i.archived = false '
                 . 'GROUP BY i.id, i.listing_id, sb.facility_code, '
-                . 'i.reorder_threshold_units, i.primary_vendor_id '
-                . 'HAVING SUM(sb.remaining_quantity) <= i.reorder_threshold_units '
-                . 'ORDER BY (i.reorder_threshold_units - SUM(sb.remaining_quantity)) DESC';
+                . 'i.reorder_threshold, i.primary_vendor_id '
+                . 'HAVING SUM(sb.remaining_quantity) <= i.reorder_threshold '
+                . 'ORDER BY (i.reorder_threshold - SUM(sb.remaining_quantity)) DESC';
         }
 
         $rows = $this->connection->fetchAllAssociative($sql, $params);
