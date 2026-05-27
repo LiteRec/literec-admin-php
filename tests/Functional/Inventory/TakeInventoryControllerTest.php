@@ -4,32 +4,15 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Inventory;
 
-use App\Catalog\Domain\Listing;
-use App\Catalog\Domain\ListingKind;
-use App\Catalog\Domain\Listings;
-use App\Catalog\Domain\ValueObject\LedgerAccount;
-use App\Catalog\Domain\ValueObject\ListingCode;
-use App\Catalog\Domain\ValueObject\ListingId;
-use App\Catalog\Domain\ValueObject\TaxTreatment;
-use App\Inventory\Domain\InventoryItem;
-use App\Inventory\Domain\InventoryItems;
-use App\Inventory\Domain\ValueObject\CostPerUnit;
-use App\Inventory\Domain\ValueObject\FacilityCode;
-use App\Inventory\Domain\ValueObject\InventoryItemId;
-use App\Inventory\Domain\ValueObject\PosColor;
-use App\Inventory\Domain\ValueObject\Quantity;
-use App\Inventory\Domain\ValueObject\ReorderThreshold;
 use App\Inventory\Domain\ValueObject\StockAdjustmentReason;
-use App\Inventory\Domain\ValueObject\StockBatchId;
+use App\Tests\Support\Trait\SeedsInventoryItemForUi;
 use App\Tests\Support\Trait\SignsInUsers;
-use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Large;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Symfony\Component\Clock\MockClock;
 
 /**
  * Drives the LRA-87 Take Inventory bulk grid end-to-end. DAMA wraps
@@ -41,6 +24,7 @@ use Symfony\Component\Clock\MockClock;
 final class TakeInventoryControllerTest extends WebTestCase
 {
     use SignsInUsers;
+    use SeedsInventoryItemForUi;
 
     private const string ROUTE_TAKE_INDEX = '/admin/inventory/take';
     private const string ROUTE_TAKE_INDEX_WITH_FACILITY = '/admin/inventory/take?facilityCode=MAIN';
@@ -181,45 +165,13 @@ final class TakeInventoryControllerTest extends WebTestCase
 
     private function seedItemWithStock(): void
     {
-        $listings = static::getContainer()->get(Listings::class);
-        self::assertInstanceOf(Listings::class, $listings);
-        $items = static::getContainer()->get(InventoryItems::class);
-        self::assertInstanceOf(InventoryItems::class, $items);
-        $clock = new MockClock(new DateTimeImmutable('2026-05-27 12:00:00'));
-
-        $listing = Listing::register(
-            ListingId::fromString(self::LISTING_ID),
-            ListingCode::of(self::LISTING_CODE),
-            ListingKind::Inventory,
-            'Take Widget',
-            [],
-            TaxTreatment::none(),
-            LedgerAccount::of('4000'),
-            $clock,
+        $this->seedInventoryItemWithStock(
+            itemId: self::ITEM_ID,
+            listingId: self::LISTING_ID,
+            batchId: self::BATCH_ID,
+            listingCode: self::LISTING_CODE,
+            listingName: 'Take Widget',
+            facilityCode: self::FACILITY,
         );
-        $listing->releaseEvents();
-        $listings->add($listing);
-
-        $item = InventoryItem::register(
-            InventoryItemId::fromString(self::ITEM_ID),
-            ListingId::fromString(self::LISTING_ID),
-            null,
-            PosColor::default(),
-            true,
-            false,
-            ReorderThreshold::ofUnits(0),
-            $clock,
-        );
-        $item->receiveBatch(
-            FacilityCode::fromString(self::FACILITY),
-            Quantity::ofUnits(5),
-            CostPerUnit::ofCents(100),
-            null,
-            null,
-            StockBatchId::fromString(self::BATCH_ID),
-            $clock,
-        );
-        $item->releaseEvents();
-        $items->add($item);
     }
 }
