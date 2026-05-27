@@ -61,6 +61,21 @@ final class ComboComponentEntity
     }
 
     /**
+     * In-place quantity mutation used by {@see Combo::replaceComponents()}
+     * when a component for the same item already exists at the
+     * composite-key (combo_id, item_id) — recreating the entity would
+     * trigger a Doctrine identity collision in the UnitOfWork because
+     * the old instance still claims the same hash until flush.
+     */
+    public function changeQuantityTo(Quantity $quantityPerCombo): void
+    {
+        if ($quantityPerCombo->isZero()) {
+            throw InvalidComboComponent::zeroQuantity();
+        }
+        $this->quantityPerCombo = $quantityPerCombo;
+    }
+
+    /**
      * Project this entity back to its value-object shape for events,
      * tests, and the public Combo::components() surface.
      */

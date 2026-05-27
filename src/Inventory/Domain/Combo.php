@@ -13,6 +13,7 @@ use App\Inventory\Domain\Exception\ComboDepthExceeded;
 use App\Inventory\Domain\Exception\ComboIsArchived;
 use App\Inventory\Domain\Exception\ComboMayNotContainCombo;
 use App\Inventory\Domain\Exception\ComboRequiresComponents;
+use App\Inventory\Domain\Exception\InvalidComboComponent;
 use App\Inventory\Domain\ValueObject\ComboComponent;
 use App\Inventory\Domain\ValueObject\ComboId;
 use App\Inventory\Domain\ValueObject\InventoryItemId;
@@ -160,14 +161,45 @@ final class Combo
             return;
         }
 
-        $this->components->clear();
-        foreach ($next as $vo) {
-            $this->components->add(new ComboComponentEntity(
-                $this,
-                $vo->componentItemId,
-                $vo->quantityPerCombo,
-            ));
+        // Diff the existing entities against the next set so Doctrine's
+        // UnitOfWork never holds two entities claiming the same composite
+        // identity (combo_id, item_id). Reuse existing rows for kept
+        // items (in-place qty update), schedule orphan removal for
+        // dropped items, and add fresh rows only for genuinely new items.
+        // The final clear + add cycle reorders the collection to the
+        // canonical $next order so iteration matches the event payload.
+        /** @var array<string, ComboComponentEntity> $existingByItem */
+        $existingByItem = [];
+        foreach ($this->components as $entity) {
+            $existingByItem[$entity->componentItemId()->value] = $entity;
         }
+
+        /** @var list<ComboComponentEntity> $ordered */
+        $ordered = [];
+        foreach ($next as $vo) {
+            $itemKey = $vo->componentItemId->value;
+            if (isset($existingByItem[$itemKey])) {
+                $existingByItem[$itemKey]->changeQuantityTo($vo->quantityPerCombo);
+                $ordered[] = $existingByItem[$itemKey];
+                unset($existingByItem[$itemKey]);
+            } else {
+                $ordered[] = new ComboComponentEntity(
+                    $this,
+                    $vo->componentItemId,
+                    $vo->quantityPerCombo,
+                );
+            }
+        }
+
+        foreach ($existingByItem as $entity) {
+            $this->components->removeElement($entity);
+        }
+
+        $this->components->clear();
+        foreach ($ordered as $entity) {
+            $this->components->add($entity);
+        }
+
         $this->updatedAt = $clock->now();
         $this->recordThat(new ComboComponentsUpdated($this->id, $next, $this->updatedAt));
     }
@@ -192,7 +224,15 @@ final class Combo
         array $components,
         ComboGraphResolver $resolver,
     ): array {
+        /** @var array<string, true> $seen */
+        $seen = [];
         foreach ($components as $component) {
+            $itemKey = $component->componentItemId->value;
+            if (isset($seen[$itemKey])) {
+                throw InvalidComboComponent::duplicateComponent($component->componentItemId);
+            }
+            $seen[$itemKey] = true;
+
             if ($resolver->isCombo($component->componentItemId)) {
                 throw ComboMayNotContainCombo::withComponent($component->componentItemId);
             }
