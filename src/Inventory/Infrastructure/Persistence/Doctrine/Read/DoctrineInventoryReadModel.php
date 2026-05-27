@@ -231,26 +231,53 @@ final readonly class DoctrineInventoryReadModel implements InventoryReadModel
     public function lowStockAlerts(GetLowStockAlerts $criteria): array
     {
         $params = [];
-        $facilityClause = '';
-        if ($criteria->facilityCode !== null) {
-            $facilityClause = 'AND sb.facility_code = :facility ';
-            $params['facility'] = $criteria->facilityCode;
-        }
 
-        $sql = 'SELECT '
-            . 'i.id AS inventory_item_id, '
-            . 'i.listing_id AS listing_id, '
-            . 'sb.facility_code AS facility_code, '
-            . 'SUM(sb.remaining_quantity) AS on_hand, '
-            . 'i.reorder_threshold_units AS reorder_threshold, '
-            . 'i.primary_vendor_id AS primary_vendor_id '
-            . 'FROM inventory_items i '
-            . 'JOIN inventory_stock_batches sb ON sb.item_id = i.id '
-            . 'WHERE i.archived = false ' . $facilityClause
-            . 'GROUP BY i.id, i.listing_id, sb.facility_code, '
-            . 'i.reorder_threshold_units, i.primary_vendor_id '
-            . 'HAVING SUM(sb.remaining_quantity) <= i.reorder_threshold_units '
-            . 'ORDER BY (i.reorder_threshold_units - SUM(sb.remaining_quantity)) DESC';
+        if ($criteria->facilityCode !== null) {
+            // Facility-scoped: LEFT JOIN with the facility filter on
+            // the join predicate so items with zero on-hand at the
+            // requested facility (no batch rows at all) still show as
+            // alerts at on_hand = 0. The literal :facility on the
+            // SELECT side guarantees every alert row carries the
+            // requested facility code even for items with no rows in
+            // inventory_stock_batches.
+            $params['facility'] = $criteria->facilityCode;
+            $sql = 'SELECT '
+                . 'i.id AS inventory_item_id, '
+                . 'i.listing_id AS listing_id, '
+                . ':facility AS facility_code, '
+                . 'COALESCE(SUM(sb.remaining_quantity), 0) AS on_hand, '
+                . 'i.reorder_threshold_units AS reorder_threshold, '
+                . 'i.primary_vendor_id AS primary_vendor_id '
+                . 'FROM inventory_items i '
+                . 'LEFT JOIN inventory_stock_batches sb '
+                . 'ON sb.item_id = i.id AND sb.facility_code = :facility '
+                . 'WHERE i.archived = false '
+                . 'GROUP BY i.id, i.listing_id, '
+                . 'i.reorder_threshold_units, i.primary_vendor_id '
+                . 'HAVING COALESCE(SUM(sb.remaining_quantity), 0) <= i.reorder_threshold_units '
+                . 'ORDER BY (i.reorder_threshold_units - COALESCE(SUM(sb.remaining_quantity), 0)) DESC';
+        } else {
+            // All-facilities scan: an item appears once per facility
+            // it has stock at, and only when that facility's sum is
+            // at or below the per-item threshold. INNER JOIN is
+            // correct here — without a facility filter we cannot
+            // synthesise a facility_code for items that have no
+            // batches anywhere, so they are excluded from the report.
+            $sql = 'SELECT '
+                . 'i.id AS inventory_item_id, '
+                . 'i.listing_id AS listing_id, '
+                . 'sb.facility_code AS facility_code, '
+                . 'SUM(sb.remaining_quantity) AS on_hand, '
+                . 'i.reorder_threshold_units AS reorder_threshold, '
+                . 'i.primary_vendor_id AS primary_vendor_id '
+                . 'FROM inventory_items i '
+                . 'JOIN inventory_stock_batches sb ON sb.item_id = i.id '
+                . 'WHERE i.archived = false '
+                . 'GROUP BY i.id, i.listing_id, sb.facility_code, '
+                . 'i.reorder_threshold_units, i.primary_vendor_id '
+                . 'HAVING SUM(sb.remaining_quantity) <= i.reorder_threshold_units '
+                . 'ORDER BY (i.reorder_threshold_units - SUM(sb.remaining_quantity)) DESC';
+        }
 
         $rows = $this->connection->fetchAllAssociative($sql, $params);
 
