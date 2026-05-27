@@ -89,18 +89,22 @@ trait ItemGroupsContractCases
     }
 
     #[Test]
-    #[TestDox('forItem() returns every group whose membership includes the item.')]
-    public function for_item_returns_all_matching(): void
+    #[TestDox('forItem() returns matching groups in newest-first added_at order.')]
+    public function for_item_returns_matches_in_recency_order(): void
     {
         $this->seedGroup(self::GROUP_A, 'Group A', [self::ITEM_X, self::ITEM_Y]);
+        // Advance the clock so GROUP_B's membership added_at lands
+        // strictly after GROUP_A's — without this the seed timestamps
+        // collide and the contract cannot verify the recency ordering
+        // that LRA-97 read paths depend on.
+        $this->clock()->sleep(1);
         $this->seedGroup(self::GROUP_B, 'Group B', [self::ITEM_X]);
 
         $result = $this->itemGroups()->forItem(InventoryItemId::fromString(self::ITEM_X));
 
         self::assertCount(2, $result, 'both groups containing ITEM_X are returned');
         $ids = array_map(static fn (ItemGroup $g): string => $g->id()->value, $result);
-        sort($ids);
-        self::assertSame([self::GROUP_A, self::GROUP_B], $ids);
+        self::assertSame([self::GROUP_B, self::GROUP_A], $ids, 'newest membership first');
     }
 
     #[Test]

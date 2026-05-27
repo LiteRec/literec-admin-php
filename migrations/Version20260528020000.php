@@ -51,8 +51,19 @@ final class Version20260528020000 extends AbstractMigration
                     PRIMARY KEY (group_id, item_id)
                 )
                 SQL,
+            // IDX_inventory_item_group_members_item_added is created
+            // ASC on both columns so Doctrine's XML mapping (which
+            // cannot express per-column DESC) round-trips without a
+            // persistent schema diff. The LRA-97 per-item recent-
+            // groups query filters
+            //   WHERE inventory_item_group_members.item_id = ?
+            //   ORDER BY added_at DESC
+            // — with item_id pinned to a literal, the ORDER BY
+            // collapses to a single-column reverse scan over added_at,
+            // which PostgreSQL's B-tree handles as efficiently as a
+            // forward scan. No sort step.
             'CREATE INDEX IDX_inventory_item_group_members_item_added '
-                . 'ON inventory_item_group_members (item_id, added_at DESC)',
+                . 'ON inventory_item_group_members (item_id, added_at)',
         ];
     }
 
