@@ -74,15 +74,24 @@ final class DoctrineItemGroups implements ItemGroups
         // index lookup and the parent fetch lands without depending on
         // a JOIN FETCH (the phpstan-doctrine analyser misparses
         // DISTINCT + JOIN FETCH combinations).
-        $idDql = 'SELECT DISTINCT IDENTITY(m.group) FROM '
+        //
+        // GROUP BY (rather than DISTINCT) keeps Postgres happy when
+        // ORDER BY references a non-projected column: SELECT DISTINCT
+        // + ORDER BY in Postgres requires the ORDER BY expression to
+        // appear in the SELECT list. MAX(addedAt) per group also
+        // gives the correct ordering surface — an item joined to the
+        // same group twice (impossible per composite key but defended
+        // anyway) sorts by its most recent membership.
+        $idDql = 'SELECT IDENTITY(m.group) AS group_id, MAX(m.addedAt) AS recent FROM '
             . ItemGroupMembership::class . ' m '
             . 'WHERE m.itemId = :itemId '
-            . 'ORDER BY m.addedAt DESC';
+            . 'GROUP BY m.group '
+            . 'ORDER BY recent DESC';
 
         $idQuery = $this->em->createQuery($idDql);
         $idQuery->setParameter('itemId', $itemId);
         /** @var list<string> $groupIds */
-        $groupIds = $idQuery->getSingleColumnResult();
+        $groupIds = array_column($idQuery->getArrayResult(), 'group_id');
 
         if ($groupIds === []) {
             return [];
