@@ -137,6 +137,12 @@ services:
     # handlers, never through this port.
     App\Inventory\Domain\StockMovementLedger: '@App\Inventory\Infrastructure\Persistence\Doctrine\DoctrineStockMovementLedger'
 
+    # Inventory read model (LRA-97): DBAL projections backing the
+    # LRA-85 list page, LRA-88 movement history, and LRA-91 reports.
+    # Read paths never go through the EntityManager — no UnitOfWork,
+    # no aggregate hydration, no N+1.
+    App\Inventory\Application\Query\Port\InventoryReadModel: '@App\Inventory\Infrastructure\Persistence\Doctrine\Read\DoctrineInventoryReadModel'
+
     # Bind the Households read-model port (LRA-38) to its Doctrine adapter.
     # The adapter uses the DBAL Connection rather than the EntityManager;
     # read paths never pay UnitOfWork costs and the projection shape can
