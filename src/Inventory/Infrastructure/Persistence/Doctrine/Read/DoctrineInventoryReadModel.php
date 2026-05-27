@@ -45,6 +45,16 @@ final readonly class DoctrineInventoryReadModel implements InventoryReadModel
     /** @var list<string> */
     private const array ALLOWED_SORT = ['name', 'code', 'quantity'];
 
+    /**
+     * Page size used by {@see streamStockMovements()} to walk the
+     * filtered ledger in bounded chunks. Tuned for one full chunk
+     * (≈ 500 rows) to fit comfortably in DBAL's per-statement buffer
+     * while still amortising the per-statement round-trip cost across
+     * many rows. Independent of the operator-facing pageSize on
+     * {@see GetStockMovementHistory}.
+     */
+    private const int STREAM_CHUNK_SIZE = 500;
+
     public function __construct(private Connection $connection)
     {
     }
@@ -147,35 +157,7 @@ final readonly class DoctrineInventoryReadModel implements InventoryReadModel
 
     public function stockMovements(GetStockMovementHistory $criteria): StockMovementPage
     {
-        $where = ['1 = 1'];
-        $params = [];
-
-        if ($criteria->inventoryItemId !== null) {
-            $where[] = 'sm.item_id = :itemId';
-            $params['itemId'] = $criteria->inventoryItemId;
-        }
-        if ($criteria->facilityCode !== null) {
-            $where[] = 'sm.facility_code = :facility';
-            $params['facility'] = $criteria->facilityCode;
-        }
-        if ($criteria->kind !== null) {
-            $where[] = 'sm.kind = :kind';
-            $params['kind'] = $criteria->kind;
-        }
-        if ($criteria->reason !== null) {
-            $where[] = 'sm.reason = :reason';
-            $params['reason'] = $criteria->reason;
-        }
-        if ($criteria->dateFrom !== null) {
-            $where[] = 'sm.recorded_at >= :dateFrom';
-            $params['dateFrom'] = $criteria->dateFrom->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s');
-        }
-        if ($criteria->dateTo !== null) {
-            $where[] = 'sm.recorded_at <= :dateTo';
-            $params['dateTo'] = $criteria->dateTo->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s');
-        }
-
-        $whereClause = implode(' AND ', $where);
+        [$whereClause, $params] = $this->buildMovementFilter($criteria);
 
         $totalCount = $this->scalarToInt($this->connection->fetchOne(
             'SELECT COUNT(*) FROM inventory_stock_movements sm WHERE ' . $whereClause,
@@ -223,6 +205,97 @@ final readonly class DoctrineInventoryReadModel implements InventoryReadModel
             pageNumber: $pageNumber,
             pageSize: $pageSize,
         );
+    }
+
+    public function streamStockMovements(GetStockMovementHistory $criteria): \Generator
+    {
+        [$whereClause, $params] = $this->buildMovementFilter($criteria);
+
+        // Offset pagination on the same filter SQL — server-side cursors
+        // are not portable across drivers, but a tight LIMIT/OFFSET walk
+        // with an immutable WHERE clause stays well within memory while
+        // letting Postgres reuse the (item_id, facility_code, recorded_at
+        // DESC) index for each chunk.
+        $offset = 0;
+        $chunkSize = self::STREAM_CHUNK_SIZE;
+        $params['limit'] = $chunkSize;
+
+        $sql = 'SELECT sm.recorded_at, sm.kind, sm.reason, sm.facility_code, sm.quantity, '
+            . 'sb.received_at AS batch_received_at, sm.cost_per_unit_cents, sm.operator_note, sm.transaction_id '
+            . 'FROM inventory_stock_movements sm '
+            . 'LEFT JOIN inventory_stock_batches sb ON sb.id = sm.stock_batch_id '
+            . 'WHERE ' . $whereClause . ' '
+            . 'ORDER BY sm.recorded_at DESC, sm.id ASC '
+            . 'LIMIT :limit OFFSET :offset';
+
+        do {
+            $params['offset'] = $offset;
+            $rows = $this->connection->fetchAllAssociative($sql, $params);
+
+            foreach ($rows as $row) {
+                $batchReceived = $this->rowNullableString($row, 'batch_received_at');
+                $batchReceivedIso = $batchReceived !== null
+                    ? (new DateTimeImmutable($batchReceived, new DateTimeZone('UTC')))->format(DateTimeImmutable::ATOM)
+                    : '';
+
+                yield [
+                    (new DateTimeImmutable(
+                        $this->rowString($row, 'recorded_at'),
+                        new DateTimeZone('UTC'),
+                    ))->format(DateTimeImmutable::ATOM),
+                    $this->rowString($row, 'kind'),
+                    $this->rowString($row, 'reason'),
+                    $this->rowString($row, 'facility_code'),
+                    (string) $this->rowInt($row, 'quantity'),
+                    $batchReceivedIso,
+                    (string) $this->rowInt($row, 'cost_per_unit_cents'),
+                    $this->rowNullableString($row, 'operator_note') ?? '',
+                    $this->rowNullableString($row, 'transaction_id') ?? '',
+                ];
+            }
+
+            $offset += $chunkSize;
+        } while (count($rows) === $chunkSize);
+    }
+
+    /**
+     * Builds the WHERE clause shared by {@see stockMovements()} and
+     * {@see streamStockMovements()} so the paginated read and the
+     * unpaginated export apply identical filter semantics.
+     *
+     * @return array{0: string, 1: array<string, scalar>}
+     */
+    private function buildMovementFilter(GetStockMovementHistory $criteria): array
+    {
+        $where = ['1 = 1'];
+        $params = [];
+
+        if ($criteria->inventoryItemId !== null) {
+            $where[] = 'sm.item_id = :itemId';
+            $params['itemId'] = $criteria->inventoryItemId;
+        }
+        if ($criteria->facilityCode !== null) {
+            $where[] = 'sm.facility_code = :facility';
+            $params['facility'] = $criteria->facilityCode;
+        }
+        if ($criteria->kind !== null) {
+            $where[] = 'sm.kind = :kind';
+            $params['kind'] = $criteria->kind;
+        }
+        if ($criteria->reason !== null) {
+            $where[] = 'sm.reason = :reason';
+            $params['reason'] = $criteria->reason;
+        }
+        if ($criteria->dateFrom !== null) {
+            $where[] = 'sm.recorded_at >= :dateFrom';
+            $params['dateFrom'] = $criteria->dateFrom->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s');
+        }
+        if ($criteria->dateTo !== null) {
+            $where[] = 'sm.recorded_at <= :dateTo';
+            $params['dateTo'] = $criteria->dateTo->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s');
+        }
+
+        return [implode(' AND ', $where), $params];
     }
 
     /**

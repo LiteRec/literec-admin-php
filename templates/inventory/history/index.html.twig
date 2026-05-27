@@ -1,0 +1,81 @@
+{% extends 'app.html.twig' %}
+
+{% block page_title %}Stock Movement History — {{ itemId|slice(0, 8) }}{% endblock %}
+
+{% block page_actions %}
+    <a
+        href="{{ path('inventory_item_history_export', app.request.query.all|merge({ itemId: itemId })) }}"
+        data-testid="history-export-csv"
+        class="inline-flex items-center rounded-md bg-litrec-primary px-3 py-1.5 text-sm font-semibold text-litrec-on-primary shadow-sm hover:bg-litrec-primary-strong focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
+    >
+        Export CSV
+    </a>
+    <button
+        type="button"
+        hx-get="{{ path('inventory_item_history_batches', { itemId: itemId }) }}"
+        hx-target="#batch-panel"
+        hx-swap="innerHTML"
+        hx-trigger="click once"
+        data-testid="history-show-batches"
+        aria-controls="batch-panel"
+        class="ml-2 inline-flex items-center rounded-md border border-litrec-border bg-litrec-surface px-3 py-1.5 text-sm font-semibold text-litrec-text hover:bg-litrec-bg-muted focus:outline-none focus:ring-2 focus:ring-litrec-primary"
+    >
+        Show batches
+    </button>
+{% endblock %}
+
+{% block page_body %}
+    <section
+        aria-label="Item summary"
+        class="rounded-card border border-litrec-border bg-litrec-surface p-4 shadow-card"
+    >
+        <dl class="grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
+            <div>
+                <dt class="text-xs font-semibold uppercase tracking-wider text-litrec-text-muted">Item ID</dt>
+                <dd class="font-mono text-litrec-text" data-testid="history-item-id">{{ detail.inventoryItemId }}</dd>
+            </div>
+            <div>
+                <dt class="text-xs font-semibold uppercase tracking-wider text-litrec-text-muted">Total on hand</dt>
+                <dd class="text-litrec-text" data-testid="history-on-hand">{{ detail.totalOnHandUnits }}</dd>
+            </div>
+            <div>
+                <dt class="text-xs font-semibold uppercase tracking-wider text-litrec-text-muted">Facilities</dt>
+                <dd class="text-litrec-text" data-testid="history-facility-count">{{ detail.facilityStockBlocks|length }}</dd>
+            </div>
+        </dl>
+    </section>
+
+    <div class="mt-6">
+        {% include 'inventory/history/_filters.html.twig' with {
+            itemId: itemId,
+            kindCases: kindCases,
+            reasonCases: reasonCases,
+        } only %}
+    </div>
+
+    <span
+        id="history-count"
+        aria-live="polite"
+        class="sr-only"
+    >Showing {{ page.movements|length }} of {{ page.totalCount }} movements</span>
+
+    <div
+        id="movements"
+        data-testid="history-movements"
+        class="mt-6 transition-opacity htmx-request:opacity-50"
+        hx-indicator="this"
+    >
+        {% include 'inventory/history/_movements.html.twig' with {
+            page: page,
+            criteria: criteria,
+            itemId: itemId,
+        } only %}
+    </div>
+
+    <div
+        id="batch-panel"
+        data-testid="history-batch-panel"
+        class="mt-8"
+        aria-live="polite"
+    ></div>
+{% endblock %}
