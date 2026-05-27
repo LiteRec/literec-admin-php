@@ -75,5 +75,4 @@ trait WrapsOptimisticLock
             throw ConcurrentPurchaseOrderModification::forLine($purchaseOrderId, $lineId, $e);
         }
     }
-
 }
