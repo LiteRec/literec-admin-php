@@ -12,9 +12,10 @@ use Doctrine\Migrations\AbstractMigration;
  * LRA-99: add Doctrine optimistic-lock version columns to
  * inventory_items + inventory_purchase_orders.
  *
- * The application-side WrapsOptimisticLock trait translates the
- * raw Doctrine\ORM\OptimisticLockException into named domain
- * exceptions (ConcurrentInventoryItemModification,
+ * The Doctrine repository adapters (DoctrineInventoryItems,
+ * DoctrinePurchaseOrders) translate the raw
+ * Doctrine\ORM\OptimisticLockException into named domain exceptions
+ * (ConcurrentInventoryItemModification,
  * ConcurrentPurchaseOrderModification) so controllers can map the
  * race to HTTP 409 without importing Doctrine types.
  */
