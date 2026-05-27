@@ -13,6 +13,7 @@ use App\Inventory\Domain\ValueObject\InventoryItemId;
 use App\Inventory\Domain\ValueObject\StockBatchId;
 use App\Inventory\Domain\ValueObject\StockMovementReason;
 use App\Inventory\Infrastructure\Persistence\InMemory\InMemoryInventoryItems;
+use App\Tests\Support\Fake\InMemoryStockMovementLedger;
 use App\Tests\Support\Fake\RecordingMessageBus;
 use App\Tests\Support\Fake\SequenceInventoryIdentityGenerator;
 use App\Tests\Support\Trait\SeedsInventoryItemWithBatch;
@@ -37,6 +38,7 @@ final class AdjustStockHandlerTest extends TestCase
     private RecordingMessageBus $eventBus;
     private MockClock $clock;
     private SequenceInventoryIdentityGenerator $ids;
+    private InMemoryStockMovementLedger $ledger;
     private AdjustStockHandler $handler;
 
     protected function setUp(): void
@@ -47,11 +49,13 @@ final class AdjustStockHandlerTest extends TestCase
         $this->ids = new SequenceInventoryIdentityGenerator(
             stockBatchIds: [StockBatchId::fromString(self::FOUND_BATCH)],
         );
+        $this->ledger = new InMemoryStockMovementLedger();
         $this->handler = new AdjustStockHandler(
             $this->items,
             $this->ids,
             $this->clock,
             $this->eventBus,
+            $this->ledger,
         );
 
         $this->seedItemWithBatch(
@@ -86,7 +90,7 @@ final class AdjustStockHandlerTest extends TestCase
     #[TestDox('Positive variance books a zero-cost found-stock batch tagged with the operator reason.')]
     public function positive_variance_creates_found_stock_batch(): void
     {
-        ($this->handler)(new AdjustStock(self::ITEM, 'MAIN', 15, 'Recount: found 5 in back room'));
+        ($this->handler)(new AdjustStock(self::ITEM, 'MAIN', 15, 'Recount: found 5 in back room', 'found'));
 
         $loaded = $this->items->byId(InventoryItemId::fromString(self::ITEM));
         self::assertSame(15, $loaded->totalOnHand()->units);
@@ -100,13 +104,20 @@ final class AdjustStockHandlerTest extends TestCase
         self::assertSame(0, $event->costPerUnit->cents);
         self::assertNotNull($event->comments);
         self::assertSame('Recount: found 5 in back room', $event->comments->value);
+
+        $rows = $this->ledger->rows();
+        self::assertCount(1, $rows);
+        self::assertSame('ADJUSTED', $rows[0]['kind']);
+        self::assertSame(5, $rows[0]['quantity']);
+        self::assertSame('MAIN', $rows[0]['facility_code']);
+        self::assertSame('[FOUND] Recount: found 5 in back room', $rows[0]['operator_note']);
     }
 
     #[Test]
     #[TestDox('Negative variance consumes from FIFO batches with reason=ADJUSTMENT.')]
     public function negative_variance_consumes_with_adjustment_reason(): void
     {
-        ($this->handler)(new AdjustStock(self::ITEM, 'MAIN', 6, 'Shrinkage'));
+        ($this->handler)(new AdjustStock(self::ITEM, 'MAIN', 6, 'Shrinkage', 'theft'));
 
         $loaded = $this->items->byId(InventoryItemId::fromString(self::ITEM));
         self::assertSame(6, $loaded->totalOnHand()->units);
@@ -117,10 +128,16 @@ final class AdjustStockHandlerTest extends TestCase
         self::assertInstanceOf(StockMovementRecorded::class, $event);
         self::assertSame(StockMovementReason::ADJUSTMENT, $event->reason);
         self::assertSame(4, $event->quantityConsumed->units);
+
+        $rows = $this->ledger->rows();
+        self::assertCount(1, $rows);
+        self::assertSame('ADJUSTED', $rows[0]['kind']);
+        self::assertSame(4, $rows[0]['quantity']);
+        self::assertSame('[THEFT] Shrinkage', $rows[0]['operator_note']);
     }
 
     #[Test]
-    #[TestDox('Zero variance is a no-op (no events, no mutation).')]
+    #[TestDox('Zero variance is a no-op (no events, no ledger write, no mutation).')]
     public function zero_variance_is_noop(): void
     {
         ($this->handler)(new AdjustStock(self::ITEM, 'MAIN', 10, 'Counted, no change'));
@@ -128,5 +145,6 @@ final class AdjustStockHandlerTest extends TestCase
         $loaded = $this->items->byId(InventoryItemId::fromString(self::ITEM));
         self::assertSame(10, $loaded->totalOnHand()->units);
         self::assertSame([], $this->eventBus->dispatchedMessages());
+        self::assertSame([], $this->ledger->rows());
     }
 }

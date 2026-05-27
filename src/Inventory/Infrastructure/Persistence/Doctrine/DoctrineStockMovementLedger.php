@@ -1,0 +1,243 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Inventory\Infrastructure\Persistence\Doctrine;
+
+use App\Inventory\Domain\IdentityGenerator;
+use App\Inventory\Domain\StockMovementLedger;
+use App\Inventory\Domain\ValueObject\CostPerUnit;
+use App\Inventory\Domain\ValueObject\FacilityCode;
+use App\Inventory\Domain\ValueObject\InventoryItemId;
+use App\Inventory\Domain\ValueObject\Quantity;
+use App\Inventory\Domain\ValueObject\StockBatchId;
+use App\Inventory\Domain\ValueObject\StockMovementId;
+use App\Inventory\Domain\ValueObject\StockMovementReason;
+use DateTimeImmutable;
+use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
+
+/**
+ * Append-only writer for the inventory_stock_movements ledger.
+ *
+ * Plain DBAL — no ORM entity, no UnitOfWork. The ledger is a fire-and-
+ * forget projection target for stock events; rows are never updated
+ * after insert and never read back through this writer (LRA-97
+ * GetStockMovementHistory owns the read path).
+ *
+ * Idempotency is enforced at the schema level via the UNIQUE PARTIAL
+ * index on (transaction_id, item_id, facility_code) WHERE
+ * transaction_id IS NOT NULL. The {@see recordConsumed()} path catches
+ * {@see UniqueConstraintViolationException} and returns false so the
+ * LRA-83 ACL can treat a duplicate consume as already-handled without
+ * raising. Non-consume paths (receive, return, transfer, adjust) carry
+ * a null transaction_id and therefore never trip the partial index —
+ * the underlying insert always succeeds for them.
+ */
+final readonly class DoctrineStockMovementLedger implements StockMovementLedger
+{
+    public function __construct(
+        private Connection $connection,
+        private IdentityGenerator $identityGenerator,
+    ) {
+    }
+
+    /**
+     * Record a consume row (kind=CONSUMED) tied to a transaction id.
+     *
+     * Returns true when the row was inserted, false when the unique
+     * constraint on (transaction_id, item_id, facility_code) blocked
+     * the insert (the second-line-of-defence idempotency path).
+     */
+    public function recordConsumed(
+        InventoryItemId $itemId,
+        FacilityCode $facilityCode,
+        ?StockBatchId $stockBatchId,
+        StockMovementReason $reason,
+        Quantity $quantity,
+        CostPerUnit $costPerUnit,
+        string $transactionId,
+        DateTimeImmutable $recordedAt,
+        ?string $operatorNote = null,
+    ): bool {
+        try {
+            $this->insert(
+                kind: 'CONSUMED',
+                itemId: $itemId,
+                facilityCode: $facilityCode,
+                stockBatchId: $stockBatchId,
+                reason: $reason,
+                quantity: $quantity,
+                costPerUnit: $costPerUnit,
+                transactionId: $transactionId,
+                recordedAt: $recordedAt,
+                operatorNote: $operatorNote,
+            );
+            return true;
+        } catch (UniqueConstraintViolationException) {
+            return false;
+        }
+    }
+
+    public function recordReceived(
+        InventoryItemId $itemId,
+        FacilityCode $facilityCode,
+        StockBatchId $stockBatchId,
+        StockMovementReason $reason,
+        Quantity $quantity,
+        CostPerUnit $costPerUnit,
+        DateTimeImmutable $recordedAt,
+        ?string $operatorNote = null,
+    ): void {
+        $this->insert(
+            kind: 'RECEIVED',
+            itemId: $itemId,
+            facilityCode: $facilityCode,
+            stockBatchId: $stockBatchId,
+            reason: $reason,
+            quantity: $quantity,
+            costPerUnit: $costPerUnit,
+            transactionId: null,
+            recordedAt: $recordedAt,
+            operatorNote: $operatorNote,
+        );
+    }
+
+    public function recordReturned(
+        InventoryItemId $itemId,
+        FacilityCode $facilityCode,
+        StockBatchId $stockBatchId,
+        Quantity $quantity,
+        CostPerUnit $costPerUnit,
+        DateTimeImmutable $recordedAt,
+    ): void {
+        $this->insert(
+            kind: 'RETURNED',
+            itemId: $itemId,
+            facilityCode: $facilityCode,
+            stockBatchId: $stockBatchId,
+            reason: StockMovementReason::RETURN,
+            quantity: $quantity,
+            costPerUnit: $costPerUnit,
+            transactionId: null,
+            recordedAt: $recordedAt,
+            operatorNote: null,
+        );
+    }
+
+    public function recordTransferredOut(
+        InventoryItemId $itemId,
+        FacilityCode $facilityCode,
+        StockBatchId $stockBatchId,
+        Quantity $quantity,
+        CostPerUnit $costPerUnit,
+        DateTimeImmutable $recordedAt,
+    ): void {
+        $this->insert(
+            kind: 'TRANSFERRED_OUT',
+            itemId: $itemId,
+            facilityCode: $facilityCode,
+            stockBatchId: $stockBatchId,
+            reason: StockMovementReason::TRANSFER_OUT,
+            quantity: $quantity,
+            costPerUnit: $costPerUnit,
+            transactionId: null,
+            recordedAt: $recordedAt,
+            operatorNote: null,
+        );
+    }
+
+    public function recordTransferredIn(
+        InventoryItemId $itemId,
+        FacilityCode $facilityCode,
+        StockBatchId $stockBatchId,
+        Quantity $quantity,
+        CostPerUnit $costPerUnit,
+        DateTimeImmutable $recordedAt,
+    ): void {
+        $this->insert(
+            kind: 'TRANSFERRED_IN',
+            itemId: $itemId,
+            facilityCode: $facilityCode,
+            stockBatchId: $stockBatchId,
+            reason: StockMovementReason::TRANSFER_IN,
+            quantity: $quantity,
+            costPerUnit: $costPerUnit,
+            transactionId: null,
+            recordedAt: $recordedAt,
+            operatorNote: null,
+        );
+    }
+
+    public function recordAdjusted(
+        InventoryItemId $itemId,
+        FacilityCode $facilityCode,
+        ?StockBatchId $stockBatchId,
+        Quantity $quantity,
+        CostPerUnit $costPerUnit,
+        DateTimeImmutable $recordedAt,
+        ?string $operatorNote = null,
+    ): void {
+        $this->insert(
+            kind: 'ADJUSTED',
+            itemId: $itemId,
+            facilityCode: $facilityCode,
+            stockBatchId: $stockBatchId,
+            reason: StockMovementReason::ADJUSTMENT,
+            quantity: $quantity,
+            costPerUnit: $costPerUnit,
+            transactionId: null,
+            recordedAt: $recordedAt,
+            operatorNote: $operatorNote,
+        );
+    }
+
+    /**
+     * Probe used by the LRA-83 ACL idempotency guard: returns true when
+     * the ledger already contains a row for the given consume tuple.
+     */
+    public function hasConsumedFor(
+        string $transactionId,
+        InventoryItemId $itemId,
+        FacilityCode $facilityCode,
+    ): bool {
+        $sql = 'SELECT 1 FROM inventory_stock_movements '
+            . 'WHERE transaction_id = :tx AND item_id = :item AND facility_code = :facility '
+            . 'LIMIT 1';
+
+        $result = $this->connection->fetchOne($sql, [
+            'tx' => $transactionId,
+            'item' => $itemId->value,
+            'facility' => $facilityCode->value,
+        ]);
+
+        return $result !== false;
+    }
+
+    private function insert(
+        string $kind,
+        InventoryItemId $itemId,
+        FacilityCode $facilityCode,
+        ?StockBatchId $stockBatchId,
+        StockMovementReason $reason,
+        Quantity $quantity,
+        CostPerUnit $costPerUnit,
+        ?string $transactionId,
+        DateTimeImmutable $recordedAt,
+        ?string $operatorNote,
+    ): void {
+        $this->connection->insert('inventory_stock_movements', [
+            'id' => $this->identityGenerator->nextStockMovementId()->value,
+            'item_id' => $itemId->value,
+            'facility_code' => $facilityCode->value,
+            'stock_batch_id' => $stockBatchId?->value,
+            'kind' => $kind,
+            'reason' => $reason->value,
+            'quantity' => $quantity->units,
+            'cost_per_unit_cents' => $costPerUnit->cents,
+            'operator_note' => $operatorNote,
+            'transaction_id' => $transactionId,
+            'recorded_at' => $recordedAt->format('Y-m-d H:i:s'),
+        ]);
+    }
+}

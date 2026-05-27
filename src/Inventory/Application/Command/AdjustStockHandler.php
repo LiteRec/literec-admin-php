@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Inventory\Application\Command;
 
 use App\Inventory\Domain\Exception\AdjustmentReasonRequired;
+use App\Inventory\Domain\Exception\InvalidStockAdjustmentSubReason;
 use App\Inventory\Domain\IdentityGenerator;
 use App\Inventory\Domain\InventoryItems;
 use App\Inventory\Domain\ValueObject\Comment;
@@ -12,6 +13,8 @@ use App\Inventory\Domain\ValueObject\CostPerUnit;
 use App\Inventory\Domain\ValueObject\FacilityCode;
 use App\Inventory\Domain\ValueObject\InventoryItemId;
 use App\Inventory\Domain\ValueObject\Quantity;
+use App\Inventory\Domain\StockMovementLedger;
+use App\Inventory\Domain\ValueObject\StockAdjustmentReason;
 use App\Inventory\Domain\ValueObject\StockMovementReason;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -29,11 +32,14 @@ use Symfony\Component\Messenger\Stamp\DispatchAfterCurrentBusStamp;
  * delta is a no-op.
  *
  * The operator reason is non-empty (guarded here) and rides along on
- * the synthetic batch's {@see Comment}; for negative adjustments the
- * reason currently lives only in the application log because
- * {@see App\Inventory\Domain\Event\StockMovementRecorded} does not
- * carry an operator note. A future Stock Adjustment ledger (paired
- * with LRA-83/84) will persist the reason for both directions.
+ * the synthetic batch's {@see Comment}. The optional
+ * {@see StockAdjustmentReason} sub-category (LRA-94) is captured on
+ * the inventory_stock_movements ledger row this handler writes inline
+ * — the StockMovementRecorded domain event does not carry the facility
+ * code, so the post-commit subscriber path cannot resolve the right
+ * ledger row for ADJUSTED movements. Writing the row from the handler,
+ * where the facility is known from the command, keeps the ledger
+ * accurate without dragging facility through every consume event.
  */
 #[AsMessageHandler(bus: 'command.bus')]
 final class AdjustStockHandler
@@ -43,6 +49,7 @@ final class AdjustStockHandler
         private readonly IdentityGenerator $ids,
         private readonly ClockInterface $clock,
         private readonly MessageBusInterface $eventBus,
+        private readonly StockMovementLedger $movementLedger,
     ) {
     }
 
@@ -51,6 +58,8 @@ final class AdjustStockHandler
         if (trim($command->reason) === '') {
             throw AdjustmentReasonRequired::empty();
         }
+
+        $subReason = $this->resolveSubReason($command->adjustmentSubReason);
 
         $itemId = InventoryItemId::fromString($command->itemId);
         $facility = FacilityCode::fromString($command->facilityCode);
@@ -62,6 +71,8 @@ final class AdjustStockHandler
         if ($target->equals($current)) {
             return;
         }
+
+        $occurredAt = $this->clock->now();
 
         if ($target->units > $current->units) {
             $delta = $target->subtract($current);
@@ -81,8 +92,37 @@ final class AdjustStockHandler
 
         $this->inventoryItems->save($item);
 
+        $this->movementLedger->recordAdjusted(
+            itemId: $itemId,
+            facilityCode: $facility,
+            stockBatchId: null,
+            quantity: $delta,
+            costPerUnit: CostPerUnit::zero(),
+            recordedAt: $occurredAt,
+            operatorNote: $this->formatOperatorNote($subReason, $command->reason),
+        );
+
         foreach ($item->releaseEvents() as $event) {
             $this->eventBus->dispatch($event, [new DispatchAfterCurrentBusStamp()]);
         }
+    }
+
+    private function resolveSubReason(?string $raw): StockAdjustmentReason
+    {
+        if ($raw === null || $raw === '') {
+            return StockAdjustmentReason::OTHER;
+        }
+
+        $resolved = StockAdjustmentReason::tryFrom($raw);
+        if ($resolved === null) {
+            throw InvalidStockAdjustmentSubReason::for($raw);
+        }
+
+        return $resolved;
+    }
+
+    private function formatOperatorNote(StockAdjustmentReason $subReason, string $reason): string
+    {
+        return sprintf('[%s] %s', strtoupper($subReason->value), trim($reason));
     }
 }

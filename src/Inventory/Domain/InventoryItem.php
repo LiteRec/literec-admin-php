@@ -390,6 +390,7 @@ final class InventoryItem
             $this->recordThat(new StockReturned(
                 $this->id,
                 $batch->id(),
+                $batch->facilityCode(),
                 $restored,
                 $batch->costPerUnit(),
                 $occurredAt,
