@@ -36,13 +36,19 @@ final class ListPurchaseOrdersHandler
         // vendor or facility filter disables that dimension rather
         // than 500-ing the page (mirrors the PurchaseOrderStatus::tryFrom
         // behaviour for the status filter).
+        // Clamp page params at the handler boundary so non-HTTP callers
+        // (Messenger, tests, fixtures) can't trigger unbounded reads or
+        // negative offsets.
+        $pageNumber = max(1, $query->pageNumber);
+        $pageSize = min(200, max(1, $query->pageSize));
+
         $vendor = self::tryVendor($query->vendorId);
         $status = $query->status !== null ? PurchaseOrderStatus::tryFrom($query->status) : null;
         $facility = self::tryFacility($query->facilityCode);
 
-        $offset = max(0, ($query->pageNumber - 1) * $query->pageSize);
+        $offset = ($pageNumber - 1) * $pageSize;
 
-        $rows = $this->purchaseOrders->search($vendor, $status, $facility, $offset, $query->pageSize);
+        $rows = $this->purchaseOrders->search($vendor, $status, $facility, $offset, $pageSize);
         $totalCount = $this->purchaseOrders->countMatching($vendor, $status, $facility);
 
         $items = [];
@@ -53,8 +59,8 @@ final class ListPurchaseOrdersHandler
         return new PurchaseOrderListPage(
             items: $items,
             totalCount: $totalCount,
-            pageNumber: $query->pageNumber,
-            pageSize: $query->pageSize,
+            pageNumber: $pageNumber,
+            pageSize: $pageSize,
         );
     }
 
