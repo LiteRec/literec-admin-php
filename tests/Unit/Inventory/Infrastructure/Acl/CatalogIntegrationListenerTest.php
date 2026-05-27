@@ -202,14 +202,26 @@ final class CatalogIntegrationListenerTest extends TestCase
             static fn (array $row): bool => $row['kind'] === 'CONSUMED',
         ));
         self::assertCount(2, $consumedRows, 'One CONSUMED row per combo component.');
-        $byItem = [];
-        foreach ($consumedRows as $row) {
-            $byItem[$row['item_id']] = $row;
+        $componentARow = $this->rowFor($consumedRows, self::COMPONENT_A);
+        $componentBRow = $this->rowFor($consumedRows, self::COMPONENT_B);
+        self::assertSame(3, $componentARow['quantity']);
+        self::assertSame(6, $componentBRow['quantity']);
+        self::assertSame(self::TRANSACTION_ID, $componentARow['transaction_id']);
+        self::assertSame(self::TRANSACTION_ID, $componentBRow['transaction_id']);
+    }
+
+    /**
+     * @param list<array<string, mixed>> $rows
+     * @return array<string, mixed>
+     */
+    private function rowFor(array $rows, string $itemId): array
+    {
+        foreach ($rows as $row) {
+            if ($row['item_id'] === $itemId) {
+                return $row;
+            }
         }
-        self::assertSame(3, $byItem[self::COMPONENT_A]['quantity']);
-        self::assertSame(6, $byItem[self::COMPONENT_B]['quantity']);
-        self::assertSame(self::TRANSACTION_ID, $byItem[self::COMPONENT_A]['transaction_id']);
-        self::assertSame(self::TRANSACTION_ID, $byItem[self::COMPONENT_B]['transaction_id']);
+        self::fail(sprintf('No ledger row found for item_id %s', $itemId));
     }
 
     #[Test]
