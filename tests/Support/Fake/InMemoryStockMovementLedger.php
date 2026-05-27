@@ -12,7 +12,6 @@ use App\Inventory\Domain\ValueObject\Quantity;
 use App\Inventory\Domain\ValueObject\StockBatchId;
 use App\Inventory\Domain\ValueObject\StockMovementReason;
 use DateTimeImmutable;
-use RuntimeException;
 
 /**
  * Test double for {@see StockMovementLedger} that records every call in
@@ -20,9 +19,13 @@ use RuntimeException;
  * ledger entries fire; functional tests use it as the production
  * binding under when@test so the real DBAL writer never runs.
  *
- * Idempotency mirror: {@see recordConsumed()} de-dupes on
- * (transaction_id, item_id, facility_code) the same way the partial
- * unique index does in PostgreSQL, returning false on the second call.
+ * Idempotency mirror: {@see recordConsumed()} throws a
+ * {@see DuplicateConsumeKeyException} on a duplicate
+ * (transaction_id, item_id, facility_code) tuple — mirrors the
+ * partial unique index in Postgres which raises
+ * UniqueConstraintViolationException from DBAL. Callers MUST probe
+ * {@see hasConsumedFor()} before consuming if they need an idempotent
+ * fast-path that avoids the throw.
  */
 final class InMemoryStockMovementLedger implements StockMovementLedger
 {
@@ -45,7 +48,7 @@ final class InMemoryStockMovementLedger implements StockMovementLedger
     ): void {
         $key = $transactionId . '|' . $itemId->value . '|' . $facilityCode->value;
         if (isset($this->consumeKeys[$key])) {
-            throw new RuntimeException(sprintf(
+            throw new DuplicateConsumeKeyException(sprintf(
                 'InMemoryStockMovementLedger: duplicate consume key %s '
                 . '— mirrors the partial UNIQUE constraint in Postgres.',
                 $key,
