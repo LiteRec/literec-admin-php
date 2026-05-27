@@ -109,13 +109,18 @@ final class AdjustStockHandler
 
     private function resolveSubReason(?string $raw): StockAdjustmentReason
     {
-        if ($raw === null || $raw === '') {
+        if ($raw === null) {
             return StockAdjustmentReason::OTHER;
         }
 
-        $resolved = StockAdjustmentReason::tryFrom($raw);
+        $normalized = trim($raw);
+        if ($normalized === '') {
+            return StockAdjustmentReason::OTHER;
+        }
+
+        $resolved = StockAdjustmentReason::tryFrom($normalized);
         if ($resolved === null) {
-            throw InvalidStockAdjustmentSubReason::for($raw);
+            throw InvalidStockAdjustmentSubReason::for($normalized);
         }
 
         return $resolved;

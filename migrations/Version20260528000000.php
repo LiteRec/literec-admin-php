@@ -52,6 +52,7 @@ final class Version20260528000000 extends AbstractMigration
                 cost_per_unit_cents BIGINT NOT NULL,
                 operator_note VARCHAR(1000) DEFAULT NULL,
                 transaction_id VARCHAR(255) DEFAULT NULL,
+                listing_id CHAR(36) DEFAULT NULL,
                 recorded_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL,
                 PRIMARY KEY (id)
             )
@@ -64,9 +65,16 @@ final class Version20260528000000 extends AbstractMigration
             'CREATE INDEX IDX_inventory_stock_movements_facility_at '
             . 'ON inventory_stock_movements (facility_code, recorded_at DESC)',
         );
+        // Idempotency dedupe is at the LineSold envelope level, not the
+        // transaction level: a single Transactions-context transaction
+        // may publish multiple LineSold envelopes (one per Catalog
+        // Listing line), and a combo may expand to a component that
+        // also appears under a sibling listing. Keying only on
+        // (transaction_id, item_id, facility_code) would incorrectly
+        // skip the second legitimate line as a "duplicate".
         $this->addSql(
             'CREATE UNIQUE INDEX UNIQ_inventory_stock_movements_dedupe '
-            . 'ON inventory_stock_movements (transaction_id, item_id, facility_code) '
+            . 'ON inventory_stock_movements (transaction_id, listing_id, item_id, facility_code) '
             . 'WHERE transaction_id IS NOT NULL',
         );
     }

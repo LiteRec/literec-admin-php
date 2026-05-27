@@ -151,10 +151,12 @@ final class StockEventLedgerSubscriberTest extends TestCase
         $rows = $ledger->rows();
         self::assertCount(2, $rows);
         self::assertSame('TRANSFERRED_OUT', $rows[0]['kind']);
+        self::assertSame(StockMovementReason::TRANSFER_OUT->value, $rows[0]['reason']);
         self::assertSame('MAIN', $rows[0]['facility_code']);
         self::assertSame(2, $rows[0]['quantity']);
         self::assertSame(self::BATCH, $rows[0]['stock_batch_id']);
         self::assertSame('TRANSFERRED_OUT', $rows[1]['kind']);
+        self::assertSame(StockMovementReason::TRANSFER_OUT->value, $rows[1]['reason']);
         self::assertSame(3, $rows[1]['quantity']);
         self::assertSame(self::BATCH_2, $rows[1]['stock_batch_id']);
     }
@@ -183,6 +185,7 @@ final class StockEventLedgerSubscriberTest extends TestCase
         $rows = $ledger->rows();
         self::assertCount(1, $rows);
         self::assertSame('TRANSFERRED_IN', $rows[0]['kind']);
+        self::assertSame(StockMovementReason::TRANSFER_IN->value, $rows[0]['reason']);
         self::assertSame('LAKE', $rows[0]['facility_code']);
         self::assertSame(5, $rows[0]['quantity']);
     }

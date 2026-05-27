@@ -46,14 +46,16 @@ final readonly class DoctrineStockMovementLedger implements StockMovementLedger
     }
 
     /**
-     * Record a consume row (kind=CONSUMED) tied to a transaction id.
+     * Record a consume row (kind=CONSUMED) tied to the originating
+     * LineSold envelope (transaction_id + listing_id pair).
      *
-     * A unique-constraint violation on (transaction_id, item_id,
-     * facility_code) is intentionally allowed to propagate so the
-     * surrounding doctrine_transaction middleware rolls back the
-     * matching consume. Callers MUST probe {@see hasConsumedFor()}
-     * before consuming if they need an idempotent fast-path that
-     * avoids the rollback cost on a duplicate envelope.
+     * A unique-constraint violation on the four-tuple dedupe index
+     * (transaction_id, listing_id, item_id, facility_code) is
+     * intentionally allowed to propagate so the surrounding
+     * doctrine_transaction middleware rolls back the matching
+     * consume. Callers MUST probe {@see hasConsumedFor()} before
+     * consuming if they need an idempotent fast-path that avoids
+     * the rollback cost on a duplicate envelope.
      */
     public function recordConsumed(
         InventoryItemId $itemId,
@@ -63,6 +65,7 @@ final readonly class DoctrineStockMovementLedger implements StockMovementLedger
         Quantity $quantity,
         CostPerUnit $costPerUnit,
         string $transactionId,
+        string $listingId,
         DateTimeImmutable $recordedAt,
         ?string $operatorNote = null,
     ): void {
@@ -75,6 +78,7 @@ final readonly class DoctrineStockMovementLedger implements StockMovementLedger
             quantity: $quantity,
             costPerUnit: $costPerUnit,
             transactionId: $transactionId,
+            listingId: $listingId,
             recordedAt: $recordedAt,
             operatorNote: $operatorNote,
         );
@@ -195,19 +199,23 @@ final readonly class DoctrineStockMovementLedger implements StockMovementLedger
 
     /**
      * Probe used by the LRA-83 ACL idempotency guard: returns true when
-     * the ledger already contains a row for the given consume tuple.
+     * the ledger already contains a row for the given consume tuple
+     * (transaction_id, listing_id, item_id, facility_code).
      */
     public function hasConsumedFor(
         string $transactionId,
+        string $listingId,
         InventoryItemId $itemId,
         FacilityCode $facilityCode,
     ): bool {
         $sql = 'SELECT 1 FROM inventory_stock_movements '
-            . 'WHERE transaction_id = :tx AND item_id = :item AND facility_code = :facility '
+            . 'WHERE transaction_id = :tx AND listing_id = :listing '
+            . 'AND item_id = :item AND facility_code = :facility '
             . 'LIMIT 1';
 
         $result = $this->connection->fetchOne($sql, [
             'tx' => $transactionId,
+            'listing' => $listingId,
             'item' => $itemId->value,
             'facility' => $facilityCode->value,
         ]);
@@ -226,6 +234,7 @@ final readonly class DoctrineStockMovementLedger implements StockMovementLedger
         ?string $transactionId,
         DateTimeImmutable $recordedAt,
         ?string $operatorNote,
+        ?string $listingId = null,
     ): void {
         $this->connection->insert('inventory_stock_movements', [
             'id' => $this->identityGenerator->nextStockMovementId()->value,
@@ -238,6 +247,7 @@ final readonly class DoctrineStockMovementLedger implements StockMovementLedger
             'cost_per_unit_cents' => $costPerUnit->cents,
             'operator_note' => $operatorNote,
             'transaction_id' => $transactionId,
+            'listing_id' => $listingId,
             'recorded_at' => $recordedAt->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s'),
         ]);
     }

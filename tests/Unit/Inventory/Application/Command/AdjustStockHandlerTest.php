@@ -84,6 +84,7 @@ final class AdjustStockHandlerTest extends TestCase
         $loaded = $this->items->byId(InventoryItemId::fromString(self::ITEM));
         self::assertSame(10, $loaded->totalOnHand()->units, 'no batches should have mutated');
         self::assertSame([], $this->eventBus->dispatchedMessages());
+        self::assertSame([], $this->ledger->rows(), 'no ledger write on validation failure');
     }
 
     #[Test]
