@@ -13,8 +13,11 @@ use App\Inventory\Domain\Event\InventoryItemRegistered;
 use App\Inventory\Domain\Exception\InventoryItemNotFound;
 use App\Inventory\Domain\ValueObject\InventoryItemId;
 use App\Inventory\Infrastructure\Persistence\InMemory\InMemoryInventoryItems;
+use App\Tests\Support\Fake\NoStampCatalogCommandBus;
 use App\Tests\Support\Fake\RecordingMessageBus;
 use App\Tests\Support\Fake\SequenceInventoryIdentityGenerator;
+use App\Tests\Support\Fake\StubCatalogCommandBus;
+use App\Tests\Support\Fake\ThrowingCatalogCommandBus;
 use DateTimeImmutable;
 use PHPUnit\Framework\Attributes\Small;
 use PHPUnit\Framework\Attributes\Test;
@@ -22,10 +25,6 @@ use PHPUnit\Framework\Attributes\TestDox;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use Symfony\Component\Clock\MockClock;
-use Symfony\Component\Messenger\Envelope;
-use Symfony\Component\Messenger\MessageBusInterface;
-use Symfony\Component\Messenger\Stamp\HandledStamp;
-use Throwable;
 
 /**
  * Unit-level coverage of the LRA-98 cross-bus orchestration. The
@@ -143,39 +142,3 @@ final class RegisterInventoryItemHandlerTest extends TestCase
     }
 }
 
-/**
- * Synchronous bus double: returns the given {@see ListingId} from a
- * HandledStamp, mirroring what Catalog's RegisterListingHandler would
- * have produced when wired into the real Messenger middleware stack.
- */
-final readonly class StubCatalogCommandBus implements MessageBusInterface
-{
-    public function __construct(private ListingId $listingId)
-    {
-    }
-
-    public function dispatch(object $message, array $stamps = []): Envelope
-    {
-        return new Envelope($message, [new HandledStamp($this->listingId, 'catalog.register-listing-handler')]);
-    }
-}
-
-final readonly class ThrowingCatalogCommandBus implements MessageBusInterface
-{
-    public function __construct(private Throwable $error)
-    {
-    }
-
-    public function dispatch(object $message, array $stamps = []): Envelope
-    {
-        throw $this->error;
-    }
-}
-
-final class NoStampCatalogCommandBus implements MessageBusInterface
-{
-    public function dispatch(object $message, array $stamps = []): Envelope
-    {
-        return new Envelope($message);
-    }
-}
