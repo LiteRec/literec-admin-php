@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Inventory\Infrastructure\Persistence\Doctrine;
 
+use App\Inventory\Domain\Exception\ConcurrentPurchaseOrderModification;
 use App\Inventory\Domain\Exception\PurchaseOrderNotFound;
 use App\Inventory\Domain\PurchaseOrder;
 use App\Inventory\Domain\PurchaseOrders;
@@ -12,6 +13,7 @@ use App\Inventory\Domain\ValueObject\FacilityCode;
 use App\Inventory\Domain\ValueObject\PurchaseOrderId;
 use App\Inventory\Domain\ValueObject\VendorId;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\OptimisticLockException;
 
 /**
  * Doctrine adapter for the {@see PurchaseOrders} port. The only class
@@ -36,7 +38,11 @@ final class DoctrinePurchaseOrders implements PurchaseOrders
             throw PurchaseOrderNotFound::withId($order->id());
         }
 
-        $this->em->flush();
+        try {
+            $this->em->flush();
+        } catch (OptimisticLockException $e) {
+            throw ConcurrentPurchaseOrderModification::forPurchaseOrder($order->id(), $e);
+        }
     }
 
     public function byId(PurchaseOrderId $id): PurchaseOrder

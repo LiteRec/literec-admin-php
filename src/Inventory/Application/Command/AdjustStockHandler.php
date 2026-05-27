@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Inventory\Application\Command;
 
-use App\Inventory\Application\WrapsOptimisticLock;
 use App\Inventory\Domain\Exception\AdjustmentReasonRequired;
 use App\Inventory\Domain\Exception\InvalidStockAdjustmentSubReason;
 use App\Inventory\Domain\IdentityGenerator;
@@ -46,8 +45,6 @@ use Symfony\Component\Messenger\Stamp\DispatchAfterCurrentBusStamp;
 #[AsMessageHandler(bus: 'command.bus')]
 final class AdjustStockHandler
 {
-    use WrapsOptimisticLock;
-
     public function __construct(
         private readonly InventoryItems $inventoryItems,
         private readonly IdentityGenerator $ids,
@@ -96,7 +93,7 @@ final class AdjustStockHandler
             $item->consume($facility, $delta, StockMovementReason::ADJUSTMENT, $this->clock);
         }
 
-        $this->wrapInventoryItemSave($itemId, fn () => $this->inventoryItems->save($item));
+        $this->inventoryItems->save($item);
 
         $this->movementLedger->recordAdjusted(
             itemId: $itemId,

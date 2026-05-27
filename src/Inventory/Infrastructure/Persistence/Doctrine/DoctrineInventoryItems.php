@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Inventory\Infrastructure\Persistence\Doctrine;
 
 use App\Catalog\Domain\ValueObject\ListingId;
+use App\Inventory\Domain\Exception\ConcurrentInventoryItemModification;
 use App\Inventory\Domain\Exception\DuplicateInventoryItemForListing;
 use App\Inventory\Domain\Exception\InventoryItemNotFound;
 use App\Inventory\Domain\InventoryItem;
@@ -12,6 +13,7 @@ use App\Inventory\Domain\InventoryItems;
 use App\Inventory\Domain\ValueObject\InventoryItemId;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\OptimisticLockException;
 
 /**
  * Doctrine adapter for the {@see InventoryItems} port. The only class
@@ -40,7 +42,11 @@ final class DoctrineInventoryItems implements InventoryItems
             throw InventoryItemNotFound::withId($item->id());
         }
 
-        $this->em->flush();
+        try {
+            $this->em->flush();
+        } catch (OptimisticLockException $e) {
+            throw ConcurrentInventoryItemModification::forItem($item->id(), $e);
+        }
     }
 
     public function byId(InventoryItemId $id): InventoryItem

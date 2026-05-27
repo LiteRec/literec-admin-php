@@ -57,8 +57,9 @@ final class PurchaseOrder
     /**
      * Doctrine optimistic-lock version (LRA-99). Maintained by the
      * ORM; never mutated by domain code. Concurrent saves surface as
-     * {@see \Doctrine\ORM\OptimisticLockException} which the
-     * application-side WrapsOptimisticLock trait translates into
+     * {@see \Doctrine\ORM\OptimisticLockException} which
+     * {@see \App\Inventory\Infrastructure\Persistence\Doctrine\DoctrinePurchaseOrders::save()}
+     * translates into
      * {@see \App\Inventory\Domain\Exception\ConcurrentPurchaseOrderModification}.
      *
      * Exposed via {@see version()} so tests can pin the increment
