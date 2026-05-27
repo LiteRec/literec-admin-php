@@ -12,8 +12,8 @@ use Throwable;
  * — typically two operators receiving / adjusting / transferring
  * stock for the same item at the same facility. The Doctrine
  * optimistic lock surfaces as
- * {@see \Doctrine\ORM\OptimisticLockException}; the application-side
- * handler trait wraps it as this named exception so controllers can
+ * {@see \Doctrine\ORM\OptimisticLockException}; the Doctrine
+ * repository adapter wraps it as this named exception so controllers can
  * map the race to HTTP 409 without sniffing for the raw Doctrine
  * class.
  */

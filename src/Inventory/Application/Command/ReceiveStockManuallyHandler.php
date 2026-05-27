@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Inventory\Application\Command;
 
-use App\Inventory\Application\WrapsOptimisticLock;
 use App\Inventory\Domain\IdentityGenerator;
 use App\Inventory\Domain\InventoryItems;
 use App\Inventory\Domain\ValueObject\Comment;
@@ -21,8 +20,6 @@ use Symfony\Component\Messenger\Stamp\DispatchAfterCurrentBusStamp;
 #[AsMessageHandler(bus: 'command.bus')]
 final class ReceiveStockManuallyHandler
 {
-    use WrapsOptimisticLock;
-
     public function __construct(
         private readonly InventoryItems $inventoryItems,
         private readonly IdentityGenerator $ids,
@@ -33,8 +30,7 @@ final class ReceiveStockManuallyHandler
 
     public function __invoke(ReceiveStockManually $command): void
     {
-        $itemId = InventoryItemId::fromString($command->itemId);
-        $item = $this->inventoryItems->byId($itemId);
+        $item = $this->inventoryItems->byId(InventoryItemId::fromString($command->itemId));
 
         $item->receiveBatch(
             FacilityCode::fromString($command->facilityCode),
@@ -48,7 +44,7 @@ final class ReceiveStockManuallyHandler
             $this->clock,
         );
 
-        $this->wrapInventoryItemSave($itemId, fn () => $this->inventoryItems->save($item));
+        $this->inventoryItems->save($item);
 
         foreach ($item->releaseEvents() as $event) {
             $this->eventBus->dispatch($event, [new DispatchAfterCurrentBusStamp()]);
