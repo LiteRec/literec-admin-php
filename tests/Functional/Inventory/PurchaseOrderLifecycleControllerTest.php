@@ -56,7 +56,7 @@ final class PurchaseOrderLifecycleControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         $body = (string) $client->getResponse()->getContent();
-        self::assertStringContainsString('sent', $body);
+        self::assertSelectorTextContains('[data-testid="po-status"]', 'sent');
         self::assertStringContainsString('po-line-receive-open-' . self::LINE_1, $body);
         self::assertStringNotContainsString('po-send-button', $body);
         self::assertSame('poSent', $client->getResponse()->headers->get('HX-Trigger'));
@@ -82,7 +82,7 @@ final class PurchaseOrderLifecycleControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         $body = (string) $client->getResponse()->getContent();
-        self::assertStringContainsString('fully_received', $body);
+        self::assertSelectorTextContains('[data-testid="po-status"]', 'fully_received');
         self::assertStringContainsString('po-verify-button', $body);
     }
 
@@ -105,7 +105,7 @@ final class PurchaseOrderLifecycleControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         $body = (string) $client->getResponse()->getContent();
-        self::assertStringContainsString('partially_received', $body);
+        self::assertSelectorTextContains('[data-testid="po-status"]', 'partially_received');
         self::assertStringContainsString('po-line-receive-open-' . self::LINE_1, $body);
     }
 
@@ -128,7 +128,7 @@ final class PurchaseOrderLifecycleControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         $body = (string) $client->getResponse()->getContent();
-        self::assertStringContainsString('verified', $body);
+        self::assertSelectorTextContains('[data-testid="po-status"]', 'verified');
         self::assertStringContainsString('po-no-actions', $body);
         self::assertStringNotContainsString('po-send-button', $body);
         self::assertStringNotContainsString('po-verify-button', $body);

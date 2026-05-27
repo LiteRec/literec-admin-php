@@ -14,7 +14,6 @@ use App\Inventory\Infrastructure\Http\Form\PurchaseOrderInput;
 use App\Inventory\Infrastructure\Http\Form\PurchaseOrderLineInput;
 use LogicException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\Form\FormError;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -22,7 +21,6 @@ use Symfony\Component\Messenger\HandleTrait;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
-use Throwable;
 
 /**
  * HTTP adapter for the LRA-90 Purchase Order create + view-detail
@@ -59,8 +57,6 @@ final class PurchaseOrderDetailController extends AbstractController
     private const string TEMPLATE_DETAIL = 'inventory/purchase-orders/detail.html.twig';
 
     private const string NOT_FOUND_MESSAGE = 'Purchase order not found.';
-
-    private const string GENERIC_FAILURE = 'Unable to create purchase order. Please try again.';
 
     private const string ROUTE_DETAIL = 'po_detail';
 
@@ -101,17 +97,14 @@ final class PurchaseOrderDetailController extends AbstractController
             return $this->renderNewForm($form, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        try {
-            $newId = $this->dispatchCommandUnwrapping(new CreatePurchaseOrder(
-                vendorId: (string) $input->vendorId,
-                facilityCode: (string) $input->facilityCode,
-                lines: $this->mapLines($input),
-            ));
-        } catch (Throwable) {
-            $form->addError(new FormError(self::GENERIC_FAILURE));
-
-            return $this->renderNewForm($form, Response::HTTP_UNPROCESSABLE_ENTITY);
-        }
+        // Let infrastructure / unexpected failures propagate so the
+        // framework returns a 5xx — masking them as 422 hides real
+        // incidents behind a client-error response.
+        $newId = $this->dispatchCommandUnwrapping(new CreatePurchaseOrder(
+            vendorId: (string) $input->vendorId,
+            facilityCode: (string) $input->facilityCode,
+            lines: $this->mapLines($input),
+        ));
 
         if (! $newId instanceof PurchaseOrderId) {
             throw new LogicException(sprintf(

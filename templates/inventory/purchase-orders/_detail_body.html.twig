@@ -74,7 +74,7 @@
                     <th scope="col" class="px-3 py-2">Remaining</th>
                     <th scope="col" class="px-3 py-2">Cost/unit</th>
                     <th scope="col" class="px-3 py-2">Status</th>
-                    {% if 'receiveLine' in detail.allowedTransitions %}
+                    {% if 'receiveLine' in detail.allowedTransitions and is_granted('manage_purchase_orders') %}
                         <th scope="col" class="px-3 py-2">Receive</th>
                     {% endif %}
                 </tr>
@@ -108,7 +108,7 @@
                                 </span>
                             {% endif %}
                         </td>
-                        {% if 'receiveLine' in detail.allowedTransitions %}
+                        {% if 'receiveLine' in detail.allowedTransitions and is_granted('manage_purchase_orders') %}
                             <td class="whitespace-nowrap px-3 py-2">
                                 {% if not line.isFullyReceived and is_granted('manage_purchase_orders') %}
                                     {% include 'inventory/purchase-orders/_line_receive.html.twig' with {
