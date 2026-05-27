@@ -17,6 +17,8 @@ use App\Inventory\Domain\ValueObject\ItemGroupId;
 use App\Inventory\Domain\ValueObject\ItemGroupName;
 use App\Inventory\Domain\ValueObject\PosColor;
 use DateTimeImmutable;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Psr\Clock\ClockInterface;
 
 /**
@@ -37,15 +39,20 @@ final class ItemGroup
     private ItemGroupName $name;
     private PosColor $color;
     private FacilityScope $facilityScope;
-    /** @var array<string, true> InventoryItemId string → true */
-    private array $members;
+    /** @var Collection<int, ItemGroupMembership> */
+    private Collection $members;
     private bool $archived;
     private DateTimeImmutable $createdAt;
     private DateTimeImmutable $updatedAt;
 
     private function __construct()
     {
-        // Intentionally empty: aggregate creation goes through self::create().
+        // Doctrine instantiates the aggregate through reflection without
+        // invoking create(); initialise the membership collection here
+        // so the empty case (a hydrated group with no rows yet) does
+        // not leave an undefined property and so the named constructor
+        // can immediately mutate the collection rather than re-create it.
+        $this->members = new ArrayCollection();
     }
 
     public static function create(
@@ -60,7 +67,6 @@ final class ItemGroup
         $group->name = $name;
         $group->color = $color;
         $group->facilityScope = $facilityScope;
-        $group->members = [];
         $group->archived = false;
         $group->createdAt = $clock->now();
         $group->updatedAt = $group->createdAt;
@@ -107,7 +113,7 @@ final class ItemGroup
 
     public function hasMember(InventoryItemId $itemId): bool
     {
-        return isset($this->members[$itemId->value]);
+        return $this->membershipFor($itemId) !== null;
     }
 
     /**
@@ -115,11 +121,10 @@ final class ItemGroup
      */
     public function members(): array
     {
-        $result = [];
-        foreach (array_keys($this->members) as $value) {
-            $result[] = InventoryItemId::fromString($value);
-        }
-        return $result;
+        return array_values(array_map(
+            static fn (ItemGroupMembership $m): InventoryItemId => $m->itemId(),
+            $this->members->toArray(),
+        ));
     }
 
     public function rename(ItemGroupName $name, ClockInterface $clock): void
@@ -158,22 +163,24 @@ final class ItemGroup
             throw ItemGroupArchivedException::for($this->id);
         }
 
-        if (isset($this->members[$itemId->value])) {
+        if ($this->membershipFor($itemId) !== null) {
             return;
         }
 
-        $this->members[$itemId->value] = true;
-        $this->updatedAt = $clock->now();
+        $now = $clock->now();
+        $this->members->add(new ItemGroupMembership($this, $itemId, $now));
+        $this->updatedAt = $now;
         $this->recordThat(new ItemAddedToGroup($this->id, $itemId, $this->updatedAt));
     }
 
     public function removeItem(InventoryItemId $itemId, ClockInterface $clock): void
     {
-        if (! isset($this->members[$itemId->value])) {
+        $membership = $this->membershipFor($itemId);
+        if ($membership === null) {
             return;
         }
 
-        unset($this->members[$itemId->value]);
+        $this->members->removeElement($membership);
         $this->updatedAt = $clock->now();
         $this->recordThat(new ItemRemovedFromGroup($this->id, $itemId, $this->updatedAt));
     }
@@ -187,5 +194,15 @@ final class ItemGroup
         $this->archived = true;
         $this->updatedAt = $clock->now();
         $this->recordThat(new ItemGroupArchived($this->id, $this->updatedAt));
+    }
+
+    private function membershipFor(InventoryItemId $itemId): ?ItemGroupMembership
+    {
+        foreach ($this->members as $membership) {
+            if ($membership->itemId()->equals($itemId)) {
+                return $membership;
+            }
+        }
+        return null;
     }
 }

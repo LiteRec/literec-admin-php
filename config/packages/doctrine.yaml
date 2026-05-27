@@ -49,6 +49,9 @@ doctrine:
             inventory_purchase_order_id: App\Inventory\Infrastructure\Persistence\Doctrine\Type\PurchaseOrderIdType
             inventory_item_link_id: App\Inventory\Infrastructure\Persistence\Doctrine\Type\ItemLinkIdType
             inventory_combo_id: App\Inventory\Infrastructure\Persistence\Doctrine\Type\ComboIdType
+            inventory_item_group_id: App\Inventory\Infrastructure\Persistence\Doctrine\Type\ItemGroupIdType
+            inventory_item_group_name: App\Inventory\Infrastructure\Persistence\Doctrine\Type\ItemGroupNameType
+            inventory_facility_scope: App\Inventory\Infrastructure\Persistence\Doctrine\Type\FacilityScopeType
     orm:
         validate_xml_mapping: true
         naming_strategy: doctrine.orm.naming_strategy.underscore
