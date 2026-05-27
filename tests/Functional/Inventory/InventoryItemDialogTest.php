@@ -41,6 +41,8 @@ final class InventoryItemDialogTest extends WebTestCase
 {
     use SignsInUsers;
 
+    private const string ROUTE_NEW_ITEM = '/admin/inventory/new';
+
     private const string TEST_USERNAME = 'inventory_dialog_e2e';
     // NOSONAR — test fixture, not a real credential.
     private const string TEST_PASSWORD = 'CorrectHorseBattery!'; // NOSONAR
@@ -57,7 +59,7 @@ final class InventoryItemDialogTest extends WebTestCase
         $client = static::createClient();
         $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
 
-        $client->request('GET', '/admin/inventory/new');
+        $client->request('GET', self::ROUTE_NEW_ITEM);
 
         self::assertResponseIsSuccessful();
         self::assertSelectorExists('div[role="dialog"][aria-modal="true"]');
@@ -75,7 +77,7 @@ final class InventoryItemDialogTest extends WebTestCase
         $beforeListings = $this->countRows('catalog_listings');
         $beforeItems = $this->countRows('inventory_items');
 
-        $crawler = $client->request('GET', '/admin/inventory/new');
+        $crawler = $client->request('GET', self::ROUTE_NEW_ITEM);
         self::assertResponseIsSuccessful();
 
         $form = $crawler->selectButton('Create Item')->form([
@@ -116,7 +118,7 @@ final class InventoryItemDialogTest extends WebTestCase
         $beforeListings = $this->countRows('catalog_listings');
         $beforeItems = $this->countRows('inventory_items');
 
-        $crawler = $client->request('GET', '/admin/inventory/new');
+        $crawler = $client->request('GET', self::ROUTE_NEW_ITEM);
         self::assertResponseIsSuccessful();
 
         $form = $crawler->selectButton('Create Item')->form([
@@ -211,7 +213,7 @@ final class InventoryItemDialogTest extends WebTestCase
     {
         $client = static::createClient();
 
-        $client->request('GET', '/admin/inventory/new');
+        $client->request('GET', self::ROUTE_NEW_ITEM);
 
         $status = $client->getResponse()->getStatusCode();
         self::assertContains(
