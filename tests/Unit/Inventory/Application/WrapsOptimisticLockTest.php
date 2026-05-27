@@ -46,7 +46,7 @@ final class WrapsOptimisticLockTest extends TestCase
     }
 
     #[Test]
-    #[TestDox('Inventory wrap: OptimisticLockException translates to ConcurrentInventoryItemModification, cause preserved.')]
+    #[TestDox('Inventory wrap: OptimisticLockException translates to ConcurrentInventoryItemModification.')]
     public function inventory_wrap_translates_optimistic_lock(): void
     {
         $cause = new OptimisticLockException('version mismatch', null);
