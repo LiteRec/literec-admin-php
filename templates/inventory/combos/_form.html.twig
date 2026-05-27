@@ -1,0 +1,103 @@
+{# Combo form partial (LRA-89). Renders the parent-listing field and
+   a dynamic components grid. The CollectionType `data-prototype`
+   attribute carries the empty-row markup; the Alpine controller below
+   clones it on the "Add component" click and appends it to the rows
+   container with a fresh numeric index. #}
+<form
+    id="inventory-combo-form"
+    method="post"
+    action="{{ formAction }}"
+    hx-post="{{ formAction }}"
+    hx-target="closest .modal-root"
+    hx-swap="outerHTML"
+    novalidate
+    x-data="{
+        index: {{ form.components|length }},
+        addRow() {
+            var container = this.$refs.rows;
+            var proto = this.$refs.proto.dataset.prototype;
+            var html = proto.replace(/__name__/g, String(this.index));
+            this.index = this.index + 1;
+            var wrapper = document.createElement('div');
+            wrapper.className = 'combo-component-row mb-2 grid grid-cols-2 gap-2 sm:grid-cols-[3fr,1fr,auto] sm:items-end';
+            wrapper.innerHTML = html;
+            var rm = document.createElement('button');
+            rm.type = 'button';
+            rm.className = 'rounded-md border border-litrec-border bg-litrec-surface px-2 py-1 text-sm font-semibold text-litrec-text hover:bg-litrec-bg-muted';
+            rm.textContent = 'Remove';
+            rm.addEventListener('click', function () { wrapper.remove(); });
+            wrapper.appendChild(rm);
+            container.appendChild(wrapper);
+        },
+    }"
+>
+    {% if form.vars.errors|length > 0 %}
+        <div
+            role="alert"
+            data-testid="form-error"
+            class="mb-4 rounded-md border border-danger/30 bg-danger/10 p-3 text-sm font-semibold text-danger"
+        >
+            {{ form_errors(form) }}
+        </div>
+    {% endif %}
+
+    <div class="grid grid-cols-1 gap-4">
+        {{ form_row(form.parentListingId, { attr: { class: 'litrec-input' } }) }}
+    </div>
+
+    <fieldset class="mt-4">
+        <legend class="mb-2 text-sm font-semibold text-litrec-text">Components</legend>
+
+        {% if form.components.vars.errors|length > 0 %}
+            <div
+                role="alert"
+                data-testid="components-error"
+                class="mb-3 rounded-md border border-danger/30 bg-danger/10 p-3 text-sm font-semibold text-danger"
+            >
+                {{ form_errors(form.components) }}
+            </div>
+        {% endif %}
+
+        <span
+            x-ref="proto"
+            class="hidden"
+            data-prototype="{{ form_widget(form.components.vars.prototype)|e('html_attr') }}"
+        ></span>
+
+        <div x-ref="rows" data-testid="combo-component-rows">
+            {% for component in form.components %}
+                <div class="combo-component-row mb-2 grid grid-cols-2 gap-2 sm:grid-cols-[3fr,1fr,auto] sm:items-end">
+                    {{ form_widget(component) }}
+                </div>
+            {% endfor %}
+        </div>
+
+        <button
+            type="button"
+            data-testid="combo-add-component"
+            class="mt-2 rounded-md border border-litrec-border bg-litrec-surface px-3 py-1 text-sm font-semibold text-litrec-text hover:bg-litrec-bg-muted"
+            @click="addRow()"
+        >
+            Add component
+        </button>
+    </fieldset>
+
+    {{ form_widget(form._token) }}
+
+    <div class="mt-6 flex items-center justify-end gap-2">
+        <button
+            type="button"
+            class="rounded-md border border-litrec-border bg-litrec-surface px-4 py-2 text-sm font-semibold text-litrec-text hover:bg-litrec-bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
+            @click="dismiss()"
+        >
+            Cancel
+        </button>
+        <button
+            type="submit"
+            data-testid="inventory-combo-submit"
+            class="rounded-md bg-litrec-primary px-4 py-2 text-sm font-semibold text-litrec-on-primary shadow-sm hover:bg-litrec-primary-strong focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
+        >
+            {{ submitLabel }}
+        </button>
+    </div>
+</form>

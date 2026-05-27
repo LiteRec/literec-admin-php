@@ -19,7 +19,7 @@
         <button
             type="button"
             data-testid="open-new-inventory-group"
-            hx-get="/admin/inventory/groups/new"
+            hx-get="{{ path('inventory_group_new') }}"
             hx-target="body"
             hx-swap="beforeend"
             aria-haspopup="dialog"
@@ -31,7 +31,7 @@
         <button
             type="button"
             data-testid="open-new-inventory-combo"
-            hx-get="/admin/inventory/combos/new"
+            hx-get="{{ path('inventory_combo_new') }}"
             hx-target="body"
             hx-swap="beforeend"
             aria-haspopup="dialog"
