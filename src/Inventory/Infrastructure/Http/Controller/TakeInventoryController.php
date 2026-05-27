@@ -200,7 +200,8 @@ final class TakeInventoryController extends AbstractController
      */
     private function buildPopulatedForm(string $facility): FormInterface
     {
-        return $this->createForm(TakeInventoryFormType::class, $this->seedInputFrom($this->runListInventory($facility)));
+        $input = $this->seedInputFrom($this->runListInventory($facility));
+        return $this->createForm(TakeInventoryFormType::class, $input);
     }
 
     private function seedInputFrom(InventoryListPage $page): TakeInventoryInput
