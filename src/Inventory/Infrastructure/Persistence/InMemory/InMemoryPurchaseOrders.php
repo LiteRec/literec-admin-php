@@ -84,6 +84,49 @@ final class InMemoryPurchaseOrders implements PurchaseOrders
         );
     }
 
+    public function search(
+        ?VendorId $vendorId,
+        ?PurchaseOrderStatus $status,
+        ?FacilityCode $facility,
+        int $offset,
+        int $limit,
+    ): array {
+        return $this->sliceSorted($this->filterCombined($vendorId, $status, $facility), $offset, $limit);
+    }
+
+    public function countMatching(
+        ?VendorId $vendorId,
+        ?PurchaseOrderStatus $status,
+        ?FacilityCode $facility,
+    ): int {
+        return count($this->filterCombined($vendorId, $status, $facility));
+    }
+
+    /**
+     * @return array<string, PurchaseOrder>
+     */
+    private function filterCombined(
+        ?VendorId $vendorId,
+        ?PurchaseOrderStatus $status,
+        ?FacilityCode $facility,
+    ): array {
+        return array_filter(
+            $this->byId,
+            static function (PurchaseOrder $o) use ($vendorId, $status, $facility): bool {
+                if ($vendorId !== null && ! $o->vendorId()->equals($vendorId)) {
+                    return false;
+                }
+                if ($status !== null && $o->status() !== $status) {
+                    return false;
+                }
+                if ($facility !== null && ! $o->facilityCode()->equals($facility)) {
+                    return false;
+                }
+                return true;
+            },
+        );
+    }
+
     /**
      * @param array<string, PurchaseOrder> $filtered
      * @return list<PurchaseOrder>

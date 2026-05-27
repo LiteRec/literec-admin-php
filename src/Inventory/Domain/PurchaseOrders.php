@@ -45,4 +45,31 @@ interface PurchaseOrders
      * @return list<PurchaseOrder>
      */
     public function byFacility(FacilityCode $facility, int $offset, int $limit): array;
+
+    /**
+     * Combined-filter finder used by the LRA-90 list page. Any null
+     * argument disables that dimension. Results are ordered by
+     * createdAt DESC then id ASC (same deterministic ordering as the
+     * single-criterion finders).
+     *
+     * @return list<PurchaseOrder>
+     */
+    public function search(
+        ?VendorId $vendorId,
+        ?PurchaseOrderStatus $status,
+        ?FacilityCode $facility,
+        int $offset,
+        int $limit,
+    ): array;
+
+    /**
+     * Total count of rows matching the same criteria as {@see search()}.
+     * Used to compute the pagination footer on the LRA-90 list page
+     * without loading every aggregate into memory.
+     */
+    public function countMatching(
+        ?VendorId $vendorId,
+        ?PurchaseOrderStatus $status,
+        ?FacilityCode $facility,
+    ): int;
 }

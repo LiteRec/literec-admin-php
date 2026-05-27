@@ -1,0 +1,18 @@
+{% extends 'app.html.twig' %}
+
+{% block page_title %}Purchase Order{% endblock %}
+
+{% block page_actions %}
+    <a
+        href="{{ path('po_index') }}"
+        class="rounded-md border border-litrec-border bg-litrec-surface px-4 py-2 text-sm font-semibold text-litrec-text hover:bg-litrec-bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
+    >
+        Back to list
+    </a>
+{% endblock %}
+
+{% block page_body %}
+    <div id="po-detail" data-testid="po-detail">
+        {% include 'inventory/purchase-orders/_detail_body.html.twig' with { detail: detail } only %}
+    </div>
+{% endblock %}

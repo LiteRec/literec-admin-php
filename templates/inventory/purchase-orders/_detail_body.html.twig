@@ -1,0 +1,130 @@
+{# Body of the LRA-90 PO detail page. Re-rendered both at the initial
+   page request and on every successful lifecycle POST, so the markup
+   here is the single source of truth for the detail view shape.
+   Expects:
+     - detail: PurchaseOrderDetailView #}
+<section
+    aria-labelledby="po-header-heading"
+    class="rounded-card border border-litrec-border bg-litrec-surface p-6 shadow-card"
+>
+    <h2 id="po-header-heading" class="text-lg font-semibold text-litrec-text">
+        Purchase Order
+    </h2>
+    <dl class="mt-4 grid grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
+        <div>
+            <dt class="text-litrec-text-muted">PO id</dt>
+            <dd class="font-mono text-xs text-litrec-text" data-testid="po-id">{{ detail.purchaseOrderId }}</dd>
+        </div>
+        <div>
+            <dt class="text-litrec-text-muted">Vendor id</dt>
+            <dd class="font-mono text-xs text-litrec-text">{{ detail.vendorId }}</dd>
+        </div>
+        <div>
+            <dt class="text-litrec-text-muted">Facility</dt>
+            <dd class="text-litrec-text">{{ detail.facilityCode }}</dd>
+        </div>
+        <div>
+            <dt class="text-litrec-text-muted">Status</dt>
+            <dd>
+                <span
+                    class="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-800"
+                    data-testid="po-status"
+                >{{ detail.status }}</span>
+            </dd>
+        </div>
+        {% if detail.sentAtIso %}
+            <div>
+                <dt class="text-litrec-text-muted">Sent at</dt>
+                <dd class="text-litrec-text">{{ detail.sentAtIso }}</dd>
+            </div>
+        {% endif %}
+        {% if detail.estimatedArrivalIso %}
+            <div>
+                <dt class="text-litrec-text-muted">ETA</dt>
+                <dd class="text-litrec-text">{{ detail.estimatedArrivalIso }}</dd>
+            </div>
+        {% endif %}
+        {% if detail.verifiedAtIso %}
+            <div>
+                <dt class="text-litrec-text-muted">Verified at</dt>
+                <dd class="text-litrec-text">{{ detail.verifiedAtIso }}</dd>
+            </div>
+            <div>
+                <dt class="text-litrec-text-muted">Verified by</dt>
+                <dd class="text-litrec-text">{{ detail.verifiedByUserId }}</dd>
+            </div>
+        {% endif %}
+    </dl>
+</section>
+
+<section
+    aria-labelledby="po-lines-heading"
+    class="mt-6 rounded-card border border-litrec-border bg-litrec-surface p-6 shadow-card"
+>
+    <h2 id="po-lines-heading" class="text-lg font-semibold text-litrec-text">Lines</h2>
+
+    <div class="mt-4 overflow-x-auto">
+        <table class="min-w-full divide-y divide-litrec-border text-sm">
+            <thead class="bg-litrec-bg-muted text-left text-xs font-semibold uppercase tracking-wider text-litrec-text-muted">
+                <tr>
+                    <th scope="col" class="px-3 py-2">Line</th>
+                    <th scope="col" class="px-3 py-2">Item</th>
+                    <th scope="col" class="px-3 py-2">Ordered</th>
+                    <th scope="col" class="px-3 py-2">Received</th>
+                    <th scope="col" class="px-3 py-2">Remaining</th>
+                    <th scope="col" class="px-3 py-2">Cost/unit</th>
+                    <th scope="col" class="px-3 py-2">Status</th>
+                    {% if 'receiveLine' in detail.allowedTransitions %}
+                        <th scope="col" class="px-3 py-2">Receive</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-litrec-border">
+                {% for line in detail.lines %}
+                    <tr data-testid="po-line-row-{{ line.lineId }}">
+                        <td class="whitespace-nowrap px-3 py-2 font-mono text-xs text-litrec-text">
+                            {{ line.lineId|slice(0, 8) }}…
+                        </td>
+                        <td class="whitespace-nowrap px-3 py-2 font-mono text-xs text-litrec-text-muted">
+                            {{ line.itemId|slice(0, 8) }}…
+                        </td>
+                        <td class="whitespace-nowrap px-3 py-2 text-litrec-text">{{ line.orderedUnits }}</td>
+                        <td
+                            class="whitespace-nowrap px-3 py-2 text-litrec-text"
+                            data-testid="po-line-received-{{ line.lineId }}"
+                        >{{ line.receivedUnits }}</td>
+                        <td class="whitespace-nowrap px-3 py-2 text-litrec-text">{{ line.remainingUnits }}</td>
+                        <td class="whitespace-nowrap px-3 py-2 text-litrec-text">
+                            {{ (line.costPerUnitCents / 100)|number_format(2) }}
+                        </td>
+                        <td class="whitespace-nowrap px-3 py-2">
+                            {% if line.isFullyReceived %}
+                                <span class="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-800">
+                                    Fully received
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-semibold text-yellow-800">
+                                    Open
+                                </span>
+                            {% endif %}
+                        </td>
+                        {% if 'receiveLine' in detail.allowedTransitions %}
+                            <td class="whitespace-nowrap px-3 py-2">
+                                {% if not line.isFullyReceived and is_granted('manage_purchase_orders') %}
+                                    {% include 'inventory/purchase-orders/_line_receive.html.twig' with {
+                                        poId: detail.purchaseOrderId,
+                                        line: line,
+                                    } only %}
+                                {% endif %}
+                            </td>
+                        {% endif %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+{% if is_granted('manage_purchase_orders') %}
+    {% include 'inventory/purchase-orders/_lifecycle_buttons.html.twig' with { detail: detail } only %}
+{% endif %}

@@ -1,0 +1,42 @@
+{% extends 'app.html.twig' %}
+
+{% block page_title %}Purchase Orders{% endblock %}
+
+{% block page_actions %}
+    {% if is_granted('manage_purchase_orders') %}
+        <a
+            href="{{ path('po_new') }}"
+            data-testid="open-new-purchase-order"
+            class="rounded-md bg-litrec-primary px-4 py-2 text-sm font-semibold text-litrec-on-primary shadow-sm hover:bg-litrec-primary-strong focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
+        >
+            New Purchase Order
+        </a>
+    {% endif %}
+{% endblock %}
+
+{% block page_body %}
+    {% include 'inventory/purchase-orders/list/_filters.html.twig' with {
+        statusCases: statusCases,
+    } only %}
+
+    <span
+        id="purchase-orders-result-summary"
+        aria-live="polite"
+        class="sr-only"
+    >Showing {{ page.items|length }} of {{ page.totalCount }} purchase orders</span>
+
+    <div
+        id="purchase-orders-table"
+        data-testid="purchase-orders-table"
+        class="mt-6 transition-opacity htmx-request:opacity-50"
+        hx-indicator="this"
+        hx-get="{{ path('po_table') }}"
+        hx-trigger="poSent from:body, poLineReceived from:body, poVerified from:body"
+        hx-swap="innerHTML"
+    >
+        {% include 'inventory/purchase-orders/list/_table.html.twig' with {
+            page: page,
+            query: query,
+        } only %}
+    </div>
+{% endblock %}
