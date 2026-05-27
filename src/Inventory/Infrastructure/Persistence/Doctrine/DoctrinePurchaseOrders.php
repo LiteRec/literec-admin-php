@@ -14,6 +14,7 @@ use App\Inventory\Domain\ValueObject\PurchaseOrderId;
 use App\Inventory\Domain\ValueObject\VendorId;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\OptimisticLockException;
+use Doctrine\ORM\QueryBuilder;
 
 /**
  * Doctrine adapter for the {@see PurchaseOrders} port. The only class
@@ -110,5 +111,62 @@ final class DoctrinePurchaseOrders implements PurchaseOrders
             ->getResult();
 
         return $rows;
+    }
+
+    public function search(
+        ?VendorId $vendorId,
+        ?PurchaseOrderStatus $status,
+        ?FacilityCode $facility,
+        int $offset,
+        int $limit,
+    ): array {
+        $qb = $this->em->createQueryBuilder()
+            ->select('po')
+            ->from(PurchaseOrder::class, 'po')
+            ->orderBy('po.createdAt', 'DESC')
+            ->addOrderBy('po.id', 'ASC')
+            ->setFirstResult($offset)
+            ->setMaxResults($limit);
+
+        $this->applyFilters($qb, $vendorId, $status, $facility);
+
+        /** @var list<PurchaseOrder> $rows */
+        $rows = $qb->getQuery()->getResult();
+
+        return $rows;
+    }
+
+    public function countMatching(
+        ?VendorId $vendorId,
+        ?PurchaseOrderStatus $status,
+        ?FacilityCode $facility,
+    ): int {
+        $qb = $this->em->createQueryBuilder()
+            ->select('COUNT(po.id)')
+            ->from(PurchaseOrder::class, 'po');
+
+        $this->applyFilters($qb, $vendorId, $status, $facility);
+
+        /** @var int|string|null $result */
+        $result = $qb->getQuery()->getSingleScalarResult();
+
+        return (int) $result;
+    }
+
+    private function applyFilters(
+        QueryBuilder $qb,
+        ?VendorId $vendorId,
+        ?PurchaseOrderStatus $status,
+        ?FacilityCode $facility,
+    ): void {
+        if ($vendorId !== null) {
+            $qb->andWhere('po.vendorId = :vendor')->setParameter('vendor', $vendorId);
+        }
+        if ($status !== null) {
+            $qb->andWhere('po.status = :status')->setParameter('status', $status);
+        }
+        if ($facility !== null) {
+            $qb->andWhere('po.facilityCode = :facility')->setParameter('facility', $facility);
+        }
     }
 }

@@ -1,0 +1,49 @@
+{# Lifecycle action panel for the LRA-90 PO detail page. Renders one
+   button per allowed transition; each posts via HTMX targeted at
+   #po-detail so the controller's freshly-rendered body swaps in. #}
+<section
+    aria-labelledby="po-lifecycle-heading"
+    class="mt-6 rounded-card border border-litrec-border bg-litrec-surface p-6 shadow-card"
+>
+    <h2 id="po-lifecycle-heading" class="text-lg font-semibold text-litrec-text">Actions</h2>
+
+    {% if detail.allowedTransitions is empty %}
+        <p class="mt-2 text-sm text-litrec-text-muted" data-testid="po-no-actions">
+            No further actions are available for this purchase order.
+        </p>
+    {% else %}
+        <div class="mt-4 flex flex-wrap items-center gap-2">
+            {% if 'send' in detail.allowedTransitions %}
+                <button
+                    type="button"
+                    data-testid="po-send-button"
+                    hx-post="{{ path('po_send', { poId: detail.purchaseOrderId }) }}"
+                    hx-target="#po-detail"
+                    hx-swap="innerHTML"
+                    class="rounded-md bg-litrec-primary px-4 py-2 text-sm font-semibold text-litrec-on-primary shadow-sm hover:bg-litrec-primary-strong focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
+                >
+                    Mark sent
+                </button>
+            {% endif %}
+
+            {% if 'verify' in detail.allowedTransitions %}
+                <button
+                    type="button"
+                    data-testid="po-verify-button"
+                    hx-post="{{ path('po_verify', { poId: detail.purchaseOrderId }) }}"
+                    hx-target="#po-detail"
+                    hx-swap="innerHTML"
+                    class="rounded-md bg-litrec-primary px-4 py-2 text-sm font-semibold text-litrec-on-primary shadow-sm hover:bg-litrec-primary-strong focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
+                >
+                    Verify delivery
+                </button>
+            {% endif %}
+
+            {% if 'receiveLine' in detail.allowedTransitions %}
+                <p class="text-sm text-litrec-text-muted">
+                    Use the receive form on each open line above to record incoming stock.
+                </p>
+            {% endif %}
+        </div>
+    {% endif %}
+</section>
