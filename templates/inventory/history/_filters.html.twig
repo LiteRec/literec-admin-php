@@ -1,0 +1,91 @@
+{# Filter form for the LRA-88 stock movement history page.
+   Expects:
+     - itemId:      string  The inventory item id (UUID v7)
+     - kindCases:   list<StockMovementKind>
+     - reasonCases: list<StockMovementReason>
+   HTMX submits any field change to the partial endpoint and swaps the
+   result into #movements; the form's submit button is sr-only so
+   keyboard users keep a fallback if JS is off. #}
+{% set q = app.request.query %}
+<form
+    hx-get="{{ path('inventory_item_history_movements', { itemId: itemId }) }}"
+    hx-target="#movements"
+    hx-swap="innerHTML"
+    hx-push-url="true"
+    hx-trigger="input changed delay:300ms, change"
+    aria-label="Filter stock movements"
+    class="rounded-card border border-litrec-border bg-litrec-surface p-4 shadow-card"
+>
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div>
+            <label for="history-filter-dateFrom" class="block text-sm font-medium text-litrec-text">From</label>
+            <input
+                type="date"
+                id="history-filter-dateFrom"
+                name="dateFrom"
+                value="{{ q.get('dateFrom', '') }}"
+                class="mt-1 block w-full rounded-md border border-litrec-border bg-litrec-surface px-3 py-2 text-litrec-text focus:border-litrec-primary focus:outline-none focus:ring-1 focus:ring-litrec-primary"
+            >
+        </div>
+
+        <div>
+            <label for="history-filter-dateTo" class="block text-sm font-medium text-litrec-text">To</label>
+            <input
+                type="date"
+                id="history-filter-dateTo"
+                name="dateTo"
+                value="{{ q.get('dateTo', '') }}"
+                class="mt-1 block w-full rounded-md border border-litrec-border bg-litrec-surface px-3 py-2 text-litrec-text focus:border-litrec-primary focus:outline-none focus:ring-1 focus:ring-litrec-primary"
+            >
+        </div>
+
+        <div>
+            <label for="history-filter-facilityCode" class="block text-sm font-medium text-litrec-text">Facility code</label>
+            <input
+                type="text"
+                id="history-filter-facilityCode"
+                name="facilityCode"
+                value="{{ q.get('facilityCode', '') }}"
+                autocomplete="off"
+                class="mt-1 block w-full rounded-md border border-litrec-border bg-litrec-surface px-3 py-2 text-litrec-text focus:border-litrec-primary focus:outline-none focus:ring-1 focus:ring-litrec-primary"
+            >
+        </div>
+
+        <div>
+            <label for="history-filter-kind" class="block text-sm font-medium text-litrec-text">Kind</label>
+            <select
+                id="history-filter-kind"
+                name="kind"
+                class="mt-1 block w-full rounded-md border border-litrec-border bg-litrec-surface px-3 py-2 text-litrec-text focus:border-litrec-primary focus:outline-none focus:ring-1 focus:ring-litrec-primary"
+            >
+                {% set currentKind = q.get('kind', '') %}
+                <option value="" {% if currentKind == '' %}selected{% endif %}>All kinds</option>
+                {% for case in kindCases %}
+                    <option value="{{ case.value }}" {% if currentKind == case.value %}selected{% endif %}>{{ case.label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div>
+            <label for="history-filter-reason" class="block text-sm font-medium text-litrec-text">Reason</label>
+            <select
+                id="history-filter-reason"
+                name="reason"
+                class="mt-1 block w-full rounded-md border border-litrec-border bg-litrec-surface px-3 py-2 text-litrec-text focus:border-litrec-primary focus:outline-none focus:ring-1 focus:ring-litrec-primary"
+            >
+                {% set currentReason = q.get('reason', '') %}
+                <option value="" {% if currentReason == '' %}selected{% endif %}>All reasons</option>
+                {% for case in reasonCases %}
+                    <option value="{{ case.value }}" {% if currentReason == case.value %}selected{% endif %}>{{ case.value }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    {# Preserve pagination state when filters change. #}
+    <input type="hidden" name="page" value="{{ q.get('page', '') }}">
+    <input type="hidden" name="pageSize" value="{{ q.get('pageSize', '') }}">
+
+    {# Keyboard-accessible fallback; HTMX fires on change so this is hidden. #}
+    <button type="submit" class="sr-only">Apply filters</button>
+</form>

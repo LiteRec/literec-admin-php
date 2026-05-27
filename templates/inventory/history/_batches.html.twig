@@ -1,0 +1,72 @@
+{# FIFO batch panel for the LRA-88 history page.
+   Expects:
+     - detail: InventoryItemDetailView
+     - itemId: string (UUID v7) #}
+<section
+    role="region"
+    aria-labelledby="batch-panel-heading"
+    data-testid="history-batch-panel-section"
+    class="space-y-6"
+>
+    <h2 id="batch-panel-heading" class="text-lg font-semibold text-litrec-text">FIFO batches</h2>
+
+    {% if detail.facilityStockBlocks is empty %}
+        {% include 'components/_empty_state.html.twig' with {
+            title: 'No batches',
+            message: 'This item has no recorded stock batches.',
+        } only %}
+    {% else %}
+        {% for block in detail.facilityStockBlocks %}
+            <div class="rounded-card border border-litrec-border bg-litrec-surface p-4 shadow-card">
+                <header class="mb-3 flex items-center justify-between">
+                    <h3 class="text-base font-semibold text-litrec-text" data-testid="history-batch-facility-{{ block.facilityCode }}">
+                        Facility {{ block.facilityCode }}
+                    </h3>
+                    <span class="text-sm text-litrec-text-muted">
+                        On hand: <strong class="text-litrec-text">{{ block.totalOnHandUnits }}</strong>
+                    </span>
+                </header>
+
+                {% if block.batches is empty %}
+                    <p class="text-sm text-litrec-text-muted">No batches at this facility.</p>
+                {% else %}
+                    <table class="min-w-full divide-y divide-litrec-border text-sm">
+                        <thead class="bg-litrec-bg-muted text-left text-xs font-semibold uppercase tracking-wider text-litrec-text-muted">
+                            <tr>
+                                <th scope="col" class="px-3 py-2">Received</th>
+                                <th scope="col" class="px-3 py-2">Age</th>
+                                <th scope="col" class="px-3 py-2 text-right">Remaining</th>
+                                <th scope="col" class="px-3 py-2 text-right">Original</th>
+                                <th scope="col" class="px-3 py-2 text-right">Cost/unit (¢)</th>
+                                <th scope="col" class="px-3 py-2">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-litrec-border">
+                            {% for batch in block.batches %}
+                                {% set ageDays = (date('now').timestamp - batch.receivedAt.timestamp) // 86400 %}
+                                <tr data-testid="history-batch-row-{{ batch.stockBatchId }}">
+                                    <td class="whitespace-nowrap px-3 py-2 text-litrec-text-muted">{{ batch.receivedAt|date('Y-m-d') }}</td>
+                                    <td class="whitespace-nowrap px-3 py-2 text-litrec-text-muted">
+                                        {% if ageDays < 1 %}today{% elseif ageDays < 7 %}{{ ageDays }}d{% elseif ageDays < 60 %}{{ (ageDays // 7) }}w{% else %}{{ (ageDays // 30) }}mo{% endif %}
+                                    </td>
+                                    <td class="whitespace-nowrap px-3 py-2 text-right font-mono text-litrec-text">{{ batch.remainingQuantityUnits }}</td>
+                                    <td class="whitespace-nowrap px-3 py-2 text-right font-mono text-litrec-text-muted">{{ batch.originalQuantityUnits }}</td>
+                                    <td class="whitespace-nowrap px-3 py-2 text-right font-mono text-litrec-text-muted">{{ batch.costPerUnitCents }}</td>
+                                    <td class="whitespace-nowrap px-3 py-2">
+                                        {% if loop.first and batch.remainingQuantityUnits > 0 %}
+                                            <span class="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-800" data-testid="history-batch-next-to-consume">Next to consume</span>
+                                        {% elseif batch.remainingQuantityUnits == 0 %}
+                                            <span class="inline-flex items-center rounded-full bg-gray-200 px-2 py-0.5 text-xs font-semibold text-gray-700">Depleted</span>
+                                        {% else %}
+                                            <span class="text-xs text-litrec-text-muted">—</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% endif %}
+            </div>
+        {% endfor %}
+    {% endif %}
+</section>

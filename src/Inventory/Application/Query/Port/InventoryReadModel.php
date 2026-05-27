@@ -28,6 +28,22 @@ interface InventoryReadModel
     public function stockMovements(GetStockMovementHistory $criteria): StockMovementPage;
 
     /**
+     * Streams the full filtered movement set (no pagination) as CSV
+     * rows for the LRA-88 export. The yielded value per iteration is
+     * a `list<string>` of pre-formatted scalar fields (no header row;
+     * the controller emits the header itself).
+     *
+     * Implementations MUST iterate the underlying result set in bounded
+     * chunks so the export does not buffer the entire ledger into
+     * memory. The {@see GetStockMovementHistory::$pageSize} on the
+     * criteria DTO is ignored — streaming uses its own internal chunk
+     * size suited to server-side cursors.
+     *
+     * @return \Generator<int, list<string>, mixed, void>
+     */
+    public function streamStockMovements(GetStockMovementHistory $criteria): \Generator;
+
+    /**
      * @return list<LowStockAlertView>
      */
     public function lowStockAlerts(GetLowStockAlerts $criteria): array;
