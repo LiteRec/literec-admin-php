@@ -1,0 +1,59 @@
+{# Inventory Item form partial (LRA-86). Shared by both the Create and
+   Edit dialogs — the action URL and submit label are passed in by the
+   controller so the same markup serves both flows. #}
+<form
+    id="inventory-item-form"
+    method="post"
+    action="{{ formAction }}"
+    hx-post="{{ formAction }}"
+    hx-target="closest .modal-root"
+    hx-swap="outerHTML"
+    novalidate
+>
+    {% if form.vars.errors|length > 0 %}
+        <div
+            role="alert"
+            data-testid="form-error"
+            class="mb-4 rounded-md border border-danger/30 bg-danger/10 p-3 text-sm font-semibold text-danger"
+        >
+            {{ form_errors(form) }}
+        </div>
+    {% endif %}
+
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {{ form_row(form.name,         { attr: { class: 'litrec-input' } }) }}
+        {{ form_row(form.code,         { attr: { class: 'litrec-input' } }) }}
+        {{ form_row(form.kind,         { attr: { class: 'litrec-input' } }) }}
+        {{ form_row(form.vendorId,     { attr: { class: 'litrec-input' } }) }}
+        {{ form_row(form.posColorHex,  { attr: { class: 'litrec-input', type: 'color' } }) }}
+        {{ form_row(form.ledgerAccount, { attr: { class: 'litrec-input' } }) }}
+        {{ form_row(form.feeAmountCents, { attr: { class: 'litrec-input' } }) }}
+        {{ form_row(form.reorderThresholdUnits, { attr: { class: 'litrec-input' } }) }}
+    </div>
+
+    <div class="mt-4 grid grid-cols-2 gap-2">
+        {{ form_row(form.taxApply) }}
+        {{ form_row(form.taxIncludedInFee) }}
+        {{ form_row(form.trackInventory) }}
+        {{ form_row(form.rentable) }}
+    </div>
+
+    {{ form_widget(form._token) }}
+
+    <div class="mt-6 flex items-center justify-end gap-2">
+        <button
+            type="button"
+            class="rounded-md border border-litrec-border bg-litrec-surface px-4 py-2 text-sm font-semibold text-litrec-text hover:bg-litrec-bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
+            @click="dismiss()"
+        >
+            Cancel
+        </button>
+        <button
+            type="submit"
+            data-testid="inventory-item-submit"
+            class="rounded-md bg-litrec-primary px-4 py-2 text-sm font-semibold text-litrec-on-primary shadow-sm hover:bg-litrec-primary-strong focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
+        >
+            {{ submitLabel }}
+        </button>
+    </div>
+</form>

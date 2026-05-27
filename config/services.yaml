@@ -178,6 +178,20 @@ services:
             $queryBus: '@query.bus'
         tags: ['controller.service_arguments']
 
+    # Wire the InventoryItemFormController (LRA-86) onto both the command
+    # bus (RegisterInventoryItem, UpdateInventoryItemSettings, and the
+    # Catalog Listing update DTOs) and the query bus (GetInventoryItemDetail,
+    # GetListingDetail for prefilling the edit form). The BarcodeRenderer
+    # port is autowired by interface to the Code128 SVG adapter.
+    App\Inventory\Infrastructure\Http\Controller\InventoryItemFormController:
+        arguments:
+            $commandBus: '@command.bus'
+            $queryBus: '@query.bus'
+        tags: ['controller.service_arguments']
+
+    # Bind the BarcodeRenderer domain port to its CODE128 SVG adapter.
+    App\Inventory\Domain\Barcode\BarcodeRenderer: '@App\Inventory\Infrastructure\Barcode\Code128BarcodeRenderer'
+
     # Wire the AddHouseholdController (LRA-40) onto the command bus so its
     # POST actions can dispatch RegisterHousehold and AddMemberToHousehold.
     App\Households\Infrastructure\Http\Controller\AddHouseholdController:

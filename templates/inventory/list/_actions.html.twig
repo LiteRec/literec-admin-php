@@ -7,7 +7,7 @@
         <button
             type="button"
             data-testid="open-new-inventory-item"
-            hx-get="/admin/inventory/new"
+            hx-get="{{ path('inventory_item_new') }}"
             hx-target="body"
             hx-swap="beforeend"
             aria-haspopup="dialog"
