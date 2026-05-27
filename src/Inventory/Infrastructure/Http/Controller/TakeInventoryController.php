@@ -131,7 +131,19 @@ final class TakeInventoryController extends AbstractController
         // initial collection would reject every posted row as an
         // "extra field". The bound submission then overwrites the
         // pre-populated values for the rows the operator changed.
-        $form = $this->buildPopulatedForm($facility);
+        // Capture an authoritative server snapshot BEFORE binding the
+        // submission so the security-sensitive fields (itemId, expected,
+        // listingCode) can never be tampered with via hidden HTML
+        // inputs. We rebuild the form from the snapshot, bind the
+        // submission (which lets the operator-supplied actual / reason /
+        // reasonNote land on the DTO), then immediately overwrite each
+        // line's itemId / expected / listingCode back to the snapshot
+        // values matched by row index. Any row whose index falls
+        // outside the snapshot is dropped — that row didn't exist
+        // server-side, so it cannot legitimately come from a real
+        // submission.
+        $snapshot = $this->runListInventory($facility);
+        $form = $this->createForm(TakeInventoryFormType::class, $this->seedInputFrom($snapshot));
         $form->handleRequest($request);
 
         if (!$form->isSubmitted() || !$form->isValid()) {
@@ -140,6 +152,7 @@ final class TakeInventoryController extends AbstractController
 
         /** @var TakeInventoryInput $input */
         $input = $form->getData();
+        $this->overwriteWithSnapshot($input, $snapshot);
 
         // Atomic validation pass: every variance row must carry a reason.
         $atomicallyRejected = $this->validateVariancesAtomically($form, $input);
@@ -187,8 +200,11 @@ final class TakeInventoryController extends AbstractController
      */
     private function buildPopulatedForm(string $facility): FormInterface
     {
-        $page = $this->runListInventory($facility);
+        return $this->createForm(TakeInventoryFormType::class, $this->seedInputFrom($this->runListInventory($facility)));
+    }
 
+    private function seedInputFrom(InventoryListPage $page): TakeInventoryInput
+    {
         $input = new TakeInventoryInput();
         foreach ($page->items as $item) {
             $line = new TakeInventoryLineInput();
@@ -200,8 +216,29 @@ final class TakeInventoryController extends AbstractController
             $line->reasonNote = null;
             $input->lines[] = $line;
         }
+        return $input;
+    }
 
-        return $this->createForm(TakeInventoryFormType::class, $input);
+    /**
+     * Re-apply the server snapshot to the security-sensitive fields
+     * on every submitted line, by row index. Drops any row whose
+     * index falls outside the snapshot (the row didn't exist
+     * server-side so it cannot have come from a real form submission).
+     */
+    private function overwriteWithSnapshot(TakeInventoryInput $input, InventoryListPage $snapshot): void
+    {
+        $items = $snapshot->items;
+        $trusted = [];
+        foreach ($input->lines as $index => $line) {
+            if (!isset($items[$index])) {
+                continue;
+            }
+            $line->itemId = $items[$index]->inventoryItemId;
+            $line->listingCode = $items[$index]->listingCode;
+            $line->expected = $items[$index]->totalQuantityOnHand;
+            $trusted[] = $line;
+        }
+        $input->lines = $trusted;
     }
 
     private function runListInventory(string $facility): InventoryListPage

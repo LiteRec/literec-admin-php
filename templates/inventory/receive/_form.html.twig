@@ -1,13 +1,16 @@
 {# Receive Stock form partial (LRA-87). Posts to the controller's
    submit route via HTMX, swaps the response back into the surrounding
-   .modal-root container, and lets the dialog's afterOnLoad listener
-   detect the success HX-Trigger to dismiss the modal. #}
+   #receive-stock-modal-wrapper so the server's full _dialog.html.twig
+   reply (which is itself rooted at #receive-stock-modal-wrapper)
+   replaces the existing wrapper rather than nesting inside it. Lets
+   the dialog's afterOnLoad listener detect the success HX-Trigger to
+   dismiss the modal. #}
 <form
     id="receive-stock-form"
     method="post"
     action="{{ formAction }}"
     hx-post="{{ formAction }}"
-    hx-target="closest .modal-root"
+    hx-target="closest #receive-stock-modal-wrapper"
     hx-swap="outerHTML"
     novalidate
 >
