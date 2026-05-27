@@ -20,29 +20,11 @@ use Doctrine\Migrations\AbstractMigration;
  */
 final class Version20260528030000 extends AbstractMigration
 {
-    /**
-     * @return list<string>
-     */
-    private static function forwardStatements(): array
-    {
-        return [
-            'ALTER TABLE inventory_items '
-                . 'ADD COLUMN version INTEGER NOT NULL DEFAULT 0',
-            'ALTER TABLE inventory_purchase_orders '
-                . 'ADD COLUMN version INTEGER NOT NULL DEFAULT 0',
-        ];
-    }
-
-    /**
-     * @return list<string>
-     */
-    private static function reverseStatements(): array
-    {
-        return [
-            'ALTER TABLE inventory_items DROP COLUMN IF EXISTS version',
-            'ALTER TABLE inventory_purchase_orders DROP COLUMN IF EXISTS version',
-        ];
-    }
+    /** @var list<string> Tables receiving the version column. */
+    private const array TABLES = [
+        'inventory_items',
+        'inventory_purchase_orders',
+    ];
 
     public function getDescription(): string
     {
@@ -51,25 +33,31 @@ final class Version20260528030000 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
-        $this->guardPostgres();
-        foreach (self::forwardStatements() as $sql) {
-            $this->addSql($sql);
+        $this->abortIf(
+            ! $this->connection->getDatabasePlatform() instanceof PostgreSQLPlatform,
+            'LRA-99 requires PostgreSQL.',
+        );
+
+        foreach (self::TABLES as $table) {
+            $this->addSql(sprintf(
+                'ALTER TABLE %s ADD COLUMN version INTEGER NOT NULL DEFAULT 0',
+                $table,
+            ));
         }
     }
 
     public function down(Schema $schema): void
     {
-        $this->guardPostgres();
-        foreach (self::reverseStatements() as $sql) {
-            $this->addSql($sql);
-        }
-    }
-
-    private function guardPostgres(): void
-    {
         $this->abortIf(
             ! $this->connection->getDatabasePlatform() instanceof PostgreSQLPlatform,
-            'LRA-99 migration requires PostgreSQL.',
+            'LRA-99 requires PostgreSQL.',
         );
+
+        foreach (array_reverse(self::TABLES) as $table) {
+            $this->addSql(sprintf(
+                'ALTER TABLE %s DROP COLUMN IF EXISTS version',
+                $table,
+            ));
+        }
     }
 }
