@@ -26,12 +26,17 @@
         {{ form_row(form.colorHex, { attr: { class: 'litrec-input', type: 'color' } }) }}
     </div>
 
-    <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {{ form_row(form.scope, { attr: { class: 'litrec-input', 'x-model': 'scope' } }) }}
-        <div x-show="scope === 'facility'" x-cloak>
-            {{ form_row(form.facilityCode, { attr: { class: 'litrec-input' } }) }}
+    {# Scope is fixed at creation time per the current domain contract;
+       hide the controls in edit mode so the user can't enter values
+       that the update path would silently drop. #}
+    {% if mode == 'create' %}
+        <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {{ form_row(form.scope, { attr: { class: 'litrec-input', 'x-model': 'scope' } }) }}
+            <div x-show="scope === 'facility'" x-cloak>
+                {{ form_row(form.facilityCode, { attr: { class: 'litrec-input' } }) }}
+            </div>
         </div>
-    </div>
+    {% endif %}
 
     {{ form_widget(form._token) }}
 

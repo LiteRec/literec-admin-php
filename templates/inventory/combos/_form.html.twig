@@ -41,9 +41,11 @@
         </div>
     {% endif %}
 
-    <div class="grid grid-cols-1 gap-4">
-        {{ form_row(form.parentListingId, { attr: { class: 'litrec-input' } }) }}
-    </div>
+    {% if mode == 'create' %}
+        <div class="grid grid-cols-1 gap-4">
+            {{ form_row(form.parentListingId, { attr: { class: 'litrec-input' } }) }}
+        </div>
+    {% endif %}
 
     <fieldset class="mt-4">
         <legend class="mb-2 text-sm font-semibold text-litrec-text">Components</legend>
@@ -68,6 +70,13 @@
             {% for component in form.components %}
                 <div class="combo-component-row mb-2 grid grid-cols-2 gap-2 sm:grid-cols-[3fr,1fr,auto] sm:items-end">
                     {{ form_widget(component) }}
+                    <button
+                        type="button"
+                        class="rounded-md border border-litrec-border bg-litrec-surface px-2 py-1 text-sm font-semibold text-litrec-text hover:bg-litrec-bg-muted"
+                        @click="$el.closest('.combo-component-row').remove()"
+                    >
+                        Remove
+                    </button>
                 </div>
             {% endfor %}
         </div>

@@ -113,6 +113,10 @@ final class ItemLinkFormControllerTest extends WebTestCase
         $client->submit($form);
 
         self::assertResponseStatusCodeSame(422);
+        // Symfony GreaterThanOrEqual(0) renders the violation message
+        // inline next to the input (field-level, not form-level).
+        $body = (string) $client->getResponse()->getContent();
+        self::assertStringContainsString('should be greater than or equal', $body);
         self::assertSame($beforeLinks, $this->countRows('inventory_item_links'));
     }
 

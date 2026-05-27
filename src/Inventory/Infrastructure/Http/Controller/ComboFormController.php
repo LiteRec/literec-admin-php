@@ -85,12 +85,13 @@ final class ComboFormController extends AbstractController
     #[IsGranted('manage_inventory')]
     public function newForm(): Response
     {
+        $mode = self::MODE_CREATE;
         $input = new ComboFormInput();
         // Seed one empty component row so the operator sees the grid
         // header without having to click "Add component" first.
         $input->components = [new ComboComponentInput()];
 
-        $form = $this->createForm(ComboFormType::class, $input);
+        $form = $this->createForm(ComboFormType::class, $input, ['mode' => $mode]);
 
         return $this->render(self::DIALOG_TEMPLATE, [
             'form' => $form->createView(),
@@ -105,8 +106,9 @@ final class ComboFormController extends AbstractController
     #[IsGranted('manage_inventory')]
     public function create(Request $request): Response
     {
+        $mode = self::MODE_CREATE;
         $input = new ComboFormInput();
-        $form = $this->createForm(ComboFormType::class, $input);
+        $form = $this->createForm(ComboFormType::class, $input, ['mode' => $mode]);
         $form->handleRequest($request);
 
         if (!$form->isSubmitted() || !$form->isValid()) {
@@ -163,13 +165,14 @@ final class ComboFormController extends AbstractController
     #[IsGranted('manage_inventory')]
     public function editForm(string $comboId): Response
     {
+        $mode = self::MODE_EDIT;
         // No GetCombo read query exists yet; render an empty edit form
         // and let the operator re-enter components. The update handler
         // replaces the persisted list atomically.
         $input = new ComboFormInput();
         $input->components = [new ComboComponentInput()];
 
-        $form = $this->createForm(ComboFormType::class, $input);
+        $form = $this->createForm(ComboFormType::class, $input, ['mode' => $mode]);
 
         return $this->render(self::DIALOG_TEMPLATE, [
             'form' => $form->createView(),
@@ -189,8 +192,9 @@ final class ComboFormController extends AbstractController
     #[IsGranted('manage_inventory')]
     public function update(string $comboId, Request $request): Response
     {
+        $mode = self::MODE_EDIT;
         $input = new ComboFormInput();
-        $form = $this->createForm(ComboFormType::class, $input);
+        $form = $this->createForm(ComboFormType::class, $input, ['mode' => $mode]);
         $form->handleRequest($request);
 
         if (!$form->isSubmitted() || !$form->isValid()) {
