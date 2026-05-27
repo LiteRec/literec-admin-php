@@ -17,6 +17,8 @@ use App\Inventory\Domain\ValueObject\ComboComponent;
 use App\Inventory\Domain\ValueObject\ComboId;
 use App\Inventory\Domain\ValueObject\InventoryItemId;
 use DateTimeImmutable;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Psr\Clock\ClockInterface;
 
 /**
@@ -51,15 +53,20 @@ final class Combo
 
     private ComboId $id;
     private ListingId $listingId;
-    /** @var list<ComboComponent> */
-    private array $components;
+    /** @var Collection<int, ComboComponentEntity> */
+    private Collection $components;
     private bool $archived;
     private DateTimeImmutable $definedAt;
     private DateTimeImmutable $updatedAt;
 
     private function __construct()
     {
-        // Intentionally empty: aggregate creation goes through self::define().
+        // Doctrine instantiates the aggregate through reflection without
+        // invoking define(); initialise the components collection here
+        // so the empty case (a hydrated combo with no rows yet) does
+        // not leave an undefined property and so the named constructor
+        // can immediately mutate the collection rather than re-create it.
+        $this->components = new ArrayCollection();
     }
 
     /**
@@ -83,9 +90,16 @@ final class Combo
         $combo->definedAt = $clock->now();
         $combo->updatedAt = $combo->definedAt;
 
-        $combo->components = self::validatedComponents($id, $components, $resolver);
+        $validated = self::validatedComponents($id, $components, $resolver);
+        foreach ($validated as $vo) {
+            $combo->components->add(new ComboComponentEntity(
+                $combo,
+                $vo->componentItemId,
+                $vo->quantityPerCombo,
+            ));
+        }
 
-        $combo->recordThat(new ComboDefined($id, $listingId, $combo->components, $combo->definedAt));
+        $combo->recordThat(new ComboDefined($id, $listingId, $validated, $combo->definedAt));
 
         return $combo;
     }
@@ -105,7 +119,10 @@ final class Combo
      */
     public function components(): array
     {
-        return $this->components;
+        return array_values(array_map(
+            static fn (ComboComponentEntity $entity): ComboComponent => $entity->toValueObject(),
+            $this->components->toArray(),
+        ));
     }
 
     public function isArchived(): bool
@@ -139,11 +156,18 @@ final class Combo
 
         $next = self::validatedComponents($this->id, $components, $resolver);
 
-        if (self::componentsEqual($this->components, $next)) {
+        if (self::componentsEqual($this->components(), $next)) {
             return;
         }
 
-        $this->components = $next;
+        $this->components->clear();
+        foreach ($next as $vo) {
+            $this->components->add(new ComboComponentEntity(
+                $this,
+                $vo->componentItemId,
+                $vo->quantityPerCombo,
+            ));
+        }
         $this->updatedAt = $clock->now();
         $this->recordThat(new ComboComponentsUpdated($this->id, $next, $this->updatedAt));
     }
