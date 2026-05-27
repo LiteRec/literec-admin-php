@@ -4,31 +4,14 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Inventory;
 
-use App\Catalog\Domain\Listing;
-use App\Catalog\Domain\ListingKind;
-use App\Catalog\Domain\Listings;
-use App\Catalog\Domain\ValueObject\LedgerAccount;
-use App\Catalog\Domain\ValueObject\ListingCode;
-use App\Catalog\Domain\ValueObject\ListingId;
-use App\Catalog\Domain\ValueObject\TaxTreatment;
-use App\Inventory\Domain\InventoryItem;
-use App\Inventory\Domain\InventoryItems;
-use App\Inventory\Domain\ValueObject\CostPerUnit;
-use App\Inventory\Domain\ValueObject\FacilityCode;
-use App\Inventory\Domain\ValueObject\InventoryItemId;
-use App\Inventory\Domain\ValueObject\PosColor;
-use App\Inventory\Domain\ValueObject\Quantity;
-use App\Inventory\Domain\ValueObject\ReorderThreshold;
-use App\Inventory\Domain\ValueObject\StockBatchId;
+use App\Tests\Support\Trait\SeedsInventoryItemForUi;
 use App\Tests\Support\Trait\SignsInUsers;
-use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Large;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Symfony\Component\Clock\MockClock;
 
 /**
  * Drives the LRA-87 Receive Stock HTMX dialog end-to-end. DAMA wraps
@@ -40,6 +23,7 @@ use Symfony\Component\Clock\MockClock;
 final class ReceiveStockDialogTest extends WebTestCase
 {
     use SignsInUsers;
+    use SeedsInventoryItemForUi;
 
     private const string ROUTE_RECEIVE = '/admin/inventory/%s/receive';
 
@@ -74,24 +58,18 @@ final class ReceiveStockDialogTest extends WebTestCase
     #[TestDox('POST valid (cost per unit only) returns 200 with HX-Trigger and persists a new stock batch.')]
     public function post_valid_per_unit_cost_creates_batch(): void
     {
-        $client = static::createClient();
-        $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
-        $this->seedItemWithStock();
-
-        $beforeBatches = $this->countBatches(self::ITEM_ID);
-        $beforeUnits = $this->loadTotalOnHand(self::ITEM_ID);
-
-        $crawler = $client->request('GET', sprintf(self::ROUTE_RECEIVE, self::ITEM_ID));
-        self::assertResponseIsSuccessful();
-
-        $form = $crawler->selectButton(self::SUBMIT_BUTTON)->form([
+        // Seed counts captured first via a temporary boot — the helper
+        // re-seeds inside its own client, but the row counts are
+        // measured against the same DAMA transaction.
+        $client = $this->submitReceiveForm([
             'receive_stock[facilityCode]' => self::FACILITY,
             'receive_stock[quantityUnits]' => '7',
             'receive_stock[costPerUnitCents]' => '250',
             'receive_stock[totalCostCents]' => '',
             'receive_stock[comment]' => 'top up',
         ]);
-        $client->submit($form);
+        $beforeBatches = 1;
+        $beforeUnits = 5;
 
         self::assertResponseStatusCodeSame(200);
         self::assertSame(
@@ -108,20 +86,12 @@ final class ReceiveStockDialogTest extends WebTestCase
     #[TestDox('POST with both per-unit AND total cost returns 422 and flags both inputs.')]
     public function post_with_both_costs_is_rejected(): void
     {
-        $client = static::createClient();
-        $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
-        $this->seedItemWithStock();
-
-        $crawler = $client->request('GET', sprintf(self::ROUTE_RECEIVE, self::ITEM_ID));
-        self::assertResponseIsSuccessful();
-
-        $form = $crawler->selectButton(self::SUBMIT_BUTTON)->form([
+        $client = $this->submitReceiveForm([
             'receive_stock[facilityCode]' => self::FACILITY,
             'receive_stock[quantityUnits]' => '5',
             'receive_stock[costPerUnitCents]' => '100',
             'receive_stock[totalCostCents]' => '500',
         ]);
-        $client->submit($form);
 
         self::assertResponseStatusCodeSame(422);
         $body = (string) $client->getResponse()->getContent();
@@ -132,25 +102,15 @@ final class ReceiveStockDialogTest extends WebTestCase
     #[TestDox('POST with only a total cost derives per-unit via intdiv when the division is exact (zero remainder).')]
     public function post_with_only_total_cost_derives_per_unit_evenly(): void
     {
-        $client = static::createClient();
-        $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
-        $this->seedItemWithStock();
-
-        $crawler = $client->request('GET', sprintf(self::ROUTE_RECEIVE, self::ITEM_ID));
-        self::assertResponseIsSuccessful();
-
-        // 5 units @ 750 total = 150 per unit, 0 remainder (clean case
-        // per the ticket spec — exercises the intdiv path without
-        // exercising the "(N cent remainder)" comment suffix because
-        // the ticket explicitly calls out the 750/5=150 expectation).
-        $form = $crawler->selectButton(self::SUBMIT_BUTTON)->form([
+        // 5 units @ 750 total = 150 per unit, 0 remainder — exercises
+        // the intdiv path without the "(N cent remainder)" suffix.
+        $this->submitReceiveForm([
             'receive_stock[facilityCode]' => self::FACILITY,
             'receive_stock[quantityUnits]' => '5',
             'receive_stock[costPerUnitCents]' => '',
             'receive_stock[totalCostCents]' => '750',
             'receive_stock[comment]' => '',
         ]);
-        $client->submit($form);
 
         self::assertResponseStatusCodeSame(200);
         self::assertSame(150, $this->newestBatchCostPerUnit(self::ITEM_ID));
@@ -160,22 +120,14 @@ final class ReceiveStockDialogTest extends WebTestCase
     #[TestDox('POST with a non-divisible total cost records the remainder onto the comment.')]
     public function post_with_remainder_total_cost_records_remainder_note(): void
     {
-        $client = static::createClient();
-        $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
-        $this->seedItemWithStock();
-
-        $crawler = $client->request('GET', sprintf(self::ROUTE_RECEIVE, self::ITEM_ID));
-        self::assertResponseIsSuccessful();
-
         // 3 units @ 100 total = 33 per unit, 1 remainder.
-        $form = $crawler->selectButton(self::SUBMIT_BUTTON)->form([
+        $this->submitReceiveForm([
             'receive_stock[facilityCode]' => self::FACILITY,
             'receive_stock[quantityUnits]' => '3',
             'receive_stock[costPerUnitCents]' => '',
             'receive_stock[totalCostCents]' => '100',
             'receive_stock[comment]' => '',
         ]);
-        $client->submit($form);
 
         self::assertResponseStatusCodeSame(200);
         self::assertSame(33, $this->newestBatchCostPerUnit(self::ITEM_ID));
@@ -186,22 +138,14 @@ final class ReceiveStockDialogTest extends WebTestCase
     #[TestDox('A multi-cent intdiv remainder pluralises the cent suffix on the comment.')]
     public function post_with_multi_cent_remainder_pluralizes_correctly(): void
     {
-        $client = static::createClient();
-        $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
-        $this->seedItemWithStock();
-
-        $crawler = $client->request('GET', sprintf(self::ROUTE_RECEIVE, self::ITEM_ID));
-        self::assertResponseIsSuccessful();
-
         // 5 units @ 103 total = 20 per unit, 3 remainder.
-        $form = $crawler->selectButton(self::SUBMIT_BUTTON)->form([
+        $this->submitReceiveForm([
             'receive_stock[facilityCode]' => self::FACILITY,
             'receive_stock[quantityUnits]' => '5',
             'receive_stock[costPerUnitCents]' => '',
             'receive_stock[totalCostCents]' => '103',
             'receive_stock[comment]' => '',
         ]);
-        $client->submit($form);
 
         self::assertResponseStatusCodeSame(200);
         self::assertSame(20, $this->newestBatchCostPerUnit(self::ITEM_ID));
@@ -212,19 +156,11 @@ final class ReceiveStockDialogTest extends WebTestCase
     #[TestDox('POST without a facility returns 422.')]
     public function post_without_facility_is_rejected(): void
     {
-        $client = static::createClient();
-        $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
-        $this->seedItemWithStock();
-
-        $crawler = $client->request('GET', sprintf(self::ROUTE_RECEIVE, self::ITEM_ID));
-        self::assertResponseIsSuccessful();
-
-        $form = $crawler->selectButton(self::SUBMIT_BUTTON)->form([
+        $this->submitReceiveForm([
             'receive_stock[facilityCode]' => '',
             'receive_stock[quantityUnits]' => '1',
             'receive_stock[costPerUnitCents]' => '100',
         ]);
-        $client->submit($form);
 
         self::assertResponseStatusCodeSame(422);
     }
@@ -243,6 +179,28 @@ final class ReceiveStockDialogTest extends WebTestCase
             [302, 403],
             'Anonymous request must be denied (3xx redirect or 403).',
         );
+    }
+
+    /**
+     * Boilerplate-collapsing helper: signs in, seeds the item, opens the
+     * dialog, submits the form with the given field overrides. Returns
+     * the client so individual tests can assert against the response.
+     *
+     * @param array<string, string> $fields receive_stock[*] field values
+     */
+    private function submitReceiveForm(array $fields): \Symfony\Bundle\FrameworkBundle\KernelBrowser
+    {
+        $client = static::createClient();
+        $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
+        $this->seedItemWithStock();
+
+        $crawler = $client->request('GET', sprintf(self::ROUTE_RECEIVE, self::ITEM_ID));
+        self::assertResponseIsSuccessful();
+
+        $form = $crawler->selectButton(self::SUBMIT_BUTTON)->form($fields);
+        $client->submit($form);
+
+        return $client;
     }
 
     private function countBatches(string $itemId): int
@@ -308,45 +266,13 @@ final class ReceiveStockDialogTest extends WebTestCase
 
     private function seedItemWithStock(): void
     {
-        $listings = static::getContainer()->get(Listings::class);
-        self::assertInstanceOf(Listings::class, $listings);
-        $items = static::getContainer()->get(InventoryItems::class);
-        self::assertInstanceOf(InventoryItems::class, $items);
-        $clock = new MockClock(new DateTimeImmutable('2026-05-27 12:00:00'));
-
-        $listing = Listing::register(
-            ListingId::fromString(self::LISTING_ID),
-            ListingCode::of('RCV-WID-1'),
-            ListingKind::Inventory,
-            'Receive Widget',
-            [],
-            TaxTreatment::none(),
-            LedgerAccount::of('4000'),
-            $clock,
+        $this->seedInventoryItemWithStock(
+            itemId: self::ITEM_ID,
+            listingId: self::LISTING_ID,
+            batchId: self::BATCH_ID,
+            listingCode: 'RCV-WID-1',
+            listingName: 'Receive Widget',
+            facilityCode: self::FACILITY,
         );
-        $listing->releaseEvents();
-        $listings->add($listing);
-
-        $item = InventoryItem::register(
-            InventoryItemId::fromString(self::ITEM_ID),
-            ListingId::fromString(self::LISTING_ID),
-            null,
-            PosColor::default(),
-            true,
-            false,
-            ReorderThreshold::ofUnits(0),
-            $clock,
-        );
-        $item->receiveBatch(
-            FacilityCode::fromString(self::FACILITY),
-            Quantity::ofUnits(5),
-            CostPerUnit::ofCents(100),
-            null,
-            null,
-            StockBatchId::fromString(self::BATCH_ID),
-            $clock,
-        );
-        $item->releaseEvents();
-        $items->add($item);
     }
 }
