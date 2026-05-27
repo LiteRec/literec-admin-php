@@ -29,15 +29,19 @@ use DateTimeImmutable;
 interface StockMovementLedger
 {
     /**
-     * Record a consume row (kind=CONSUMED) tied to a transaction id.
+     * Record a consume row (kind=CONSUMED) tied to the originating
+     * LineSold envelope. The idempotency key is the four-tuple
+     * (transaction_id, listing_id, item_id, facility_code) — keying
+     * only on (transaction_id, item_id) would incorrectly skip
+     * legitimate sibling lines that touch the same component.
      *
-     * Implementations MUST let a unique-constraint violation on
-     * (transaction_id, item_id, facility_code) propagate so the
-     * surrounding doctrine_transaction middleware rolls back the
-     * matching consume — silently swallowing the violation would
-     * leave the stock decremented twice under a redelivery race.
-     * Callers that need an idempotent "already-consumed" check
-     * should consult {@see hasConsumedFor()} BEFORE the consume.
+     * Implementations MUST let a unique-constraint violation on the
+     * dedupe index propagate so the surrounding doctrine_transaction
+     * middleware rolls back the matching consume — silently swallowing
+     * the violation would leave the stock decremented twice under a
+     * redelivery race. Callers that need an idempotent
+     * "already-consumed" check should consult {@see hasConsumedFor()}
+     * BEFORE the consume.
      */
     public function recordConsumed(
         InventoryItemId $itemId,
@@ -47,6 +51,7 @@ interface StockMovementLedger
         Quantity $quantity,
         CostPerUnit $costPerUnit,
         string $transactionId,
+        string $listingId,
         DateTimeImmutable $recordedAt,
         ?string $operatorNote = null,
     ): void;
@@ -102,9 +107,12 @@ interface StockMovementLedger
     /**
      * Probe used by the LRA-83 ACL idempotency guard: returns true when
      * the ledger already contains a row for the given consume tuple.
+     * Keyed on the same four-tuple as the dedupe index so the probe
+     * matches what {@see recordConsumed()} enforces.
      */
     public function hasConsumedFor(
         string $transactionId,
+        string $listingId,
         InventoryItemId $itemId,
         FacilityCode $facilityCode,
     ): bool;

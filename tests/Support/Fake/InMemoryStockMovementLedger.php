@@ -21,9 +21,11 @@ use DateTimeImmutable;
  *
  * Idempotency mirror: {@see recordConsumed()} throws a
  * {@see DuplicateConsumeKeyException} on a duplicate
- * (transaction_id, item_id, facility_code) tuple — mirrors the
- * partial unique index in Postgres which raises
- * UniqueConstraintViolationException from DBAL. Callers MUST probe
+ * (transaction_id, listing_id, item_id, facility_code) tuple — mirrors
+ * the partial unique index in Postgres which raises
+ * UniqueConstraintViolationException from DBAL. Collision-safe nested
+ * arrays back the key set so a delimiter character in any tuple
+ * element cannot cause a false duplicate. Callers MUST probe
  * {@see hasConsumedFor()} before consuming if they need an idempotent
  * fast-path that avoids the throw.
  */
@@ -32,7 +34,7 @@ final class InMemoryStockMovementLedger implements StockMovementLedger
     /** @var list<array<string, mixed>> */
     private array $rows = [];
 
-    /** @var array<string, true> */
+    /** @var array<string, array<string, array<string, array<string, true>>>> */
     private array $consumeKeys = [];
 
     public function recordConsumed(
@@ -43,18 +45,22 @@ final class InMemoryStockMovementLedger implements StockMovementLedger
         Quantity $quantity,
         CostPerUnit $costPerUnit,
         string $transactionId,
+        string $listingId,
         DateTimeImmutable $recordedAt,
         ?string $operatorNote = null,
     ): void {
-        $key = $transactionId . '|' . $itemId->value . '|' . $facilityCode->value;
-        if (isset($this->consumeKeys[$key])) {
+        if (isset($this->consumeKeys[$transactionId][$listingId][$itemId->value][$facilityCode->value])) {
             throw new DuplicateConsumeKeyException(sprintf(
-                'InMemoryStockMovementLedger: duplicate consume key %s '
-                . '— mirrors the partial UNIQUE constraint in Postgres.',
-                $key,
+                'InMemoryStockMovementLedger: duplicate consume key '
+                . '(tx=%s, listing=%s, item=%s, facility=%s) — mirrors the '
+                . 'partial UNIQUE constraint in Postgres.',
+                $transactionId,
+                $listingId,
+                $itemId->value,
+                $facilityCode->value,
             ));
         }
-        $this->consumeKeys[$key] = true;
+        $this->consumeKeys[$transactionId][$listingId][$itemId->value][$facilityCode->value] = true;
         $this->record(
             kind: 'CONSUMED',
             itemId: $itemId,
@@ -64,6 +70,7 @@ final class InMemoryStockMovementLedger implements StockMovementLedger
             quantity: $quantity,
             costPerUnit: $costPerUnit,
             transactionId: $transactionId,
+            listingId: $listingId,
             recordedAt: $recordedAt,
             operatorNote: $operatorNote,
         );
@@ -88,6 +95,7 @@ final class InMemoryStockMovementLedger implements StockMovementLedger
             quantity: $quantity,
             costPerUnit: $costPerUnit,
             transactionId: null,
+            listingId: null,
             recordedAt: $recordedAt,
             operatorNote: $operatorNote,
         );
@@ -110,6 +118,7 @@ final class InMemoryStockMovementLedger implements StockMovementLedger
             quantity: $quantity,
             costPerUnit: $costPerUnit,
             transactionId: null,
+            listingId: null,
             recordedAt: $recordedAt,
             operatorNote: null,
         );
@@ -132,6 +141,7 @@ final class InMemoryStockMovementLedger implements StockMovementLedger
             quantity: $quantity,
             costPerUnit: $costPerUnit,
             transactionId: null,
+            listingId: null,
             recordedAt: $recordedAt,
             operatorNote: null,
         );
@@ -154,6 +164,7 @@ final class InMemoryStockMovementLedger implements StockMovementLedger
             quantity: $quantity,
             costPerUnit: $costPerUnit,
             transactionId: null,
+            listingId: null,
             recordedAt: $recordedAt,
             operatorNote: null,
         );
@@ -177,6 +188,7 @@ final class InMemoryStockMovementLedger implements StockMovementLedger
             quantity: $quantity,
             costPerUnit: $costPerUnit,
             transactionId: null,
+            listingId: null,
             recordedAt: $recordedAt,
             operatorNote: $operatorNote,
         );
@@ -184,11 +196,13 @@ final class InMemoryStockMovementLedger implements StockMovementLedger
 
     public function hasConsumedFor(
         string $transactionId,
+        string $listingId,
         InventoryItemId $itemId,
         FacilityCode $facilityCode,
     ): bool {
-        $key = $transactionId . '|' . $itemId->value . '|' . $facilityCode->value;
-        return isset($this->consumeKeys[$key]);
+        return isset(
+            $this->consumeKeys[$transactionId][$listingId][$itemId->value][$facilityCode->value],
+        );
     }
 
     /**
@@ -214,6 +228,7 @@ final class InMemoryStockMovementLedger implements StockMovementLedger
         Quantity $quantity,
         CostPerUnit $costPerUnit,
         ?string $transactionId,
+        ?string $listingId,
         DateTimeImmutable $recordedAt,
         ?string $operatorNote,
     ): void {
@@ -225,9 +240,10 @@ final class InMemoryStockMovementLedger implements StockMovementLedger
             'reason' => $reason->value,
             'quantity' => $quantity->units,
             'cost_per_unit_cents' => $costPerUnit->cents,
-            'transaction_id' => $transactionId,
-            'recorded_at' => $recordedAt,
             'operator_note' => $operatorNote,
+            'transaction_id' => $transactionId,
+            'listing_id' => $listingId,
+            'recorded_at' => $recordedAt,
         ];
     }
 }

@@ -121,6 +121,7 @@ final class CatalogIntegrationListener
             if (
                 $this->movementLedger->hasConsumedFor(
                     $event->transactionId,
+                    $event->listingId,
                     $componentId,
                     $facility,
                 )
@@ -191,6 +192,7 @@ final class CatalogIntegrationListener
                     quantity: $componentQty,
                     costPerUnit: $this->weightedAverageCost($releasedEvents, $componentQty),
                     transactionId: $event->transactionId,
+                    listingId: $event->listingId,
                     recordedAt: $this->clock->now(),
                 );
 
