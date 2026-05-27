@@ -45,7 +45,9 @@ final class ItemLinkFormController extends AbstractController
 
     private const string SUBMIT_LABEL_CREATE = 'Create Link';
 
-    private const string NOT_FOUND_MESSAGE = 'Item link not found.';
+    private const string ITEM_NOT_FOUND_MESSAGE = 'Inventory item not found.';
+
+    private const string LINK_NOT_FOUND_MESSAGE = 'Item link not found.';
 
     private const string GENERIC_SAVE_FAILURE = 'Unable to save item link. Please try again.';
 
@@ -108,7 +110,7 @@ final class ItemLinkFormController extends AbstractController
                 includeUntilIso: $input->includeUntilIso,
             ));
         } catch (InventoryItemNotFound) {
-            throw $this->createNotFoundException(self::NOT_FOUND_MESSAGE);
+            throw $this->createNotFoundException(self::ITEM_NOT_FOUND_MESSAGE);
         } catch (DuplicateItemLink | LinkToSelfForbidden $exception) {
             $form->get(self::LINKED_ITEM_FIELD)->addError(new FormError($exception->getMessage()));
 
@@ -143,7 +145,7 @@ final class ItemLinkFormController extends AbstractController
         try {
             $this->dispatchCommandUnwrapping(new UnlinkItem(itemLinkId: $linkId));
         } catch (ItemLinkNotFound) {
-            throw $this->createNotFoundException(self::NOT_FOUND_MESSAGE);
+            throw $this->createNotFoundException(self::LINK_NOT_FOUND_MESSAGE);
         }
 
         return $this->savedResponse();

@@ -38,8 +38,12 @@ final class ComboFormType extends AbstractType
 
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
-        $builder
-            ->add('parentListingId', TextType::class, [
+        // Edit mode (UpdateComboComponents) ignores parentListingId — the
+        // combo is keyed by comboId in the URL — so the field is only
+        // rendered + validated in create mode. The caller passes
+        // 'mode' => 'create' | 'edit' via options.
+        if ($options['mode'] === 'create') {
+            $builder->add('parentListingId', TextType::class, [
                 'label' => 'Parent catalog listing id',
                 'required' => true,
                 'constraints' => [
@@ -49,7 +53,10 @@ final class ComboFormType extends AbstractType
                         message: 'Parent listing id must be a UUID v7.',
                     ),
                 ],
-            ])
+            ]);
+        }
+
+        $builder
             ->add('components', CollectionType::class, [
                 'entry_type' => ComboComponentFormType::class,
                 'allow_add' => true,
@@ -68,7 +75,10 @@ final class ComboFormType extends AbstractType
             'csrf_protection' => true,
             'csrf_field_name' => '_token',
             'csrf_token_id' => 'inventory_combo',
+            'mode' => 'create',
         ]);
+        $resolver->setAllowedValues('mode', ['create', 'edit']);
+        $resolver->setAllowedTypes('mode', 'string');
     }
 
     public function getBlockPrefix(): string

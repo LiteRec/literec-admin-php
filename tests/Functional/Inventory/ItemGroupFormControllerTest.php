@@ -96,6 +96,11 @@ final class ItemGroupFormControllerTest extends WebTestCase
         $client->submit($form);
 
         self::assertResponseStatusCodeSame(422);
+        // FormError on the facilityCode field renders inline next to the
+        // input (not bubbled to the top-of-form summary). Match the
+        // controller's verbatim message text on the rendered form.
+        $body = (string) $client->getResponse()->getContent();
+        self::assertStringContainsString('A facility code is required', $body);
         self::assertSame($beforeGroups, $this->countRows('inventory_item_groups'));
     }
 
