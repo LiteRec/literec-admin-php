@@ -1,0 +1,62 @@
+{# Receive Stock form partial (LRA-87). Posts to the controller's
+   submit route via HTMX, swaps the response back into the surrounding
+   .modal-root container, and lets the dialog's afterOnLoad listener
+   detect the success HX-Trigger to dismiss the modal. #}
+<form
+    id="receive-stock-form"
+    method="post"
+    action="{{ formAction }}"
+    hx-post="{{ formAction }}"
+    hx-target="closest .modal-root"
+    hx-swap="outerHTML"
+    novalidate
+>
+    {% if form.vars.errors|length > 0 %}
+        <div
+            role="alert"
+            data-testid="form-error"
+            aria-live="assertive"
+            class="mb-4 rounded-md border border-danger/30 bg-danger/10 p-3 text-sm font-semibold text-danger"
+        >
+            {{ form_errors(form) }}
+        </div>
+    {% endif %}
+
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {{ form_row(form.facilityCode, { attr: { class: 'litrec-input' } }) }}
+        {{ form_row(form.quantityUnits, { attr: { class: 'litrec-input', min: '1' } }) }}
+    </div>
+
+    <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {{ form_row(form.costPerUnitCents, { attr: { class: 'litrec-input', min: '0', 'aria-describedby': 'cost-xor-help' } }) }}
+        {{ form_row(form.totalCostCents, { attr: { class: 'litrec-input', min: '0', 'aria-describedby': 'cost-xor-help' } }) }}
+    </div>
+    <p id="cost-xor-help" class="mt-1 text-sm text-litrec-text-muted">
+        Provide either a per-unit cost or a total cost — not both. If you
+        supply a total cost, it is divided by the quantity to derive the
+        per-unit cost; any remainder is recorded onto the comment.
+    </p>
+
+    <div class="mt-4">
+        {{ form_row(form.comment, { attr: { class: 'litrec-input', rows: 3, maxlength: maxCommentLength } }) }}
+    </div>
+
+    {{ form_widget(form._token) }}
+
+    <div class="mt-6 flex items-center justify-end gap-2">
+        <button
+            type="button"
+            class="rounded-md border border-litrec-border bg-litrec-surface px-4 py-2 text-sm font-semibold text-litrec-text hover:bg-litrec-bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
+            @click="dismiss()"
+        >
+            Cancel
+        </button>
+        <button
+            type="submit"
+            data-testid="receive-stock-submit"
+            class="rounded-md bg-litrec-primary px-4 py-2 text-sm font-semibold text-litrec-on-primary shadow-sm hover:bg-litrec-primary-strong focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
+        >
+            {{ submitLabel }}
+        </button>
+    </div>
+</form>

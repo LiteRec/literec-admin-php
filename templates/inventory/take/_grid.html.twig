@@ -1,0 +1,118 @@
+{# Take Inventory bulk-count grid (LRA-87). Posts to the submit
+   endpoint via HTMX, swaps the whole grid back into #take-inventory-grid
+   so per-row errors and variance highlights survive a 422 / 409. #}
+<form
+    id="take-inventory-grid"
+    method="post"
+    action="{{ path('inventory_take_submit', { facilityCode: facilityCode }) }}"
+    hx-post="{{ path('inventory_take_submit', { facilityCode: facilityCode }) }}"
+    hx-target="#take-inventory-grid"
+    hx-swap="outerHTML"
+    novalidate
+>
+    <div
+        id="take-inventory-summary"
+        role="status"
+        aria-live="assertive"
+        data-testid="take-inventory-summary"
+        class="mb-3 min-h-[1.5rem] text-sm font-semibold"
+    >
+        {% if topError is not null %}
+            <span class="text-danger">{{ topError }}</span>
+        {% elseif form.vars.errors|length > 0 %}
+            <span class="text-danger">{{ form_errors(form) }}</span>
+        {% elseif rowErrors is not empty %}
+            <span class="text-danger">Some rows could not be posted — review the highlighted lines.</span>
+        {% endif %}
+    </div>
+
+    <div class="overflow-x-auto rounded-card border border-litrec-border bg-litrec-surface shadow-card">
+        <table class="min-w-full divide-y divide-litrec-border text-sm">
+            <thead class="bg-litrec-bg-muted text-left text-xs font-semibold uppercase tracking-wider text-litrec-text-muted">
+                <tr>
+                    <th scope="col" class="px-4 py-3">Code</th>
+                    <th scope="col" class="px-4 py-3">Expected</th>
+                    <th scope="col" class="px-4 py-3">Counted</th>
+                    <th scope="col" class="px-4 py-3">Reason</th>
+                    <th scope="col" class="px-4 py-3">Note</th>
+                    <th scope="col" class="px-4 py-3" aria-label="Row errors"></th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-litrec-border">
+                {% for index, line in form.lines %}
+                    {% set expectedValue = line.expected.vars.value %}
+                    <tr
+                        data-testid="take-row-{{ index }}"
+                        x-data="{ expected: {{ expectedValue|default(0) }}, actual: {{ line.actual.vars.value|default(0) }} }"
+                        :class="actual != expected ? 'bg-amber-50' : ''"
+                        class="hover:bg-litrec-bg-muted"
+                    >
+                        <td class="whitespace-nowrap px-4 py-2 font-mono text-xs text-litrec-text">
+                            {{ line.listingCode.vars.value }}
+                            {{ form_widget(line.itemId) }}
+                            {{ form_widget(line.listingCode) }}
+                            {{ form_widget(line.expected) }}
+                        </td>
+                        <td class="whitespace-nowrap px-4 py-2 text-litrec-text" data-testid="row-{{ index }}-expected">
+                            {{ expectedValue }}
+                        </td>
+                        <td class="px-2 py-2">
+                            {{ form_widget(line.actual, {
+                                attr: {
+                                    class: 'litrec-input w-24',
+                                    min: '0',
+                                    'data-testid': 'row-' ~ index ~ '-actual',
+                                    'x-model.number': 'actual',
+                                }
+                            }) }}
+                            {% if line.actual.vars.errors|length > 0 %}
+                                <p class="text-xs text-danger mt-1" data-testid="row-{{ index }}-actual-error">{{ form_errors(line.actual) }}</p>
+                            {% endif %}
+                        </td>
+                        <td class="px-2 py-2">
+                            {{ form_widget(line.reason, {
+                                attr: {
+                                    class: 'litrec-input',
+                                    'data-testid': 'row-' ~ index ~ '-reason',
+                                }
+                            }) }}
+                            {% if line.reason.vars.errors|length > 0 %}
+                                <p class="text-xs text-danger mt-1" data-testid="row-{{ index }}-reason-error">{{ form_errors(line.reason) }}</p>
+                            {% endif %}
+                        </td>
+                        <td class="px-2 py-2">
+                            {{ form_widget(line.reasonNote, {
+                                attr: {
+                                    class: 'litrec-input',
+                                    'data-testid': 'row-' ~ index ~ '-note',
+                                    maxlength: maxReasonNoteLength,
+                                }
+                            }) }}
+                        </td>
+                        <td class="whitespace-nowrap px-4 py-2 text-xs text-danger" data-testid="row-{{ index }}-row-error">
+                            {{ rowErrors[index] ?? '' }}
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="6" class="px-4 py-6 text-center text-sm text-litrec-text-muted">
+                            No active items at this facility.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {{ form_widget(form._token) }}
+
+    <div class="mt-6 flex items-center justify-end gap-2">
+        <button
+            type="submit"
+            data-testid="take-inventory-submit"
+            class="rounded-md bg-litrec-primary px-4 py-2 text-sm font-semibold text-litrec-on-primary shadow-sm hover:bg-litrec-primary-strong focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
+        >
+            Post Adjustments
+        </button>
+    </div>
+</form>
