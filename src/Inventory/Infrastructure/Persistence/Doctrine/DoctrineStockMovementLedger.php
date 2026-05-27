@@ -27,7 +27,7 @@ use Doctrine\DBAL\Connection;
  * GetStockMovementHistory owns the read path).
  *
  * Idempotency is enforced at the schema level via the UNIQUE PARTIAL
- * index on (transaction_id, item_id, facility_code) WHERE
+ * index on (transaction_id, listing_id, item_id, facility_code) WHERE
  * transaction_id IS NOT NULL. The {@see recordConsumed()} path lets a
  * {@see \Doctrine\DBAL\Exception\UniqueConstraintViolationException}
  * propagate so the surrounding doctrine_transaction middleware rolls

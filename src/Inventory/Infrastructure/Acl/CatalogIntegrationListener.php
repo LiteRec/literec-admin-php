@@ -62,14 +62,17 @@ use Symfony\Component\Messenger\Stamp\DispatchAfterCurrentBusStamp;
  * Idempotency: a duplicate envelope (Messenger at-least-once redelivery)
  * is short-circuited two ways. First, before any consume, the listener
  * probes {@see StockMovementLedger::hasConsumedFor()} against every
- * (transactionId, componentItemId, facilityCode) tuple and returns
- * without writing on a hit. Second, after each successful consume, the
- * listener appends a CONSUMED row to the ledger via
+ * (transactionId, listingId, componentItemId, facilityCode) tuple and
+ * returns without writing on a hit. Second, after each successful
+ * consume, the listener appends a CONSUMED row to the ledger via
  * {@see StockMovementLedger::recordConsumed()} — the partial UNIQUE
- * index on (transaction_id, item_id, facility_code) in the
- * inventory_stock_movements table is the second-line-of-defence
- * dedupe should the pre-flight guard race a concurrent redelivery
- * (LRA-94).
+ * index on (transaction_id, listing_id, item_id, facility_code) in
+ * the inventory_stock_movements table is the second-line-of-defence
+ * dedupe should the pre-flight guard race a concurrent redelivery.
+ * The four-column key keeps sibling LineSold envelopes in the same
+ * transaction independent — a combo with a repeated component or two
+ * sibling listings sharing a component would collide under a three-
+ * column (tx, item, facility) key (LRA-94).
  */
 #[AsMessageHandler]
 final class CatalogIntegrationListener
