@@ -12,6 +12,7 @@ use App\Inventory\Domain\ValueObject\Quantity;
 use App\Inventory\Domain\ValueObject\StockBatchId;
 use App\Inventory\Domain\ValueObject\StockMovementReason;
 use DateTimeImmutable;
+use RuntimeException;
 
 /**
  * Test double for {@see StockMovementLedger} that records every call in
@@ -41,10 +42,14 @@ final class InMemoryStockMovementLedger implements StockMovementLedger
         string $transactionId,
         DateTimeImmutable $recordedAt,
         ?string $operatorNote = null,
-    ): bool {
+    ): void {
         $key = $transactionId . '|' . $itemId->value . '|' . $facilityCode->value;
         if (isset($this->consumeKeys[$key])) {
-            return false;
+            throw new RuntimeException(sprintf(
+                'InMemoryStockMovementLedger: duplicate consume key %s '
+                . '— mirrors the partial UNIQUE constraint in Postgres.',
+                $key,
+            ));
         }
         $this->consumeKeys[$key] = true;
         $this->record(
@@ -59,7 +64,6 @@ final class InMemoryStockMovementLedger implements StockMovementLedger
             recordedAt: $recordedAt,
             operatorNote: $operatorNote,
         );
-        return true;
     }
 
     public function recordReceived(

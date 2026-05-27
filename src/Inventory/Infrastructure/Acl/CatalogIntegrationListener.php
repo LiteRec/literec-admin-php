@@ -117,7 +117,7 @@ final class CatalogIntegrationListener
         // row for any of these (transaction_id, item_id, facility_code)
         // tuples, the envelope has already been processed (Messenger
         // at-least-once redelivery). Short-circuit before re-consuming.
-        foreach ($componentTuples as [$componentId, $_qty]) {
+        foreach ($componentTuples as [$componentId]) {
             if (
                 $this->movementLedger->hasConsumedFor(
                     $event->transactionId,
