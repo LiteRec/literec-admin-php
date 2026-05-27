@@ -16,6 +16,7 @@ use App\Households\Application\Query\Port\SearchMembersCriteria;
 use App\Households\Domain\Exception\MemberNotFound;
 use App\Households\Domain\ValueObject\HouseholdId;
 use App\Households\Domain\ValueObject\MemberId;
+use App\Shared\Infrastructure\Doctrine\Read\RowFieldExtraction;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
@@ -37,6 +38,8 @@ use Doctrine\DBAL\Types\Type;
  */
 final class DoctrineMemberReadModel implements MemberReadModel
 {
+    use RowFieldExtraction;
+
     public function __construct(private readonly Connection $connection)
     {
     }
@@ -108,7 +111,7 @@ final class DoctrineMemberReadModel implements MemberReadModel
             throw MemberNotFound::inHousehold($householdId, $memberId);
         }
 
-        $summary = $this->loadHouseholdSummary($householdId, $this->str($row, 'household_name'));
+        $summary = $this->loadHouseholdSummary($householdId, $this->rowString($row, 'household_name'));
         $householdMembers = $this->loadHouseholdMembers($householdId);
 
         return new MemberDetail(
@@ -116,7 +119,7 @@ final class DoctrineMemberReadModel implements MemberReadModel
             $this->rowToProfile($row),
             $this->rowToAddress($row),
             new MemberResidencyDto(
-                $this->str($row, 'residency_status'),
+                $this->rowString($row, 'residency_status'),
                 $this->loadLatestResidencyEffectiveFrom($memberId),
             ),
             $householdMembers,
@@ -248,27 +251,27 @@ final class DoctrineMemberReadModel implements MemberReadModel
     {
         $addressShort = sprintf(
             '%s, %s %s',
-            $this->str($row, 'street'),
-            $this->str($row, 'city'),
-            $this->str($row, 'state'),
+            $this->rowString($row, 'street'),
+            $this->rowString($row, 'city'),
+            $this->rowString($row, 'state'),
         );
 
         return new MemberListItem(
-            $this->str($row, 'member_id'),
-            $this->str($row, 'household_id'),
-            $this->str($row, 'code'),
+            $this->rowString($row, 'member_id'),
+            $this->rowString($row, 'household_id'),
+            $this->rowString($row, 'code'),
             $this->joinName(
-                $this->str($row, 'first_name'),
-                $this->nullableStr($row, 'middle_name'),
-                $this->str($row, 'last_name'),
-                $this->nullableStr($row, 'suffix'),
+                $this->rowString($row, 'first_name'),
+                $this->rowNullableString($row, 'middle_name'),
+                $this->rowString($row, 'last_name'),
+                $this->rowNullableString($row, 'suffix'),
             ),
             $this->normalizeDate($row['date_of_birth'] ?? null),
-            $this->nullableStr($row, 'phone'),
+            $this->rowNullableString($row, 'phone'),
             $addressShort,
-            $this->str($row, 'residency_status'),
-            $this->bool($row, 'is_primary'),
-            $this->bool($row, 'is_active'),
+            $this->rowString($row, 'residency_status'),
+            $this->rowBool($row, 'is_primary'),
+            $this->rowBool($row, 'is_active'),
         );
     }
 
@@ -277,26 +280,26 @@ final class DoctrineMemberReadModel implements MemberReadModel
      */
     private function rowToProfile(array $row): MemberProfileDto
     {
-        $firstName  = $this->str($row, 'first_name');
-        $middleName = $this->nullableStr($row, 'middle_name');
-        $lastName   = $this->str($row, 'last_name');
-        $suffix     = $this->nullableStr($row, 'suffix');
+        $firstName  = $this->rowString($row, 'first_name');
+        $middleName = $this->rowNullableString($row, 'middle_name');
+        $lastName   = $this->rowString($row, 'last_name');
+        $suffix     = $this->rowNullableString($row, 'suffix');
 
         return new MemberProfileDto(
-            $this->str($row, 'member_id'),
-            $this->str($row, 'code'),
+            $this->rowString($row, 'member_id'),
+            $this->rowString($row, 'code'),
             $firstName,
             $middleName,
             $lastName,
             $suffix,
             $this->joinName($firstName, $middleName, $lastName, $suffix),
             $this->normalizeDate($row['date_of_birth'] ?? null),
-            $this->str($row, 'gender'),
-            $this->nullableStr($row, 'email'),
-            $this->nullableStr($row, 'phone'),
-            $this->bool($row, 'is_primary'),
-            $this->bool($row, 'is_active'),
-            $this->nullableStr($row, 'deactivated_reason'),
+            $this->rowString($row, 'gender'),
+            $this->rowNullableString($row, 'email'),
+            $this->rowNullableString($row, 'phone'),
+            $this->rowBool($row, 'is_primary'),
+            $this->rowBool($row, 'is_active'),
+            $this->rowNullableString($row, 'deactivated_reason'),
             $this->normalizeDateTime($row['deactivated_at'] ?? null),
         );
     }
@@ -307,12 +310,12 @@ final class DoctrineMemberReadModel implements MemberReadModel
     private function rowToAddress(array $row): MemberAddressDto
     {
         return new MemberAddressDto(
-            $this->str($row, 'street'),
-            $this->nullableStr($row, 'unit'),
-            $this->str($row, 'city'),
-            $this->str($row, 'state'),
-            $this->str($row, 'postal_code'),
-            $this->str($row, 'country'),
+            $this->rowString($row, 'street'),
+            $this->rowNullableString($row, 'unit'),
+            $this->rowString($row, 'city'),
+            $this->rowString($row, 'state'),
+            $this->rowString($row, 'postal_code'),
+            $this->rowString($row, 'country'),
         );
     }
 
@@ -336,12 +339,12 @@ final class DoctrineMemberReadModel implements MemberReadModel
         }
 
         $memberCount = is_numeric($row['member_count'] ?? null) ? (int) $row['member_count'] : 0;
-        $primaryId = $this->nullableStr($row, 'primary_id') ?? '';
+        $primaryId = $this->rowNullableString($row, 'primary_id') ?? '';
 
-        $primaryFirst = $this->nullableStr($row, 'primary_first');
-        $primaryLast = $this->nullableStr($row, 'primary_last');
-        $primaryMiddle = $this->nullableStr($row, 'primary_middle');
-        $primarySuffix = $this->nullableStr($row, 'primary_suffix');
+        $primaryFirst = $this->rowNullableString($row, 'primary_first');
+        $primaryLast = $this->rowNullableString($row, 'primary_last');
+        $primaryMiddle = $this->rowNullableString($row, 'primary_middle');
+        $primarySuffix = $this->rowNullableString($row, 'primary_suffix');
 
         $primaryFullName = '';
         if ($primaryFirst !== null && $primaryLast !== null) {
@@ -365,66 +368,6 @@ final class DoctrineMemberReadModel implements MemberReadModel
         );
 
         return implode(' ', $parts);
-    }
-
-    /**
-     * @param array<string, mixed> $row
-     */
-    private function str(array $row, string $key): string
-    {
-        $value = $row[$key] ?? null;
-        if (is_string($value)) {
-            return $value;
-        }
-        if (is_int($value) || is_float($value)) {
-            return (string) $value;
-        }
-        if (is_bool($value)) {
-            return $value ? '1' : '0';
-        }
-
-        return '';
-    }
-
-    /**
-     * @param array<string, mixed> $row
-     */
-    private function nullableStr(array $row, string $key): ?string
-    {
-        $value = $row[$key] ?? null;
-        if ($value === null) {
-            return null;
-        }
-        if (is_string($value)) {
-            return $value;
-        }
-        if (is_int($value) || is_float($value)) {
-            return (string) $value;
-        }
-        if (is_bool($value)) {
-            return $value ? '1' : '0';
-        }
-
-        return null;
-    }
-
-    /**
-     * @param array<string, mixed> $row
-     */
-    private function bool(array $row, string $key): bool
-    {
-        $value = $row[$key] ?? null;
-        if (is_bool($value)) {
-            return $value;
-        }
-        if (is_int($value)) {
-            return $value !== 0;
-        }
-        if (is_string($value)) {
-            return $value !== '' && $value !== '0' && strtolower($value) !== 'f' && strtolower($value) !== 'false';
-        }
-
-        return false;
     }
 
     private function normalizeDate(mixed $value): ?string
