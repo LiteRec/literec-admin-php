@@ -55,10 +55,12 @@ final class MainNavTest extends WebTestCase
         $client = static::createClient();
         $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
 
-        $client->request('GET', '/cash-register/inventory');
+        // Inventory is now backed by a real controller (LRA-85); pick
+        // another sub-item that is still served by the placeholder stub.
+        $client->request('GET', '/cash-register/pos-transactions');
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('main h1', 'Inventory');
+        self::assertSelectorTextContains('main h1', 'POS Transactions');
         self::assertSelectorTextContains('main h2', 'Coming soon');
     }
 

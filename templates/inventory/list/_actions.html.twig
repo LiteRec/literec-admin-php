@@ -1,0 +1,61 @@
+{# Action bar for the Inventory list page (LRA-85). Each button is gated
+   by the InventoryVoter so unauthorised users do not see actions they
+   cannot perform. Real handler endpoints land in later tickets — the
+   forms target placeholder URLs but the testids and styling are stable. #}
+<div class="flex flex-wrap items-center gap-2">
+    {% if is_granted('manage_inventory') %}
+        <button
+            type="button"
+            data-testid="open-new-inventory-item"
+            hx-get="/admin/inventory/new"
+            hx-target="body"
+            hx-swap="beforeend"
+            aria-haspopup="dialog"
+            class="rounded-md bg-litrec-primary px-4 py-2 text-sm font-semibold text-litrec-on-primary shadow-sm hover:bg-litrec-primary-strong focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
+        >
+            New Item
+        </button>
+
+        <button
+            type="button"
+            data-testid="open-new-inventory-group"
+            hx-get="/admin/inventory/groups/new"
+            hx-target="body"
+            hx-swap="beforeend"
+            aria-haspopup="dialog"
+            class="rounded-md border border-litrec-border bg-litrec-surface px-4 py-2 text-sm font-semibold text-litrec-text hover:bg-litrec-bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
+        >
+            New Group
+        </button>
+
+        <button
+            type="button"
+            data-testid="open-new-inventory-combo"
+            hx-get="/admin/inventory/combos/new"
+            hx-target="body"
+            hx-swap="beforeend"
+            aria-haspopup="dialog"
+            class="rounded-md border border-litrec-border bg-litrec-surface px-4 py-2 text-sm font-semibold text-litrec-text hover:bg-litrec-bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
+        >
+            New Combo
+        </button>
+
+        <a
+            href="/admin/inventory/take"
+            data-testid="goto-take-inventory"
+            class="rounded-md border border-litrec-border bg-litrec-surface px-4 py-2 text-sm font-semibold text-litrec-text hover:bg-litrec-bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
+        >
+            Take Inventory
+        </a>
+    {% endif %}
+
+    {% if is_granted('manage_purchase_orders') %}
+        <a
+            href="/admin/inventory/purchase-orders"
+            data-testid="goto-purchase-orders"
+            class="rounded-md border border-litrec-border bg-litrec-surface px-4 py-2 text-sm font-semibold text-litrec-text hover:bg-litrec-bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
+        >
+            Purchase Orders
+        </a>
+    {% endif %}
+</div>

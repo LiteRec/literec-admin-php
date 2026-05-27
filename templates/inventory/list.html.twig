@@ -1,0 +1,30 @@
+{% extends 'app.html.twig' %}
+
+{% block page_title %}Inventory{% endblock %}
+
+{% block page_actions %}
+    {% include 'inventory/list/_actions.html.twig' %}
+{% endblock %}
+
+{% block page_body %}
+    {% include 'inventory/list/_filters.html.twig' %}
+
+    {# Live region for the swap announcement. The matching id is rendered
+       again inside the table partial with hx-swap-oob="true" so HTMX
+       updates the announcement on every table swap; this initial copy
+       guarantees the region exists on first paint. #}
+    <span
+        id="inventory-result-summary"
+        aria-live="polite"
+        class="sr-only"
+    >Showing {{ page.items|length }} of {{ page.totalCount }} items</span>
+
+    <div
+        id="inventory-table"
+        data-testid="inventory-table"
+        class="mt-6 transition-opacity htmx-request:opacity-50"
+        hx-indicator="this"
+    >
+        {% include 'inventory/list/_table.html.twig' %}
+    </div>
+{% endblock %}

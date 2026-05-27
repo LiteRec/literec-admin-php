@@ -1,0 +1,90 @@
+{# Filter form for the Inventory list page. HTMX submits any field change
+   to the partial endpoint and swaps the result into #inventory-table; the
+   form's submit button is sr-only so keyboard users keep a fallback if JS
+   is off. The hidden sort/page/pageSize inputs preserve sort and pagination
+   state across filter changes. #}
+{% set q = app.request.query %}
+<form
+    hx-get="{{ path('inventory_table') }}"
+    hx-target="#inventory-table"
+    hx-swap="innerHTML"
+    hx-push-url="true"
+    hx-trigger="input changed delay:300ms, change"
+    aria-label="Filter inventory"
+    class="rounded-card border border-litrec-border bg-litrec-surface p-4 shadow-card"
+>
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div>
+            <label for="filter-search" class="block text-sm font-medium text-litrec-text">Search</label>
+            <input
+                type="text"
+                id="filter-search"
+                name="search"
+                value="{{ q.get('search', '') }}"
+                autocomplete="off"
+                placeholder="Code or name"
+                class="mt-1 block w-full rounded-md border border-litrec-border bg-litrec-surface px-3 py-2 text-litrec-text focus:border-litrec-primary focus:outline-none focus:ring-1 focus:ring-litrec-primary"
+            >
+        </div>
+
+        <div>
+            <label for="filter-facilityCode" class="block text-sm font-medium text-litrec-text">Facility code</label>
+            <input
+                type="text"
+                id="filter-facilityCode"
+                name="facilityCode"
+                value="{{ q.get('facilityCode', '') }}"
+                autocomplete="off"
+                class="mt-1 block w-full rounded-md border border-litrec-border bg-litrec-surface px-3 py-2 text-litrec-text focus:border-litrec-primary focus:outline-none focus:ring-1 focus:ring-litrec-primary"
+            >
+        </div>
+
+        <div>
+            <label for="filter-groupId" class="block text-sm font-medium text-litrec-text">Group ID</label>
+            <input
+                type="text"
+                id="filter-groupId"
+                name="groupId"
+                value="{{ q.get('groupId', '') }}"
+                autocomplete="off"
+                class="mt-1 block w-full rounded-md border border-litrec-border bg-litrec-surface px-3 py-2 text-litrec-text focus:border-litrec-primary focus:outline-none focus:ring-1 focus:ring-litrec-primary"
+            >
+        </div>
+
+        <div>
+            <label for="filter-kind" class="block text-sm font-medium text-litrec-text">Kind</label>
+            <select
+                id="filter-kind"
+                name="kind"
+                class="mt-1 block w-full rounded-md border border-litrec-border bg-litrec-surface px-3 py-2 text-litrec-text focus:border-litrec-primary focus:outline-none focus:ring-1 focus:ring-litrec-primary"
+            >
+                {% set currentKind = q.get('kind', '') %}
+                <option value="" {% if currentKind == '' %}selected{% endif %}>All kinds</option>
+                <option value="INVENTORY" {% if currentKind == 'INVENTORY' %}selected{% endif %}>Inventory</option>
+                <option value="RENTAL" {% if currentKind == 'RENTAL' %}selected{% endif %}>Rental</option>
+            </select>
+        </div>
+
+        <div class="flex flex-col justify-end gap-2">
+            <label class="inline-flex items-center gap-2 text-sm text-litrec-text">
+                <input
+                    type="checkbox"
+                    id="filter-archived"
+                    name="archived"
+                    value="1"
+                    {% if q.get('archived') in ['1', 'true', 'on', 'yes', true] %}checked{% endif %}
+                    class="rounded border-litrec-border text-litrec-primary focus:ring-litrec-primary"
+                >
+                Include archived
+            </label>
+        </div>
+    </div>
+
+    {# Preserve sort and pagination state when filters change. #}
+    <input type="hidden" name="sort" value="{{ q.get('sort', '') }}">
+    <input type="hidden" name="page" value="{{ q.get('page', '') }}">
+    <input type="hidden" name="pageSize" value="{{ q.get('pageSize', '') }}">
+
+    {# Keyboard-accessible fallback; HTMX fires on change so this is hidden. #}
+    <button type="submit" class="sr-only">Apply filters</button>
+</form>
