@@ -1,0 +1,59 @@
+{# Item Link form partial (LRA-89). Renders the linked-item id input,
+   the reserved/unlimited toggle, min/max constraints, and the optional
+   include-until date. #}
+<form
+    id="inventory-item-link-form"
+    method="post"
+    action="{{ formAction }}"
+    hx-post="{{ formAction }}"
+    hx-target="closest .modal-root"
+    hx-swap="outerHTML"
+    novalidate
+>
+    {% if form.vars.errors|length > 0 %}
+        <div
+            role="alert"
+            data-testid="form-error"
+            class="mb-4 rounded-md border border-danger/30 bg-danger/10 p-3 text-sm font-semibold text-danger"
+        >
+            {{ form_errors(form) }}
+        </div>
+    {% endif %}
+
+    <div class="grid grid-cols-1 gap-4">
+        {{ form_row(form.linkedItemId, { attr: { class: 'litrec-input' } }) }}
+    </div>
+
+    <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {{ form_row(form.reservedQuantityUnits, { attr: { class: 'litrec-input', min: '0' } }) }}
+        {{ form_row(form.unlimited) }}
+    </div>
+
+    <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {{ form_row(form.minRequiredUnits, { attr: { class: 'litrec-input', min: '0' } }) }}
+        {{ form_row(form.maxPerPurchaseUnits, { attr: { class: 'litrec-input', min: '0' } }) }}
+    </div>
+
+    <div class="mt-4">
+        {{ form_row(form.includeUntilIso, { attr: { class: 'litrec-input', type: 'date' } }) }}
+    </div>
+
+    {{ form_widget(form._token) }}
+
+    <div class="mt-6 flex items-center justify-end gap-2">
+        <button
+            type="button"
+            class="rounded-md border border-litrec-border bg-litrec-surface px-4 py-2 text-sm font-semibold text-litrec-text hover:bg-litrec-bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
+            @click="dismiss()"
+        >
+            Cancel
+        </button>
+        <button
+            type="submit"
+            data-testid="inventory-item-link-submit"
+            class="rounded-md bg-litrec-primary px-4 py-2 text-sm font-semibold text-litrec-on-primary shadow-sm hover:bg-litrec-primary-strong focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
+        >
+            {{ submitLabel }}
+        </button>
+    </div>
+</form>

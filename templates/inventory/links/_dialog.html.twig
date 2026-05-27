@@ -1,0 +1,45 @@
+{# Item Link modal dialog (LRA-89). HTMX fragment returned by:
+     - GET  /admin/inventory/{itemId}/links/new        — render Create dialog
+     - POST /admin/inventory/{itemId}/links (422)      — re-render on validation failure
+
+   On success the POST endpoint returns 200 with `HX-Trigger: linkSaved`
+   and `HX-Reswap: none`.
+#}
+{% set body %}
+    {% include 'inventory/links/_form.html.twig' with {
+        form: form,
+        formAction: formAction,
+        submitLabel: submitLabel,
+    } only %}
+{% endset %}
+
+{% set modalId = 'inventory-link-' ~ mode ~ '-modal' %}
+
+<div
+    id="{{ modalId }}-wrapper"
+    @inventory-link-saved.window="$el.querySelector('.modal-root')?.remove()"
+>
+    {% include 'components/_modal.html.twig' with {
+        id: modalId,
+        title: modalTitle,
+        body: body,
+    } only %}
+</div>
+
+<script>
+    (function () {
+        if (window.__inventoryLinkDialogListener) {
+            document.body.removeEventListener('htmx:afterOnLoad', window.__inventoryLinkDialogListener);
+        }
+
+        window.__inventoryLinkDialogListener = function (evt) {
+            var xhr = evt.detail && evt.detail.xhr;
+            var trigger = xhr && xhr.getResponseHeader ? xhr.getResponseHeader('HX-Trigger') : null;
+            if (trigger && trigger.indexOf('linkSaved') !== -1) {
+                window.dispatchEvent(new CustomEvent('inventory-link-saved'));
+            }
+        };
+
+        document.body.addEventListener('htmx:afterOnLoad', window.__inventoryLinkDialogListener);
+    })();
+</script>

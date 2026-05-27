@@ -1,0 +1,52 @@
+{# Combo modal dialog (LRA-89). HTMX fragment returned by:
+     - GET  /admin/inventory/combos/new                — render Create dialog
+     - GET  /admin/inventory/combos/{comboId}/edit     — render Edit dialog
+     - POST .../new   (422)                            — re-render on validation failure
+     - POST .../edit  (422)                            — re-render on validation failure
+
+   On success the POST endpoints return 200 with `HX-Trigger: comboSaved`
+   and `HX-Reswap: none`, which causes:
+     1. HTMX to skip swapping (the dialog stays in the DOM untouched),
+     2. The page's #inventory-table region to re-fetch itself because
+        it is listening for `comboSaved from:body`,
+     3. The Alpine modal listener below to call dismiss() and remove
+        the dialog root.
+#}
+{% set body %}
+    {% include 'inventory/combos/_form.html.twig' with {
+        form: form,
+        formAction: formAction,
+        submitLabel: submitLabel,
+    } only %}
+{% endset %}
+
+{% set modalId = 'inventory-combo-' ~ mode ~ '-modal' %}
+
+<div
+    id="{{ modalId }}-wrapper"
+    @inventory-combo-saved.window="$el.querySelector('.modal-root')?.remove()"
+>
+    {% include 'components/_modal.html.twig' with {
+        id: modalId,
+        title: modalTitle,
+        body: body,
+    } only %}
+</div>
+
+<script>
+    (function () {
+        if (window.__inventoryComboDialogListener) {
+            document.body.removeEventListener('htmx:afterOnLoad', window.__inventoryComboDialogListener);
+        }
+
+        window.__inventoryComboDialogListener = function (evt) {
+            var xhr = evt.detail && evt.detail.xhr;
+            var trigger = xhr && xhr.getResponseHeader ? xhr.getResponseHeader('HX-Trigger') : null;
+            if (trigger && trigger.indexOf('comboSaved') !== -1) {
+                window.dispatchEvent(new CustomEvent('inventory-combo-saved'));
+            }
+        };
+
+        document.body.addEventListener('htmx:afterOnLoad', window.__inventoryComboDialogListener);
+    })();
+</script>

@@ -1,0 +1,47 @@
+{# Item Group modal dialog (LRA-89). HTMX fragment returned by:
+     - GET  /admin/inventory/groups/new                — render Create dialog
+     - GET  /admin/inventory/groups/{groupId}/edit     — render Edit dialog
+     - POST .../new   (422)                            — re-render on validation failure
+     - POST .../edit  (422)                            — re-render on validation failure
+
+   On success the POST endpoints return 200 with `HX-Trigger: groupSaved`
+   and `HX-Reswap: none`.
+#}
+{% set body %}
+    {% include 'inventory/groups/_form.html.twig' with {
+        form: form,
+        formAction: formAction,
+        submitLabel: submitLabel,
+    } only %}
+{% endset %}
+
+{% set modalId = 'inventory-group-' ~ mode ~ '-modal' %}
+
+<div
+    id="{{ modalId }}-wrapper"
+    @inventory-group-saved.window="$el.querySelector('.modal-root')?.remove()"
+>
+    {% include 'components/_modal.html.twig' with {
+        id: modalId,
+        title: modalTitle,
+        body: body,
+    } only %}
+</div>
+
+<script>
+    (function () {
+        if (window.__inventoryGroupDialogListener) {
+            document.body.removeEventListener('htmx:afterOnLoad', window.__inventoryGroupDialogListener);
+        }
+
+        window.__inventoryGroupDialogListener = function (evt) {
+            var xhr = evt.detail && evt.detail.xhr;
+            var trigger = xhr && xhr.getResponseHeader ? xhr.getResponseHeader('HX-Trigger') : null;
+            if (trigger && trigger.indexOf('groupSaved') !== -1) {
+                window.dispatchEvent(new CustomEvent('inventory-group-saved'));
+            }
+        };
+
+        document.body.addEventListener('htmx:afterOnLoad', window.__inventoryGroupDialogListener);
+    })();
+</script>
