@@ -14,6 +14,7 @@ use App\Inventory\Domain\ValueObject\FacilityCode;
 use App\Inventory\Domain\ValueObject\InventoryItemId;
 use App\Inventory\Domain\ValueObject\Quantity;
 use App\Inventory\Domain\StockMovementLedger;
+use App\Inventory\Domain\ValueObject\StockAdjustmentDirection;
 use App\Inventory\Domain\ValueObject\StockAdjustmentReason;
 use App\Inventory\Domain\ValueObject\StockMovementReason;
 use Psr\Clock\ClockInterface;
@@ -76,6 +77,7 @@ final class AdjustStockHandler
 
         if ($target->units > $current->units) {
             $delta = $target->subtract($current);
+            $direction = StockAdjustmentDirection::INCREASE;
             $item->receiveBatch(
                 $facility,
                 $delta,
@@ -87,6 +89,7 @@ final class AdjustStockHandler
             );
         } else {
             $delta = $current->subtract($target);
+            $direction = StockAdjustmentDirection::DECREASE;
             $item->consume($facility, $delta, StockMovementReason::ADJUSTMENT, $this->clock);
         }
 
@@ -97,6 +100,7 @@ final class AdjustStockHandler
             facilityCode: $facility,
             stockBatchId: null,
             quantity: $delta,
+            direction: $direction,
             costPerUnit: CostPerUnit::zero(),
             recordedAt: $occurredAt,
             operatorNote: $this->formatOperatorNote($subReason, $command->reason),

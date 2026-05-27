@@ -9,6 +9,7 @@ use App\Inventory\Domain\ValueObject\CostPerUnit;
 use App\Inventory\Domain\ValueObject\FacilityCode;
 use App\Inventory\Domain\ValueObject\InventoryItemId;
 use App\Inventory\Domain\ValueObject\Quantity;
+use App\Inventory\Domain\ValueObject\StockAdjustmentDirection;
 use App\Inventory\Domain\ValueObject\StockBatchId;
 use App\Inventory\Domain\ValueObject\StockMovementReason;
 use DateTimeImmutable;
@@ -175,12 +176,18 @@ final class InMemoryStockMovementLedger implements StockMovementLedger
         FacilityCode $facilityCode,
         ?StockBatchId $stockBatchId,
         Quantity $quantity,
+        StockAdjustmentDirection $direction,
         CostPerUnit $costPerUnit,
         DateTimeImmutable $recordedAt,
         ?string $operatorNote = null,
     ): void {
+        $kind = match ($direction) {
+            StockAdjustmentDirection::INCREASE => 'ADJUSTED_INCREASE',
+            StockAdjustmentDirection::DECREASE => 'ADJUSTED_DECREASE',
+        };
+
         $this->record(
-            kind: 'ADJUSTED',
+            kind: $kind,
             itemId: $itemId,
             facilityCode: $facilityCode,
             stockBatchId: $stockBatchId,

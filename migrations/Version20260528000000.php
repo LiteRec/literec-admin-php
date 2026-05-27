@@ -19,10 +19,15 @@ use Doctrine\Migrations\AbstractMigration;
  *  - Post-commit event subscribers under src/Inventory/Infrastructure/Acl/
  *    for every other movement (receive, return, transfer, adjustment).
  *
- * The UNIQUE PARTIAL index on (transaction_id, item_id, facility_code)
+ * The UNIQUE PARTIAL index on
+ * (transaction_id, listing_id, item_id, facility_code)
  * WHERE transaction_id IS NOT NULL is the idempotency key the ACL
- * relies on. The partial filter keeps non-consume rows (which carry
- * NULL transaction_id) out of the uniqueness constraint, so multiple
+ * relies on. Including listing_id in the key keeps sibling LineSold
+ * envelopes within the same transaction independent — a combo with a
+ * repeated component or two distinct listings sharing a component
+ * would otherwise collide under the (tx, item, facility) shape. The
+ * partial filter keeps non-consume rows (which carry NULL
+ * transaction_id) out of the uniqueness constraint, so multiple
  * receives / adjustments per item per facility per day still insert
  * without conflict.
  */

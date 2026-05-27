@@ -108,7 +108,10 @@ final class AdjustStockHandlerTest extends TestCase
 
         $rows = $this->ledger->rows();
         self::assertCount(1, $rows);
-        self::assertSame('ADJUSTED', $rows[0]['kind']);
+        self::assertNull($rows[0]['transaction_id'], 'adjustments are non-consume operations');
+        self::assertNull($rows[0]['listing_id'], 'adjustments are non-consume operations');
+        self::assertSame('ADJUSTED_INCREASE', $rows[0]['kind']);
+        self::assertSame(StockMovementReason::ADJUSTMENT->value, $rows[0]['reason']);
         self::assertSame(5, $rows[0]['quantity']);
         self::assertSame('MAIN', $rows[0]['facility_code']);
         self::assertSame('[FOUND] Recount: found 5 in back room', $rows[0]['operator_note']);
@@ -132,7 +135,10 @@ final class AdjustStockHandlerTest extends TestCase
 
         $rows = $this->ledger->rows();
         self::assertCount(1, $rows);
-        self::assertSame('ADJUSTED', $rows[0]['kind']);
+        self::assertNull($rows[0]['transaction_id'], 'adjustments are non-consume operations');
+        self::assertNull($rows[0]['listing_id'], 'adjustments are non-consume operations');
+        self::assertSame('ADJUSTED_DECREASE', $rows[0]['kind']);
+        self::assertSame(StockMovementReason::ADJUSTMENT->value, $rows[0]['reason']);
         self::assertSame(4, $rows[0]['quantity']);
         self::assertSame('[THEFT] Shrinkage', $rows[0]['operator_note']);
     }

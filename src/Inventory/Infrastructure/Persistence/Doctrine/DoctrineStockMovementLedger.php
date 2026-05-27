@@ -10,6 +10,7 @@ use App\Inventory\Domain\ValueObject\CostPerUnit;
 use App\Inventory\Domain\ValueObject\FacilityCode;
 use App\Inventory\Domain\ValueObject\InventoryItemId;
 use App\Inventory\Domain\ValueObject\Quantity;
+use App\Inventory\Domain\ValueObject\StockAdjustmentDirection;
 use App\Inventory\Domain\ValueObject\StockBatchId;
 use App\Inventory\Domain\ValueObject\StockMovementId;
 use App\Inventory\Domain\ValueObject\StockMovementReason;
@@ -179,12 +180,24 @@ final readonly class DoctrineStockMovementLedger implements StockMovementLedger
         FacilityCode $facilityCode,
         ?StockBatchId $stockBatchId,
         Quantity $quantity,
+        StockAdjustmentDirection $direction,
         CostPerUnit $costPerUnit,
         DateTimeImmutable $recordedAt,
         ?string $operatorNote = null,
     ): void {
+        // Direction lands in kind so the ledger row is self-describing
+        // without depending on operator_note parsing or a second
+        // join: kind ∈ { ADJUSTED_INCREASE, ADJUSTED_DECREASE } stays
+        // queryable by LRA-88 (movement history filter) and LRA-91
+        // (Entry Log report). reason stays ADJUSTMENT for both
+        // directions so the enum dimension remains stable.
+        $kind = match ($direction) {
+            StockAdjustmentDirection::INCREASE => 'ADJUSTED_INCREASE',
+            StockAdjustmentDirection::DECREASE => 'ADJUSTED_DECREASE',
+        };
+
         $this->insert(
-            kind: 'ADJUSTED',
+            kind: $kind,
             itemId: $itemId,
             facilityCode: $facilityCode,
             stockBatchId: $stockBatchId,
