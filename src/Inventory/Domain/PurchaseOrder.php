@@ -53,6 +53,19 @@ final class PurchaseOrder
     private ?DateTimeImmutable $verifiedAt;
     private DateTimeImmutable $createdAt;
     private DateTimeImmutable $updatedAt;
+
+    /**
+     * Doctrine optimistic-lock version (LRA-99). Maintained by the
+     * ORM; never mutated by domain code. Concurrent saves surface as
+     * {@see \Doctrine\ORM\OptimisticLockException} which the
+     * application-side WrapsOptimisticLock trait translates into
+     * {@see \App\Inventory\Domain\Exception\ConcurrentPurchaseOrderModification}.
+     *
+     * Exposed via {@see version()} so tests can pin the increment
+     * across save operations and so PHPStan sees the property used.
+     */
+    private int $version = 0;
+
     /** @var Collection<int, PurchaseOrderLine> */
     private Collection $lines;
 
@@ -158,6 +171,11 @@ final class PurchaseOrder
     public function updatedAt(): DateTimeImmutable
     {
         return $this->updatedAt;
+    }
+
+    public function version(): int
+    {
+        return $this->version;
     }
 
     /**

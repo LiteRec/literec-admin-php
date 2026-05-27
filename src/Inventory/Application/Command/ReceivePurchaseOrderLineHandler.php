@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Inventory\Application\Command;
 
+use App\Inventory\Application\WrapsOptimisticLock;
 use App\Inventory\Domain\Event\PurchaseOrderLineReceived;
 use App\Inventory\Domain\IdentityGenerator;
 use App\Inventory\Domain\InventoryItems;
@@ -39,6 +40,8 @@ use Symfony\Component\Messenger\Stamp\DispatchAfterCurrentBusStamp;
 #[AsMessageHandler(bus: 'command.bus')]
 final class ReceivePurchaseOrderLineHandler
 {
+    use WrapsOptimisticLock;
+
     public function __construct(
         private readonly PurchaseOrders $purchaseOrders,
         private readonly InventoryItems $inventoryItems,
@@ -50,7 +53,8 @@ final class ReceivePurchaseOrderLineHandler
 
     public function __invoke(ReceivePurchaseOrderLine $command): void
     {
-        $order = $this->purchaseOrders->byId(PurchaseOrderId::fromString($command->purchaseOrderId));
+        $purchaseOrderId = PurchaseOrderId::fromString($command->purchaseOrderId);
+        $order = $this->purchaseOrders->byId($purchaseOrderId);
 
         $receivedAt = new DateTimeImmutable($command->receivedAtIso);
         $lineId = PurchaseOrderLineId::fromString($command->lineId);
@@ -58,7 +62,11 @@ final class ReceivePurchaseOrderLineHandler
 
         $order->receiveLine($lineId, $quantity, $receivedAt, $this->clock);
 
-        $this->purchaseOrders->save($order);
+        $this->wrapPurchaseOrderLineSave(
+            $purchaseOrderId,
+            $lineId,
+            fn () => $this->purchaseOrders->save($order),
+        );
 
         // Find the PurchaseOrderLineReceived event the aggregate just buffered
         // so we have the canonical itemId, facility, costPerUnit, etc.
@@ -76,7 +84,8 @@ final class ReceivePurchaseOrderLineHandler
             );
         }
 
-        $item = $this->inventoryItems->byId($lineReceived->itemId);
+        $itemId = $lineReceived->itemId;
+        $item = $this->inventoryItems->byId($itemId);
 
         $item->receiveBatch(
             $lineReceived->facilityCode,
@@ -88,7 +97,7 @@ final class ReceivePurchaseOrderLineHandler
             $this->clock,
         );
 
-        $this->inventoryItems->save($item);
+        $this->wrapInventoryItemSave($itemId, fn () => $this->inventoryItems->save($item));
 
         $releasedFromItem = $item->releaseEvents();
 
