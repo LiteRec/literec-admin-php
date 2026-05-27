@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Inventory\Application\Command;
 
+use App\Inventory\Application\WrapsOptimisticLock;
 use App\Inventory\Domain\PurchaseOrders;
 use App\Inventory\Domain\ValueObject\PurchaseOrderId;
 use DateTimeImmutable;
@@ -15,6 +16,8 @@ use Symfony\Component\Messenger\Stamp\DispatchAfterCurrentBusStamp;
 #[AsMessageHandler(bus: 'command.bus')]
 final class VerifyDeliveryHandler
 {
+    use WrapsOptimisticLock;
+
     public function __construct(
         private readonly PurchaseOrders $purchaseOrders,
         private readonly ClockInterface $clock,
@@ -24,7 +27,8 @@ final class VerifyDeliveryHandler
 
     public function __invoke(VerifyDelivery $command): void
     {
-        $order = $this->purchaseOrders->byId(PurchaseOrderId::fromString($command->purchaseOrderId));
+        $purchaseOrderId = PurchaseOrderId::fromString($command->purchaseOrderId);
+        $order = $this->purchaseOrders->byId($purchaseOrderId);
 
         $order->verifyDelivery(
             $command->verifiedByUserId,
@@ -32,7 +36,7 @@ final class VerifyDeliveryHandler
             $this->clock,
         );
 
-        $this->purchaseOrders->save($order);
+        $this->wrapPurchaseOrderSave($purchaseOrderId, fn () => $this->purchaseOrders->save($order));
 
         foreach ($order->releaseEvents() as $event) {
             $this->eventBus->dispatch($event, [new DispatchAfterCurrentBusStamp()]);
