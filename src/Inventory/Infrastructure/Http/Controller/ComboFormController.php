@@ -47,6 +47,7 @@ use Throwable;
  */
 final class ComboFormController extends AbstractController
 {
+    use HtmxFormDialogResponses;
     use HandleTrait {
         handle as private dispatchCommand;
     }
@@ -270,54 +271,5 @@ final class ComboFormController extends AbstractController
             ];
         }
         return $rows;
-    }
-
-    /**
-     * Messenger wraps handler exceptions in HandlerFailedException;
-     * unwrap to surface the original domain exception to the caller.
-     */
-    private function dispatchCommandUnwrapping(object $command): mixed
-    {
-        try {
-            return $this->dispatchCommand($command);
-        } catch (HandlerFailedException $wrapper) {
-            $nested = $wrapper->getPrevious();
-            if ($nested instanceof Throwable) {
-                throw $nested;
-            }
-            throw $wrapper;
-        }
-    }
-
-    /**
-     * @template TData
-     * @param FormInterface<TData> $form
-     */
-    private function reRenderForm(
-        FormInterface $form,
-        string $mode,
-        string $formAction,
-        string $modalTitle,
-        string $submitLabel,
-    ): Response {
-        return $this->render(
-            self::DIALOG_TEMPLATE,
-            [
-                'form' => $form->createView(),
-                'mode' => $mode,
-                'formAction' => $formAction,
-                'modalTitle' => $modalTitle,
-                'submitLabel' => $submitLabel,
-            ],
-            new Response(null, Response::HTTP_UNPROCESSABLE_ENTITY),
-        );
-    }
-
-    private function savedResponse(): Response
-    {
-        $response = new Response('', Response::HTTP_OK);
-        $response->headers->set('HX-Trigger', self::HX_TRIGGER_EVENT);
-        $response->headers->set('HX-Reswap', 'none');
-        return $response;
     }
 }
