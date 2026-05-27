@@ -111,15 +111,13 @@ services:
     App\Inventory\Domain\Vendors: '@App\Inventory\Infrastructure\Persistence\Doctrine\DoctrineVendors'
     App\Inventory\Domain\InventoryItems: '@App\Inventory\Infrastructure\Persistence\Doctrine\DoctrineInventoryItems'
     App\Inventory\Domain\PurchaseOrders: '@App\Inventory\Infrastructure\Persistence\Doctrine\DoctrinePurchaseOrders'
-    # Combo persistence (LRA-80): the Doctrine adapter + migration ship
-    # in a focused follow-up. Production binding is the
-    # UnimplementedCombos stub that throws on every method call so the
-    # container compiles cleanly (combo handlers can autowire) but any
-    # accidental Combo command dispatch fails immediately rather than
-    # writing to non-durable storage. The InMemory adapters are wired
-    # behind the same port aliases under when@dev / when@test below so
-    # the test container can exercise the handler flow end-to-end.
-    App\Inventory\Domain\Combos: '@App\Inventory\Infrastructure\Persistence\Stub\UnimplementedCombos'
+    # Combo persistence (LRA-80 → LRA-95): wired to the Postgres-backed
+    # adapter. ComboComponentEntity is the Doctrine-mapped child of
+    # Combo; composite key (combo_id, item_id) matches the LRA-80 plan
+    # and is hydrated EAGERly so the LRA-83 ACL sale-time expansion
+    # never N+1s. The InMemory adapter is wired under when@test below
+    # so domain/unit tests keep their fast shape.
+    App\Inventory\Domain\Combos: '@App\Inventory\Infrastructure\Persistence\Doctrine\DoctrineCombos'
     App\Inventory\Domain\ComboGraphResolver: '@App\Inventory\Infrastructure\Persistence\InMemory\RepositoryBackedComboGraphResolver'
     # Item groups (LRA-81): same fail-loud production binding pattern
     # as Combos. The Doctrine adapter + migration land in a focused
@@ -294,14 +292,16 @@ when@test:
         inventory.in_memory_purchase_orders_repository:
             alias: App\Inventory\Infrastructure\Persistence\InMemory\InMemoryPurchaseOrders
             public: true
-        # Combos (LRA-80). Wired as InMemory in production (see top of
-        # this file) while the Doctrine adapter + migration are in
-        # flight; the test container exposes the same alias publicly so
-        # integration tests can fetch the repo and inspect persisted
-        # state.
-        # Override the production Combos stub binding with the
-        # InMemory adapter for tests.
+        # Combos (LRA-80 → LRA-95). Production binding now points at
+        # DoctrineCombos; the test container resolves to the same
+        # Doctrine adapter by default so the contract test exercises
+        # the real path. The InMemory adapter is exposed under a
+        # named alias for unit tests that opt into the fast in-memory
+        # shape directly.
         App\Inventory\Domain\Combos:
+            alias: App\Inventory\Infrastructure\Persistence\Doctrine\DoctrineCombos
+            public: true
+        inventory.in_memory_combos_repository:
             alias: App\Inventory\Infrastructure\Persistence\InMemory\InMemoryCombos
             public: true
         # Override the production ItemGroups stub for tests.

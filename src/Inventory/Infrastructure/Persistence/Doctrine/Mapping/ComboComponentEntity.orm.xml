@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<doctrine-mapping xmlns="http://doctrine-project.org/schemas/orm/doctrine-mapping"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping
+                                      https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
+
+    <!--
+        ComboComponentEntity child entity owned by the Combo aggregate.
+        Composite identity (combo_id, item_id): combo_id is contributed
+        by the many-to-one back-reference; item_id is the natural
+        partner. No surrogate id — combos are small and the natural
+        composite is unambiguous.
+    -->
+    <entity name="App\Inventory\Domain\ComboComponentEntity" table="inventory_combo_components">
+
+        <indexes>
+            <index name="IDX_inventory_combo_components_item" columns="item_id"/>
+        </indexes>
+
+        <id name="combo" association-key="true"/>
+        <id name="componentItemId" type="inventory_item_id" column="item_id"/>
+
+        <field name="quantityPerCombo" column="qty_per_combo" type="inventory_quantity" nullable="false"/>
+
+        <many-to-one field="combo" target-entity="App\Inventory\Domain\Combo" inversed-by="components">
+            <join-column name="combo_id" referenced-column-name="id" nullable="false" on-delete="CASCADE"/>
+        </many-to-one>
+
+    </entity>
+
+</doctrine-mapping>
