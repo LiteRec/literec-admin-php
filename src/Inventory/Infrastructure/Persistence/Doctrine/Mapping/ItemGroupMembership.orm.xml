@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<doctrine-mapping xmlns="http://doctrine-project.org/schemas/orm/doctrine-mapping"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping
+                                      https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
+
+    <!--
+        ItemGroupMembership child entity owned by the ItemGroup
+        aggregate. Composite identity (group_id, item_id) — no
+        surrogate id. The (item_id, added_at DESC) index backs the
+        LRA-97 per-item recent-groups read path.
+    -->
+    <entity name="App\Inventory\Domain\ItemGroupMembership" table="inventory_item_group_members">
+
+        <indexes>
+            <index name="IDX_inventory_item_group_members_item_added" columns="item_id,added_at"/>
+        </indexes>
+
+        <id name="group" association-key="true"/>
+        <id name="itemId" type="inventory_item_id" column="item_id"/>
+
+        <field name="addedAt" column="added_at" type="datetime_immutable" nullable="false"/>
+
+        <many-to-one field="group" target-entity="App\Inventory\Domain\ItemGroup" inversed-by="members">
+            <join-column name="group_id" referenced-column-name="id" nullable="false" on-delete="CASCADE"/>
+        </many-to-one>
+
+    </entity>
+
+</doctrine-mapping>

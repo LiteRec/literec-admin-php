@@ -119,11 +119,14 @@ services:
     # so domain/unit tests keep their fast shape.
     App\Inventory\Domain\Combos: '@App\Inventory\Infrastructure\Persistence\Doctrine\DoctrineCombos'
     App\Inventory\Domain\ComboGraphResolver: '@App\Inventory\Infrastructure\Persistence\InMemory\RepositoryBackedComboGraphResolver'
-    # Item groups (LRA-81): same fail-loud production binding pattern
-    # as Combos. The Doctrine adapter + migration land in a focused
-    # follow-up; the InMemory adapter is wired for the test container
-    # under when@test below.
-    App\Inventory\Domain\ItemGroups: '@App\Inventory\Infrastructure\Persistence\Stub\UnimplementedItemGroups'
+    # Item groups (LRA-81 → LRA-96): wired to the Postgres-backed
+    # adapter. ItemGroupMembership is the Doctrine-mapped child of
+    # ItemGroup; composite key (group_id, item_id) matches the
+    # LRA-81 plan and is fetched LAZY because membership lists can
+    # grow into the hundreds — most write paths only need the
+    # parent. The (item_id, added_at DESC) index backs the LRA-97
+    # per-item recent-groups read path.
+    App\Inventory\Domain\ItemGroups: '@App\Inventory\Infrastructure\Persistence\Doctrine\DoctrineItemGroups'
     # Item links (LRA-82 → LRA-93): wired to the Postgres-backed adapter.
     App\Inventory\Domain\ItemLinks: '@App\Inventory\Infrastructure\Persistence\Doctrine\DoctrineItemLinks'
     # Stock movements ledger (LRA-94): append-only DBAL writer used inline
@@ -304,8 +307,16 @@ when@test:
         inventory.in_memory_combos_repository:
             alias: App\Inventory\Infrastructure\Persistence\InMemory\InMemoryCombos
             public: true
-        # Override the production ItemGroups stub for tests.
+        # Item groups (LRA-81 → LRA-96). Production binding now points
+        # at DoctrineItemGroups; the test container resolves to the
+        # same Doctrine adapter by default so the contract test
+        # exercises the real path. The InMemory adapter is exposed
+        # under a named alias for unit tests that opt into the fast
+        # in-memory shape directly.
         App\Inventory\Domain\ItemGroups:
+            alias: App\Inventory\Infrastructure\Persistence\Doctrine\DoctrineItemGroups
+            public: true
+        inventory.in_memory_item_groups_repository:
             alias: App\Inventory\Infrastructure\Persistence\InMemory\InMemoryItemGroups
             public: true
         # ItemLinks (LRA-82 → LRA-93): production binding now points at
