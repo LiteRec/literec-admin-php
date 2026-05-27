@@ -14,8 +14,8 @@ use App\Inventory\Domain\ValueObject\StockBatchId;
 use App\Inventory\Domain\ValueObject\StockMovementId;
 use App\Inventory\Domain\ValueObject\StockMovementReason;
 use DateTimeImmutable;
+use DateTimeZone;
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 
 /**
  * Append-only writer for the inventory_stock_movements ledger.
@@ -27,12 +27,15 @@ use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
  *
  * Idempotency is enforced at the schema level via the UNIQUE PARTIAL
  * index on (transaction_id, item_id, facility_code) WHERE
- * transaction_id IS NOT NULL. The {@see recordConsumed()} path catches
- * {@see UniqueConstraintViolationException} and returns false so the
- * LRA-83 ACL can treat a duplicate consume as already-handled without
- * raising. Non-consume paths (receive, return, transfer, adjust) carry
- * a null transaction_id and therefore never trip the partial index —
- * the underlying insert always succeeds for them.
+ * transaction_id IS NOT NULL. The {@see recordConsumed()} path lets a
+ * {@see \Doctrine\DBAL\Exception\UniqueConstraintViolationException}
+ * propagate so the surrounding doctrine_transaction middleware rolls
+ * back the matching consume — silently swallowing the violation would
+ * leave stock decremented twice under a redelivery race. Callers that
+ * need an idempotent "already-consumed" check consult
+ * {@see hasConsumedFor()} BEFORE the consume. Non-consume paths
+ * (receive, return, transfer, adjust) carry a null transaction_id
+ * and never trip the partial index — those inserts always succeed.
  */
 final readonly class DoctrineStockMovementLedger implements StockMovementLedger
 {
@@ -45,9 +48,12 @@ final readonly class DoctrineStockMovementLedger implements StockMovementLedger
     /**
      * Record a consume row (kind=CONSUMED) tied to a transaction id.
      *
-     * Returns true when the row was inserted, false when the unique
-     * constraint on (transaction_id, item_id, facility_code) blocked
-     * the insert (the second-line-of-defence idempotency path).
+     * A unique-constraint violation on (transaction_id, item_id,
+     * facility_code) is intentionally allowed to propagate so the
+     * surrounding doctrine_transaction middleware rolls back the
+     * matching consume. Callers MUST probe {@see hasConsumedFor()}
+     * before consuming if they need an idempotent fast-path that
+     * avoids the rollback cost on a duplicate envelope.
      */
     public function recordConsumed(
         InventoryItemId $itemId,
@@ -59,24 +65,19 @@ final readonly class DoctrineStockMovementLedger implements StockMovementLedger
         string $transactionId,
         DateTimeImmutable $recordedAt,
         ?string $operatorNote = null,
-    ): bool {
-        try {
-            $this->insert(
-                kind: 'CONSUMED',
-                itemId: $itemId,
-                facilityCode: $facilityCode,
-                stockBatchId: $stockBatchId,
-                reason: $reason,
-                quantity: $quantity,
-                costPerUnit: $costPerUnit,
-                transactionId: $transactionId,
-                recordedAt: $recordedAt,
-                operatorNote: $operatorNote,
-            );
-            return true;
-        } catch (UniqueConstraintViolationException) {
-            return false;
-        }
+    ): void {
+        $this->insert(
+            kind: 'CONSUMED',
+            itemId: $itemId,
+            facilityCode: $facilityCode,
+            stockBatchId: $stockBatchId,
+            reason: $reason,
+            quantity: $quantity,
+            costPerUnit: $costPerUnit,
+            transactionId: $transactionId,
+            recordedAt: $recordedAt,
+            operatorNote: $operatorNote,
+        );
     }
 
     public function recordReceived(
@@ -237,7 +238,7 @@ final readonly class DoctrineStockMovementLedger implements StockMovementLedger
             'cost_per_unit_cents' => $costPerUnit->cents,
             'operator_note' => $operatorNote,
             'transaction_id' => $transactionId,
-            'recorded_at' => $recordedAt->format('Y-m-d H:i:s'),
+            'recorded_at' => $recordedAt->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s'),
         ]);
     }
 }

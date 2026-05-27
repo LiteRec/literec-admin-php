@@ -31,9 +31,13 @@ interface StockMovementLedger
     /**
      * Record a consume row (kind=CONSUMED) tied to a transaction id.
      *
-     * Returns true when the row was inserted, false when the unique
-     * constraint on (transaction_id, item_id, facility_code) blocked
-     * the insert (the second-line-of-defence idempotency path).
+     * Implementations MUST let a unique-constraint violation on
+     * (transaction_id, item_id, facility_code) propagate so the
+     * surrounding doctrine_transaction middleware rolls back the
+     * matching consume — silently swallowing the violation would
+     * leave the stock decremented twice under a redelivery race.
+     * Callers that need an idempotent "already-consumed" check
+     * should consult {@see hasConsumedFor()} BEFORE the consume.
      */
     public function recordConsumed(
         InventoryItemId $itemId,
@@ -45,7 +49,7 @@ interface StockMovementLedger
         string $transactionId,
         DateTimeImmutable $recordedAt,
         ?string $operatorNote = null,
-    ): bool;
+    ): void;
 
     public function recordReceived(
         InventoryItemId $itemId,
