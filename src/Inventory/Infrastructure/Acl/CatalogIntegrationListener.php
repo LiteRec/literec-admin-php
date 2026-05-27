@@ -8,12 +8,15 @@ use App\Catalog\Domain\ListingKind;
 use App\Catalog\Domain\ValueObject\ListingId;
 use App\Catalog\Integration\Event\LineSold;
 use App\Inventory\Domain\Combos;
+use App\Inventory\Domain\Event\StockMovementRecorded;
 use App\Inventory\Domain\Exception\ComboNotFound;
 use App\Inventory\Domain\Exception\InsufficientStock;
 use App\Inventory\Domain\Exception\InventoryItemNotFound;
 use App\Inventory\Domain\InventoryItem;
 use App\Inventory\Domain\InventoryItems;
 use App\Inventory\Domain\ItemLinks;
+use App\Inventory\Domain\StockMovementLedger;
+use App\Inventory\Domain\ValueObject\CostPerUnit;
 use App\Inventory\Domain\ValueObject\FacilityCode;
 use App\Inventory\Domain\ValueObject\InventoryItemId;
 use App\Inventory\Domain\ValueObject\Quantity;
@@ -56,12 +59,17 @@ use Symfony\Component\Messenger\Stamp\DispatchAfterCurrentBusStamp;
  *     {@see StockConsumptionFailed} fires with reason
  *     {@see StockConsumptionFailed::REASON_INSUFFICIENT_STOCK}.
  *
- * Idempotency note: the plan calls for a transactional dedupe on the
- * inventory_stock_movements ledger (unique key on transactionId +
- * itemId + facility). That table + its writer lands in a focused
- * follow-up paired with the LRA-76 schema. Until then the ACL relies on
- * Messenger's standard at-least-once semantics; downstream consumers of
- * StockConsumptionFailed already dedupe on (transactionId, listingId).
+ * Idempotency: a duplicate envelope (Messenger at-least-once redelivery)
+ * is short-circuited two ways. First, before any consume, the listener
+ * probes {@see StockMovementLedger::hasConsumedFor()} against every
+ * (transactionId, componentItemId, facilityCode) tuple and returns
+ * without writing on a hit. Second, after each successful consume, the
+ * listener appends a CONSUMED row to the ledger via
+ * {@see StockMovementLedger::recordConsumed()} — the partial UNIQUE
+ * index on (transaction_id, item_id, facility_code) in the
+ * inventory_stock_movements table is the second-line-of-defence
+ * dedupe should the pre-flight guard race a concurrent redelivery
+ * (LRA-94).
  */
 #[AsMessageHandler]
 final class CatalogIntegrationListener
@@ -72,6 +80,7 @@ final class CatalogIntegrationListener
         private readonly ItemLinks $itemLinks,
         private readonly ClockInterface $clock,
         private readonly MessageBusInterface $eventBus,
+        private readonly StockMovementLedger $movementLedger,
         private readonly LoggerInterface $logger = new NullLogger(),
     ) {
     }
@@ -103,6 +112,27 @@ final class CatalogIntegrationListener
         }
 
         $componentTuples = $this->expandCombo($masterItem, $saleQuantity);
+
+        // Idempotency guard: if the ledger already carries a CONSUMED
+        // row for any of these (transaction_id, item_id, facility_code)
+        // tuples, the envelope has already been processed (Messenger
+        // at-least-once redelivery). Short-circuit before re-consuming.
+        foreach ($componentTuples as [$componentId, $_qty]) {
+            if (
+                $this->movementLedger->hasConsumedFor(
+                    $event->transactionId,
+                    $componentId,
+                    $facility,
+                )
+            ) {
+                $this->logger->info('Inventory ACL: duplicate LineSold envelope ignored.', [
+                    'transaction_id' => $event->transactionId,
+                    'inventory_item_id' => $componentId->value,
+                    'facility_code' => $event->facilityCode,
+                ]);
+                return;
+            }
+        }
 
         // Pre-flight: walk every active item link for the components and
         // bail out before mutating stock if any constraint blocks the sale.
@@ -142,7 +172,29 @@ final class CatalogIntegrationListener
                 $itemToMutate->consume($facility, $componentQty, StockMovementReason::SALE, $this->clock);
                 $this->inventoryItems->save($itemToMutate);
 
-                foreach ($itemToMutate->releaseEvents() as $domainEvent) {
+                $releasedEvents = $itemToMutate->releaseEvents();
+
+                // Append the CONSUMED summary row carrying the transaction
+                // id so the partial unique index serves as the second-
+                // line-of-defence dedupe should the pre-flight guard
+                // race with a concurrent redelivery. cost_per_unit_cents
+                // is the weighted average across every StockBatch the
+                // FIFO walk touched — preserves the per-component basis
+                // even though the summary row carries no stock_batch_id
+                // (the consume may span multiple batches; per-batch
+                // detail lives in the stock_batches join).
+                $this->movementLedger->recordConsumed(
+                    itemId: $componentId,
+                    facilityCode: $facility,
+                    stockBatchId: null,
+                    reason: StockMovementReason::SALE,
+                    quantity: $componentQty,
+                    costPerUnit: $this->weightedAverageCost($releasedEvents, $componentQty),
+                    transactionId: $event->transactionId,
+                    recordedAt: $this->clock->now(),
+                );
+
+                foreach ($releasedEvents as $domainEvent) {
                     $this->eventBus->dispatch($domainEvent, [new DispatchAfterCurrentBusStamp()]);
                 }
             }
@@ -244,6 +296,42 @@ final class CatalogIntegrationListener
         }
 
         return null;
+    }
+
+    /**
+     * Weighted-average cost across every StockMovementRecorded event the
+     * consume call released — preserves the cost basis on the CONSUMED
+     * summary row even though the row carries no stock_batch_id (the
+     * consume may span multiple FIFO batches).
+     *
+     * Falls back to zero when the released-events list contains no
+     * StockMovementRecorded entries (defensive — every consume should
+     * emit at least one, but a zero-quantity consume short-circuits).
+     *
+     * @param list<object> $releasedEvents
+     */
+    private function weightedAverageCost(array $releasedEvents, Quantity $totalQuantity): CostPerUnit
+    {
+        if ($totalQuantity->isZero()) {
+            return CostPerUnit::zero();
+        }
+
+        $weightedCents = 0;
+        $countedUnits = 0;
+
+        foreach ($releasedEvents as $domainEvent) {
+            if (! $domainEvent instanceof StockMovementRecorded) {
+                continue;
+            }
+            $weightedCents += $domainEvent->costPerUnit->cents * $domainEvent->quantityConsumed->units;
+            $countedUnits += $domainEvent->quantityConsumed->units;
+        }
+
+        if ($countedUnits === 0) {
+            return CostPerUnit::zero();
+        }
+
+        return CostPerUnit::ofCents(intdiv($weightedCents, $countedUnits));
     }
 
     private function dispatchFailure(

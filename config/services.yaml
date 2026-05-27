@@ -128,6 +128,13 @@ services:
     App\Inventory\Domain\ItemGroups: '@App\Inventory\Infrastructure\Persistence\Stub\UnimplementedItemGroups'
     # Item links (LRA-82 → LRA-93): wired to the Postgres-backed adapter.
     App\Inventory\Domain\ItemLinks: '@App\Inventory\Infrastructure\Persistence\Doctrine\DoctrineItemLinks'
+    # Stock movements ledger (LRA-94): append-only DBAL writer used inline
+    # by the Catalog ACL for CONSUMED rows (with the transaction id
+    # idempotency key) and by the AdjustStockHandler + StockReceived /
+    # StockReturned / StockTransferredOut / StockTransferredIn subscribers
+    # for non-consume rows. Read paths go through the LRA-97 query
+    # handlers, never through this port.
+    App\Inventory\Domain\StockMovementLedger: '@App\Inventory\Infrastructure\Persistence\Doctrine\DoctrineStockMovementLedger'
 
     # Bind the Households read-model port (LRA-38) to its Doctrine adapter.
     # The adapter uses the DBAL Connection rather than the EntityManager;
@@ -307,6 +314,16 @@ when@test:
         # remains an autowired class under the same namespace and is
         # used directly by InMemoryItemLinksContractTest without going
         # through the container.
+        # Stock movements ledger (LRA-94): override the production
+        # Doctrine binding with the in-memory test fake so unit and
+        # integration tests do not require the inventory_stock_movements
+        # table for the consume / receive / adjust / transfer flows that
+        # already pass through the StockMovementLedger port.
+        App\Inventory\Domain\StockMovementLedger:
+            alias: App\Tests\Support\Fake\InMemoryStockMovementLedger
+            public: true
+        App\Tests\Support\Fake\InMemoryStockMovementLedger:
+            public: true
         # Seeded Faker generator for fixture loads. Test env mirrors the
         # dev binding below so integration tests that exercise fixtures
         # see identical output.

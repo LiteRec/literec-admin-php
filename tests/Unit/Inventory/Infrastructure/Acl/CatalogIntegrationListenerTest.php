@@ -27,6 +27,7 @@ use App\Inventory\Infrastructure\Persistence\InMemory\InMemoryCombos;
 use App\Inventory\Infrastructure\Persistence\InMemory\InMemoryInventoryItems;
 use App\Inventory\Infrastructure\Persistence\InMemory\InMemoryItemLinks;
 use App\Inventory\Integration\Event\StockConsumptionFailed;
+use App\Tests\Support\Fake\InMemoryStockMovementLedger;
 use App\Tests\Support\Fake\RecordingMessageBus;
 use DateTimeImmutable;
 use PHPUnit\Framework\Attributes\Small;
@@ -55,6 +56,7 @@ final class CatalogIntegrationListenerTest extends TestCase
     private InMemoryItemLinks $itemLinks;
     private RecordingMessageBus $eventBus;
     private MockClock $clock;
+    private InMemoryStockMovementLedger $ledger;
     private CatalogIntegrationListener $listener;
 
     protected function setUp(): void
@@ -64,12 +66,14 @@ final class CatalogIntegrationListenerTest extends TestCase
         $this->itemLinks = new InMemoryItemLinks();
         $this->eventBus = new RecordingMessageBus();
         $this->clock = new MockClock(new DateTimeImmutable('2026-05-26 12:00:00'));
+        $this->ledger = new InMemoryStockMovementLedger();
         $this->listener = new CatalogIntegrationListener(
             $this->items,
             $this->combos,
             $this->itemLinks,
             $this->clock,
             $this->eventBus,
+            $this->ledger,
         );
     }
 
@@ -128,6 +132,15 @@ final class CatalogIntegrationListenerTest extends TestCase
             $this->eventBus->dispatchedMessages(),
             static fn ($m): bool => $m instanceof StockConsumptionFailed,
         ));
+
+        $consumedRows = array_values(array_filter(
+            $this->ledger->rows(),
+            static fn (array $row): bool => $row['kind'] === 'CONSUMED',
+        ));
+        self::assertCount(1, $consumedRows, 'Expected one CONSUMED ledger row keyed by transaction.');
+        self::assertSame(self::TRANSACTION_ID, $consumedRows[0]['transaction_id']);
+        self::assertSame(2, $consumedRows[0]['quantity']);
+        self::assertSame(100, $consumedRows[0]['cost_per_unit_cents']);
     }
 
     #[Test]
@@ -183,6 +196,20 @@ final class CatalogIntegrationListenerTest extends TestCase
         $b = $this->items->byId(InventoryItemId::fromString(self::COMPONENT_B));
         self::assertSame(7, $a->totalOnHandAt(FacilityCode::fromString('MAIN'))->units);
         self::assertSame(4, $b->totalOnHandAt(FacilityCode::fromString('MAIN'))->units);
+
+        $consumedRows = array_values(array_filter(
+            $this->ledger->rows(),
+            static fn (array $row): bool => $row['kind'] === 'CONSUMED',
+        ));
+        self::assertCount(2, $consumedRows, 'One CONSUMED row per combo component.');
+        $byItem = [];
+        foreach ($consumedRows as $row) {
+            $byItem[$row['item_id']] = $row;
+        }
+        self::assertSame(3, $byItem[self::COMPONENT_A]['quantity']);
+        self::assertSame(6, $byItem[self::COMPONENT_B]['quantity']);
+        self::assertSame(self::TRANSACTION_ID, $byItem[self::COMPONENT_A]['transaction_id']);
+        self::assertSame(self::TRANSACTION_ID, $byItem[self::COMPONENT_B]['transaction_id']);
     }
 
     #[Test]
@@ -258,6 +285,12 @@ final class CatalogIntegrationListenerTest extends TestCase
         self::assertSame(self::LISTING_ID, $failures[0]->listingId);
         self::assertSame(self::TRANSACTION_ID, $failures[0]->transactionId);
         self::assertSame('MAIN', $failures[0]->facilityCode);
+
+        $consumedRows = array_values(array_filter(
+            $this->ledger->rows(),
+            static fn (array $row): bool => $row['kind'] === 'CONSUMED',
+        ));
+        self::assertSame([], $consumedRows, 'No CONSUMED ledger row should land when the consume rolls back.');
     }
 
     private function lineSoldFor(string $listingId, string $facility, int $qty): LineSold
