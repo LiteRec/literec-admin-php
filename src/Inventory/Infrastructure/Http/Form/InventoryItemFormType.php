@@ -43,7 +43,7 @@ final class InventoryItemFormType extends AbstractType
     public const string CODE_PATTERN = '/^[A-Z0-9_-]+$/i';
 
     public const string UUID_V7_PATTERN
-        = '/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/';
+        = '/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i';
 
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {

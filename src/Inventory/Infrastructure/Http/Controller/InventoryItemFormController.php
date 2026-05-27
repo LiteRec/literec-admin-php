@@ -63,6 +63,20 @@ final class InventoryItemFormController extends AbstractController
 
     private const string DEFAULT_FEE_LABEL = 'Base';
 
+    private const string DIALOG_TEMPLATE = 'inventory/item/_dialog.html.twig';
+
+    private const string NOT_FOUND_MESSAGE = 'Inventory item not found.';
+
+    private const string CREATE_TITLE = 'New Inventory Item';
+
+    private const string CREATE_SUBMIT = 'Create Item';
+
+    private const string EDIT_TITLE = 'Edit Inventory Item';
+
+    private const string EDIT_SUBMIT = 'Save Changes';
+
+    private const string GENERIC_SAVE_FAILURE = 'Unable to save inventory item. Please try again.';
+
     public function __construct(
         MessageBusInterface $commandBus,
         private readonly MessageBusInterface $queryBus,
@@ -77,12 +91,12 @@ final class InventoryItemFormController extends AbstractController
     {
         $form = $this->createForm(InventoryItemFormType::class, new InventoryItemInput());
 
-        return $this->render('inventory/item/_dialog.html.twig', [
+        return $this->render(self::DIALOG_TEMPLATE, [
             'form' => $form->createView(),
             'mode' => 'create',
             'formAction' => $this->generateUrl('inventory_item_create'),
-            'modalTitle' => 'New Inventory Item',
-            'submitLabel' => 'Create Item',
+            'modalTitle' => self::CREATE_TITLE,
+            'submitLabel' => self::CREATE_SUBMIT,
         ]);
     }
 
@@ -99,8 +113,8 @@ final class InventoryItemFormController extends AbstractController
                 $form,
                 'create',
                 $this->generateUrl('inventory_item_create'),
-                'New Inventory Item',
-                'Create Item',
+                self::CREATE_TITLE,
+                self::CREATE_SUBMIT,
             );
         }
 
@@ -113,8 +127,8 @@ final class InventoryItemFormController extends AbstractController
                 $form,
                 'create',
                 $this->generateUrl('inventory_item_create'),
-                'New Inventory Item',
-                'Create Item',
+                self::CREATE_TITLE,
+                self::CREATE_SUBMIT,
             );
         }
 
@@ -133,18 +147,18 @@ final class InventoryItemFormController extends AbstractController
         try {
             [$detail, $listing] = $this->loadItemAndListing($itemId);
         } catch (InventoryItemNotFound) {
-            throw $this->createNotFoundException('Inventory item not found.');
+            throw $this->createNotFoundException(self::NOT_FOUND_MESSAGE);
         }
 
         $input = $this->inputFrom($detail, $listing);
         $form = $this->createForm(InventoryItemFormType::class, $input);
 
-        return $this->render('inventory/item/_dialog.html.twig', [
+        return $this->render(self::DIALOG_TEMPLATE, [
             'form' => $form->createView(),
             'mode' => 'edit',
             'formAction' => $this->generateUrl('inventory_item_update', ['itemId' => $itemId]),
-            'modalTitle' => 'Edit Inventory Item',
-            'submitLabel' => 'Save Changes',
+            'modalTitle' => self::EDIT_TITLE,
+            'submitLabel' => self::EDIT_SUBMIT,
         ]);
     }
 
@@ -165,7 +179,7 @@ final class InventoryItemFormController extends AbstractController
             // probe: if the item is missing, the query throws.
             [, $listing] = $this->loadItemAndListing($itemId);
         } catch (InventoryItemNotFound) {
-            throw $this->createNotFoundException('Inventory item not found.');
+            throw $this->createNotFoundException(self::NOT_FOUND_MESSAGE);
         }
 
         $input = new InventoryItemInput();
@@ -177,8 +191,8 @@ final class InventoryItemFormController extends AbstractController
                 $form,
                 'edit',
                 $this->generateUrl('inventory_item_update', ['itemId' => $itemId]),
-                'Edit Inventory Item',
-                'Save Changes',
+                self::EDIT_TITLE,
+                self::EDIT_SUBMIT,
             );
         }
 
@@ -200,8 +214,8 @@ final class InventoryItemFormController extends AbstractController
                 $form,
                 'edit',
                 $this->generateUrl('inventory_item_update', ['itemId' => $itemId]),
-                'Edit Inventory Item',
-                'Save Changes',
+                self::EDIT_TITLE,
+                self::EDIT_SUBMIT,
             );
         } catch (VendorNotFound $exception) {
             $form->get('vendorId')->addError(new FormError($exception->getMessage()));
@@ -210,18 +224,18 @@ final class InventoryItemFormController extends AbstractController
                 $form,
                 'edit',
                 $this->generateUrl('inventory_item_update', ['itemId' => $itemId]),
-                'Edit Inventory Item',
-                'Save Changes',
+                self::EDIT_TITLE,
+                self::EDIT_SUBMIT,
             );
-        } catch (Throwable $exception) {
-            $form->addError(new FormError($exception->getMessage()));
+        } catch (Throwable) {
+            $form->addError(new FormError(self::GENERIC_SAVE_FAILURE));
 
             return $this->reRenderForm(
                 $form,
                 'edit',
                 $this->generateUrl('inventory_item_update', ['itemId' => $itemId]),
-                'Edit Inventory Item',
-                'Save Changes',
+                self::EDIT_TITLE,
+                self::EDIT_SUBMIT,
             );
         }
 
@@ -240,7 +254,7 @@ final class InventoryItemFormController extends AbstractController
         try {
             [$detail, $listing] = $this->loadItemAndListing($itemId);
         } catch (InventoryItemNotFound) {
-            throw $this->createNotFoundException('Inventory item not found.');
+            throw $this->createNotFoundException(self::NOT_FOUND_MESSAGE);
         }
 
         return $this->render('inventory/item/_barcode_print.html.twig', [
@@ -463,9 +477,7 @@ final class InventoryItemFormController extends AbstractController
             return;
         }
 
-        $form->addError(new FormError(
-            $cause instanceof Throwable ? $cause->getMessage() : $failure->getMessage(),
-        ));
+        $form->addError(new FormError(self::GENERIC_SAVE_FAILURE));
     }
 
     /**
@@ -480,7 +492,7 @@ final class InventoryItemFormController extends AbstractController
         string $submitLabel,
     ): Response {
         return $this->render(
-            'inventory/item/_dialog.html.twig',
+            self::DIALOG_TEMPLATE,
             [
                 'form' => $form->createView(),
                 'mode' => $mode,
