@@ -6,6 +6,7 @@ namespace App\Inventory\Infrastructure\Persistence\Doctrine;
 
 use App\Catalog\Domain\ValueObject\ListingId;
 use App\Inventory\Domain\Combo;
+use App\Inventory\Domain\ComboComponentEntity;
 use App\Inventory\Domain\Combos;
 use App\Inventory\Domain\Exception\ComboNotFound;
 use App\Inventory\Domain\ValueObject\ComboId;
@@ -74,19 +75,33 @@ final class DoctrineCombos implements Combos
         // ComboComponentEntity keeps the query plan tight (single
         // index hit + join back to the parent) and avoids hydrating
         // unrelated combos.
-        // JOIN FETCH so the returned combos arrive with their components
-        // hydrated in the same query — the LRA-83 ACL sale-time expansion
-        // walks every component immediately after this call and would
-        // otherwise trigger N+1 loads on the lazy collection.
-        $dql = 'SELECT DISTINCT c FROM ' . Combo::class . ' c '
-            . 'JOIN FETCH c.components cc '
+        // Two-step query: first resolve the combo IDs via the child
+        // table (single index hit on inventory_combo_components.item_id),
+        // then load the parents. The components association is mapped
+        // fetch="EAGER" so the second query hydrates the children
+        // alongside the parents in a single batch — no N+1 even
+        // without JOIN FETCH in the parent query, which the
+        // phpstan-doctrine analyser parses incorrectly when combined
+        // with DISTINCT.
+        $idDql = 'SELECT DISTINCT IDENTITY(cc.combo) FROM '
+            . ComboComponentEntity::class . ' cc '
             . 'WHERE cc.componentItemId = :itemId';
 
-        $query = $this->em->createQuery($dql);
-        $query->setParameter('itemId', $componentItemId);
+        $idQuery = $this->em->createQuery($idDql);
+        $idQuery->setParameter('itemId', $componentItemId);
+        /** @var list<string> $comboIds */
+        $comboIds = array_column($idQuery->getArrayResult(), 1);
+
+        if ($comboIds === []) {
+            return [];
+        }
+
+        $combosDql = 'SELECT c FROM ' . Combo::class . ' c WHERE c.id IN (:ids)';
+        $combosQuery = $this->em->createQuery($combosDql);
+        $combosQuery->setParameter('ids', $comboIds);
 
         /** @var list<Combo> $result */
-        $result = $query->getResult();
+        $result = $combosQuery->getResult();
 
         return $result;
     }
