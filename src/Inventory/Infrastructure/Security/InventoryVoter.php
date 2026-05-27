@@ -25,6 +25,8 @@ final class InventoryVoter extends Voter
 
     public const string RECEIVE = 'receive_stock';
 
+    public const string TAKE = 'take_inventory';
+
     public const string MANAGE_PURCHASE_ORDERS = 'manage_purchase_orders';
 
     /** @var list<string> */
@@ -32,6 +34,7 @@ final class InventoryVoter extends Voter
         self::VIEW,
         self::MANAGE,
         self::RECEIVE,
+        self::TAKE,
         self::MANAGE_PURCHASE_ORDERS,
     ];
 

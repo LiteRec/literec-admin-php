@@ -114,6 +114,20 @@
                             >
                                 {{ item.listingCode }}
                             </button>
+                            {% if is_granted('receive_stock') %}
+                                <button
+                                    type="button"
+                                    hx-get="{{ path('inventory_receive_form', { itemId: item.inventoryItemId }) }}"
+                                    hx-target="body"
+                                    hx-swap="beforeend"
+                                    aria-haspopup="dialog"
+                                    aria-label="Receive stock for {{ item.listingCode }}"
+                                    data-testid="receive-stock-{{ item.inventoryItemId }}"
+                                    class="ml-2 inline-flex items-center rounded-md border border-litrec-border bg-litrec-surface px-2 py-0.5 text-[0.65rem] font-semibold text-litrec-text hover:bg-litrec-bg-muted focus:outline-none focus:ring-2 focus:ring-litrec-primary"
+                                >
+                                    Receive
+                                </button>
+                            {% endif %}
                         </td>
                         <td class="px-4 py-2 text-litrec-text">
                             {{ item.name }}

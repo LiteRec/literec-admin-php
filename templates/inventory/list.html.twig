@@ -25,7 +25,7 @@
         class="mt-6 transition-opacity htmx-request:opacity-50"
         hx-indicator="this"
         hx-get="{{ path('inventory_table') }}"
-        hx-trigger="inventoryItemSaved from:body"
+        hx-trigger="inventoryItemSaved from:body, stockReceived from:body, stockAdjusted from:body"
         hx-swap="innerHTML"
     >
         {% include 'inventory/list/_table.html.twig' %}

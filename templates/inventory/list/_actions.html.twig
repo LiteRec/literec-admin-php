@@ -40,8 +40,11 @@
             New Combo
         </button>
 
+    {% endif %}
+
+    {% if is_granted('take_inventory') %}
         <a
-            href="/admin/inventory/take"
+            href="{{ path('inventory_take_index') }}"
             data-testid="goto-take-inventory"
             class="rounded-md border border-litrec-border bg-litrec-surface px-4 py-2 text-sm font-semibold text-litrec-text hover:bg-litrec-bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
         >
