@@ -8,6 +8,7 @@ use App\Inventory\Domain\ValueObject\CostPerUnit;
 use App\Inventory\Domain\ValueObject\FacilityCode;
 use App\Inventory\Domain\ValueObject\InventoryItemId;
 use App\Inventory\Domain\ValueObject\Quantity;
+use App\Inventory\Domain\ValueObject\StockAdjustmentDirection;
 use App\Inventory\Domain\ValueObject\StockBatchId;
 use App\Inventory\Domain\ValueObject\StockMovementReason;
 use DateTimeImmutable;
@@ -99,6 +100,7 @@ interface StockMovementLedger
         FacilityCode $facilityCode,
         ?StockBatchId $stockBatchId,
         Quantity $quantity,
+        StockAdjustmentDirection $direction,
         CostPerUnit $costPerUnit,
         DateTimeImmutable $recordedAt,
         ?string $operatorNote = null,

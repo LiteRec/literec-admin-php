@@ -306,9 +306,12 @@ final class CatalogIntegrationListener
      * summary row even though the row carries no stock_batch_id (the
      * consume may span multiple FIFO batches).
      *
-     * Falls back to zero when the released-events list contains no
-     * StockMovementRecorded entries (defensive — every consume should
-     * emit at least one, but a zero-quantity consume short-circuits).
+     * Throws when the released-events list does not cover the full
+     * requested quantity: a missing or partial set would produce a
+     * silently-wrong cost_per_unit_cents on the ledger row, masking an
+     * aggregate invariant break. Every consume must emit one
+     * StockMovementRecorded per batch touched whose quantities sum to
+     * the requested amount.
      *
      * @param list<object> $releasedEvents
      */
@@ -329,8 +332,12 @@ final class CatalogIntegrationListener
             $countedUnits += $domainEvent->quantityConsumed->units;
         }
 
-        if ($countedUnits === 0) {
-            return CostPerUnit::zero();
+        if ($countedUnits !== $totalQuantity->units) {
+            throw new \LogicException(sprintf(
+                'StockMovementRecorded events covered %d unit(s); expected %d to match the consume request.',
+                $countedUnits,
+                $totalQuantity->units,
+            ));
         }
 
         return CostPerUnit::ofCents(intdiv($weightedCents, $countedUnits));
