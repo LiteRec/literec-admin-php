@@ -285,6 +285,13 @@ final class Combo
     }
 
     /**
+     * Set-equality on combo components: two lists are equal iff they
+     * carry the same (componentItemId, quantityPerCombo) pairs. Order
+     * is not meaningful — a combo of (apple x 1, banana x 2) and
+     * (banana x 2, apple x 1) describe the same product. Sorting both
+     * sides by componentItemId before index-by-index comparison gives
+     * a stable, hydration-order-independent result.
+     *
      * @param list<ComboComponent> $a
      * @param list<ComboComponent> $b
      */
@@ -293,6 +300,12 @@ final class Combo
         if (count($a) !== count($b)) {
             return false;
         }
+
+        $sorter = static fn (ComboComponent $x, ComboComponent $y): int
+            => strcmp($x->componentItemId->value, $y->componentItemId->value);
+
+        usort($a, $sorter);
+        usort($b, $sorter);
 
         foreach ($a as $i => $component) {
             if (! $component->equals($b[$i])) {
