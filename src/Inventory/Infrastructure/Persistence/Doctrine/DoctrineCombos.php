@@ -89,8 +89,12 @@ final class DoctrineCombos implements Combos
 
         $idQuery = $this->em->createQuery($idDql);
         $idQuery->setParameter('itemId', $componentItemId);
+        // getSingleColumnResult() returns a flat list<scalar> for the
+        // one selected column — avoids depending on the index that
+        // Doctrine assigns to IDENTITY(cc.combo) in getArrayResult()
+        // rows (1 vs 0 differs by version).
         /** @var list<string> $comboIds */
-        $comboIds = array_column($idQuery->getArrayResult(), 1);
+        $comboIds = $idQuery->getSingleColumnResult();
 
         if ($comboIds === []) {
             return [];
@@ -100,9 +104,7 @@ final class DoctrineCombos implements Combos
         $combosQuery = $this->em->createQuery($combosDql);
         $combosQuery->setParameter('ids', $comboIds);
 
-        /** @var list<Combo> $result */
-        $result = $combosQuery->getResult();
-
-        return $result;
+        /** @var list<Combo> */
+        return $combosQuery->getResult();
     }
 }
