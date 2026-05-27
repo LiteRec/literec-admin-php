@@ -21,4 +21,5 @@
 
 ###> deptrac/deptrac ###
 /.deptrac.cache
+/junit-report.xml
 ###< deptrac/deptrac ###

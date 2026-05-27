@@ -62,8 +62,35 @@ deptrac:
                       value: CatalogPublishedLanguage
         - name: CatalogApplication
           collectors:
-              - type: directory
-                value: src/Catalog/Application/.*
+              # Everything under Catalog\Application except the
+              # cross-bus commands explicitly published for downstream
+              # contexts via CatalogCrossBusCommands. Without this
+              # subtraction the cross-bus DTO would belong to two
+              # layers and deptrac's match-once-then-stop semantics
+              # could route the dependency through CatalogApplication
+              # instead of the narrow whitelist.
+              - type: bool
+                must:
+                    - type: directory
+                      value: src/Catalog/Application/.*
+                must_not:
+                    - type: layer
+                      value: CatalogCrossBusCommands
+        - name: CatalogCrossBusCommands
+          collectors:
+              # Narrow allow-list of Catalog command DTOs that
+              # downstream contexts may import directly. Currently
+              # exactly the RegisterListing DTO consumed by the
+              # Inventory cross-bus RegisterInventoryItem handler
+              # introduced in LRA-98. New entries here require a
+              # deliberate review — every addition is a coupling
+              # surface across bounded contexts. Pattern is anchored
+              # with $ so RegisterListingHandler (the Catalog
+              # internal handler that mutates the aggregate) stays
+              # in CatalogApplication and keeps its access to
+              # CatalogDomain.
+              - type: classLike
+                value: '^App\\Catalog\\Application\\Command\\RegisterListing$'
         - name: CatalogInfrastructure
           collectors:
               - type: directory
@@ -254,6 +281,7 @@ deptrac:
         CatalogApplication:
             - CatalogDomain
             - CatalogPublishedLanguage
+            - CatalogCrossBusCommands
             - SymfonyMessenger
             - PsrClock
         CatalogInfrastructure:
@@ -292,6 +320,7 @@ deptrac:
         InventoryApplication:
             - InventoryDomain
             - CatalogPublishedLanguage
+            - CatalogCrossBusCommands
             - SharedDomain
             - SymfonyMessenger
             - PsrClock
