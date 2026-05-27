@@ -297,6 +297,13 @@ deptrac:
             - Faker
             - SharedInfrastructure
         CatalogIntegration: []
+        # CatalogCrossBusCommands holds only primitive command DTOs
+        # (currently App\Catalog\Application\Command\RegisterListing).
+        # They carry no outgoing dependencies beyond scalar primitives,
+        # so the allow-list is intentionally empty — any future
+        # cross-bus DTO that needs a domain value object must add the
+        # specific allowed target here, deliberately.
+        CatalogCrossBusCommands: []
         # Inventory layers. Mirrors the Catalog/Households layouts.
         # InventoryDomain may import CatalogPublishedLanguage (ListingId
         # and ListingKind only) but is forbidden from importing the rest
