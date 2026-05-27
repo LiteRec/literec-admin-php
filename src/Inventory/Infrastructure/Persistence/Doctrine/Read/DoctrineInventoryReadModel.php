@@ -13,6 +13,7 @@ use App\Inventory\Application\Query\View\InventorySummaryView;
 use App\Inventory\Application\Query\View\LowStockAlertView;
 use App\Inventory\Application\Query\View\StockMovementPage;
 use App\Inventory\Application\Query\View\StockMovementView;
+use App\Shared\Infrastructure\Doctrine\Read\RowFieldExtraction;
 use DateTimeImmutable;
 use DateTimeZone;
 use Doctrine\DBAL\ArrayParameterType;
@@ -32,13 +33,15 @@ use Doctrine\DBAL\Connection;
  *   - GetLowStockAlerts → inventory_items × stock_batches with a
  *     per-facility HAVING SUM(...) <= reorder_threshold filter.
  *
- * All SQL is parameterised; bind values come straight from the
- * primitive criteria DTOs. Row-to-DTO coercion goes through typed
- * helpers (str/int/bool/nullableStr/nullableInt) so PHPStan stays
- * level 9 clean without inline casts.
+ * Row-to-DTO coercion goes through the shared RowFieldExtraction
+ * trait so PHPStan stays level 9 clean without inline (string)/(int)
+ * casts and SonarCloud's CPD does not flag the helpers as a
+ * cross-context duplicate of DoctrineMemberReadModel.
  */
 final readonly class DoctrineInventoryReadModel implements InventoryReadModel
 {
+    use RowFieldExtraction;
+
     /** @var list<string> */
     private const array ALLOWED_SORT = ['name', 'code', 'quantity'];
 
@@ -113,21 +116,21 @@ final readonly class DoctrineInventoryReadModel implements InventoryReadModel
 
         $rows = $this->connection->fetchAllAssociative($rowsSql, $params);
 
-        $itemIds = array_map(fn (array $row): string => $this->str($row, 'inventory_item_id'), $rows);
+        $itemIds = array_map(fn (array $row): string => $this->rowString($row, 'inventory_item_id'), $rows);
         $groupNamesByItem = $this->loadGroupNames($itemIds);
 
         $items = array_map(
             function (array $row) use ($groupNamesByItem): InventorySummaryView {
-                $id = $this->str($row, 'inventory_item_id');
+                $id = $this->rowString($row, 'inventory_item_id');
                 return new InventorySummaryView(
                     inventoryItemId: $id,
-                    listingId: $this->str($row, 'listing_id'),
-                    listingCode: $this->str($row, 'listing_code'),
-                    name: $this->str($row, 'name'),
-                    kind: $this->str($row, 'kind'),
-                    totalQuantityOnHand: $this->int($row, 'total_quantity'),
-                    reorderThresholdUnits: $this->int($row, 'reorder_threshold'),
-                    archived: $this->bool($row, 'archived'),
+                    listingId: $this->rowString($row, 'listing_id'),
+                    listingCode: $this->rowString($row, 'listing_code'),
+                    name: $this->rowString($row, 'name'),
+                    kind: $this->rowString($row, 'kind'),
+                    totalQuantityOnHand: $this->rowInt($row, 'total_quantity'),
+                    reorderThresholdUnits: $this->rowInt($row, 'reorder_threshold'),
+                    archived: $this->rowBool($row, 'archived'),
                     groupNames: $groupNamesByItem[$id] ?? [],
                 );
             },
@@ -197,18 +200,18 @@ final readonly class DoctrineInventoryReadModel implements InventoryReadModel
         $movements = array_map(
             function (array $row): StockMovementView {
                 return new StockMovementView(
-                    movementId: $this->str($row, 'id'),
-                    inventoryItemId: $this->str($row, 'item_id'),
-                    facilityCode: $this->str($row, 'facility_code'),
-                    stockBatchId: $this->nullableStr($row, 'stock_batch_id'),
-                    kind: $this->str($row, 'kind'),
-                    reason: $this->str($row, 'reason'),
-                    quantity: $this->int($row, 'quantity'),
-                    costPerUnitCents: $this->int($row, 'cost_per_unit_cents'),
-                    operatorNote: $this->nullableStr($row, 'operator_note'),
-                    transactionId: $this->nullableStr($row, 'transaction_id'),
-                    listingId: $this->nullableStr($row, 'listing_id'),
-                    recordedAt: new DateTimeImmutable($this->str($row, 'recorded_at'), new DateTimeZone('UTC')),
+                    movementId: $this->rowString($row, 'id'),
+                    inventoryItemId: $this->rowString($row, 'item_id'),
+                    facilityCode: $this->rowString($row, 'facility_code'),
+                    stockBatchId: $this->rowNullableString($row, 'stock_batch_id'),
+                    kind: $this->rowString($row, 'kind'),
+                    reason: $this->rowString($row, 'reason'),
+                    quantity: $this->rowInt($row, 'quantity'),
+                    costPerUnitCents: $this->rowInt($row, 'cost_per_unit_cents'),
+                    operatorNote: $this->rowNullableString($row, 'operator_note'),
+                    transactionId: $this->rowNullableString($row, 'transaction_id'),
+                    listingId: $this->rowNullableString($row, 'listing_id'),
+                    recordedAt: new DateTimeImmutable($this->rowString($row, 'recorded_at'), new DateTimeZone('UTC')),
                 );
             },
             $rows,
@@ -253,16 +256,16 @@ final readonly class DoctrineInventoryReadModel implements InventoryReadModel
 
         return array_map(
             function (array $row): LowStockAlertView {
-                $onHand = $this->int($row, 'on_hand');
-                $threshold = $this->int($row, 'reorder_threshold');
+                $onHand = $this->rowInt($row, 'on_hand');
+                $threshold = $this->rowInt($row, 'reorder_threshold');
                 return new LowStockAlertView(
-                    inventoryItemId: $this->str($row, 'inventory_item_id'),
-                    listingId: $this->str($row, 'listing_id'),
-                    facilityCode: $this->str($row, 'facility_code'),
+                    inventoryItemId: $this->rowString($row, 'inventory_item_id'),
+                    listingId: $this->rowString($row, 'listing_id'),
+                    facilityCode: $this->rowString($row, 'facility_code'),
                     currentOnHandUnits: $onHand,
                     reorderThresholdUnits: $threshold,
                     shortfallUnits: $threshold - $onHand,
-                    primaryVendorId: $this->nullableStr($row, 'primary_vendor_id'),
+                    primaryVendorId: $this->rowNullableString($row, 'primary_vendor_id'),
                 );
             },
             $rows,
@@ -281,20 +284,6 @@ final readonly class DoctrineInventoryReadModel implements InventoryReadModel
             'quantity' => 'total_quantity',
             default => 'l.name',
         };
-    }
-
-    private function scalarToInt(mixed $value): int
-    {
-        if (is_int($value)) {
-            return $value;
-        }
-        if (is_string($value) && is_numeric($value)) {
-            return (int) $value;
-        }
-        if (is_float($value)) {
-            return (int) $value;
-        }
-        return 0;
     }
 
     /**
@@ -318,85 +307,9 @@ final readonly class DoctrineInventoryReadModel implements InventoryReadModel
 
         $byItem = [];
         foreach ($rows as $row) {
-            $byItem[$this->str($row, 'item_id')][] = $this->str($row, 'name');
+            $byItem[$this->rowString($row, 'item_id')][] = $this->rowString($row, 'name');
         }
 
         return $byItem;
-    }
-
-    /**
-     * @param array<string, mixed> $row
-     */
-    private function str(array $row, string $key): string
-    {
-        $value = $row[$key] ?? null;
-        if (is_string($value)) {
-            return $value;
-        }
-        if (is_int($value) || is_float($value)) {
-            return (string) $value;
-        }
-        if (is_bool($value)) {
-            return $value ? '1' : '0';
-        }
-        return '';
-    }
-
-    /**
-     * @param array<string, mixed> $row
-     */
-    private function nullableStr(array $row, string $key): ?string
-    {
-        $value = $row[$key] ?? null;
-        if ($value === null) {
-            return null;
-        }
-        if (is_string($value)) {
-            return $value;
-        }
-        if (is_int($value) || is_float($value)) {
-            return (string) $value;
-        }
-        return null;
-    }
-
-    /**
-     * @param array<string, mixed> $row
-     */
-    private function int(array $row, string $key): int
-    {
-        $value = $row[$key] ?? null;
-        if (is_int($value)) {
-            return $value;
-        }
-        if (is_float($value)) {
-            return (int) $value;
-        }
-        if (is_string($value) && is_numeric($value)) {
-            return (int) $value;
-        }
-        if (is_bool($value)) {
-            return $value ? 1 : 0;
-        }
-        return 0;
-    }
-
-    /**
-     * @param array<string, mixed> $row
-     */
-    private function bool(array $row, string $key): bool
-    {
-        $value = $row[$key] ?? null;
-        if (is_bool($value)) {
-            return $value;
-        }
-        if (is_int($value)) {
-            return $value !== 0;
-        }
-        if (is_string($value)) {
-            $lower = strtolower($value);
-            return $value !== '' && $value !== '0' && $lower !== 'f' && $lower !== 'false';
-        }
-        return false;
     }
 }
