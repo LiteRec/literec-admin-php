@@ -40,6 +40,14 @@ final class Version20260528000000 extends AbstractMigration
             'Migration uses PostgreSQL-specific SQL (CHAR(36), TIMESTAMP(0) WITHOUT TIME ZONE, partial UNIQUE index).',
         );
 
+        // The CHK_inventory_stock_movements_consume_key constraint
+        // pairs transaction_id with listing_id so the partial UNIQUE
+        // dedupe key below cannot be bypassed by a malformed
+        // CONSUMED row that supplies only one half of the pair.
+        // PostgreSQL treats NULL values as distinct in unique
+        // indexes, so without this constraint two rows with the
+        // same transaction_id but listing_id = NULL would both be
+        // accepted and silently break idempotency.
         $this->addSql(<<<'SQL'
             CREATE TABLE inventory_stock_movements (
                 id CHAR(36) NOT NULL,
@@ -54,6 +62,11 @@ final class Version20260528000000 extends AbstractMigration
                 transaction_id VARCHAR(255) DEFAULT NULL,
                 listing_id CHAR(36) DEFAULT NULL,
                 recorded_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL,
+                CONSTRAINT CHK_inventory_stock_movements_consume_key
+                    CHECK (
+                        (transaction_id IS NULL AND listing_id IS NULL)
+                        OR (transaction_id IS NOT NULL AND listing_id IS NOT NULL)
+                    ),
                 PRIMARY KEY (id)
             )
         SQL);
