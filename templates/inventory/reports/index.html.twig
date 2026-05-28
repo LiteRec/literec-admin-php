@@ -1,0 +1,46 @@
+{# LRA-91 Inventory Reports dashboard.
+   Renders six tiles in a responsive grid: Current Stock, Entry Log,
+   Low Stock Alerts, Barcode Batch Print, plus two "Coming soon"
+   placeholders (Sales Breakdown, Demographic Breakdown).
+
+   First paint includes the initial data for each live card so the page
+   is fully usable before any HTMX swap. Each card carries its own
+   filter form that targets the same card slot via hx-target. #}
+{% extends 'app.html.twig' %}
+
+{% block page_title %}Inventory Reports{% endblock %}
+
+{% block page_body %}
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-3">
+        {% include 'inventory/reports/_card_current_stock.html.twig' with {
+            currentStock: currentStock,
+            criteria: null,
+        } only %}
+
+        {% include 'inventory/reports/_card_entry_log.html.twig' with {
+            entryLog: entryLog,
+            criteria: null,
+            kindCases: kindCases,
+            reasonCases: reasonCases,
+        } only %}
+
+        {% include 'inventory/reports/_card_low_stock.html.twig' with {
+            lowStock: lowStock,
+            criteria: null,
+        } only %}
+
+        {% include 'inventory/reports/_card_barcode_batch.html.twig' only %}
+
+        {% include 'inventory/reports/_card_placeholder.html.twig' with {
+            tileId: 'sales-breakdown',
+            title: 'Sales Breakdown',
+            message: 'Coming soon — sales-by-listing breakdown for the selected date range.',
+        } only %}
+
+        {% include 'inventory/reports/_card_placeholder.html.twig' with {
+            tileId: 'demographic-breakdown',
+            title: 'Demographic Breakdown',
+            message: 'Coming soon — purchases by member demographic cohort.',
+        } only %}
+    </div>
+{% endblock %}

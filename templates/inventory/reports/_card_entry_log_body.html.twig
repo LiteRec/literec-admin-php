@@ -1,0 +1,39 @@
+{# Entry Log body partial. Expects: entryLog: EntryLogPage #}
+{% if entryLog.totalCount == 0 %}
+    {% include 'components/_empty_state.html.twig' with {
+        title: 'No entries',
+        message: 'No ledger rows match the current filters.',
+    } only %}
+{% else %}
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-litrec-border text-sm" data-testid="report-entry-log-table">
+            <thead class="bg-litrec-bg-muted text-left text-xs font-semibold uppercase tracking-wider text-litrec-text-muted">
+                <tr>
+                    <th scope="col" class="px-3 py-2">Date</th>
+                    <th scope="col" class="px-3 py-2">Code</th>
+                    <th scope="col" class="px-3 py-2">Facility</th>
+                    <th scope="col" class="px-3 py-2">Kind</th>
+                    <th scope="col" class="px-3 py-2">Reason</th>
+                    <th scope="col" class="px-3 py-2 text-right">Qty</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-litrec-border">
+                {% for row in entryLog.rows %}
+                    {% set kindEnum = enum('App\\Inventory\\Domain\\ValueObject\\StockMovementKind').tryFrom(row.kind) %}
+                    {% set kindLabel = kindEnum is not null ? kindEnum.label : row.kind %}
+                    <tr data-testid="report-entry-log-row-{{ row.movementId }}">
+                        <td class="whitespace-nowrap px-3 py-2 text-litrec-text-muted">{{ row.recordedAt|date('Y-m-d H:i') }}</td>
+                        <td class="px-3 py-2 font-mono text-xs text-litrec-text">{{ row.listingCode }}</td>
+                        <td class="px-3 py-2 text-litrec-text">{{ row.facilityCode }}</td>
+                        <td class="whitespace-nowrap px-3 py-2"><span class="inline-flex items-center rounded-full bg-litrec-bg-muted px-2 py-0.5 text-xs font-semibold">{{ kindLabel }}</span></td>
+                        <td class="px-3 py-2 text-litrec-text-muted">{{ row.reason }}</td>
+                        <td class="px-3 py-2 text-right font-mono text-litrec-text">{{ row.quantity }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <p class="mt-2 text-xs text-litrec-text-muted" data-testid="report-entry-log-count">
+        Showing {{ entryLog.rows|length }} of {{ entryLog.totalCount }} entries (page {{ entryLog.pageNumber }})
+    </p>
+{% endif %}

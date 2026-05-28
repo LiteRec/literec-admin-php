@@ -1,0 +1,103 @@
+{# Entry Log report card shell (LRA-91).
+   Expects:
+     - entryLog:    EntryLogPage
+     - criteria:    EntryLogReport|null
+     - kindCases:   list<StockMovementKind>
+     - reasonCases: list<StockMovementReason>
+
+   Same shell/body split as the Current Stock card so HTMX swaps the
+   body without re-rendering the filter form. #}
+<section
+    role="region"
+    aria-labelledby="entry-log-heading"
+    data-testid="report-card-entry-log"
+    class="rounded-card border border-litrec-border bg-litrec-surface p-4 shadow-card"
+>
+    <header class="flex items-center justify-between gap-2">
+        <h2 id="entry-log-heading" class="text-lg font-semibold text-litrec-text">Entry Log</h2>
+        <a
+            href="{{ path('inventory_reports_entry_log_export', app.request.query.all) }}"
+            data-testid="report-entry-log-export"
+            class="rounded-md border border-litrec-border bg-litrec-surface px-3 py-1 text-xs font-semibold text-litrec-text hover:bg-litrec-bg-muted focus:outline-none focus:ring-2 focus:ring-litrec-primary"
+        >
+            Export CSV
+        </a>
+    </header>
+
+    <form
+        class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3"
+        hx-get="{{ path('inventory_reports_entry_log_card') }}"
+        hx-target="#entry-log-body"
+        hx-swap="innerHTML"
+        hx-trigger="submit, change delay:200ms from:input, change delay:200ms from:select"
+    >
+        {% set dateFromValue = criteria is not null and criteria.dateFrom is not null ? criteria.dateFrom|date('Y-m-d') : '' %}
+        {% set dateToValue   = criteria is not null and criteria.dateTo is not null ? criteria.dateTo|date('Y-m-d') : '' %}
+        {% set facilityValue = criteria is not null ? (criteria.facilityCode ?? '') : '' %}
+        {% set kindValue     = criteria is not null ? (criteria.kind ?? '') : '' %}
+        {% set reasonValue   = criteria is not null ? (criteria.reason ?? '') : '' %}
+        <label class="text-xs font-semibold uppercase tracking-wider text-litrec-text-muted">
+            <span class="sr-only">Date from</span>
+            <input
+                type="date"
+                name="dateFrom"
+                value="{{ dateFromValue }}"
+                data-testid="report-entry-log-date-from"
+                class="mt-1 w-full rounded-md border border-litrec-border bg-litrec-surface px-2 py-1 text-sm text-litrec-text"
+            />
+        </label>
+        <label class="text-xs font-semibold uppercase tracking-wider text-litrec-text-muted">
+            <span class="sr-only">Date to</span>
+            <input
+                type="date"
+                name="dateTo"
+                value="{{ dateToValue }}"
+                data-testid="report-entry-log-date-to"
+                class="mt-1 w-full rounded-md border border-litrec-border bg-litrec-surface px-2 py-1 text-sm text-litrec-text"
+            />
+        </label>
+        <label class="text-xs font-semibold uppercase tracking-wider text-litrec-text-muted">
+            <span class="sr-only">Facility</span>
+            <input
+                type="text"
+                name="facilityCode"
+                placeholder="Facility"
+                value="{{ facilityValue }}"
+                data-testid="report-entry-log-facility"
+                class="mt-1 w-full rounded-md border border-litrec-border bg-litrec-surface px-2 py-1 text-sm text-litrec-text"
+            />
+        </label>
+        <label class="text-xs font-semibold uppercase tracking-wider text-litrec-text-muted">
+            <span class="sr-only">Kind</span>
+            <select
+                name="kind"
+                data-testid="report-entry-log-kind"
+                class="mt-1 w-full rounded-md border border-litrec-border bg-litrec-surface px-2 py-1 text-sm text-litrec-text"
+            >
+                <option value="">Any kind</option>
+                {% for case in kindCases %}
+                    <option value="{{ case.value }}" {% if kindValue == case.value %}selected{% endif %}>{{ case.label }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label class="text-xs font-semibold uppercase tracking-wider text-litrec-text-muted">
+            <span class="sr-only">Reason</span>
+            <select
+                name="reason"
+                data-testid="report-entry-log-reason"
+                class="mt-1 w-full rounded-md border border-litrec-border bg-litrec-surface px-2 py-1 text-sm text-litrec-text"
+            >
+                <option value="">Any reason</option>
+                {% for case in reasonCases %}
+                    <option value="{{ case.value }}" {% if reasonValue == case.value %}selected{% endif %}>{{ case.value }}</option>
+                {% endfor %}
+            </select>
+        </label>
+    </form>
+
+    <div id="entry-log-body" class="mt-4">
+        {% include 'inventory/reports/_card_entry_log_body.html.twig' with {
+            entryLog: entryLog,
+        } only %}
+    </div>
+</section>

@@ -1,0 +1,15 @@
+{# Inert "Coming soon" tile for unreleased report cards (LRA-91).
+   Expects:
+     - tileId:  string  (unique slug for testids / aria)
+     - title:   string
+     - message: string #}
+<section
+    role="region"
+    aria-labelledby="placeholder-{{ tileId }}-heading"
+    data-testid="report-card-placeholder-{{ tileId }}"
+    class="rounded-card border-2 border-dashed border-litrec-border bg-litrec-surface p-4 opacity-70 shadow-card"
+    aria-disabled="true"
+>
+    <h2 id="placeholder-{{ tileId }}-heading" class="text-lg font-semibold text-litrec-text-muted">{{ title }}</h2>
+    <p class="mt-2 text-sm text-litrec-text-muted">{{ message }}</p>
+</section>

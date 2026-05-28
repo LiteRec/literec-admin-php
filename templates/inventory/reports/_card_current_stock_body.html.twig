@@ -1,0 +1,42 @@
+{# Current Stock body partial — HTMX swap target for the card form.
+   Expects:
+     - currentStock: CurrentStockReportPage #}
+{% if currentStock.totalCount == 0 %}
+    {% include 'components/_empty_state.html.twig' with {
+        title: 'No items',
+        message: 'No inventory items match the current filters.',
+    } only %}
+{% else %}
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-litrec-border text-sm" data-testid="report-current-stock-table">
+            <thead class="bg-litrec-bg-muted text-left text-xs font-semibold uppercase tracking-wider text-litrec-text-muted">
+                <tr>
+                    <th scope="col" class="px-3 py-2">Code</th>
+                    <th scope="col" class="px-3 py-2">Name</th>
+                    <th scope="col" class="px-3 py-2">Facility</th>
+                    <th scope="col" class="px-3 py-2 text-right">On hand</th>
+                    <th scope="col" class="px-3 py-2 text-right">Threshold</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-litrec-border">
+                {% for row in currentStock.items %}
+                    <tr
+                        data-testid="report-current-stock-row-{{ row.inventoryItemId }}"
+                        class="{% if row.isAtOrBelowThreshold %}bg-red-50{% endif %}"
+                    >
+                        <td class="px-3 py-2 font-mono text-xs text-litrec-text">{{ row.listingCode }}</td>
+                        <td class="px-3 py-2 text-litrec-text">{{ row.name }}</td>
+                        <td class="px-3 py-2 text-litrec-text-muted">{{ row.facilityCode }}</td>
+                        <td class="px-3 py-2 text-right font-mono text-litrec-text">{{ row.onHandUnits }}</td>
+                        <td class="px-3 py-2 text-right font-mono text-litrec-text-muted">
+                            {% if row.reorderThresholdUnits > 0 %}{{ row.reorderThresholdUnits }}{% else %}—{% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <p class="mt-2 text-xs text-litrec-text-muted" data-testid="report-current-stock-count">
+        {{ currentStock.totalCount }} row{{ currentStock.totalCount == 1 ? '' : 's' }}
+    </p>
+{% endif %}
