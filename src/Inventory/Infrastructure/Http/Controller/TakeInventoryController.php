@@ -284,10 +284,7 @@ final class TakeInventoryController extends AbstractController
         $lines = $form->get('lines');
 
         foreach ($input->lines as $index => $line) {
-            if ($line->actual === null || $line->expected === null) {
-                continue;
-            }
-            if ($line->actual === $line->expected) {
+            if (! $this->isVarianceRow($line)) {
                 continue;
             }
 
@@ -295,19 +292,50 @@ final class TakeInventoryController extends AbstractController
             $resolved = $reason !== null && $reason !== '' ? StockAdjustmentReason::tryFrom($reason) : null;
             if ($resolved === null) {
                 $rejected = true;
-                if ($lines->has((string) $index)) {
-                    $row = $lines->get((string) $index);
-                    if ($row->has('reason')) {
-                        $row->get('reason')->addError(new FormError(sprintf(
-                            self::ERR_REASON_REQUIRED_FMT,
-                            (string) $line->listingCode,
-                        )));
-                    }
-                }
+                $this->addReasonRequiredError($lines, (string) $index, (string) $line->listingCode);
             }
         }
 
         return $rejected;
+    }
+
+    /**
+     * A row records a real variance only when both the expected and the
+     * counted quantity are present and they differ. Non-variance and
+     * incomplete rows are skipped by both the validation and dispatch
+     * passes.
+     *
+     * @phpstan-assert-if-true int $line->actual
+     * @phpstan-assert-if-true int $line->expected
+     */
+    private function isVarianceRow(TakeInventoryLineInput $line): bool
+    {
+        return $line->actual !== null
+            && $line->expected !== null
+            && $line->actual !== $line->expected;
+    }
+
+    /**
+     * Attaches the "reason required" error to the reason sub-field of the
+     * given variance row, when that field exists on the bound form.
+     *
+     * @param FormInterface<mixed> $lines
+     */
+    private function addReasonRequiredError(FormInterface $lines, string $index, string $listingCode): void
+    {
+        if (! $lines->has($index)) {
+            return;
+        }
+
+        $row = $lines->get($index);
+        if (! $row->has('reason')) {
+            return;
+        }
+
+        $row->get('reason')->addError(new FormError(sprintf(
+            self::ERR_REASON_REQUIRED_FMT,
+            $listingCode,
+        )));
     }
 
     /**
@@ -321,43 +349,61 @@ final class TakeInventoryController extends AbstractController
         $errors = [];
 
         foreach ($input->lines as $index => $line) {
-            if ($line->actual === null || $line->expected === null) {
-                continue;
-            }
-            if ($line->actual === $line->expected) {
+            if (! $this->isVarianceRow($line)) {
                 continue;
             }
 
-            // Atomic validation above guarantees a non-empty, enum-valid
-            // reason on every variance row. Fall through to LogicException
-            // rather than defaulting to OTHER so a regression in the
-            // validation step surfaces loudly instead of silently
-            // mislabelling the ledger entry.
-            if ($line->reason === null || $line->reason === '') {
-                throw new LogicException(
-                    'Atomic validation should have rejected variance rows without a reason.',
-                );
-            }
-            $reason = $line->reason;
-            $reasonNote = $line->reasonNote !== null ? trim($line->reasonNote) : '';
-            $operatorReason = $reasonNote !== '' ? $reasonNote : $reason;
-
-            try {
-                $this->dispatchCommandUnwrapping(new AdjustStock(
-                    itemId: (string) $line->itemId,
-                    facilityCode: $facility,
-                    targetQuantityUnits: $line->actual,
-                    reason: $operatorReason,
-                    adjustmentSubReason: $reason,
-                ));
-            } catch (ConcurrentInventoryItemModification) {
-                $errors[$index] = sprintf(self::ERR_CONCURRENT_FMT, (string) $line->listingCode);
-            } catch (Throwable) {
-                $errors[$index] = self::GENERIC_ADJUST_FAILURE;
+            $error = $this->dispatchOneVariance($line, $facility);
+            if ($error !== null) {
+                $errors[$index] = $error;
             }
         }
 
         return $errors;
+    }
+
+    /**
+     * Dispatches a single AdjustStock for one variance row. Returns a
+     * human-readable error message when the dispatch fails, or null on
+     * success.
+     */
+    private function dispatchOneVariance(TakeInventoryLineInput $line, string $facility): ?string
+    {
+        // Atomic validation above guarantees a non-empty, enum-valid
+        // reason on every variance row, and isVarianceRow() guarantees a
+        // counted quantity. Fall through to LogicException rather than
+        // defaulting so a regression in the validation step surfaces
+        // loudly instead of silently mislabelling the ledger entry.
+        if ($line->reason === null || $line->reason === '') {
+            throw new LogicException(
+                'Atomic validation should have rejected variance rows without a reason.',
+            );
+        }
+        if ($line->actual === null) {
+            throw new LogicException(
+                'isVarianceRow() should have skipped rows without a counted quantity.',
+            );
+        }
+
+        $reason = $line->reason;
+        $reasonNote = $line->reasonNote !== null ? trim($line->reasonNote) : '';
+        $operatorReason = $reasonNote !== '' ? $reasonNote : $reason;
+
+        try {
+            $this->dispatchCommandUnwrapping(new AdjustStock(
+                itemId: (string) $line->itemId,
+                facilityCode: $facility,
+                targetQuantityUnits: $line->actual,
+                reason: $operatorReason,
+                adjustmentSubReason: $reason,
+            ));
+        } catch (ConcurrentInventoryItemModification) {
+            return sprintf(self::ERR_CONCURRENT_FMT, (string) $line->listingCode);
+        } catch (Throwable) {
+            return self::GENERIC_ADJUST_FAILURE;
+        }
+
+        return null;
     }
 
     /**
