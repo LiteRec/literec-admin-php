@@ -76,14 +76,13 @@ final class RegisterVendorHandler
     }
 
     /**
-     * @param array{
-     *     street: string,
-     *     unit: ?string,
-     *     city: string,
-     *     state: string,
-     *     postalCode: string,
-     *     country: string,
-     * }|null $row
+     * Expected shape (validated at runtime so a malformed bus payload
+     * produces a controlled InvalidArgumentException rather than an
+     * undefined-array-key notice):
+     *   street, city, state, postalCode, country: non-empty string
+     *   unit: string|null
+     *
+     * @param array<string, mixed>|null $row
      */
     private static function buildAddress(?array $row): ?VendorAddress
     {
@@ -91,9 +90,20 @@ final class RegisterVendorHandler
             return null;
         }
 
+        foreach (['street', 'city', 'state', 'postalCode', 'country'] as $required) {
+            if (! array_key_exists($required, $row) || ! is_string($row[$required])) {
+                throw new \InvalidArgumentException(
+                    sprintf('Vendor address missing or invalid field: %s', $required),
+                );
+            }
+        }
+        $unit = array_key_exists('unit', $row) && is_string($row['unit'])
+            ? $row['unit']
+            : null;
+
         return VendorAddress::of(
             $row['street'],
-            $row['unit'],
+            $unit,
             $row['city'],
             $row['state'],
             $row['postalCode'],
