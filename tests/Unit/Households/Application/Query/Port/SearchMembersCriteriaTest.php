@@ -43,7 +43,7 @@ final class SearchMembersCriteriaTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('pageSize');
 
-        new SearchMembersCriteria(pageSize: 0);
+        new SearchMembersCriteria(pageSize: 0); // NOSONAR — constructor is expected to throw.
     }
 
     #[Test]
@@ -53,7 +53,7 @@ final class SearchMembersCriteriaTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('pageSize');
 
-        new SearchMembersCriteria(pageSize: 101);
+        new SearchMembersCriteria(pageSize: 101); // NOSONAR — constructor is expected to throw.
     }
 
     #[Test]
@@ -63,6 +63,6 @@ final class SearchMembersCriteriaTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('page');
 
-        new SearchMembersCriteria(page: 0);
+        new SearchMembersCriteria(page: 0); // NOSONAR — constructor is expected to throw.
     }
 }
