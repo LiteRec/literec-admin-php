@@ -119,8 +119,13 @@ final class InventoryPurchaseOrdersFixtures extends Fixture implements FixtureGr
             }
 
             // Complete the partial line on a second pass so the
-            // ledger shows two RECEIVED rows for that line.
-            $secondPassAt = $receivedAt->add($threeDays);
+            // ledger shows two RECEIVED rows for that line. Advance
+            // the fixture clock first so the second-pass timestamp is
+            // strictly after the first under FixedClock — a stale
+            // $receivedAt + threeDays would collide with the first
+            // pass time in deterministic mode.
+            $this->advanceClock($threeDays);
+            $secondPassAt = $this->clock->now();
             $detail = $this->fetchPoDetail($poId->value);
             foreach ($detail->lines as $line) {
                 if ($line->remainingUnits > 0) {

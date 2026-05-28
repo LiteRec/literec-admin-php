@@ -29,6 +29,12 @@ final class FixtureReferenceRegistry
 
     public function set(string $key, object $value): void
     {
+        if (isset($this->references[$key])) {
+            throw new LogicException(sprintf(
+                'Fixture reference "%s" is already registered.',
+                $key,
+            ));
+        }
         $this->references[$key] = $value;
     }
 
