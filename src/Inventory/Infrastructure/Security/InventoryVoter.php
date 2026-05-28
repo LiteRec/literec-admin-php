@@ -44,8 +44,12 @@ final class InventoryVoter extends Voter
         return in_array($attribute, self::SUPPORTED, true);
     }
 
-    protected function voteOnAttribute(string $attribute, mixed $subject, TokenInterface $token, ?Vote $vote = null): bool
-    {
+    protected function voteOnAttribute(
+        string $attribute,
+        mixed $subject,
+        TokenInterface $token,
+        ?Vote $vote = null,
+    ): bool {
         return $token->getUser() !== null;
     }
 }
