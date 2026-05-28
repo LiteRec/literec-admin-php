@@ -574,7 +574,10 @@ final class InventoryItem
         return $sliced;
     }
 
-    private static function fifoCompare(StockBatch $a, StockBatch $b): int
+    // Used as a first-class callable, self::fifoCompare(...), by the usort()
+    // calls in sortedBatches()/batchesAt() above; SonarCloud's call graph
+    // does not follow first-class-callable references.
+    private static function fifoCompare(StockBatch $a, StockBatch $b): int // NOSONAR
     {
         $cmp = $a->receivedAt() <=> $b->receivedAt();
         return $cmp !== 0 ? $cmp : strcmp($a->id()->value, $b->id()->value);

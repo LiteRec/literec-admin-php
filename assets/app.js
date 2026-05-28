@@ -38,7 +38,7 @@ document.body.addEventListener('htmx:configRequest', (event) => {
 document.body.addEventListener('htmx:afterRequest', (event) => {
     const target = event.detail.target;
 
-    if (event.detail.failed && target && target.id === 'health-result') {
+    if (event.detail.failed && target?.id === 'health-result') {
         target.textContent = 'Unable to reach the health endpoint.';
     }
 });
