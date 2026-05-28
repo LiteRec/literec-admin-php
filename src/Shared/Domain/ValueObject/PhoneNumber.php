@@ -47,7 +47,7 @@ final readonly class PhoneNumber implements Stringable
             throw InvalidPhoneNumber::empty();
         }
 
-        if (preg_match('/^[0-9]+$/', $digits) !== 1) {
+        if (preg_match('/^\d+$/', $digits) !== 1) {
             throw InvalidPhoneNumber::illegalCharacters();
         }
 

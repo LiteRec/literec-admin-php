@@ -62,6 +62,7 @@ final class ItemGroupFormController extends AbstractController
 
     private const string GENERIC_SAVE_FAILURE = 'Unable to save item group. Please try again.';
 
+    // NOSONAR — consumed by HtmxFormDialogResponses trait via static::HX_TRIGGER_EVENT.
     private const string HX_TRIGGER_EVENT = 'groupSaved';
 
     private const string MODE_CREATE = 'create';

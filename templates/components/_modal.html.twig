@@ -16,6 +16,7 @@
 #}
 {% set id = id|default('modal') %}
 {% set headingId = headingId|default(id ~ '-title') %}
+{# NOSONAR Web:S6819 — keeping role=dialog rather than native <dialog> because the Alpine-driven open/dismiss state, htmx swap targeting, and existing CSS positioning are wired against the div root. Switch to <dialog> tracked separately. #}
 <div
     id="{{ id }}"
     class="modal-root fixed inset-0 z-50 flex items-center justify-center p-4"

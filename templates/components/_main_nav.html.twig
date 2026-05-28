@@ -10,11 +10,12 @@
        the menubar would force the two-word "Cash Register" label onto two
        lines, so the mobile hamburger panel below takes over up to 1023px. #}
     <div class="mx-auto hidden max-w-7xl px-6 lg:block">
+        {# NOSONAR Web:S6842 — ul + role=menubar is the documented WAI-ARIA Authoring Practices menubar pattern. #}
         <ul role="menubar" class="flex items-stretch gap-1">
             {% for index, item in nav.items %}
                 {% set active = is_active_nav_item(item, current_route) %}
                 <li
-                    role="none"
+                    role="presentation"
                     class="relative flex items-stretch"
                     @keydown.escape.window="openIndex = null"
                     @click.outside="if (openIndex === {{ index }}) openIndex = null"
@@ -44,6 +45,7 @@
                             <span aria-hidden="true">▾</span>
                         </button>
 
+                        {# NOSONAR Web:S6842 — ul + role=menu is the documented WAI-ARIA Authoring Practices submenu pattern. #}
                         <ul
                             role="menu"
                             x-show="openIndex === {{ index }}"
@@ -53,7 +55,7 @@
                             class="absolute left-0 top-full z-10 min-w-[16rem] border border-litrec-border bg-litrec-surface py-1 shadow-card"
                         >
                             {% for child in item.children %}
-                                <li role="none">
+                                <li role="presentation">
                                     <a
                                         role="menuitem"
                                         href="{{ path(child.route) }}"
