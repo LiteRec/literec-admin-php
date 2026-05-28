@@ -74,6 +74,7 @@
                                 <input
                                     type="checkbox"
                                     value="{{ item.inventoryItemId }}"
+                                    aria-label="Select {{ item.listingCode }} {{ item.name }} for printing"
                                     @change="$event.target.checked
                                         ? selected.push($event.target.value)
                                         : (selected = selected.filter(id => id !== $event.target.value))"

@@ -401,15 +401,21 @@ final class InventoryReportsController extends AbstractController
                 get_debug_type($result),
             ));
         }
-        // Element-type narrowing: the handler contract returns
-        // list<LowStockAlertView>, but HandleTrait::handle()'s return is
-        // declared `mixed`, so PHPStan needs the filter to recover the
-        // element type without an inline @var (forbidden per project
-        // rules).
-        return array_values(array_filter(
-            $result,
-            static fn (mixed $row): bool => $row instanceof LowStockAlertView,
-        ));
+        // Fail fast on contract violation — the handler MUST return
+        // list<LowStockAlertView>. Silently filtering invalid elements
+        // would hide a real regression in the read-model port.
+        $rows = [];
+        foreach ($result as $row) {
+            if (! $row instanceof LowStockAlertView) {
+                throw new LogicException(sprintf(
+                    'GetLowStockAlerts handler returned invalid row type %s, expected %s.',
+                    get_debug_type($row),
+                    LowStockAlertView::class,
+                ));
+            }
+            $rows[] = $row;
+        }
+        return $rows;
     }
 
     private function loadInventoryListing(Request $request): InventoryListPage
