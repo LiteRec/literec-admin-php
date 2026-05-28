@@ -41,6 +41,11 @@ final class ListInventoryControllerTest extends WebTestCase
 {
     use SignsInUsers;
 
+    /** Reused literals (SonarCloud php:S1192). */
+    private const string ROUTE_INVENTORY = '/admin/inventory';
+    private const string SEL_INVENTORY_ROW = 'tr[data-testid="inventory-row-%s"]';
+
+
     private const string TEST_USERNAME = 'inventory_list_e2e';
 
     private const string ITEM_A    = '019571bf-5d51-7000-b500-00000000ee01';
@@ -65,13 +70,13 @@ final class ListInventoryControllerTest extends WebTestCase
         $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
         $this->seedThreeItems();
 
-        $client->request('GET', '/admin/inventory');
+        $client->request('GET', self::ROUTE_INVENTORY);
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('main h1', 'Inventory');
-        self::assertSelectorExists(sprintf('tr[data-testid="inventory-row-%s"]', self::ITEM_A));
-        self::assertSelectorExists(sprintf('tr[data-testid="inventory-row-%s"]', self::ITEM_B));
-        self::assertSelectorExists(sprintf('tr[data-testid="inventory-row-%s"]', self::ITEM_C));
+        self::assertSelectorExists(sprintf(self::SEL_INVENTORY_ROW, self::ITEM_A));
+        self::assertSelectorExists(sprintf(self::SEL_INVENTORY_ROW, self::ITEM_B));
+        self::assertSelectorExists(sprintf(self::SEL_INVENTORY_ROW, self::ITEM_C));
         // Inventory lives under the Cash Register top-level nav item; the
         // top-level item is what receives the active highlight, while the
         // Inventory anchor itself appears inside its dropdown sub-menu.
@@ -116,7 +121,7 @@ final class ListInventoryControllerTest extends WebTestCase
         $client = static::createClient();
         $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
 
-        $client->request('GET', '/admin/inventory');
+        $client->request('GET', self::ROUTE_INVENTORY);
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('main', 'No items match your filters.');
@@ -129,7 +134,7 @@ final class ListInventoryControllerTest extends WebTestCase
         $client = static::createClient();
         $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
 
-        $client->request('GET', '/admin/inventory');
+        $client->request('GET', self::ROUTE_INVENTORY);
 
         self::assertResponseIsSuccessful();
         self::assertSelectorExists('[data-testid="open-new-inventory-item"]');

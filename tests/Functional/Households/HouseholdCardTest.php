@@ -38,6 +38,11 @@ final class HouseholdCardTest extends WebTestCase
 {
     use SignsInUsers;
 
+    /** Reused literals (SonarCloud php:S1192). */
+    private const string ROUTE_MEMBER = '/admin/users/%s/%s';
+    private const string SEL_MEMBER_ROW = '[data-testid="household-member-row-%s"]';
+
+
     private const string TEST_USERNAME = 'household_card_e2e';
 
     private const string HOUSEHOLD_A    = '019571bf-5d53-7000-b500-00000000aa01';
@@ -65,12 +70,12 @@ final class HouseholdCardTest extends WebTestCase
         $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
         $this->seedHouseholdA();
 
-        $client->request('GET', sprintf('/admin/users/%s/%s', self::HOUSEHOLD_A, self::A_PRIMARY_ID));
+        $client->request('GET', sprintf(self::ROUTE_MEMBER, self::HOUSEHOLD_A, self::A_PRIMARY_ID));
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorExists(sprintf('[data-testid="household-member-row-%s"]', self::A_PRIMARY_ID));
-        self::assertSelectorExists(sprintf('[data-testid="household-member-row-%s"]', self::A_SECOND_ID));
-        self::assertSelectorExists(sprintf('[data-testid="household-member-row-%s"]', self::A_THIRD_ID));
+        self::assertSelectorExists(sprintf(self::SEL_MEMBER_ROW, self::A_PRIMARY_ID));
+        self::assertSelectorExists(sprintf(self::SEL_MEMBER_ROW, self::A_SECOND_ID));
+        self::assertSelectorExists(sprintf(self::SEL_MEMBER_ROW, self::A_THIRD_ID));
     }
 
     #[Test]
@@ -83,12 +88,12 @@ final class HouseholdCardTest extends WebTestCase
 
         $crawler = $client->request(
             'GET',
-            sprintf('/admin/users/%s/%s', self::HOUSEHOLD_A, self::A_SECOND_ID),
+            sprintf(self::ROUTE_MEMBER, self::HOUSEHOLD_A, self::A_SECOND_ID),
         );
         self::assertResponseIsSuccessful();
 
         $activeRow = $crawler->filter(
-            sprintf('[data-testid="household-member-row-%s"]', self::A_SECOND_ID),
+            sprintf(self::SEL_MEMBER_ROW, self::A_SECOND_ID),
         );
         self::assertSame(
             'true',
@@ -98,7 +103,7 @@ final class HouseholdCardTest extends WebTestCase
 
         foreach ([self::A_PRIMARY_ID, self::A_THIRD_ID] as $inactiveRowId) {
             $other = $crawler->filter(
-                sprintf('[data-testid="household-member-row-%s"]', $inactiveRowId),
+                sprintf(self::SEL_MEMBER_ROW, $inactiveRowId),
             );
             self::assertNull(
                 $other->attr('aria-current'),
@@ -159,7 +164,7 @@ final class HouseholdCardTest extends WebTestCase
 
         $crawler = $client->request(
             'GET',
-            sprintf('/admin/users/%s/%s', self::HOUSEHOLD_A, self::A_PRIMARY_ID),
+            sprintf(self::ROUTE_MEMBER, self::HOUSEHOLD_A, self::A_PRIMARY_ID),
         );
         self::assertResponseIsSuccessful();
 

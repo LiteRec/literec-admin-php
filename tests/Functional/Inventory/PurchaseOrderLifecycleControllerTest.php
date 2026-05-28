@@ -19,6 +19,10 @@ final class PurchaseOrderLifecycleControllerTest extends WebTestCase
     use SeedsPurchaseOrderForUi;
     use SignsInUsers;
 
+    /** Reused literals (SonarCloud php:S1192). */
+    private const string SEL_PO_STATUS = '[data-testid="po-status"]';
+
+
     private const string TEST_USERNAME = 'po_lifecycle_e2e';
 
     private const string PO_ID = '019571bf-5d51-7000-b500-000000bb0001';
@@ -54,7 +58,7 @@ final class PurchaseOrderLifecycleControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         $body = (string) $client->getResponse()->getContent();
-        self::assertSelectorTextContains('[data-testid="po-status"]', 'sent');
+        self::assertSelectorTextContains(self::SEL_PO_STATUS, 'sent');
         self::assertStringContainsString('po-line-receive-open-' . self::LINE_1, $body);
         self::assertStringNotContainsString('po-send-button', $body);
         self::assertSame('poSent', $client->getResponse()->headers->get('HX-Trigger'));
@@ -80,7 +84,7 @@ final class PurchaseOrderLifecycleControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         $body = (string) $client->getResponse()->getContent();
-        self::assertSelectorTextContains('[data-testid="po-status"]', 'fully_received');
+        self::assertSelectorTextContains(self::SEL_PO_STATUS, 'fully_received');
         self::assertStringContainsString('po-verify-button', $body);
     }
 
@@ -103,7 +107,7 @@ final class PurchaseOrderLifecycleControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         $body = (string) $client->getResponse()->getContent();
-        self::assertSelectorTextContains('[data-testid="po-status"]', 'partially_received');
+        self::assertSelectorTextContains(self::SEL_PO_STATUS, 'partially_received');
         self::assertStringContainsString('po-line-receive-open-' . self::LINE_1, $body);
     }
 
@@ -126,7 +130,7 @@ final class PurchaseOrderLifecycleControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         $body = (string) $client->getResponse()->getContent();
-        self::assertSelectorTextContains('[data-testid="po-status"]', 'verified');
+        self::assertSelectorTextContains(self::SEL_PO_STATUS, 'verified');
         self::assertStringContainsString('po-no-actions', $body);
         self::assertStringNotContainsString('po-send-button', $body);
         self::assertStringNotContainsString('po-verify-button', $body);

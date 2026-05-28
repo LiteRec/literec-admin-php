@@ -45,6 +45,12 @@ final class MemberTransactionHistoryCardTest extends WebTestCase
 {
     use SignsInUsers;
 
+    /** Reused literals (SonarCloud php:S1192). */
+    private const string SEL_HISTORY_TABLE = '[data-testid="history-table"]';
+    private const string ROUTE_HISTORY = '/admin/users/%s/%s/history?page=1&pageSize=20';
+    private const string SEL_HISTORY_ROW = '[data-testid="history-row"]';
+
+
     private const string TEST_USERNAME = 'history_card_e2e';
 
     private const string HOUSEHOLD_ID       = '019571bf-5d55-7000-b500-00000000dd01';
@@ -76,7 +82,7 @@ final class MemberTransactionHistoryCardTest extends WebTestCase
         // The shim is present — proof the rows were NOT server-rendered.
         self::assertSelectorExists('[data-testid="history-lazy-shim"]');
         // And the rows table must NOT be present yet.
-        self::assertSelectorNotExists('[data-testid="history-table"]');
+        self::assertSelectorNotExists(self::SEL_HISTORY_TABLE);
         // And the body div is wired with the HTMX toggle trigger.
         $body = (string) $client->getResponse()->getContent();
         self::assertStringContainsString('hx-trigger="toggle once from:closest details"', $body);
@@ -94,7 +100,7 @@ final class MemberTransactionHistoryCardTest extends WebTestCase
         $client->request(
             'GET',
             sprintf(
-                '/admin/users/%s/%s/history?page=1&pageSize=20',
+                self::ROUTE_HISTORY,
                 self::HOUSEHOLD_ID,
                 self::LARGE_MEMBER_ID,
             ),
@@ -107,9 +113,9 @@ final class MemberTransactionHistoryCardTest extends WebTestCase
         self::assertStringNotContainsStringIgnoringCase('<!doctype', $body);
         self::assertStringNotContainsStringIgnoringCase('<html', $body);
 
-        self::assertSelectorExists('[data-testid="history-table"]');
+        self::assertSelectorExists(self::SEL_HISTORY_TABLE);
         // 23-row stub with pageSize 20 → 20 rows on page 1 + Load more.
-        $rows = $client->getCrawler()->filter('[data-testid="history-row"]');
+        $rows = $client->getCrawler()->filter(self::SEL_HISTORY_ROW);
         self::assertSame(20, $rows->count());
         self::assertSelectorExists('[data-testid="history-loadmore"]');
     }
@@ -126,14 +132,14 @@ final class MemberTransactionHistoryCardTest extends WebTestCase
         $client->request(
             'GET',
             sprintf(
-                '/admin/users/%s/%s/history?page=1&pageSize=20',
+                self::ROUTE_HISTORY,
                 self::HOUSEHOLD_ID,
                 self::LARGE_MEMBER_ID,
             ),
         );
         self::assertResponseIsSuccessful();
         $pageOneIds = $client->getCrawler()
-            ->filter('[data-testid="history-row"]')
+            ->filter(self::SEL_HISTORY_ROW)
             ->each(static fn ($node): string => (string) $node->attr('data-row-id'));
         self::assertNotEmpty($pageOneIds);
 
@@ -158,7 +164,7 @@ final class MemberTransactionHistoryCardTest extends WebTestCase
         // to count the appended rows.
         $wrappedCrawler = new Crawler('<table><tbody>' . $body . '</tbody></table>');
         $pageTwoIds = $wrappedCrawler
-            ->filter('[data-testid="history-row"]')
+            ->filter(self::SEL_HISTORY_ROW)
             ->each(static fn ($node): string => (string) $node->attr('data-row-id'));
         self::assertNotEmpty($pageTwoIds);
         // 23 rows total, pageSize 20 → page 2 carries the remaining 3.
@@ -179,7 +185,7 @@ final class MemberTransactionHistoryCardTest extends WebTestCase
         $client->request(
             'GET',
             sprintf(
-                '/admin/users/%s/%s/history?page=1&pageSize=20',
+                self::ROUTE_HISTORY,
                 self::HOUSEHOLD_ID,
                 self::EMPTY_MEMBER_ID,
             ),
@@ -187,7 +193,7 @@ final class MemberTransactionHistoryCardTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSelectorExists('[data-testid="history-empty-state"]');
-        self::assertSelectorNotExists('[data-testid="history-table"]');
+        self::assertSelectorNotExists(self::SEL_HISTORY_TABLE);
         self::assertSelectorNotExists('[data-testid="history-loadmore"]');
     }
 

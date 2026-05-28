@@ -40,6 +40,15 @@ final class DoctrineMemberReadModel implements MemberReadModel
 {
     use RowFieldExtraction;
 
+    /**
+     * Reused SQL fragments. Extracted for SonarCloud php:S1192.
+     */
+    private const string SQL_SELECT = 'SELECT ';
+
+    private const string COL_MEMBER_CORE = 'm.id AS member_id, m.household_id, m.code, m.first_name, m.middle_name, ';
+
+    private const string FROM_MEMBERS = 'FROM household_members m ';
+
     public function __construct(private readonly Connection $connection)
     {
     }
@@ -57,12 +66,12 @@ final class DoctrineMemberReadModel implements MemberReadModel
 
         $offset = ($criteria->page - 1) * $criteria->pageSize;
         $listSql = sprintf(
-            'SELECT '
-            . 'm.id AS member_id, m.household_id, m.code, m.first_name, m.middle_name, '
+            self::SQL_SELECT
+            . self::COL_MEMBER_CORE
             . 'm.last_name, m.suffix, m.date_of_birth, m.phone, m.residency_status, '
             . 'm.is_primary, m.is_active, '
             . 'h.street, h.city, h.state '
-            . 'FROM household_members m '
+            . self::FROM_MEMBERS
             . 'INNER JOIN households h ON h.id = m.household_id'
             . '%s'
             . ' ORDER BY m.last_name ASC, m.first_name ASC, m.id ASC'
@@ -91,14 +100,14 @@ final class DoctrineMemberReadModel implements MemberReadModel
 
     public function memberDetail(HouseholdId $householdId, MemberId $memberId): MemberDetail
     {
-        $sql = 'SELECT '
-            . 'm.id AS member_id, m.household_id, m.code, m.first_name, m.middle_name, '
+        $sql = self::SQL_SELECT
+            . self::COL_MEMBER_CORE
             . 'm.last_name, m.suffix, m.date_of_birth, m.gender, m.email, m.phone, '
             . 'm.residency_status, m.is_primary, m.is_active, '
             . 'm.deactivated_reason, m.deactivated_at, '
             . 'h.name AS household_name, '
             . 'h.street, h.unit, h.city, h.state, h.postal_code, h.country '
-            . 'FROM household_members m '
+            . self::FROM_MEMBERS
             . 'INNER JOIN households h ON h.id = m.household_id '
             . 'WHERE m.household_id = :household_id AND m.id = :member_id';
 
@@ -162,12 +171,12 @@ final class DoctrineMemberReadModel implements MemberReadModel
      */
     private function loadHouseholdMembers(HouseholdId $householdId): array
     {
-        $sql = 'SELECT '
-            . 'm.id AS member_id, m.household_id, m.code, m.first_name, m.middle_name, '
+        $sql = self::SQL_SELECT
+            . self::COL_MEMBER_CORE
             . 'm.last_name, m.suffix, m.date_of_birth, m.phone, m.residency_status, '
             . 'm.is_primary, m.is_active, '
             . 'h.street, h.city, h.state '
-            . 'FROM household_members m '
+            . self::FROM_MEMBERS
             . 'INNER JOIN households h ON h.id = m.household_id '
             . 'WHERE m.household_id = :household_id '
             . 'ORDER BY m.last_name ASC, m.first_name ASC, m.id ASC';
@@ -321,7 +330,7 @@ final class DoctrineMemberReadModel implements MemberReadModel
 
     private function loadHouseholdSummary(HouseholdId $householdId, string $householdName): HouseholdSummary
     {
-        $sql = 'SELECT '
+        $sql = self::SQL_SELECT
             . 'COUNT(*) AS member_count, '
             . 'MAX(CASE WHEN is_primary THEN id END) AS primary_id, '
             . 'MAX(CASE WHEN is_primary THEN first_name END) AS primary_first, '

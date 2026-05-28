@@ -26,6 +26,9 @@ use Symfony\Component\Messenger\MessageBusInterface;
 #[Group('smoke')]
 final class LoginFlowTest extends WebTestCase
 {
+    /** Reused literals (SonarCloud php:S1192). */
+    private const string ROUTE_LOGIN = '/login';
+
     // Test fixture, not a real credential.
     private const string TEST_PASSWORD = 'CorrectHorseBattery!'; // NOSONAR
 
@@ -36,7 +39,7 @@ final class LoginFlowTest extends WebTestCase
         $client = static::createClient();
         $this->seedUser('alice_e2e', self::TEST_PASSWORD);
 
-        $crawler = $client->request('GET', '/login');
+        $crawler = $client->request('GET', self::ROUTE_LOGIN);
         self::assertResponseIsSuccessful();
 
         $form = $crawler->selectButton('Login')->form([
@@ -58,14 +61,14 @@ final class LoginFlowTest extends WebTestCase
         $client = static::createClient();
         $this->seedUser('bob_e2e', self::TEST_PASSWORD);
 
-        $crawler = $client->request('GET', '/login');
+        $crawler = $client->request('GET', self::ROUTE_LOGIN);
         $form = $crawler->selectButton('Login')->form([
             '_username' => 'bob_e2e',
             '_password' => 'wrong',
         ]);
         $client->submit($form);
 
-        self::assertResponseRedirects('/login');
+        self::assertResponseRedirects(self::ROUTE_LOGIN);
         $client->followRedirect();
         self::assertSelectorExists('p[role="alert"]');
     }
@@ -85,14 +88,14 @@ final class LoginFlowTest extends WebTestCase
         $user->deactivate('e2e-disabled', $clock);
         $users->save($user);
 
-        $crawler = $client->request('GET', '/login');
+        $crawler = $client->request('GET', self::ROUTE_LOGIN);
         $form = $crawler->selectButton('Login')->form([
             '_username' => 'disabled_e2e',
             '_password' => self::TEST_PASSWORD,
         ]);
         $client->submit($form);
 
-        self::assertResponseRedirects('/login');
+        self::assertResponseRedirects(self::ROUTE_LOGIN);
         $client->followRedirect();
         self::assertSelectorExists('p[role="alert"]');
     }

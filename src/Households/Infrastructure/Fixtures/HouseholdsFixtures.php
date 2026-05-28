@@ -36,6 +36,7 @@ use Symfony\Component\Messenger\Stamp\HandledStamp;
  */
 final class HouseholdsFixtures extends Fixture implements FixtureGroupInterface, DependentFixtureInterface
 {
+    private const DEFAULT_POSTAL_CODE = '94000';
     private const DEFAULT_BULK_COUNT = 25;
     private const MAX_BULK_COUNT = 1000;
     private const DEFAULT_SEED = 1;
@@ -111,7 +112,7 @@ final class HouseholdsFixtures extends Fixture implements FixtureGroupInterface,
             unit: null,
             city: 'Anytown',
             state: 'CA',
-            postalCode: '94000',
+            postalCode: self::DEFAULT_POSTAL_CODE,
             country: 'US',
         ));
     }
@@ -134,7 +135,7 @@ final class HouseholdsFixtures extends Fixture implements FixtureGroupInterface,
             unit: 'Apt 3',
             city: 'Anytown',
             state: 'CA',
-            postalCode: '94000',
+            postalCode: self::DEFAULT_POSTAL_CODE,
             country: 'US',
         ));
         $this->addMember(
@@ -187,7 +188,7 @@ final class HouseholdsFixtures extends Fixture implements FixtureGroupInterface,
             unit: null,
             city: 'Anytown',
             state: 'CA',
-            postalCode: '94000',
+            postalCode: self::DEFAULT_POSTAL_CODE,
             country: 'US',
         ));
         $gailId = $this->addMember(
@@ -227,7 +228,7 @@ final class HouseholdsFixtures extends Fixture implements FixtureGroupInterface,
             unit: null,
             city: 'Anytown',
             state: 'CA',
-            postalCode: '94000',
+            postalCode: self::DEFAULT_POSTAL_CODE,
             country: 'US',
         ));
         $irisId = $this->addMember(

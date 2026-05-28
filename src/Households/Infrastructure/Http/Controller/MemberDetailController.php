@@ -78,6 +78,8 @@ final class MemberDetailController extends AbstractController
      */
     private const int HISTORY_MAX_PAGE_SIZE = 50;
 
+    private const string MEMBER_NOT_FOUND_MESSAGE = 'Member not found.';
+
     public function __construct(
         private readonly MessageBusInterface $queryBus,
         private readonly MessageBusInterface $commandBus,
@@ -100,7 +102,7 @@ final class MemberDetailController extends AbstractController
         try {
             $detail = $this->runQuery($householdId, $memberId);
         } catch (MemberNotFound | HouseholdNotFound | InvalidHouseholdId | InvalidMemberId) {
-            throw $this->createNotFoundException('Member not found.');
+            throw $this->createNotFoundException(self::MEMBER_NOT_FOUND_MESSAGE);
         }
 
         return $this->render('households/detail.html.twig', [
@@ -135,7 +137,7 @@ final class MemberDetailController extends AbstractController
         try {
             $detail = $this->runQuery($householdId, $memberId);
         } catch (MemberNotFound | HouseholdNotFound | InvalidHouseholdId | InvalidMemberId) {
-            throw $this->createNotFoundException('Member not found.');
+            throw $this->createNotFoundException(self::MEMBER_NOT_FOUND_MESSAGE);
         }
 
         return $this->render('households/detail/_lower_cards.html.twig', [
@@ -163,7 +165,7 @@ final class MemberDetailController extends AbstractController
         try {
             $detail = $this->runQuery($householdId, $memberId);
         } catch (MemberNotFound | HouseholdNotFound | InvalidHouseholdId | InvalidMemberId) {
-            throw $this->createNotFoundException('Member not found.');
+            throw $this->createNotFoundException(self::MEMBER_NOT_FOUND_MESSAGE);
         }
 
         $input = $this->inputFromProfile($detail);
@@ -216,7 +218,7 @@ final class MemberDetailController extends AbstractController
         try {
             $this->dispatchCommandUnwrapping($command);
         } catch (MemberNotFound | HouseholdNotFound | InvalidHouseholdId | InvalidMemberId) {
-            throw $this->createNotFoundException('Member not found.');
+            throw $this->createNotFoundException(self::MEMBER_NOT_FOUND_MESSAGE);
         } catch (InvalidPersonName $exception) {
             $this->applyNameErrorToForm($form, $exception);
 
@@ -242,7 +244,7 @@ final class MemberDetailController extends AbstractController
         try {
             $detail = $this->runQuery($householdId, $memberId);
         } catch (MemberNotFound | HouseholdNotFound | InvalidHouseholdId | InvalidMemberId) {
-            throw $this->createNotFoundException('Member not found.');
+            throw $this->createNotFoundException(self::MEMBER_NOT_FOUND_MESSAGE);
         }
 
         return $this->render('households/detail/_card_profile_read.html.twig', [
@@ -270,7 +272,7 @@ final class MemberDetailController extends AbstractController
         try {
             $detail = $this->runQuery($householdId, $memberId);
         } catch (MemberNotFound | HouseholdNotFound | InvalidHouseholdId | InvalidMemberId) {
-            throw $this->createNotFoundException('Member not found.');
+            throw $this->createNotFoundException(self::MEMBER_NOT_FOUND_MESSAGE);
         }
 
         $input = $this->inputFromAddress($detail);
@@ -317,7 +319,7 @@ final class MemberDetailController extends AbstractController
         $memberId = $this->readMemberIdFromRequest($request);
 
         if ($memberId === null) {
-            throw $this->createNotFoundException('Member not found.');
+            throw $this->createNotFoundException(self::MEMBER_NOT_FOUND_MESSAGE);
         }
 
         if (!$form->isSubmitted() || !$form->isValid()) {
@@ -351,7 +353,7 @@ final class MemberDetailController extends AbstractController
         try {
             $detail = $this->runQuery($householdId, $memberId);
         } catch (MemberNotFound | HouseholdNotFound | InvalidHouseholdId | InvalidMemberId) {
-            throw $this->createNotFoundException('Member not found.');
+            throw $this->createNotFoundException(self::MEMBER_NOT_FOUND_MESSAGE);
         }
 
         return $this->render('households/detail/_address_sub_card_read.html.twig', [
@@ -379,7 +381,7 @@ final class MemberDetailController extends AbstractController
         try {
             $detail = $this->runQuery($householdId, $memberId);
         } catch (MemberNotFound | HouseholdNotFound | InvalidHouseholdId | InvalidMemberId) {
-            throw $this->createNotFoundException('Member not found.');
+            throw $this->createNotFoundException(self::MEMBER_NOT_FOUND_MESSAGE);
         }
 
         $input = $this->inputFromResidency($detail);
@@ -434,7 +436,7 @@ final class MemberDetailController extends AbstractController
         try {
             $this->dispatchCommandUnwrapping($command);
         } catch (MemberNotFound | HouseholdNotFound | InvalidHouseholdId | InvalidMemberId) {
-            throw $this->createNotFoundException('Member not found.');
+            throw $this->createNotFoundException(self::MEMBER_NOT_FOUND_MESSAGE);
         } catch (SharedDomainException $exception) {
             $form->addError(new FormError($exception->getMessage()));
 
@@ -449,7 +451,7 @@ final class MemberDetailController extends AbstractController
         try {
             $detail = $this->runQuery($householdId, $memberId);
         } catch (MemberNotFound | HouseholdNotFound | InvalidHouseholdId | InvalidMemberId) {
-            throw $this->createNotFoundException('Member not found.');
+            throw $this->createNotFoundException(self::MEMBER_NOT_FOUND_MESSAGE);
         }
 
         return $this->render('households/detail/_residency_sub_card_read.html.twig', [
@@ -512,7 +514,7 @@ final class MemberDetailController extends AbstractController
             // Route requirements already enforce UUID v7, so this is
             // defence in depth — surface as 404 to match the rest of
             // the member-scoped endpoints.
-            throw $this->createNotFoundException('Member not found.');
+            throw $this->createNotFoundException(self::MEMBER_NOT_FOUND_MESSAGE);
         }
 
         $pageDto = $this->transactionHistory->page(

@@ -30,6 +30,9 @@ use Symfony\Component\Clock\MockClock;
  */
 trait PurchaseOrdersContractCases
 {
+    /** Reused literals (SonarCloud php:S1192). */
+    private const string ORDERED_AT = '2026-05-26 11:00:00';
+
     private const PO_A = '019571bf-5d51-7000-b500-000000000c01';
     private const PO_B = '019571bf-5d51-7000-b500-000000000c02';
     private const PO_C = '019571bf-5d51-7000-b500-000000000c03';
@@ -90,7 +93,7 @@ trait PurchaseOrdersContractCases
         ]);
         $this->purchaseOrders()->add($po);
 
-        $po->send(new DateTimeImmutable('2026-05-26 11:00:00'), null, $this->clock());
+        $po->send(new DateTimeImmutable(self::ORDERED_AT), null, $this->clock());
         $this->purchaseOrders()->save($po);
 
         $loaded = $this->purchaseOrders()->byId(PurchaseOrderId::fromString(self::PO_A));
@@ -116,7 +119,7 @@ trait PurchaseOrdersContractCases
     {
         // PO_A: Sent — must be returned.
         $a = $this->makeDraft(self::PO_A, self::VENDOR_A, self::FACILITY_MAIN, [[self::LINE_A1, 5, 100]]);
-        $a->send(new DateTimeImmutable('2026-05-26 11:00:00'), null, $this->clock());
+        $a->send(new DateTimeImmutable(self::ORDERED_AT), null, $this->clock());
         $this->purchaseOrders()->add($a);
 
         // PO_B: Draft — must be excluded.
@@ -125,14 +128,14 @@ trait PurchaseOrdersContractCases
 
         // PO_C: Sent but different vendor — must be excluded.
         $c = $this->makeDraft(self::PO_C, self::VENDOR_B, self::FACILITY_MAIN, [[self::LINE_C1, 5, 100]]);
-        $c->send(new DateTimeImmutable('2026-05-26 11:00:00'), null, $this->clock());
+        $c->send(new DateTimeImmutable(self::ORDERED_AT), null, $this->clock());
         $this->purchaseOrders()->add($c);
 
         // PO_D: PartiallyReceived for Vendor A — must also be returned alongside PO_A.
         $partialId = '019571bf-5d51-7000-b500-000000000c04';
         $partialLine = '019571bf-5d51-7000-b500-000000000fd1';
         $d = $this->makeDraft($partialId, self::VENDOR_A, self::FACILITY_MAIN, [[$partialLine, 5, 100]]);
-        $d->send(new DateTimeImmutable('2026-05-26 11:00:00'), null, $this->clock());
+        $d->send(new DateTimeImmutable(self::ORDERED_AT), null, $this->clock());
         $d->receiveLine(
             PurchaseOrderLineId::fromString($partialLine),
             Quantity::ofUnits(2),
