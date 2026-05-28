@@ -18,7 +18,6 @@ use Doctrine\Bundle\FixturesBundle\FixtureGroupInterface;
 use Doctrine\Common\DataFixtures\DependentFixtureInterface;
 use Doctrine\Persistence\ObjectManager;
 use Faker\Generator;
-use RuntimeException;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\HandledStamp;
@@ -357,19 +356,12 @@ final class HouseholdsFixtures extends Fixture implements FixtureGroupInterface,
     {
         $stamp = $envelope->last(HandledStamp::class);
         if (!$stamp instanceof HandledStamp) {
-            throw new RuntimeException(sprintf(
-                'Expected HandledStamp on dispatched command (looking for %s).',
-                $type,
-            ));
+            throw FixtureDispatchFailed::missingHandledStamp($type);
         }
 
         $result = $stamp->getResult();
         if (!$result instanceof $type) {
-            throw new RuntimeException(sprintf(
-                'Expected handler to return %s, got %s.',
-                $type,
-                get_debug_type($result),
-            ));
+            throw FixtureDispatchFailed::unexpectedResultType($type, get_debug_type($result));
         }
 
         return $result;

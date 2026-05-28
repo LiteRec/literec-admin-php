@@ -32,4 +32,16 @@ final class CrossBusRegistrationFailed extends RuntimeException
             previous: $cause,
         );
     }
+
+    /**
+     * The inner Catalog RegisterListing dispatch completed without
+     * leaving a HandledStamp on the envelope, so the new ListingId
+     * cannot be recovered to bind the Inventory aggregate.
+     */
+    public static function missingHandledStamp(): self
+    {
+        return new self(
+            'RegisterListing handler returned no HandledStamp — cannot continue cross-bus registration.',
+        );
+    }
 }

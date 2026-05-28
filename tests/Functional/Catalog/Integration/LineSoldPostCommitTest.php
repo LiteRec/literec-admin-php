@@ -9,7 +9,7 @@ use DateTimeImmutable;
 use PHPUnit\Framework\Attributes\Medium;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\TestDox;
-use RuntimeException;
+use App\Tests\Support\Exception\IntentionalTestRollback;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -67,8 +67,7 @@ final class LineSoldPostCommitTest extends KernelTestCase
             $rootCause = self::unwrap($wrapped);
         }
 
-        self::assertInstanceOf(RuntimeException::class, $rootCause);
-        self::assertSame('rollback', $rootCause->getMessage());
+        self::assertInstanceOf(IntentionalTestRollback::class, $rootCause);
 
         self::assertSame(
             [],

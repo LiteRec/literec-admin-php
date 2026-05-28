@@ -40,9 +40,7 @@ final class DoctrineMemberCodeAllocator implements MemberCodeAllocator
         );
 
         if ($next === false) {
-            throw new \RuntimeException(
-                sprintf('Failed to allocate the next value from sequence "%s".', self::SEQUENCE_NAME),
-            );
+            throw MemberCodeAllocationFailed::sequenceReturnedNoValue(self::SEQUENCE_NAME);
         }
 
         if (!is_numeric($next)) {
