@@ -31,7 +31,6 @@ final class MemberLookupDemoControllerTest extends WebTestCase
     use SignsInUsers;
 
     private const string TEST_USERNAME = 'member_lookup_demo_e2e';
-    private const string TEST_PASSWORD = 'CorrectHorseBattery!';
 
     #[Test]
     #[TestDox('GET /_dev/member-lookup-demo renders the demo shell + the lookup dialog markup.')]

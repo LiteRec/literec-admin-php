@@ -25,8 +25,6 @@ final class PurchaseOrderListControllerTest extends WebTestCase
     use SignsInUsers;
 
     private const string TEST_USERNAME = 'po_list_e2e';
-    // NOSONAR — test fixture, not a real credential.
-    private const string TEST_PASSWORD = 'CorrectHorseBattery!'; // NOSONAR
 
     private const string ROUTE_INDEX = '/admin/inventory/purchase-orders';
     private const string ROUTE_TABLE = '/admin/inventory/purchase-orders/_table';

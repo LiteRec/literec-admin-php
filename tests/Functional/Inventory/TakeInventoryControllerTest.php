@@ -30,8 +30,6 @@ final class TakeInventoryControllerTest extends WebTestCase
     private const string ROUTE_TAKE_INDEX_WITH_FACILITY = '/admin/inventory/take?facilityCode=MAIN';
 
     private const string TEST_USERNAME = 'take_inventory_e2e';
-    // NOSONAR — test fixture, not a real credential.
-    private const string TEST_PASSWORD = 'CorrectHorseBattery!'; // NOSONAR
 
     private const string ITEM_ID = '019571bf-5d51-7000-b500-00000000ee01';
     private const string LISTING_ID = '019571bf-5d51-7000-b500-00000000ee02';

@@ -43,7 +43,6 @@ final class SearchMembersControllerTest extends WebTestCase
     use SignsInUsers;
 
     private const string TEST_USERNAME = 'members_list_e2e';
-    private const string TEST_PASSWORD = 'CorrectHorseBattery!';
 
     private const string HOUSEHOLD_A     = '019571bf-5d51-7000-b500-00000000aa01';
     private const string HOUSEHOLD_B     = '019571bf-5d51-7000-b500-00000000bb01';

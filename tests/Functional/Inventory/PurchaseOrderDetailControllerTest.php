@@ -20,8 +20,6 @@ final class PurchaseOrderDetailControllerTest extends WebTestCase
     use SignsInUsers;
 
     private const string TEST_USERNAME = 'po_detail_e2e';
-    // NOSONAR — test fixture, not a real credential.
-    private const string TEST_PASSWORD = 'CorrectHorseBattery!'; // NOSONAR
 
     private const string PO_ID = '019571bf-5d51-7000-b500-000000aa0001';
     private const string VENDOR_ID = '019571bf-5d51-7000-b500-000000aa0101';

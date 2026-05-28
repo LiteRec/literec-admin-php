@@ -18,7 +18,6 @@ final class DashboardPageTest extends WebTestCase
     use SignsInUsers;
 
     private const string TEST_USERNAME = 'dashboard_e2e';
-    private const string TEST_PASSWORD = 'CorrectHorseBattery!';
 
     #[Test]
     #[TestDox('Signed-in staff land on a populated Admin Dashboard.')]

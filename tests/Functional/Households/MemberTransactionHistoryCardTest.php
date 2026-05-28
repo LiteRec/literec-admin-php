@@ -46,7 +46,6 @@ final class MemberTransactionHistoryCardTest extends WebTestCase
     use SignsInUsers;
 
     private const string TEST_USERNAME = 'history_card_e2e';
-    private const string TEST_PASSWORD = 'CorrectHorseBattery!';
 
     private const string HOUSEHOLD_ID       = '019571bf-5d55-7000-b500-00000000dd01';
     private const string LARGE_MEMBER_ID    = '019571bf-5d55-7000-b500-000000000014';
