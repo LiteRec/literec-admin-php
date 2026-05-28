@@ -326,6 +326,15 @@ deptrac:
         CatalogInfrastructure:
             - CatalogDomain
             - CatalogApplication
+            # LRA-92: CatalogBaseFixtures dispatches the published
+            # RegisterListing command DTO directly (it is the only
+            # public write entry point for non-Inventory listings),
+            # so the cross-bus whitelist is granted here too even
+            # though Catalog\Infrastructure is the same context that
+            # owns RegisterListing — the layer collector subtracts
+            # the cross-bus DTOs from CatalogApplication, leaving
+            # them only in CatalogCrossBusCommands.
+            - CatalogCrossBusCommands
             - CatalogIntegration
             - CatalogPublishedLanguage
             - SymfonyMessenger
@@ -434,4 +443,14 @@ deptrac:
         # per-context Domain rule).
         SharedDomain:
             - PsrClock
-        SharedInfrastructure: []
+        # SharedInfrastructure: cross-cutting infrastructure helpers
+        # consumed by multiple bounded contexts. Adapters and helpers
+        # under this namespace are framework-aware (Messenger envelopes
+        # for the LRA-92 HandledResult helper, Psr\Clock\ClockInterface
+        # for the FixedClock + DeterministicUuid7Sequencer fixture
+        # services). These dependencies are deliberately allowed
+        # because no Domain/Application code reaches into
+        # SharedInfrastructure — only other Infrastructure layers do.
+        SharedInfrastructure:
+            - PsrClock
+            - SymfonyMessenger
