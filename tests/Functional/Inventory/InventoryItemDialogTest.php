@@ -44,8 +44,6 @@ final class InventoryItemDialogTest extends WebTestCase
     private const string ROUTE_NEW_ITEM = '/admin/inventory/new';
 
     private const string TEST_USERNAME = 'inventory_dialog_e2e';
-    // NOSONAR — test fixture, not a real credential.
-    private const string TEST_PASSWORD = 'CorrectHorseBattery!'; // NOSONAR
 
     private const string ITEM_ID = '019571bf-5d51-7000-b500-00000000df01';
     private const string LISTING_ID = '019571bf-5d51-7000-b500-00000000df02';

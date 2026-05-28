@@ -18,7 +18,6 @@ final class MainNavTest extends WebTestCase
     use SignsInUsers;
 
     private const string TEST_USERNAME = 'mainnav_e2e';
-    private const string TEST_PASSWORD = 'CorrectHorseBattery!';
 
     #[Test]
     #[TestDox('All seven top-level nav buttons render on the dashboard in the legacy order.')]

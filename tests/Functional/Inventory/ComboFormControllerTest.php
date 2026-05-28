@@ -28,8 +28,6 @@ final class ComboFormControllerTest extends WebTestCase
     private const string ROUTE_NEW_COMBO = '/admin/inventory/combos/new';
 
     private const string TEST_USERNAME = 'combo_dialog_e2e';
-    // NOSONAR — test fixture, not a real credential.
-    private const string TEST_PASSWORD = 'CorrectHorseBattery!'; // NOSONAR
 
     private const string PARENT_LISTING_ID = '019571bf-5d51-7000-b500-00000000c001';
     private const string COMPONENT_A_ITEM = '019571bf-5d51-7000-b500-00000000c011';

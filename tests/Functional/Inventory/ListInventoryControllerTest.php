@@ -42,8 +42,6 @@ final class ListInventoryControllerTest extends WebTestCase
     use SignsInUsers;
 
     private const string TEST_USERNAME = 'inventory_list_e2e';
-    // NOSONAR — test fixture, not a real credential.
-    private const string TEST_PASSWORD = 'CorrectHorseBattery!'; // NOSONAR
 
     private const string ITEM_A    = '019571bf-5d51-7000-b500-00000000ee01';
     private const string ITEM_B    = '019571bf-5d51-7000-b500-00000000ee02';

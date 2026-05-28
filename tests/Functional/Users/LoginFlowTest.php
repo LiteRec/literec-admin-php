@@ -26,7 +26,8 @@ use Symfony\Component\Messenger\MessageBusInterface;
 #[Group('smoke')]
 final class LoginFlowTest extends WebTestCase
 {
-    private const string TEST_PASSWORD = 'CorrectHorseBattery!';
+    // Test fixture, not a real credential.
+    private const string TEST_PASSWORD = 'CorrectHorseBattery!'; // NOSONAR
 
     #[Test]
     #[TestDox('A seeded user can sign in with valid credentials and lands on /dashboard.')]

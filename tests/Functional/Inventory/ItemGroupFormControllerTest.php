@@ -26,8 +26,6 @@ final class ItemGroupFormControllerTest extends WebTestCase
     private const string ROUTE_NEW_GROUP = '/admin/inventory/groups/new';
 
     private const string TEST_USERNAME = 'group_dialog_e2e';
-    // NOSONAR — test fixture, not a real credential.
-    private const string TEST_PASSWORD = 'CorrectHorseBattery!'; // NOSONAR
 
     #[Test]
     #[TestDox('GET /admin/inventory/groups/new returns a dialog fragment with the group form.')]

@@ -29,8 +29,6 @@ final class ItemLinkFormControllerTest extends WebTestCase
     private const string ROUTE_UNLINK_TEMPLATE = '/admin/inventory/%s/links/%s';
 
     private const string TEST_USERNAME = 'link_dialog_e2e';
-    // NOSONAR — test fixture, not a real credential.
-    private const string TEST_PASSWORD = 'CorrectHorseBattery!'; // NOSONAR
 
     private const string ITEM_A_ID = '019571bf-5d51-7000-b500-00000000d001';
     private const string ITEM_A_LISTING = '019571bf-5d51-7000-b500-00000000d002';

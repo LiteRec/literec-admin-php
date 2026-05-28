@@ -42,7 +42,6 @@ final class MemberLookupControllerTest extends WebTestCase
     use SignsInUsers;
 
     private const string TEST_USERNAME = 'member_lookup_e2e';
-    private const string TEST_PASSWORD = 'CorrectHorseBattery!';
 
     private const string HOUSEHOLD_A    = '019571bf-6d51-7000-b500-00000000aa01';
     private const string HOUSEHOLD_B    = '019571bf-6d51-7000-b500-00000000bb01';

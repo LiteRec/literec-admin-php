@@ -41,7 +41,6 @@ final class AddressResidencyCardTest extends WebTestCase
     use SignsInUsers;
 
     private const string TEST_USERNAME = 'address_card_e2e';
-    private const string TEST_PASSWORD = 'CorrectHorseBattery!';
 
     private const string HOUSEHOLD_US        = '019571bf-5d55-7000-b500-00000000cc01';
     private const string US_PRIMARY_ID       = '019571bf-5d55-7000-b500-00000000cc02';

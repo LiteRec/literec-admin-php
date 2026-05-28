@@ -29,7 +29,6 @@ final class AddHouseholdControllerTest extends WebTestCase
     use SignsInUsers;
 
     private const string TEST_USERNAME = 'new_household_e2e';
-    private const string TEST_PASSWORD = 'CorrectHorseBattery!';
 
     private const string UNKNOWN_HOUSEHOLD_ID = '019571bf-5d51-7000-b500-0000000def01';
 

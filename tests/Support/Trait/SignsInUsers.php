@@ -15,6 +15,9 @@ use Symfony\Component\Messenger\MessageBusInterface;
  */
 trait SignsInUsers
 {
+    // Test fixture, not a real credential.
+    private const string TEST_PASSWORD = 'CorrectHorseBattery!'; // NOSONAR
+
     private function signInUser(KernelBrowser $client, string $username, string $password): void
     {
         $container = static::getContainer();

@@ -32,8 +32,6 @@ final class InventoryReportsControllerTest extends WebTestCase
     use SeedsInventoryItemForUi;
 
     private const string TEST_USERNAME = 'reports_e2e';
-    // NOSONAR — test fixture, not a real credential.
-    private const string TEST_PASSWORD = 'CorrectHorseBattery!'; // NOSONAR
 
     private const string ITEM_ID = '019571bf-5d51-7000-b500-0000000091a1';
     private const string ITEM_ID_LOW = '019571bf-5d51-7000-b500-0000000091a2';

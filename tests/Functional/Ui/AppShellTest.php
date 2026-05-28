@@ -27,7 +27,6 @@ final class AppShellTest extends WebTestCase
     use SignsInUsers;
 
     private const string TEST_USERNAME = 'shell_e2e';
-    private const string TEST_PASSWORD = 'CorrectHorseBattery!';
 
     #[Test]
     #[TestDox('The dashboard renders inside the authenticated app shell: header, nav, content, footer.')]

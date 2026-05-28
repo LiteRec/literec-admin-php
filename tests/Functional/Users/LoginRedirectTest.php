@@ -30,7 +30,6 @@ final class LoginRedirectTest extends WebTestCase
     use SignsInUsers;
 
     private const string TEST_USERNAME = 'login_redirect_e2e';
-    private const string TEST_PASSWORD = 'CorrectHorseBattery!';
 
     #[Test]
     #[TestDox('Successful sign-in redirects to the Admin Dashboard route, by name.')]

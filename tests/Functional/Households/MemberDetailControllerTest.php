@@ -41,7 +41,6 @@ final class MemberDetailControllerTest extends WebTestCase
     use SignsInUsers;
 
     private const string TEST_USERNAME = 'member_detail_e2e';
-    private const string TEST_PASSWORD = 'CorrectHorseBattery!';
 
     private const string HOUSEHOLD_A    = '019571bf-5d52-7000-b500-00000000aa01';
     private const string A_PRIMARY_ID   = '019571bf-5d52-7000-b500-00000000aa02';
