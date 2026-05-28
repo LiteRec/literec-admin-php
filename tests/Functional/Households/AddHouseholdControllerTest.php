@@ -72,21 +72,8 @@ final class AddHouseholdControllerTest extends WebTestCase
         $crawler = $client->request('GET', self::ROUTE_NEW);
         self::assertResponseIsSuccessful();
 
-        $form = $crawler->selectButton('Create Household')->form([
-            'register_household[householdName]' => 'Smith Family',
-            'register_household[firstName]' => 'Alice',
-            'register_household[lastName]' => 'Smith',
-            'register_household[dobIso]' => self::DOB,
-            'register_household[genderCode]' => 'F',
-            'register_household[email]' => 'alice@example.com',
-            'register_household[phone]' => self::PHONE_LOCAL,
-            'register_household[residencyStatusCode]' => 'RESIDENT',
-            'register_household[street]' => self::STREET,
-            'register_household[city]' => 'Seattle',
-            'register_household[state]' => 'WA',
-            'register_household[postalCode]' => self::POSTAL,
-            'register_household[country]' => 'US',
-        ]);
+        $form = $crawler->selectButton('Create Household')
+            ->form($this->validHouseholdFormFields());
 
         $client->submit($form);
 
@@ -116,21 +103,8 @@ final class AddHouseholdControllerTest extends WebTestCase
         $crawler = $client->request('GET', self::ROUTE_NEW);
         self::assertResponseIsSuccessful();
 
-        $form = $crawler->selectButton('Create Household')->form([
-            'register_household[householdName]' => 'Smith Family',
-            'register_household[firstName]' => 'Alice',
-            'register_household[lastName]' => 'Smith',
-            'register_household[dobIso]' => self::DOB,
-            'register_household[genderCode]' => 'F',
-            'register_household[email]' => 'not-an-email',
-            'register_household[phone]' => self::PHONE_LOCAL,
-            'register_household[residencyStatusCode]' => 'RESIDENT',
-            'register_household[street]' => self::STREET,
-            'register_household[city]' => 'Seattle',
-            'register_household[state]' => 'WA',
-            'register_household[postalCode]' => self::POSTAL,
-            'register_household[country]' => 'US',
-        ]);
+        $form = $crawler->selectButton('Create Household')
+            ->form($this->validHouseholdFormFields(email: 'not-an-email'));
 
         $client->submit($form);
 
@@ -185,5 +159,31 @@ final class AddHouseholdControllerTest extends WebTestCase
         $client->request('GET', '/admin/users/' . self::UNKNOWN_HOUSEHOLD_ID . '/members/new');
 
         self::assertResponseStatusCodeSame(404);
+    }
+
+    /**
+     * The valid "Register Household" form field map. The email is
+     * parameterised so the happy-path and invalid-email cases share one
+     * source of truth.
+     *
+     * @return array<string, string>
+     */
+    private function validHouseholdFormFields(string $email = 'alice@example.com'): array
+    {
+        return [
+            'register_household[householdName]' => 'Smith Family',
+            'register_household[firstName]' => 'Alice',
+            'register_household[lastName]' => 'Smith',
+            'register_household[dobIso]' => self::DOB,
+            'register_household[genderCode]' => 'F',
+            'register_household[email]' => $email,
+            'register_household[phone]' => self::PHONE_LOCAL,
+            'register_household[residencyStatusCode]' => 'RESIDENT',
+            'register_household[street]' => self::STREET,
+            'register_household[city]' => 'Seattle',
+            'register_household[state]' => 'WA',
+            'register_household[postalCode]' => self::POSTAL,
+            'register_household[country]' => 'US',
+        ];
     }
 }
