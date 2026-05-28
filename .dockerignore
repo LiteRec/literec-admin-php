@@ -32,3 +32,24 @@ vendor/
 .env.local
 .env.local.php
 .env.test
+.env.dev
+
+# IDE / editor state — may contain workspace paths or auth tokens.
+**/.idea/
+**/.vscode/
+**/.fleet/
+**/.claude/
+**/.history/
+
+# Build / quality-gate caches and reports — not needed in the runtime image.
+**/.phpunit.cache
+**/.phpunit.result.cache
+**/.phpstan.cache
+**/.deptrac.cache
+**/coverage/
+**/.coverage*
+**/node_modules/
+
+# Composer auth tokens and local-only overrides.
+**/auth.json
+**/.composer-auth.json
