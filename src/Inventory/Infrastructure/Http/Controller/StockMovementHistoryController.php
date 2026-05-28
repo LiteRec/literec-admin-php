@@ -12,6 +12,7 @@ use App\Inventory\Application\Query\View\StockMovementPage;
 use App\Inventory\Domain\Exception\InventoryItemNotFound;
 use App\Inventory\Domain\ValueObject\StockMovementKind;
 use App\Inventory\Domain\ValueObject\StockMovementReason;
+use App\Inventory\Infrastructure\Http\Csv\CsvStreamer;
 use DateTimeImmutable;
 use DateTimeZone;
 use LogicException;
@@ -82,17 +83,14 @@ final class StockMovementHistoryController extends AbstractController
 
     private const int MAX_PAGE_SIZE = 200;
 
-    /**
-     * Flush stdout after every CSV_FLUSH_INTERVAL rows so the client
-     * starts receiving bytes before the entire ledger has been
-     * walked. Matches the read-model's internal chunk size so each
-     * SQL chunk maps to one flush.
-     */
-    private const int CSV_FLUSH_INTERVAL = 500;
+    private const string CSV_FILENAME_STEM_PREFIX = 'history-';
+
+    private const int ITEM_ID_SHORT_LENGTH = 8;
 
     public function __construct(
         MessageBusInterface $queryBus,
         private readonly GetStockMovementHistoryHandler $historyHandler,
+        private readonly CsvStreamer $csvStreamer,
     ) {
         $this->messageBus = $queryBus;
     }
@@ -176,21 +174,11 @@ final class StockMovementHistoryController extends AbstractController
     {
         $criteria = $this->buildCriteria($request, $itemId);
 
-        $shortId = substr($itemId, 0, 8);
-        $stamp = (new DateTimeImmutable('now', new DateTimeZone('UTC')))->format('Ymd-His');
-        $filename = sprintf('history-%s-%s.csv', $shortId, $stamp);
+        $filenameStem = self::CSV_FILENAME_STEM_PREFIX . substr($itemId, 0, self::ITEM_ID_SHORT_LENGTH);
 
-        $response = new StreamedResponse(function () use ($criteria): void {
-            $handle = fopen('php://output', 'wb');
-            if ($handle === false) {
-                throw new LogicException('Unable to open php://output for CSV streaming.');
-            }
-
-            // Explicit escape='' silences the PHP 8.4+ deprecation that
-            // fires when the legacy backslash escape is left implicit.
-            // Empty escape produces strict RFC 4180 output (only
-            // doubled-double-quotes inside quoted fields).
-            fputcsv($handle, [
+        return $this->csvStreamer->streamingResponse(
+            rows: $this->historyHandler->streamCsvRows($criteria),
+            header: [
                 self::CSV_HEADER_DATE,
                 self::CSV_HEADER_KIND,
                 self::CSV_HEADER_REASON,
@@ -200,28 +188,9 @@ final class StockMovementHistoryController extends AbstractController
                 self::CSV_HEADER_COST_PER_UNIT,
                 self::CSV_HEADER_OPERATOR_NOTE,
                 self::CSV_HEADER_TRANSACTION_ID,
-            ], ',', '"', '');
-
-            $written = 0;
-            foreach ($this->historyHandler->streamCsvRows($criteria) as $row) {
-                fputcsv($handle, $row, ',', '"', '');
-                $written++;
-                if ($written % self::CSV_FLUSH_INTERVAL === 0) {
-                    if (ob_get_level() > 0) {
-                        ob_flush();
-                    }
-                    flush();
-                }
-            }
-
-            fclose($handle);
-        });
-
-        $response->headers->set('Content-Type', 'text/csv; charset=utf-8');
-        $response->headers->set('Content-Disposition', sprintf('attachment; filename="%s"', $filename));
-        $response->headers->set('X-Accel-Buffering', 'no');
-
-        return $response;
+            ],
+            filenameStem: $filenameStem,
+        );
     }
 
     private function loadDetail(string $itemId): InventoryItemDetailView

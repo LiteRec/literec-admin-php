@@ -1,0 +1,108 @@
+{# Barcode Batch Print picker page (LRA-91).
+   Expects:
+     - picker:   InventoryListPage  (paged list of selectable items)
+     - maxItems: int                (cap on selection size)
+
+   Alpine `x-data` holds the selection across filter re-fetches. The
+   POST form re-emits the selection as hidden inputs so the controller
+   sees the full set even when only a filtered subset is visible. #}
+{% extends 'app.html.twig' %}
+
+{% block page_title %}Barcode Batch Print{% endblock %}
+
+{% block page_body %}
+<div x-data="{ selected: [] }" class="space-y-4">
+    <p class="text-sm text-litrec-text-muted">
+        Pick up to {{ maxItems }} items, then click "Print barcodes" to render a printable sheet.
+    </p>
+
+    <form
+        method="get"
+        action="{{ path('inventory_reports_barcode_form') }}"
+        class="grid grid-cols-1 gap-2 sm:grid-cols-3"
+    >
+        <input
+            type="text"
+            name="search"
+            placeholder="Search by name or code"
+            value="{{ app.request.query.get('search')|default('') }}"
+            data-testid="report-barcode-search"
+            class="rounded-md border border-litrec-border bg-litrec-surface px-2 py-1 text-sm text-litrec-text"
+        />
+        <input
+            type="text"
+            name="facilityCode"
+            placeholder="Facility code"
+            value="{{ app.request.query.get('facilityCode')|default('') }}"
+            data-testid="report-barcode-facility"
+            class="rounded-md border border-litrec-border bg-litrec-surface px-2 py-1 text-sm text-litrec-text"
+        />
+        <button type="submit" class="rounded-md bg-litrec-primary px-3 py-1 text-sm font-semibold text-litrec-on-primary">
+            Filter
+        </button>
+    </form>
+
+    <form
+        method="post"
+        action="{{ path('inventory_reports_barcode_print') }}"
+        target="_blank"
+        rel="noopener"
+        data-testid="report-barcode-print-form"
+    >
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token('barcode_print') }}" />
+
+        {# Re-emit every selected id as a hidden field so the controller
+           sees the full selection even when the visible list is filtered. #}
+        <template x-for="id in selected" :key="id">
+            <input type="hidden" name="itemIds[]" :value="id" />
+        </template>
+
+        <div class="overflow-x-auto rounded-card border border-litrec-border bg-litrec-surface shadow-card">
+            <table class="min-w-full divide-y divide-litrec-border text-sm" data-testid="report-barcode-picker-table">
+                <thead class="bg-litrec-bg-muted text-left text-xs font-semibold uppercase tracking-wider text-litrec-text-muted">
+                    <tr>
+                        <th scope="col" class="px-3 py-2 w-8"></th>
+                        <th scope="col" class="px-3 py-2">Code</th>
+                        <th scope="col" class="px-3 py-2">Name</th>
+                        <th scope="col" class="px-3 py-2">Kind</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-litrec-border">
+                    {% for item in picker.items %}
+                        <tr>
+                            <td class="px-3 py-2">
+                                <input
+                                    type="checkbox"
+                                    value="{{ item.inventoryItemId }}"
+                                    @change="$event.target.checked
+                                        ? selected.push($event.target.value)
+                                        : (selected = selected.filter(id => id !== $event.target.value))"
+                                    :checked="selected.includes('{{ item.inventoryItemId }}')"
+                                    data-testid="report-barcode-pick-{{ item.inventoryItemId }}"
+                                />
+                            </td>
+                            <td class="px-3 py-2 font-mono text-xs text-litrec-text">{{ item.listingCode }}</td>
+                            <td class="px-3 py-2 text-litrec-text">{{ item.name }}</td>
+                            <td class="px-3 py-2 text-litrec-text-muted">{{ item.kind }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="mt-4 flex items-center justify-between">
+            <span class="text-sm text-litrec-text-muted" data-testid="report-barcode-selection-count">
+                Selected: <span x-text="selected.length"></span>
+            </span>
+            <button
+                type="submit"
+                :disabled="selected.length === 0 || selected.length > {{ maxItems }}"
+                data-testid="report-barcode-print-submit"
+                class="rounded-md bg-litrec-primary px-4 py-2 text-sm font-semibold text-litrec-on-primary shadow-sm hover:bg-litrec-primary-strong disabled:cursor-not-allowed disabled:opacity-50"
+            >
+                Print barcodes
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

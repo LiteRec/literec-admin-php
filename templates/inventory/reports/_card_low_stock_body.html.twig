@@ -1,0 +1,35 @@
+{# Low Stock body partial. Expects: lowStock: list<LowStockAlertView> #}
+{% if lowStock|length == 0 %}
+    {% include 'components/_empty_state.html.twig' with {
+        title: 'All clear',
+        message: 'No items are at or below their reorder threshold.',
+    } only %}
+{% else %}
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-litrec-border text-sm" data-testid="report-low-stock-table">
+            <thead class="bg-litrec-bg-muted text-left text-xs font-semibold uppercase tracking-wider text-litrec-text-muted">
+                <tr>
+                    <th scope="col" class="px-3 py-2">Item</th>
+                    <th scope="col" class="px-3 py-2">Facility</th>
+                    <th scope="col" class="px-3 py-2 text-right">On hand</th>
+                    <th scope="col" class="px-3 py-2 text-right">Threshold</th>
+                    <th scope="col" class="px-3 py-2 text-right">Shortfall</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-litrec-border">
+                {% for alert in lowStock %}
+                    <tr data-testid="report-low-stock-row-{{ alert.inventoryItemId }}">
+                        <td class="px-3 py-2 font-mono text-xs text-litrec-text">{{ alert.inventoryItemId|slice(0, 8) }}</td>
+                        <td class="px-3 py-2 text-litrec-text">{{ alert.facilityCode }}</td>
+                        <td class="px-3 py-2 text-right font-mono text-litrec-text">{{ alert.currentOnHandUnits }}</td>
+                        <td class="px-3 py-2 text-right font-mono text-litrec-text-muted">{{ alert.reorderThresholdUnits }}</td>
+                        <td class="px-3 py-2 text-right font-mono text-red-700">{{ alert.shortfallUnits }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <p class="mt-2 text-xs text-litrec-text-muted" data-testid="report-low-stock-count">
+        {{ lowStock|length }} alert{{ lowStock|length == 1 ? '' : 's' }}
+    </p>
+{% endif %}

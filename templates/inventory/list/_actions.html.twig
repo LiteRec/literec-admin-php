@@ -61,4 +61,14 @@
             Purchase Orders
         </a>
     {% endif %}
+
+    {% if is_granted('view_inventory') %}
+        <a
+            href="{{ path('inventory_reports_index') }}"
+            data-testid="goto-inventory-reports"
+            class="rounded-md border border-litrec-border bg-litrec-surface px-4 py-2 text-sm font-semibold text-litrec-text hover:bg-litrec-bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
+        >
+            Reports
+        </a>
+    {% endif %}
 </div>

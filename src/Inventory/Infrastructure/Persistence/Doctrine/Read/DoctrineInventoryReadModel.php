@@ -8,6 +8,12 @@ use App\Inventory\Application\Query\GetLowStockAlerts;
 use App\Inventory\Application\Query\GetStockMovementHistory;
 use App\Inventory\Application\Query\ListInventory;
 use App\Inventory\Application\Query\Port\InventoryReadModel;
+use App\Inventory\Application\Query\Report\CurrentStockReport;
+use App\Inventory\Application\Query\Report\CurrentStockReportPage;
+use App\Inventory\Application\Query\Report\CurrentStockRowView;
+use App\Inventory\Application\Query\Report\EntryLogPage;
+use App\Inventory\Application\Query\Report\EntryLogReport;
+use App\Inventory\Application\Query\Report\EntryLogRowView;
 use App\Inventory\Application\Query\View\InventoryListPage;
 use App\Inventory\Application\Query\View\InventorySummaryView;
 use App\Inventory\Application\Query\View\LowStockAlertView;
@@ -384,6 +390,332 @@ final readonly class DoctrineInventoryReadModel implements InventoryReadModel
             'quantity' => 'total_quantity',
             default => 'l.name',
         };
+    }
+
+    /**
+     * Intentionally unpaginated: the LRA-91 Current Stock card shows
+     * the full filtered set (mirrors {@see lowStockAlerts()}). Bounded
+     * in practice by the operator's filter selection (facility, kind,
+     * group). The CSV export uses {@see streamCurrentStock()} for
+     * unbounded result sets.
+     */
+    public function currentStock(CurrentStockReport $criteria): CurrentStockReportPage
+    {
+        [$whereClause, $params, $facilityQtySql, $facilityCodeExpr] = $this->buildCurrentStockSelect($criteria);
+
+        $sql = 'SELECT '
+            . 'i.id AS inventory_item_id, '
+            . 'l.code AS listing_code, '
+            . 'l.name AS name, '
+            . 'l.kind AS kind, '
+            . $facilityCodeExpr . ' AS facility_code, '
+            . $facilityQtySql . ' AS on_hand, '
+            . 'i.reorder_threshold AS reorder_threshold '
+            . 'FROM inventory_items i '
+            . 'JOIN catalog_listings l ON l.id = i.listing_id '
+            . 'WHERE ' . $whereClause . ' '
+            . 'ORDER BY l.name ASC, i.id ASC';
+
+        $rows = $this->connection->fetchAllAssociative($sql, $params);
+
+        $items = array_map(
+            function (array $row): CurrentStockRowView {
+                $onHand = $this->rowInt($row, 'on_hand');
+                $threshold = $this->rowInt($row, 'reorder_threshold');
+                return new CurrentStockRowView(
+                    inventoryItemId: $this->rowString($row, 'inventory_item_id'),
+                    listingCode: $this->rowString($row, 'listing_code'),
+                    name: $this->rowString($row, 'name'),
+                    kind: $this->rowString($row, 'kind'),
+                    facilityCode: $this->rowString($row, 'facility_code'),
+                    onHandUnits: $onHand,
+                    reorderThresholdUnits: $threshold,
+                    isAtOrBelowThreshold: $threshold > 0 && $onHand <= $threshold,
+                );
+            },
+            $rows,
+        );
+
+        return new CurrentStockReportPage(items: $items, totalCount: count($items));
+    }
+
+    public function streamCurrentStock(CurrentStockReport $criteria): \Generator
+    {
+        [$whereClause, $params, $facilityQtySql, $facilityCodeExpr] = $this->buildCurrentStockSelect($criteria);
+
+        $offset = 0;
+        $chunkSize = self::STREAM_CHUNK_SIZE;
+        $params['limit'] = $chunkSize;
+
+        $sql = 'SELECT '
+            . 'l.code AS listing_code, '
+            . 'l.name AS name, '
+            . 'l.kind AS kind, '
+            . $facilityCodeExpr . ' AS facility_code, '
+            . $facilityQtySql . ' AS on_hand, '
+            . 'i.reorder_threshold AS reorder_threshold '
+            . 'FROM inventory_items i '
+            . 'JOIN catalog_listings l ON l.id = i.listing_id '
+            . 'WHERE ' . $whereClause . ' '
+            . 'ORDER BY l.name ASC, i.id ASC '
+            . 'LIMIT :limit OFFSET :offset';
+
+        do {
+            $params['offset'] = $offset;
+            $rows = $this->connection->fetchAllAssociative($sql, $params);
+
+            foreach ($rows as $row) {
+                $onHand = $this->rowInt($row, 'on_hand');
+                $threshold = $this->rowInt($row, 'reorder_threshold');
+                $isBelow = $threshold > 0 && $onHand <= $threshold;
+
+                yield [
+                    $this->rowString($row, 'listing_code'),
+                    $this->rowString($row, 'name'),
+                    $this->rowString($row, 'kind'),
+                    $this->rowString($row, 'facility_code'),
+                    (string) $onHand,
+                    (string) $threshold,
+                    $isBelow ? '1' : '0',
+                ];
+            }
+
+            $offset += $chunkSize;
+        } while (count($rows) === $chunkSize);
+    }
+
+    public function entryLog(EntryLogReport $criteria): EntryLogPage
+    {
+        [$whereClause, $params] = $this->buildEntryLogFilter($criteria);
+
+        $totalCount = $this->scalarToInt($this->connection->fetchOne(
+            'SELECT COUNT(*) FROM inventory_stock_movements sm '
+            . 'JOIN inventory_items i ON i.id = sm.item_id '
+            . 'JOIN catalog_listings l ON l.id = i.listing_id '
+            . 'WHERE ' . $whereClause,
+            $params,
+        ));
+
+        $pageSize = max(1, $criteria->pageSize);
+        $pageNumber = max(1, $criteria->pageNumber);
+        $params['limit'] = $pageSize;
+        $params['offset'] = ($pageNumber - 1) * $pageSize;
+
+        $rows = $this->connection->fetchAllAssociative(
+            'SELECT sm.id, sm.item_id, l.code AS listing_code, sm.facility_code, '
+            . 'sm.kind, sm.reason, sm.quantity, sm.cost_per_unit_cents, '
+            . 'sm.operator_note, sm.recorded_at '
+            . 'FROM inventory_stock_movements sm '
+            . 'JOIN inventory_items i ON i.id = sm.item_id '
+            . 'JOIN catalog_listings l ON l.id = i.listing_id '
+            . 'WHERE ' . $whereClause . ' '
+            . 'ORDER BY sm.recorded_at DESC, sm.id ASC '
+            . 'LIMIT :limit OFFSET :offset',
+            $params,
+        );
+
+        $entries = array_map(
+            function (array $row): EntryLogRowView {
+                return new EntryLogRowView(
+                    movementId: $this->rowString($row, 'id'),
+                    inventoryItemId: $this->rowString($row, 'item_id'),
+                    listingCode: $this->rowString($row, 'listing_code'),
+                    facilityCode: $this->rowString($row, 'facility_code'),
+                    kind: $this->rowString($row, 'kind'),
+                    reason: $this->rowString($row, 'reason'),
+                    quantity: $this->rowInt($row, 'quantity'),
+                    costPerUnitCents: $this->rowInt($row, 'cost_per_unit_cents'),
+                    operatorNote: $this->rowNullableString($row, 'operator_note'),
+                    recordedAt: new DateTimeImmutable(
+                        $this->rowString($row, 'recorded_at'),
+                        new DateTimeZone('UTC'),
+                    ),
+                );
+            },
+            $rows,
+        );
+
+        return new EntryLogPage(
+            rows: $entries,
+            totalCount: $totalCount,
+            pageNumber: $pageNumber,
+            pageSize: $pageSize,
+        );
+    }
+
+    public function streamEntryLog(EntryLogReport $criteria): \Generator
+    {
+        [$whereClause, $params] = $this->buildEntryLogFilter($criteria);
+
+        $offset = 0;
+        $chunkSize = self::STREAM_CHUNK_SIZE;
+        $params['limit'] = $chunkSize;
+
+        $sql = 'SELECT sm.recorded_at, sm.kind, sm.reason, sm.facility_code, sm.quantity, '
+            . 'sm.cost_per_unit_cents, sm.operator_note, l.code AS listing_code, sm.item_id '
+            . 'FROM inventory_stock_movements sm '
+            . 'JOIN inventory_items i ON i.id = sm.item_id '
+            . 'JOIN catalog_listings l ON l.id = i.listing_id '
+            . 'WHERE ' . $whereClause . ' '
+            . 'ORDER BY sm.recorded_at DESC, sm.id ASC '
+            . 'LIMIT :limit OFFSET :offset';
+
+        do {
+            $params['offset'] = $offset;
+            $rows = $this->connection->fetchAllAssociative($sql, $params);
+
+            foreach ($rows as $row) {
+                yield [
+                    (new DateTimeImmutable(
+                        $this->rowString($row, 'recorded_at'),
+                        new DateTimeZone('UTC'),
+                    ))->format(DateTimeImmutable::ATOM),
+                    $this->rowString($row, 'listing_code'),
+                    $this->rowString($row, 'item_id'),
+                    $this->rowString($row, 'facility_code'),
+                    $this->rowString($row, 'kind'),
+                    $this->rowString($row, 'reason'),
+                    (string) $this->rowInt($row, 'quantity'),
+                    (string) $this->rowInt($row, 'cost_per_unit_cents'),
+                    $this->rowNullableString($row, 'operator_note') ?? '',
+                ];
+            }
+
+            $offset += $chunkSize;
+        } while (count($rows) === $chunkSize);
+    }
+
+    /**
+     * Builds the WHERE clause + facility-aware SELECT fragments shared
+     * by {@see currentStock()} and {@see streamCurrentStock()}.
+     *
+     * @return array{0: string, 1: array<string, scalar>, 2: string, 3: string}
+     */
+    private function buildCurrentStockSelect(CurrentStockReport $criteria): array
+    {
+        // Mirror lowStockAlerts() and the LRA-85 list-page default:
+        // archived items never appear in the operator-facing reports
+        // (they exist for historical auditing only).
+        $where = ['i.archived = false'];
+        $params = [];
+
+        if ($criteria->kindFilter !== null && $criteria->kindFilter !== '') {
+            $where[] = 'l.kind = :kindFilter';
+            $params['kindFilter'] = $criteria->kindFilter;
+        }
+        if ($criteria->groupId !== null && $criteria->groupId !== '') {
+            $where[] = 'EXISTS (SELECT 1 FROM inventory_item_group_members m '
+                . 'WHERE m.item_id = i.id AND m.group_id = :groupId)';
+            $params['groupId'] = $criteria->groupId;
+        }
+
+        if ($criteria->facilityCode !== null && $criteria->facilityCode !== '') {
+            $params['facility'] = $criteria->facilityCode;
+            $where[] = 'EXISTS (SELECT 1 FROM inventory_stock_batches sb '
+                . 'WHERE sb.item_id = i.id AND sb.facility_code = :facility)';
+            $facilityQtySql = 'COALESCE((SELECT SUM(sb.remaining_quantity) FROM inventory_stock_batches sb '
+                . 'WHERE sb.item_id = i.id AND sb.facility_code = :facility), 0)';
+            $facilityCodeExpr = ':facility';
+        } else {
+            $facilityQtySql = 'COALESCE((SELECT SUM(sb.remaining_quantity) FROM inventory_stock_batches sb '
+                . 'WHERE sb.item_id = i.id), 0)';
+            // No facility filter: surface a synthetic ALL marker so the
+            // CurrentStockRowView always carries a non-empty facility
+            // code without joining the per-facility breakdown.
+            $facilityCodeExpr = "'ALL'";
+        }
+
+        return [implode(' AND ', $where), $params, $facilityQtySql, $facilityCodeExpr];
+    }
+
+    /**
+     * Shared WHERE-clause builder for {@see entryLog()} and
+     * {@see streamEntryLog()}.
+     *
+     * @return array{0: string, 1: array<string, scalar>}
+     */
+    private function buildEntryLogFilter(EntryLogReport $criteria): array
+    {
+        // Reports never surface ledger rows for archived items; the
+        // Entry Log query joins inventory_items so we can apply the
+        // same archived filter the Current Stock and Low Stock
+        // projections use.
+        $where = ['i.archived = false'];
+        $params = [];
+
+        if ($criteria->facilityCode !== null && $criteria->facilityCode !== '') {
+            $where[] = 'sm.facility_code = :facility';
+            $params['facility'] = $criteria->facilityCode;
+        }
+        if ($criteria->kind !== null && $criteria->kind !== '') {
+            $where[] = 'sm.kind = :kind';
+            $params['kind'] = $criteria->kind;
+        }
+        if ($criteria->reason !== null && $criteria->reason !== '') {
+            $where[] = 'sm.reason = :reason';
+            $params['reason'] = $criteria->reason;
+        }
+        if ($criteria->dateFrom !== null) {
+            $where[] = 'sm.recorded_at >= :dateFrom';
+            $params['dateFrom'] = $criteria->dateFrom
+                ->setTimezone(new DateTimeZone('UTC'))
+                ->format('Y-m-d H:i:s');
+        }
+        if ($criteria->dateTo !== null) {
+            $where[] = 'sm.recorded_at <= :dateTo';
+            $params['dateTo'] = $criteria->dateTo
+                ->setTimezone(new DateTimeZone('UTC'))
+                ->format('Y-m-d H:i:s');
+        }
+
+        return [implode(' AND ', $where), $params];
+    }
+
+    public function findByIds(array $inventoryItemIds): array
+    {
+        if ($inventoryItemIds === []) {
+            return [];
+        }
+
+        $rows = $this->connection->fetchAllAssociative(
+            'SELECT '
+            . 'i.id AS inventory_item_id, '
+            . 'i.listing_id AS listing_id, '
+            . 'l.code AS listing_code, '
+            . 'l.name AS name, '
+            . 'l.kind AS kind, '
+            . 'COALESCE((SELECT SUM(sb.remaining_quantity) FROM inventory_stock_batches sb '
+            . 'WHERE sb.item_id = i.id), 0) AS total_quantity, '
+            . 'i.reorder_threshold AS reorder_threshold, '
+            . 'i.archived AS archived '
+            . 'FROM inventory_items i '
+            . 'JOIN catalog_listings l ON l.id = i.listing_id '
+            . 'WHERE i.id IN (:ids) '
+            . 'ORDER BY l.name ASC, i.id ASC',
+            ['ids' => $inventoryItemIds],
+            ['ids' => ArrayParameterType::STRING],
+        );
+
+        $itemIds = array_map(fn (array $row): string => $this->rowString($row, 'inventory_item_id'), $rows);
+        $groupNamesByItem = $this->loadGroupNames($itemIds);
+
+        return array_map(
+            function (array $row) use ($groupNamesByItem): InventorySummaryView {
+                $id = $this->rowString($row, 'inventory_item_id');
+                return new InventorySummaryView(
+                    inventoryItemId: $id,
+                    listingId: $this->rowString($row, 'listing_id'),
+                    listingCode: $this->rowString($row, 'listing_code'),
+                    name: $this->rowString($row, 'name'),
+                    kind: $this->rowString($row, 'kind'),
+                    totalQuantityOnHand: $this->rowInt($row, 'total_quantity'),
+                    reorderThresholdUnits: $this->rowInt($row, 'reorder_threshold'),
+                    archived: $this->rowBool($row, 'archived'),
+                    groupNames: $groupNamesByItem[$id] ?? [],
+                );
+            },
+            $rows,
+        );
     }
 
     /**
