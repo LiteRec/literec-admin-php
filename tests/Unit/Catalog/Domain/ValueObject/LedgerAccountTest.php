@@ -46,16 +46,6 @@ final class LedgerAccountTest extends TestCase
         yield 'too long (17 chars)' => [str_repeat('4', 17)];
     }
 
-    #[Test]
-    #[DataProvider('invalidLengthCases')]
-    #[TestDox('Rejects input outside the 4-16 character length window: $_dataName.')]
-    public function rejects_bad_length(string $value): void
-    {
-        $this->expectException(InvalidLedgerAccount::class);
-
-        LedgerAccount::of($value);
-    }
-
     /**
      * @return Generator<string, array{string}>
      */
@@ -68,9 +58,10 @@ final class LedgerAccountTest extends TestCase
     }
 
     #[Test]
+    #[DataProvider('invalidLengthCases')]
     #[DataProvider('illegalCharacterCases')]
-    #[TestDox('Rejects characters outside [A-Z0-9-]: $_dataName.')]
-    public function rejects_illegal_characters(string $value): void
+    #[TestDox('Rejects invalid input (bad length or characters outside [A-Z0-9-]): $_dataName.')]
+    public function rejects_invalid_input(string $value): void
     {
         $this->expectException(InvalidLedgerAccount::class);
 

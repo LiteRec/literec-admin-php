@@ -26,12 +26,12 @@ use App\Households\Domain\ValueObject\MemberId;
  * naturally produce an empty history, which the empty-state test
  * exercises.
  *
- * TODO(future-ticket): when the real Transactions context exists, add
- * a sibling adapter (e.g. `LegacyDbMemberTransactionHistory`) under
- * `src/Households/Infrastructure/Acl/LegacyDb/` and switch the
- * container binding (optionally behind an env flag during cut-over).
- * This stub stays in the codebase only as the test/dev default until
- * that swap happens.
+ * Planned replacement: when the real Transactions context exists, a
+ * sibling adapter (e.g. `LegacyDbMemberTransactionHistory`) under
+ * `src/Households/Infrastructure/Acl/LegacyDb/` will implement the same
+ * port and the container binding will switch to it (optionally behind an
+ * env flag during cut-over). This stub stays in the codebase only as the
+ * test/dev default until that swap happens.
  */
 final class StubMemberTransactionHistory implements MemberTransactionHistory
 {

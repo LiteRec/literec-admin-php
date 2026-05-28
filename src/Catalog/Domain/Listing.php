@@ -60,6 +60,9 @@ final class Listing
 
     private function __construct()
     {
+        // Intentionally empty: a Listing is only ever built through the named
+        // factory methods, which populate every property. The private
+        // constructor exists solely to forbid direct instantiation.
     }
 
     /**
