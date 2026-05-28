@@ -198,7 +198,15 @@ RUN <<-EOF
 EOF
 
 COPY --link --exclude=var --from=frankenphp_prod_builder /app /app
-# Group 0 + g=u for arbitrary-UID runtimes (e.g. OpenShift).
+# Writable runtime paths in this image are deliberately narrow:
+#   - /app/var          — Symfony cache, log, and session directories (this COPY).
+#   - /data, /config    — Caddy state (XDG_DATA_HOME / XDG_CONFIG_HOME),
+#                         chowned to www-data:www-data above (lines 186–187).
+# Everything else is read-only.
+# The chown www-data:0 + chmod g=u pair here follows the OpenShift "arbitrary
+# user ID" guidance: a process running as a random non-root UID that is
+# implicitly a member of the root group can still write under /app/var.
+# Sonar hotspot docker:S6504 — reviewed under LRA-105, marked SAFE.
 COPY --chown=www-data:0 --from=frankenphp_prod_builder /app/var /app/var
 RUN chmod g=u /app/var
 
