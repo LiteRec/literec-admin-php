@@ -129,7 +129,10 @@ COPY --link frankenphp/conf.d/20-app.prod.ini $PHP_INI_DIR/app.conf.d/
 COPY --link composer.json composer.lock symfony.lock ./
 RUN composer install --no-cache --prefer-dist --no-dev --no-autoloader --no-scripts --no-progress
 
-# copy sources
+# copy sources. The recursive COPY relies on .dockerignore to exclude every
+# dev-only / sensitive file (.env*, .git, IDE state, .phpunit.cache, tests/,
+# var/, coverage/, auth tokens, …). Sonar hotspot docker:S6470 — reviewed
+# under LRA-108, marked SAFE.
 COPY --link --exclude=frankenphp/ . ./
 
 RUN <<-EOF
