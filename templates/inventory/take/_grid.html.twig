@@ -10,9 +10,8 @@
     hx-swap="outerHTML"
     novalidate
 >
-    <div
+    <output
         id="take-inventory-summary"
-        role="status"
         aria-live="assertive"
         data-testid="take-inventory-summary"
         class="mb-3 min-h-[1.5rem] text-sm font-semibold"
@@ -24,7 +23,7 @@
         {% elseif rowErrors is not empty %}
             <span class="text-danger">Some rows could not be posted — review the highlighted lines.</span>
         {% endif %}
-    </div>
+    </output>
 
     <div class="overflow-x-auto rounded-card border border-litrec-border bg-litrec-surface shadow-card">
         <table class="min-w-full divide-y divide-litrec-border text-sm">

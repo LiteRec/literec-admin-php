@@ -100,8 +100,8 @@ final class DoctrineVendors implements Vendors
         $lowered = mb_strtolower($needle, 'UTF-8');
         $escaped = strtr($lowered, ['!' => '!!', '%' => '!%', '_' => '!_']);
 
-        /** @var list<Vendor> $rows */
-        $rows = $this->em->createQueryBuilder()
+        /** @var list<Vendor> */
+        return $this->em->createQueryBuilder()
             ->select('v')
             ->from(Vendor::class, 'v')
             ->where("LOWER(v.name) LIKE :needle ESCAPE '!'")
@@ -111,14 +111,12 @@ final class DoctrineVendors implements Vendors
             ->setMaxResults($limit)
             ->getQuery()
             ->getResult();
-
-        return $rows;
     }
 
     public function listActive(int $offset, int $limit): array
     {
-        /** @var list<Vendor> $rows */
-        $rows = $this->em->createQueryBuilder()
+        /** @var list<Vendor> */
+        return $this->em->createQueryBuilder()
             ->select('v')
             ->from(Vendor::class, 'v')
             ->where('v.archived = :archived')
@@ -128,7 +126,5 @@ final class DoctrineVendors implements Vendors
             ->setMaxResults($limit)
             ->getQuery()
             ->getResult();
-
-        return $rows;
     }
 }

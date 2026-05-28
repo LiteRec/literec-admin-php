@@ -66,6 +66,7 @@ final class PurchaseOrderDetailController extends AbstractController
 
     public function __construct(
         MessageBusInterface $commandBus,
+        // NOSONAR — consumed by DispatchesQueriesUnwrapping trait at $this->queryBus.
         private readonly MessageBusInterface $queryBus,
     ) {
         $this->messageBus = $commandBus;

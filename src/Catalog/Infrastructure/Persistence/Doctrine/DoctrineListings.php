@@ -86,8 +86,8 @@ final class DoctrineListings implements Listings
 
     public function findByKind(ListingKind $kind, int $offset, int $limit): array
     {
-        /** @var list<Listing> $rows */
-        $rows = $this->em->createQueryBuilder()
+        /** @var list<Listing> */
+        return $this->em->createQueryBuilder()
             ->select('l')
             ->from(Listing::class, 'l')
             ->where('l.kind = :kind')
@@ -97,8 +97,6 @@ final class DoctrineListings implements Listings
             ->setMaxResults($limit)
             ->getQuery()
             ->getResult();
-
-        return $rows;
     }
 
     public function searchByName(string $query, int $offset, int $limit): array
@@ -118,8 +116,8 @@ final class DoctrineListings implements Listings
         $lowered = mb_strtolower($needle, 'UTF-8');
         $escaped = strtr($lowered, ['!' => '!!', '%' => '!%', '_' => '!_']);
 
-        /** @var list<Listing> $rows */
-        $rows = $this->em->createQueryBuilder()
+        /** @var list<Listing> */
+        return $this->em->createQueryBuilder()
             ->select('l')
             ->from(Listing::class, 'l')
             ->where("LOWER(l.name) LIKE :needle ESCAPE '!'")
@@ -129,7 +127,5 @@ final class DoctrineListings implements Listings
             ->setMaxResults($limit)
             ->getQuery()
             ->getResult();
-
-        return $rows;
     }
 }

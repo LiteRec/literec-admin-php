@@ -68,6 +68,7 @@ final class ComboFormController extends AbstractController
 
     private const string GENERIC_SAVE_FAILURE = 'Unable to save combo. Please try again.';
 
+    // NOSONAR — consumed by HtmxFormDialogResponses trait via static::HX_TRIGGER_EVENT.
     private const string HX_TRIGGER_EVENT = 'comboSaved';
 
     private const string MODE_CREATE = 'create';

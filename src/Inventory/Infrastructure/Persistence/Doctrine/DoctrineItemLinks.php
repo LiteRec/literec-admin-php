@@ -121,8 +121,8 @@ final class DoctrineItemLinks implements ItemLinks
 
     public function activeForMaster(InventoryItemId $masterItemId, DateTimeImmutable $now): array
     {
-        /** @var list<ItemLink> $rows */
-        $rows = $this->em->createQueryBuilder()
+        /** @var list<ItemLink> */
+        return $this->em->createQueryBuilder()
             ->select('l')
             ->from(ItemLink::class, 'l')
             ->where('l.masterItemId = :master')
@@ -131,7 +131,5 @@ final class DoctrineItemLinks implements ItemLinks
             ->setParameter('now', $now)
             ->getQuery()
             ->getResult();
-
-        return $rows;
     }
 }

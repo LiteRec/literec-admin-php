@@ -59,8 +59,8 @@ final class DoctrinePurchaseOrders implements PurchaseOrders
 
     public function openByVendor(VendorId $vendorId, int $offset, int $limit): array
     {
-        /** @var list<PurchaseOrder> $rows */
-        $rows = $this->em->createQueryBuilder()
+        /** @var list<PurchaseOrder> */
+        return $this->em->createQueryBuilder()
             ->select('po')
             ->from(PurchaseOrder::class, 'po')
             ->where('po.vendorId = :vendor')
@@ -73,14 +73,12 @@ final class DoctrinePurchaseOrders implements PurchaseOrders
             ->setMaxResults($limit)
             ->getQuery()
             ->getResult();
-
-        return $rows;
     }
 
     public function byStatus(PurchaseOrderStatus $status, int $offset, int $limit): array
     {
-        /** @var list<PurchaseOrder> $rows */
-        $rows = $this->em->createQueryBuilder()
+        /** @var list<PurchaseOrder> */
+        return $this->em->createQueryBuilder()
             ->select('po')
             ->from(PurchaseOrder::class, 'po')
             ->where('po.status = :status')
@@ -91,14 +89,12 @@ final class DoctrinePurchaseOrders implements PurchaseOrders
             ->setMaxResults($limit)
             ->getQuery()
             ->getResult();
-
-        return $rows;
     }
 
     public function byFacility(FacilityCode $facility, int $offset, int $limit): array
     {
-        /** @var list<PurchaseOrder> $rows */
-        $rows = $this->em->createQueryBuilder()
+        /** @var list<PurchaseOrder> */
+        return $this->em->createQueryBuilder()
             ->select('po')
             ->from(PurchaseOrder::class, 'po')
             ->where('po.facilityCode = :facility')
@@ -109,8 +105,6 @@ final class DoctrinePurchaseOrders implements PurchaseOrders
             ->setMaxResults($limit)
             ->getQuery()
             ->getResult();
-
-        return $rows;
     }
 
     public function search(
@@ -130,10 +124,8 @@ final class DoctrinePurchaseOrders implements PurchaseOrders
 
         $this->applyFilters($qb, $vendorId, $status, $facility);
 
-        /** @var list<PurchaseOrder> $rows */
-        $rows = $qb->getQuery()->getResult();
-
-        return $rows;
+        /** @var list<PurchaseOrder> */
+        return $qb->getQuery()->getResult();
     }
 
     public function countMatching(

@@ -8,12 +8,12 @@ import htmx from 'htmx.org';
 import gsap from 'gsap';
 
 // Alpine.js — lightweight reactive UI components driven by x-* attributes.
-window.Alpine = Alpine;
+globalThis.Alpine = Alpine;
 Alpine.start();
 
 // HTMX — expose globally so hx-* attributes are processed, and surface
 // request failures for the health-check target.
-window.htmx = htmx;
+globalThis.htmx = htmx;
 
 // Forward Symfony's CSRF token on every non-GET HTMX request. The token is
 // rendered into a <meta name="csrf-token"> tag by base.html.twig under the
@@ -28,7 +28,7 @@ document.body.addEventListener('htmx:configRequest', (event) => {
     }
 
     const meta = document.querySelector('meta[name="csrf-token"]');
-    const token = meta ? meta.getAttribute('content') : null;
+    const token = meta?.getAttribute('content') ?? null;
 
     if (token) {
         event.detail.headers['X-CSRF-TOKEN'] = token;
@@ -45,10 +45,10 @@ document.body.addEventListener('htmx:afterRequest', (event) => {
 
 // GSAP — expose globally and apply a subtle entrance animation to any
 // element marked with data-gsap="card".
-window.gsap = gsap;
+globalThis.gsap = gsap;
 
 function animateCards() {
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const prefersReducedMotion = globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     if (prefersReducedMotion) {
         return;

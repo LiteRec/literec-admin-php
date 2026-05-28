@@ -64,6 +64,7 @@
                         {% for m in detail.householdMembers %}
                             {% set isActiveMember = m.memberId == detail.profile.memberId %}
                             {% set pushUrl = path('member_detail', { householdId: detail.household.householdId, memberId: m.memberId }) %}
+                            {# NOSONAR Web:S6819 — tr cannot be replaced with button; this is the established clickable-row pattern (role=button + tabindex + keyboard handler). #}
                             <tr
                                 data-testid="household-member-row-{{ m.memberId }}"
                                 {% if isActiveMember %}
