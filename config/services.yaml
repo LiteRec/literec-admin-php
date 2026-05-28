@@ -218,6 +218,15 @@ services:
             $commandBus: '@command.bus'
         tags: ['controller.service_arguments']
 
+    # LRA-92: InventoryPurchaseOrdersFixtures needs both buses (command
+    # to dispatch the lifecycle commands, query to fetch generated line
+    # ids via GetPurchaseOrderDetail). The default `MessageBusInterface`
+    # binding resolves to command.bus, so query.bus is wired explicitly.
+    App\Inventory\Infrastructure\Fixtures\InventoryPurchaseOrdersFixtures:
+        arguments:
+            $commandBus: '@command.bus'
+            $queryBus: '@query.bus'
+
     # App shell Twig globals (selected facility, build version).
     App\Ui\Twig\AppShellExtension:
         arguments:
@@ -377,3 +386,29 @@ when@dev:
             factory: ['App\Users\Infrastructure\Fixtures\SeededFakerFactory', 'create']
             arguments:
                 $seed: '%env(int:default:default_fixture_seed:FIXTURE_SEED)%'
+
+        # LRA-92: deterministic clock + seeded identity generators so
+        # `composer db:reset` (which loads fixtures into the dev DB)
+        # produces byte-identical content at the same FIXTURE_SEED.
+        # The fixed-instant default ('2025-01-15T12:00:00Z') is reused
+        # across all aggregates so registered_at / created_at columns
+        # match across loads. Production uses the real Psr\Clock\Clock
+        # and the Uuid7IdentityGenerator adapters under the same ports.
+        App\Shared\Infrastructure\Fixtures\FixedClock:
+            arguments: []
+        Psr\Clock\ClockInterface:
+            alias: App\Shared\Infrastructure\Fixtures\FixedClock
+
+        App\Inventory\Infrastructure\Fixtures\SeededIdentityGenerator:
+            autowire: true
+            arguments:
+                $seed: '%env(int:default:default_fixture_seed:FIXTURE_SEED)%'
+        App\Inventory\Domain\IdentityGenerator:
+            alias: App\Inventory\Infrastructure\Fixtures\SeededIdentityGenerator
+
+        App\Catalog\Infrastructure\Fixtures\SeededIdentityGenerator:
+            autowire: true
+            arguments:
+                $seed: '%env(int:default:default_fixture_seed:FIXTURE_SEED)%'
+        App\Catalog\Domain\IdentityGenerator:
+            alias: App\Catalog\Infrastructure\Fixtures\SeededIdentityGenerator
