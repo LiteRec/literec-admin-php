@@ -150,49 +150,26 @@ final class InMemoryMemberReadModel implements MemberReadModel
 
     private function matches(HouseholdMember $member, SearchMembersCriteria $c): bool
     {
-        if (!$c->includeDeleted && !$member->isActive()) {
-            return false;
-        }
+        // Each criterion is satisfied when it is unset (null/false) or the
+        // member matches it. receipt, orgName, gateway, includeMerged and
+        // recentOnly have no backing data on the in-memory aggregate yet
+        // and are intentionally ignored.
+        return ($c->includeDeleted || $member->isActive())
+            && (!$c->primaryOnly || $member->isPrimary())
+            && ($c->memberCode === null || $member->code()->value === $c->memberCode)
+            && ($c->lastName === null || stripos($member->name()->lastName, $c->lastName) !== false)
+            && ($c->firstName === null || stripos($member->name()->firstName, $c->firstName) !== false)
+            && ($c->email === null || $this->valueContains($member->email()?->value, $c->email))
+            && ($c->phone === null || $this->valueContains($member->phone()?->value, $c->phone));
+    }
 
-        if ($c->primaryOnly && !$member->isPrimary()) {
-            return false;
-        }
-
-        if ($c->memberCode !== null && $member->code()->value !== $c->memberCode) {
-            return false;
-        }
-
-        if (
-            $c->lastName !== null
-            && stripos($member->name()->lastName, $c->lastName) === false
-        ) {
-            return false;
-        }
-
-        if (
-            $c->firstName !== null
-            && stripos($member->name()->firstName, $c->firstName) === false
-        ) {
-            return false;
-        }
-
-        if ($c->email !== null) {
-            $email = $member->email();
-            if ($email === null || stripos($email->value, $c->email) === false) {
-                return false;
-            }
-        }
-
-        if ($c->phone !== null) {
-            $phone = $member->phone();
-            if ($phone === null || stripos($phone->value, $c->phone) === false) {
-                return false;
-            }
-        }
-
-        // receipt, orgName, gateway, includeMerged, recentOnly:
-        // no backing data on the in-memory aggregate yet; ignored.
-        return true;
+    /**
+     * Case-insensitive substring match that treats a missing (null) value
+     * as a non-match.
+     */
+    private function valueContains(?string $haystack, string $needle): bool
+    {
+        return $haystack !== null && stripos($haystack, $needle) !== false;
     }
 
     private function toListItem(HouseholdMember $member, Household $household): MemberListItem
