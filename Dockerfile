@@ -117,8 +117,12 @@ RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
 
 COPY --link frankenphp/conf.d/20-app.prod.ini $PHP_INI_DIR/app.conf.d/
 
-# prevent the reinstallation of vendors at every changes in the source code
-COPY --link composer.* symfony.* ./
+# prevent the reinstallation of vendors at every changes in the source code.
+# Sonar hotspots docker:S6470 (LRA-106 / LRA-107) — globs replaced with explicit
+# file names so no other composer.* / symfony.* artifact in the build context
+# (composer.local.json, composer.phar, symfony.local.yaml, …) can ever be picked
+# up by accident.
+COPY --link composer.json composer.lock symfony.lock ./
 RUN composer install --no-cache --prefer-dist --no-dev --no-autoloader --no-scripts --no-progress
 
 # copy sources
