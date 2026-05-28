@@ -37,6 +37,11 @@ final class MemberProfileCardTest extends WebTestCase
 {
     use SignsInUsers;
 
+    /** Reused literals (SonarCloud php:S1192). */
+    private const string DOB = '1990-01-01';
+    private const string ROUTE_PROFILE = '/admin/users/%s/%s/profile';
+
+
     private const string TEST_USERNAME = 'profile_card_e2e';
 
     private const string HOUSEHOLD_A    = '019571bf-5d55-7000-b500-00000000aa01';
@@ -66,7 +71,7 @@ final class MemberProfileCardTest extends WebTestCase
         self::assertSelectorExists('[data-testid="card-profile-body"]');
         self::assertSelectorTextContains('[data-testid="profile-first-name"]', 'Alice');
         self::assertSelectorTextContains('[data-testid="profile-last-name"]', 'Smith');
-        self::assertSelectorTextContains('[data-testid="profile-dob"]', '1990-01-01');
+        self::assertSelectorTextContains('[data-testid="profile-dob"]', self::DOB);
         self::assertSelectorTextContains('[data-testid="profile-gender"]', 'Female');
     }
 
@@ -100,7 +105,7 @@ final class MemberProfileCardTest extends WebTestCase
             $crawler->filter('input[name="update_member_profile[lastName]"]')->attr('value'),
         );
         self::assertSame(
-            '1990-01-01',
+            self::DOB,
             $crawler->filter('input[name="update_member_profile[dobIso]"]')->attr('value'),
         );
         // Gender select pre-populated to 'F'.
@@ -120,7 +125,7 @@ final class MemberProfileCardTest extends WebTestCase
 
         $client->request(
             'POST',
-            sprintf('/admin/users/%s/%s/profile', self::HOUSEHOLD_A, self::A_PRIMARY_ID),
+            sprintf(self::ROUTE_PROFILE, self::HOUSEHOLD_A, self::A_PRIMARY_ID),
             [
                 'update_member_profile' => [
                     'firstName' => 'Alicia',
@@ -165,7 +170,7 @@ final class MemberProfileCardTest extends WebTestCase
         // foreseeable life of the test.
         $client->request(
             'POST',
-            sprintf('/admin/users/%s/%s/profile', self::HOUSEHOLD_A, self::A_PRIMARY_ID),
+            sprintf(self::ROUTE_PROFILE, self::HOUSEHOLD_A, self::A_PRIMARY_ID),
             [
                 'update_member_profile' => [
                     'firstName' => 'Alice',
@@ -191,7 +196,7 @@ final class MemberProfileCardTest extends WebTestCase
         self::assertInstanceOf(Households::class, $repo);
         $household = $repo->findById(HouseholdId::fromString(self::HOUSEHOLD_A));
         $member = $this->firstMember($household);
-        self::assertSame('1990-01-01', $member->dateOfBirth()->value()->format('Y-m-d'));
+        self::assertSame(self::DOB, $member->dateOfBirth()->value()->format('Y-m-d'));
     }
 
     #[Test]
@@ -204,14 +209,14 @@ final class MemberProfileCardTest extends WebTestCase
 
         $client->request(
             'POST',
-            sprintf('/admin/users/%s/%s/profile', self::HOUSEHOLD_A, self::A_PRIMARY_ID),
+            sprintf(self::ROUTE_PROFILE, self::HOUSEHOLD_A, self::A_PRIMARY_ID),
             [
                 'update_member_profile' => [
                     'firstName' => 'Mallory',
                     'middleName' => '',
                     'lastName' => 'Smith',
                     'suffix' => '',
-                    'dobIso' => '1990-01-01',
+                    'dobIso' => self::DOB,
                     'genderCode' => 'F',
                     // No _token.
                 ],
@@ -245,14 +250,14 @@ final class MemberProfileCardTest extends WebTestCase
 
         $client->request(
             'POST',
-            sprintf('/admin/users/%s/%s/profile', self::HOUSEHOLD_A, self::UNKNOWN_MEMBER_ID),
+            sprintf(self::ROUTE_PROFILE, self::HOUSEHOLD_A, self::UNKNOWN_MEMBER_ID),
             [
                 'update_member_profile' => [
                     'firstName' => 'Ghost',
                     'middleName' => '',
                     'lastName' => 'User',
                     'suffix' => '',
-                    'dobIso' => '1990-01-01',
+                    'dobIso' => self::DOB,
                     'genderCode' => 'U',
                     '_token' => $token,
                 ],
@@ -296,7 +301,7 @@ final class MemberProfileCardTest extends WebTestCase
             MemberId::fromString(self::A_PRIMARY_ID),
             MemberCode::of(self::A_PRIMARY_CODE),
             PersonName::of('Alice', 'Smith'),
-            DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
+            DateOfBirth::of(new DateTimeImmutable(self::DOB), $this->clock),
             Gender::Female,
             EmailAddress::of('alice@example.com'),
             null,

@@ -27,6 +27,9 @@ use Symfony\Component\Clock\MockClock;
  */
 trait VendorsContractCases
 {
+    /** Reused literals (SonarCloud php:S1192). */
+    private const string VENDOR_NAME = 'Acme Supply Co.';
+
     private const ID_A = '019571bf-5d51-7000-b500-000000000030';
     private const ID_B = '019571bf-5d51-7000-b500-000000000031';
     private const ID_C = '019571bf-5d51-7000-b500-000000000032';
@@ -43,14 +46,14 @@ trait VendorsContractCases
     )]
     public function add_then_by_id_round_trips(): void
     {
-        $vendor = $this->makeVendor(self::ID_A, 'ACME', 'Acme Supply Co.');
+        $vendor = $this->makeVendor(self::ID_A, 'ACME', self::VENDOR_NAME);
         $this->vendors()->add($vendor);
 
         $loaded = $this->vendors()->byId(VendorId::fromString(self::ID_A));
 
         self::assertTrue($loaded->id()->equals($vendor->id()));
         self::assertTrue($loaded->code()->equals(VendorCode::fromString('ACME')));
-        self::assertSame('Acme Supply Co.', $loaded->name()->value);
+        self::assertSame(self::VENDOR_NAME, $loaded->name()->value);
         self::assertSame('Jane Smith', $loaded->contact()->value);
         self::assertNotNull($loaded->email());
         self::assertSame('jane@acme.test', $loaded->email()->value);
@@ -134,7 +137,7 @@ trait VendorsContractCases
     #[TestDox('save() persists modifications made through aggregate behaviour methods.')]
     public function save_persists_updates(): void
     {
-        $vendor = $this->makeVendor(self::ID_A, 'ACME', 'Acme Supply Co.');
+        $vendor = $this->makeVendor(self::ID_A, 'ACME', self::VENDOR_NAME);
         $this->vendors()->add($vendor);
 
         $loaded = $this->vendors()->byId(VendorId::fromString(self::ID_A));

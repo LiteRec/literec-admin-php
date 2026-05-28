@@ -28,6 +28,14 @@ final class AddHouseholdControllerTest extends WebTestCase
 {
     use SignsInUsers;
 
+    /** Reused literals (SonarCloud php:S1192). */
+    private const string ROUTE_NEW = '/admin/users/new';
+    private const string DOB = '1990-01-01';
+    private const string PHONE_LOCAL = '5550100';
+    private const string STREET = '100 Main St';
+    private const string POSTAL = '98101';
+
+
     private const string TEST_USERNAME = 'new_household_e2e';
 
     private const string UNKNOWN_HOUSEHOLD_ID = '019571bf-5d51-7000-b500-0000000def01';
@@ -39,7 +47,7 @@ final class AddHouseholdControllerTest extends WebTestCase
         $client = static::createClient();
         $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
 
-        $client->request('GET', '/admin/users/new');
+        $client->request('GET', self::ROUTE_NEW);
 
         self::assertResponseIsSuccessful();
         $body = (string) $client->getResponse()->getContent();
@@ -61,22 +69,22 @@ final class AddHouseholdControllerTest extends WebTestCase
         $client = static::createClient();
         $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
 
-        $crawler = $client->request('GET', '/admin/users/new');
+        $crawler = $client->request('GET', self::ROUTE_NEW);
         self::assertResponseIsSuccessful();
 
         $form = $crawler->selectButton('Create Household')->form([
             'register_household[householdName]' => 'Smith Family',
             'register_household[firstName]' => 'Alice',
             'register_household[lastName]' => 'Smith',
-            'register_household[dobIso]' => '1990-01-01',
+            'register_household[dobIso]' => self::DOB,
             'register_household[genderCode]' => 'F',
             'register_household[email]' => 'alice@example.com',
-            'register_household[phone]' => '5550100',
+            'register_household[phone]' => self::PHONE_LOCAL,
             'register_household[residencyStatusCode]' => 'RESIDENT',
-            'register_household[street]' => '100 Main St',
+            'register_household[street]' => self::STREET,
             'register_household[city]' => 'Seattle',
             'register_household[state]' => 'WA',
-            'register_household[postalCode]' => '98101',
+            'register_household[postalCode]' => self::POSTAL,
             'register_household[country]' => 'US',
         ]);
 
@@ -105,22 +113,22 @@ final class AddHouseholdControllerTest extends WebTestCase
         $client = static::createClient();
         $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
 
-        $crawler = $client->request('GET', '/admin/users/new');
+        $crawler = $client->request('GET', self::ROUTE_NEW);
         self::assertResponseIsSuccessful();
 
         $form = $crawler->selectButton('Create Household')->form([
             'register_household[householdName]' => 'Smith Family',
             'register_household[firstName]' => 'Alice',
             'register_household[lastName]' => 'Smith',
-            'register_household[dobIso]' => '1990-01-01',
+            'register_household[dobIso]' => self::DOB,
             'register_household[genderCode]' => 'F',
             'register_household[email]' => 'not-an-email',
-            'register_household[phone]' => '5550100',
+            'register_household[phone]' => self::PHONE_LOCAL,
             'register_household[residencyStatusCode]' => 'RESIDENT',
-            'register_household[street]' => '100 Main St',
+            'register_household[street]' => self::STREET,
             'register_household[city]' => 'Seattle',
             'register_household[state]' => 'WA',
-            'register_household[postalCode]' => '98101',
+            'register_household[postalCode]' => self::POSTAL,
             'register_household[country]' => 'US',
         ]);
 
@@ -142,20 +150,20 @@ final class AddHouseholdControllerTest extends WebTestCase
         // 403). The controller therefore re-renders the dialog with HTTP
         // 422; the important behavioural contract is that the command is
         // never dispatched.
-        $client->request('POST', '/admin/users/new', [
+        $client->request('POST', self::ROUTE_NEW, [
             'register_household' => [
                 'householdName' => 'Should Not Persist',
                 'firstName' => 'Alice',
                 'lastName' => 'Smith',
-                'dobIso' => '1990-01-01',
+                'dobIso' => self::DOB,
                 'genderCode' => 'F',
                 'email' => 'alice@example.com',
-                'phone' => '5550100',
+                'phone' => self::PHONE_LOCAL,
                 'residencyStatusCode' => 'RESIDENT',
-                'street' => '100 Main St',
+                'street' => self::STREET,
                 'city' => 'Seattle',
                 'state' => 'WA',
-                'postalCode' => '98101',
+                'postalCode' => self::POSTAL,
                 'country' => 'US',
             ],
         ]);

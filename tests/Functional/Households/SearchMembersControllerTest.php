@@ -42,6 +42,11 @@ final class SearchMembersControllerTest extends WebTestCase
 {
     use SignsInUsers;
 
+    /** Reused literals (SonarCloud php:S1192). */
+    private const string ROUTE_MEMBERS = '/admin/users';
+    private const string SEL_MEMBER_ROW = 'tr[data-testid="member-row-%s"]';
+
+
     private const string TEST_USERNAME = 'members_list_e2e';
 
     private const string HOUSEHOLD_A     = '019571bf-5d51-7000-b500-00000000aa01';
@@ -68,13 +73,13 @@ final class SearchMembersControllerTest extends WebTestCase
         $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
         $this->seedTwoHouseholds();
 
-        $client->request('GET', '/admin/users');
+        $client->request('GET', self::ROUTE_MEMBERS);
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('main h1', 'Users');
-        self::assertSelectorExists(sprintf('tr[data-testid="member-row-%s"]', self::A_PRIMARY_ID));
-        self::assertSelectorExists(sprintf('tr[data-testid="member-row-%s"]', self::A_SECOND_ID));
-        self::assertSelectorExists(sprintf('tr[data-testid="member-row-%s"]', self::B_PRIMARY_ID));
+        self::assertSelectorExists(sprintf(self::SEL_MEMBER_ROW, self::A_PRIMARY_ID));
+        self::assertSelectorExists(sprintf(self::SEL_MEMBER_ROW, self::A_SECOND_ID));
+        self::assertSelectorExists(sprintf(self::SEL_MEMBER_ROW, self::B_PRIMARY_ID));
         // Nav highlights the Users section.
         self::assertSelectorExists(
             'nav[aria-label="Main navigation"] [role="menuitem"][href="/admin/users"].bg-litrec-primary',
@@ -135,7 +140,7 @@ final class SearchMembersControllerTest extends WebTestCase
         $client = static::createClient();
         $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
 
-        $client->request('GET', '/admin/users');
+        $client->request('GET', self::ROUTE_MEMBERS);
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('main', 'No members match your filters.');
@@ -148,7 +153,7 @@ final class SearchMembersControllerTest extends WebTestCase
         $client = static::createClient();
         $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
 
-        $client->request('GET', '/admin/users');
+        $client->request('GET', self::ROUTE_MEMBERS);
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextNotContains('main', 'Coming soon');

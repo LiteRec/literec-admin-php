@@ -27,6 +27,9 @@ use Symfony\Component\Validator\Validation;
 #[AllowMockObjectsWithoutExpectations]
 final class InventoryItemFormTypeTest extends TypeTestCase
 {
+    /** Reused literals (SonarCloud php:S1192). */
+    private const string POS_COLOR = '#A1B2C3';
+
     protected function getExtensions(): array
     {
         $validator = Validation::createValidatorBuilder()
@@ -49,7 +52,7 @@ final class InventoryItemFormTypeTest extends TypeTestCase
             'code' => 'WID-001',
             'kind' => ListingKind::Inventory->value,
             'vendorId' => '',
-            'posColorHex' => '#A1B2C3',
+            'posColorHex' => self::POS_COLOR,
             'ledgerAccount' => '4000',
             'taxApply' => '1',
             'taxIncludedInFee' => '0',
@@ -65,7 +68,7 @@ final class InventoryItemFormTypeTest extends TypeTestCase
         self::assertInstanceOf(InventoryItemInput::class, $data);
         self::assertSame('Widget', $data->name);
         self::assertSame('WID-001', $data->code);
-        self::assertSame('#A1B2C3', $data->posColorHex);
+        self::assertSame(self::POS_COLOR, $data->posColorHex);
     }
 
     #[Test]
@@ -124,7 +127,7 @@ final class InventoryItemFormTypeTest extends TypeTestCase
             'code' => 'WID-001',
             'kind' => ListingKind::Inventory->value,
             'vendorId' => '',
-            'posColorHex' => '#A1B2C3',
+            'posColorHex' => self::POS_COLOR,
             'ledgerAccount' => '4000',
             'taxApply' => '0',
             'taxIncludedInFee' => '0',

@@ -40,6 +40,10 @@ final class MemberDetailControllerTest extends WebTestCase
 {
     use SignsInUsers;
 
+    /** Reused literals (SonarCloud php:S1192). */
+    private const string ROUTE_MEMBER = '/admin/users/%s/%s';
+
+
     private const string TEST_USERNAME = 'member_detail_e2e';
 
     private const string HOUSEHOLD_A    = '019571bf-5d52-7000-b500-00000000aa01';
@@ -67,7 +71,7 @@ final class MemberDetailControllerTest extends WebTestCase
         $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
         $this->seedHouseholdA();
 
-        $client->request('GET', sprintf('/admin/users/%s/%s', self::HOUSEHOLD_A, self::A_PRIMARY_ID));
+        $client->request('GET', sprintf(self::ROUTE_MEMBER, self::HOUSEHOLD_A, self::A_PRIMARY_ID));
 
         self::assertResponseIsSuccessful();
         self::assertSelectorExists('section[data-testid="card-household"]');
@@ -94,7 +98,7 @@ final class MemberDetailControllerTest extends WebTestCase
 
         $client->request(
             'GET',
-            sprintf('/admin/users/%s/%s', self::UNKNOWN_HOUSEHOLD_ID, self::UNKNOWN_MEMBER_ID),
+            sprintf(self::ROUTE_MEMBER, self::UNKNOWN_HOUSEHOLD_ID, self::UNKNOWN_MEMBER_ID),
         );
 
         self::assertResponseStatusCodeSame(404);
@@ -112,7 +116,7 @@ final class MemberDetailControllerTest extends WebTestCase
         // Member B exists, but not under household A.
         $client->request(
             'GET',
-            sprintf('/admin/users/%s/%s', self::HOUSEHOLD_A, self::B_PRIMARY_ID),
+            sprintf(self::ROUTE_MEMBER, self::HOUSEHOLD_A, self::B_PRIMARY_ID),
         );
 
         self::assertResponseStatusCodeSame(404);
@@ -129,7 +133,7 @@ final class MemberDetailControllerTest extends WebTestCase
         $crawler = $client->request('GET', '/admin/users');
         self::assertResponseIsSuccessful();
 
-        $expectedHref = sprintf('/admin/users/%s/%s', self::HOUSEHOLD_A, self::A_PRIMARY_ID);
+        $expectedHref = sprintf(self::ROUTE_MEMBER, self::HOUSEHOLD_A, self::A_PRIMARY_ID);
         $row = $crawler->filter(sprintf('tr[data-testid="member-row-%s"]', self::A_PRIMARY_ID));
         self::assertGreaterThan(0, $row->count(), 'Seeded member row was not rendered on the list page.');
 

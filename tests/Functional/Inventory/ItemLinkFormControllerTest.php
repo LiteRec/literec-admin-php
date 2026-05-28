@@ -25,6 +25,10 @@ final class ItemLinkFormControllerTest extends WebTestCase
     use SignsInUsers;
     use SeedsInventoryItemForUi;
 
+    /** Reused literals (SonarCloud php:S1192). */
+    private const string SUBMIT_CREATE_LINK = 'Create Link';
+
+
     private const string ROUTE_NEW_LINK_TEMPLATE = '/admin/inventory/%s/links/new';
     private const string ROUTE_UNLINK_TEMPLATE = '/admin/inventory/%s/links/%s';
 
@@ -68,7 +72,7 @@ final class ItemLinkFormControllerTest extends WebTestCase
         $crawler = $client->request('GET', sprintf(self::ROUTE_NEW_LINK_TEMPLATE, self::ITEM_A_ID));
         self::assertResponseIsSuccessful();
 
-        $form = $crawler->selectButton('Create Link')->form([
+        $form = $crawler->selectButton(self::SUBMIT_CREATE_LINK)->form([
             'inventory_item_link[linkedItemId]' => self::ITEM_B_ID,
             'inventory_item_link[reservedQuantityUnits]' => '3',
             'inventory_item_link[minRequiredUnits]' => '0',
@@ -100,7 +104,7 @@ final class ItemLinkFormControllerTest extends WebTestCase
         $crawler = $client->request('GET', sprintf(self::ROUTE_NEW_LINK_TEMPLATE, self::ITEM_A_ID));
         self::assertResponseIsSuccessful();
 
-        $form = $crawler->selectButton('Create Link')->form([
+        $form = $crawler->selectButton(self::SUBMIT_CREATE_LINK)->form([
             'inventory_item_link[linkedItemId]' => self::ITEM_B_ID,
             'inventory_item_link[reservedQuantityUnits]' => '-1',
             'inventory_item_link[minRequiredUnits]' => '0',
@@ -130,7 +134,7 @@ final class ItemLinkFormControllerTest extends WebTestCase
         // Create a link via the create endpoint, then DELETE it.
         $crawler = $client->request('GET', sprintf(self::ROUTE_NEW_LINK_TEMPLATE, self::ITEM_A_ID));
         self::assertResponseIsSuccessful();
-        $form = $crawler->selectButton('Create Link')->form([
+        $form = $crawler->selectButton(self::SUBMIT_CREATE_LINK)->form([
             'inventory_item_link[linkedItemId]' => self::ITEM_B_ID,
             'inventory_item_link[reservedQuantityUnits]' => '2',
             'inventory_item_link[minRequiredUnits]' => '0',

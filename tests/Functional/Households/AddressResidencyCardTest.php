@@ -40,6 +40,12 @@ final class AddressResidencyCardTest extends WebTestCase
 {
     use SignsInUsers;
 
+    /** Reused literals (SonarCloud php:S1192). */
+    private const string STREET = '200 Oak Ave';
+    private const string ROUTE_RESIDENCY = '/admin/users/%s/%s/residency';
+    private const string EFFECTIVE_DATE = '2026-05-10';
+
+
     private const string TEST_USERNAME = 'address_card_e2e';
 
     private const string HOUSEHOLD_US        = '019571bf-5d55-7000-b500-00000000cc01';
@@ -112,7 +118,7 @@ final class AddressResidencyCardTest extends WebTestCase
             [
                 'member_context_id' => self::US_PRIMARY_ID,
                 'update_household_address' => [
-                    'street' => '200 Oak Ave',
+                    'street' => self::STREET,
                     'unit' => 'Suite 5',
                     'city' => 'Portland',
                     'state' => 'OR',
@@ -125,13 +131,13 @@ final class AddressResidencyCardTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSelectorExists('[data-testid="address-sub-card-body"]');
-        self::assertSelectorTextContains('[data-testid="address-street"]', '200 Oak Ave');
+        self::assertSelectorTextContains('[data-testid="address-street"]', self::STREET);
         self::assertSelectorTextContains('[data-testid="address-city-state-zip"]', 'Portland, OR 97201');
 
         $repo = static::getContainer()->get(Households::class);
         self::assertInstanceOf(Households::class, $repo);
         $household = $repo->findById(HouseholdId::fromString(self::HOUSEHOLD_US));
-        self::assertSame('200 Oak Ave', $household->address()->street);
+        self::assertSame(self::STREET, $household->address()->street);
         self::assertSame('Portland', $household->address()->city);
         self::assertSame('97201', $household->address()->postalCode);
     }
@@ -152,7 +158,7 @@ final class AddressResidencyCardTest extends WebTestCase
             [
                 'member_context_id' => self::US_PRIMARY_ID,
                 'update_household_address' => [
-                    'street' => '200 Oak Ave',
+                    'street' => self::STREET,
                     'unit' => '',
                     'city' => 'Portland',
                     'state' => 'OR',
@@ -187,11 +193,11 @@ final class AddressResidencyCardTest extends WebTestCase
 
         $client->request(
             'POST',
-            sprintf('/admin/users/%s/%s/residency', self::HOUSEHOLD_US, self::US_PRIMARY_ID),
+            sprintf(self::ROUTE_RESIDENCY, self::HOUSEHOLD_US, self::US_PRIMARY_ID),
             [
                 'change_member_residency' => [
                     'residencyStatusCode' => ResidencyStatus::Member->value,
-                    'effectiveFromIso' => '2026-05-10',
+                    'effectiveFromIso' => self::EFFECTIVE_DATE,
                     'reason' => 'Joined membership program',
                     '_token' => $token,
                 ],
@@ -219,7 +225,7 @@ final class AddressResidencyCardTest extends WebTestCase
 
         $client->request(
             'POST',
-            sprintf('/admin/users/%s/%s/residency', self::HOUSEHOLD_US, self::US_PRIMARY_ID),
+            sprintf(self::ROUTE_RESIDENCY, self::HOUSEHOLD_US, self::US_PRIMARY_ID),
             [
                 'change_member_residency' => [
                     'residencyStatusCode' => ResidencyStatus::Staff->value,
@@ -252,11 +258,11 @@ final class AddressResidencyCardTest extends WebTestCase
 
         $client->request(
             'POST',
-            sprintf('/admin/users/%s/%s/residency', self::HOUSEHOLD_US, self::US_PRIMARY_ID),
+            sprintf(self::ROUTE_RESIDENCY, self::HOUSEHOLD_US, self::US_PRIMARY_ID),
             [
                 'change_member_residency' => [
                     'residencyStatusCode' => ResidencyStatus::Member->value,
-                    'effectiveFromIso' => '2026-05-10',
+                    'effectiveFromIso' => self::EFFECTIVE_DATE,
                     'reason' => '',
                     // No _token.
                 ],
@@ -287,11 +293,11 @@ final class AddressResidencyCardTest extends WebTestCase
 
         $client->request(
             'POST',
-            sprintf('/admin/users/%s/%s/residency', self::HOUSEHOLD_US, self::UNKNOWN_MEMBER_ID),
+            sprintf(self::ROUTE_RESIDENCY, self::HOUSEHOLD_US, self::UNKNOWN_MEMBER_ID),
             [
                 'change_member_residency' => [
                     'residencyStatusCode' => ResidencyStatus::Member->value,
-                    'effectiveFromIso' => '2026-05-10',
+                    'effectiveFromIso' => self::EFFECTIVE_DATE,
                     'reason' => '',
                     '_token' => $token,
                 ],

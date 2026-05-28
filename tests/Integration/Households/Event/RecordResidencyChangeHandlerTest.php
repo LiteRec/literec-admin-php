@@ -39,6 +39,10 @@ use Symfony\Component\Clock\MockClock;
 #[Group('database')]
 final class RecordResidencyChangeHandlerTest extends KernelTestCase
 {
+    /** Reused literals (SonarCloud php:S1192). */
+    private const string RECORDED_AT = '2026-05-24 12:00:00';
+    private const string EFFECTIVE_FROM = '2026-05-01 00:00:00';
+
     private const string HOUSEHOLD_ID = '019571bf-5d55-7000-b500-00000000bb01';
     private const string MEMBER_ID    = '019571bf-5d55-7000-b500-00000000bb02';
     private const string MEMBER_CODE  = 'M000510';
@@ -48,7 +52,7 @@ final class RecordResidencyChangeHandlerTest extends KernelTestCase
     protected function setUp(): void
     {
         self::bootKernel();
-        $this->clock = new MockClock(new DateTimeImmutable('2026-05-24 12:00:00'));
+        $this->clock = new MockClock(new DateTimeImmutable(self::RECORDED_AT));
         $this->seedHousehold();
     }
 
@@ -62,8 +66,8 @@ final class RecordResidencyChangeHandlerTest extends KernelTestCase
             HouseholdId::fromString(self::HOUSEHOLD_ID),
             MemberId::fromString(self::MEMBER_ID),
             ResidencyStatus::Member,
-            new DateTimeImmutable('2026-05-01 00:00:00'),
-            new DateTimeImmutable('2026-05-24 12:00:00'),
+            new DateTimeImmutable(self::EFFECTIVE_FROM),
+            new DateTimeImmutable(self::RECORDED_AT),
             'initial member upgrade',
         ));
 
@@ -85,7 +89,7 @@ final class RecordResidencyChangeHandlerTest extends KernelTestCase
         self::assertCount(2, $rows);
         self::assertSame('MEMBER', $rows[0]['status']);
         self::assertSame('initial member upgrade', $rows[0]['reason']);
-        self::assertSame('2026-05-01 00:00:00', $rows[0]['effective_from']);
+        self::assertSame(self::EFFECTIVE_FROM, $rows[0]['effective_from']);
         self::assertSame('STAFF', $rows[1]['status']);
         self::assertSame('hired', $rows[1]['reason']);
         self::assertSame('2026-06-01 00:00:00', $rows[1]['effective_from']);
@@ -101,8 +105,8 @@ final class RecordResidencyChangeHandlerTest extends KernelTestCase
             HouseholdId::fromString(self::HOUSEHOLD_ID),
             MemberId::fromString(self::MEMBER_ID),
             ResidencyStatus::NonResident,
-            new DateTimeImmutable('2026-05-01 00:00:00'),
-            new DateTimeImmutable('2026-05-24 12:00:00'),
+            new DateTimeImmutable(self::EFFECTIVE_FROM),
+            new DateTimeImmutable(self::RECORDED_AT),
             null,
         ));
 

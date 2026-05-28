@@ -28,6 +28,9 @@ use Symfony\Component\Clock\MockClock;
  */
 trait ListingsContractCases
 {
+    /** Reused literals (SonarCloud php:S1192). */
+    private const string LISTING_NAME = 'Beginner Yoga';
+
     private const ID_A = '019571bf-5d51-7000-b500-000000000010';
     private const ID_B = '019571bf-5d51-7000-b500-000000000011';
     private const ID_C = '019571bf-5d51-7000-b500-000000000012';
@@ -40,7 +43,7 @@ trait ListingsContractCases
     #[TestDox('add() then byId() round-trips a listing with deep-equal fees, tax, ledger, and timestamps.')]
     public function add_then_by_id_round_trips(): void
     {
-        $listing = $this->makeListing(self::ID_A, 'YOGA-101', ListingKind::Program, 'Beginner Yoga');
+        $listing = $this->makeListing(self::ID_A, 'YOGA-101', ListingKind::Program, self::LISTING_NAME);
         $this->listings()->add($listing);
 
         $loaded = $this->listings()->byId(ListingId::fromString(self::ID_A));
@@ -48,7 +51,7 @@ trait ListingsContractCases
         self::assertTrue($loaded->id()->equals($listing->id()));
         self::assertTrue($loaded->code()->equals(ListingCode::of('YOGA-101')));
         self::assertSame(ListingKind::Program, $loaded->kind());
-        self::assertSame('Beginner Yoga', $loaded->name());
+        self::assertSame(self::LISTING_NAME, $loaded->name());
         self::assertCount(1, $loaded->fees());
         self::assertTrue($loaded->fees()[0]->equals(
             Fee::of(Money::ofCents(1500, Currency::USD), 'Adult'),
@@ -130,7 +133,7 @@ trait ListingsContractCases
     #[TestDox('save() persists modifications made through aggregate behaviour methods.')]
     public function save_persists_updates(): void
     {
-        $listing = $this->makeListing(self::ID_A, 'YOGA-101', ListingKind::Program, 'Beginner Yoga');
+        $listing = $this->makeListing(self::ID_A, 'YOGA-101', ListingKind::Program, self::LISTING_NAME);
         $this->listings()->add($listing);
 
         $loaded = $this->listings()->byId(ListingId::fromString(self::ID_A));
@@ -169,14 +172,14 @@ trait ListingsContractCases
     public function search_by_name_partial_matches(): void
     {
         // Insert out of alphabetical order so the adapter is forced to sort.
-        $this->listings()->add($this->makeListing(self::ID_A, 'PRG-1', ListingKind::Program, 'Beginner Yoga'));
+        $this->listings()->add($this->makeListing(self::ID_A, 'PRG-1', ListingKind::Program, self::LISTING_NAME));
         $this->listings()->add($this->makeListing(self::ID_B, 'PRG-2', ListingKind::Program, 'Advanced Yoga'));
         $this->listings()->add($this->makeListing(self::ID_C, 'INV-1', ListingKind::Inventory, 'Towel'));
 
         $matches = $this->listings()->searchByName('yoga', 0, 10);
         self::assertCount(2, $matches);
         self::assertSame('Advanced Yoga', $matches[0]->name());
-        self::assertSame('Beginner Yoga', $matches[1]->name());
+        self::assertSame(self::LISTING_NAME, $matches[1]->name());
 
         $empty = $this->listings()->searchByName('   ', 0, 10);
         self::assertSame([], $empty);

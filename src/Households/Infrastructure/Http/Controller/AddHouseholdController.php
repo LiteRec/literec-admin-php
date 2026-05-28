@@ -53,6 +53,10 @@ final class AddHouseholdController extends AbstractController
 
     private const string UUID_V7_REGEX = '[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}';
 
+    private const string HOUSEHOLD_DIALOG_TEMPLATE = 'households/new/_dialog.html.twig';
+
+    private const string MEMBER_DIALOG_TEMPLATE = 'households/new/_member_dialog.html.twig';
+
     public function __construct(
         MessageBusInterface $commandBus,
         private readonly Households $households,
@@ -65,7 +69,7 @@ final class AddHouseholdController extends AbstractController
     {
         $form = $this->createForm(RegisterHouseholdFormType::class, new RegisterHouseholdInput());
 
-        return $this->render('households/new/_dialog.html.twig', [
+        return $this->render(self::HOUSEHOLD_DIALOG_TEMPLATE, [
             'form' => $form->createView(),
         ]);
     }
@@ -79,7 +83,7 @@ final class AddHouseholdController extends AbstractController
 
         if (!$form->isSubmitted() || !$form->isValid()) {
             return $this->render(
-                'households/new/_dialog.html.twig',
+                self::HOUSEHOLD_DIALOG_TEMPLATE,
                 ['form' => $form->createView()],
                 new Response(null, Response::HTTP_UNPROCESSABLE_ENTITY),
             );
@@ -91,7 +95,7 @@ final class AddHouseholdController extends AbstractController
             $this->applyDomainErrorToForm($form, $exception);
 
             return $this->render(
-                'households/new/_dialog.html.twig',
+                self::HOUSEHOLD_DIALOG_TEMPLATE,
                 ['form' => $form->createView()],
                 new Response(null, Response::HTTP_UNPROCESSABLE_ENTITY),
             );
@@ -123,7 +127,7 @@ final class AddHouseholdController extends AbstractController
 
         $form = $this->createForm(AddMemberFormType::class, new AddMemberInput());
 
-        return $this->render('households/new/_member_dialog.html.twig', [
+        return $this->render(self::MEMBER_DIALOG_TEMPLATE, [
             'form' => $form->createView(),
             'householdId' => $householdId,
         ]);
@@ -143,7 +147,7 @@ final class AddHouseholdController extends AbstractController
 
         if (!$form->isSubmitted() || !$form->isValid()) {
             return $this->render(
-                'households/new/_member_dialog.html.twig',
+                self::MEMBER_DIALOG_TEMPLATE,
                 ['form' => $form->createView(), 'householdId' => $householdId],
                 new Response(null, Response::HTTP_UNPROCESSABLE_ENTITY),
             );
@@ -157,7 +161,7 @@ final class AddHouseholdController extends AbstractController
             $this->applyDomainErrorToForm($form, $exception);
 
             return $this->render(
-                'households/new/_member_dialog.html.twig',
+                self::MEMBER_DIALOG_TEMPLATE,
                 ['form' => $form->createView(), 'householdId' => $householdId],
                 new Response(null, Response::HTTP_UNPROCESSABLE_ENTITY),
             );

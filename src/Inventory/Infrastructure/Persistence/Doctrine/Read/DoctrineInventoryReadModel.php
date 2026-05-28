@@ -61,6 +61,46 @@ final readonly class DoctrineInventoryReadModel implements InventoryReadModel
      */
     private const int STREAM_CHUNK_SIZE = 500;
 
+    /**
+     * Reused SQL fragments + format strings. Extracted to satisfy SonarCloud
+     * php:S1192 (no string literal duplicated 4+ times) and to keep the
+     * projection queries assembled from a single source of truth.
+     */
+    private const string SQL_SELECT = 'SELECT ';
+
+    private const string SQL_WHERE = 'WHERE ';
+
+    private const string SQL_AND = ' AND ';
+
+    private const string FROM_ITEMS = 'FROM inventory_items i ';
+
+    private const string FROM_MOVEMENTS = 'FROM inventory_stock_movements sm ';
+
+    private const string JOIN_LISTINGS = 'JOIN catalog_listings l ON l.id = i.listing_id ';
+
+    private const string JOIN_ITEMS_ON_MOVEMENT = 'JOIN inventory_items i ON i.id = sm.item_id ';
+
+    private const string ORDER_MOVEMENTS = 'ORDER BY sm.recorded_at DESC, sm.id ASC ';
+
+    private const string LIMIT_OFFSET = 'LIMIT :limit OFFSET :offset';
+
+    private const string COL_ITEM_ID = 'i.id AS inventory_item_id, ';
+
+    private const string COL_LISTING_ID = 'i.listing_id AS listing_id, ';
+
+    private const string COL_LISTING_CODE = 'l.code AS listing_code, ';
+
+    private const string COL_NAME = 'l.name AS name, ';
+
+    private const string COL_KIND = 'l.kind AS kind, ';
+
+    private const string COL_REORDER_THRESHOLD = 'i.reorder_threshold AS reorder_threshold, ';
+
+    private const string COALESCE_BATCH_QTY
+        = 'COALESCE((SELECT SUM(sb.remaining_quantity) FROM inventory_stock_batches sb ';
+
+    private const string UTC_TIMESTAMP_FORMAT = 'Y-m-d H:i:s';
+
     public function __construct(private Connection $connection)
     {
     }
@@ -93,12 +133,12 @@ final readonly class DoctrineInventoryReadModel implements InventoryReadModel
             $params['groupId'] = $criteria->groupId;
         }
 
-        $whereClause = implode(' AND ', $where);
+        $whereClause = implode(self::SQL_AND, $where);
 
         $totalCount = $this->scalarToInt($this->connection->fetchOne(
             'SELECT COUNT(*) FROM inventory_items i '
-            . 'JOIN catalog_listings l ON l.id = i.listing_id '
-            . 'WHERE ' . $whereClause,
+            . self::JOIN_LISTINGS
+            . self::SQL_WHERE . $whereClause,
             $params,
         ));
 
@@ -107,23 +147,23 @@ final readonly class DoctrineInventoryReadModel implements InventoryReadModel
 
         $facilityQtySql = $criteria->facilityCode === null
             ? 'COALESCE((SELECT SUM(sb.remaining_quantity) FROM inventory_stock_batches sb WHERE sb.item_id = i.id), 0)'
-            : 'COALESCE((SELECT SUM(sb.remaining_quantity) FROM inventory_stock_batches sb '
+            : self::COALESCE_BATCH_QTY
                 . 'WHERE sb.item_id = i.id AND sb.facility_code = :facility), 0)';
 
-        $rowsSql = 'SELECT '
-            . 'i.id AS inventory_item_id, '
-            . 'i.listing_id AS listing_id, '
-            . 'l.code AS listing_code, '
-            . 'l.name AS name, '
-            . 'l.kind AS kind, '
+        $rowsSql = self::SQL_SELECT
+            . self::COL_ITEM_ID
+            . self::COL_LISTING_ID
+            . self::COL_LISTING_CODE
+            . self::COL_NAME
+            . self::COL_KIND
             . $facilityQtySql . ' AS total_quantity, '
-            . 'i.reorder_threshold AS reorder_threshold, '
+            . self::COL_REORDER_THRESHOLD
             . 'i.archived AS archived '
-            . 'FROM inventory_items i '
-            . 'JOIN catalog_listings l ON l.id = i.listing_id '
-            . 'WHERE ' . $whereClause . ' '
+            . self::FROM_ITEMS
+            . self::JOIN_LISTINGS
+            . self::SQL_WHERE . $whereClause . ' '
             . 'ORDER BY ' . $sortColumn . ' ' . $sortDirection . ', i.id ASC '
-            . 'LIMIT :limit OFFSET :offset';
+            . self::LIMIT_OFFSET;
 
         $pageSize = max(1, $criteria->pageSize);
         $pageNumber = max(1, $criteria->pageNumber);
@@ -178,10 +218,10 @@ final readonly class DoctrineInventoryReadModel implements InventoryReadModel
         $rows = $this->connection->fetchAllAssociative(
             'SELECT sm.id, sm.item_id, sm.facility_code, sm.stock_batch_id, sm.kind, sm.reason, '
             . 'sm.quantity, sm.cost_per_unit_cents, sm.operator_note, sm.transaction_id, sm.listing_id, sm.recorded_at '
-            . 'FROM inventory_stock_movements sm '
-            . 'WHERE ' . $whereClause . ' '
-            . 'ORDER BY sm.recorded_at DESC, sm.id ASC '
-            . 'LIMIT :limit OFFSET :offset',
+            . self::FROM_MOVEMENTS
+            . self::SQL_WHERE . $whereClause . ' '
+            . self::ORDER_MOVEMENTS
+            . self::LIMIT_OFFSET,
             $params,
         );
 
@@ -228,11 +268,11 @@ final readonly class DoctrineInventoryReadModel implements InventoryReadModel
 
         $sql = 'SELECT sm.recorded_at, sm.kind, sm.reason, sm.facility_code, sm.quantity, '
             . 'sb.received_at AS batch_received_at, sm.cost_per_unit_cents, sm.operator_note, sm.transaction_id '
-            . 'FROM inventory_stock_movements sm '
+            . self::FROM_MOVEMENTS
             . 'LEFT JOIN inventory_stock_batches sb ON sb.id = sm.stock_batch_id '
-            . 'WHERE ' . $whereClause . ' '
-            . 'ORDER BY sm.recorded_at DESC, sm.id ASC '
-            . 'LIMIT :limit OFFSET :offset';
+            . self::SQL_WHERE . $whereClause . ' '
+            . self::ORDER_MOVEMENTS
+            . self::LIMIT_OFFSET;
 
         do {
             $params['offset'] = $offset;
@@ -294,14 +334,18 @@ final readonly class DoctrineInventoryReadModel implements InventoryReadModel
         }
         if ($criteria->dateFrom !== null) {
             $where[] = 'sm.recorded_at >= :dateFrom';
-            $params['dateFrom'] = $criteria->dateFrom->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s');
+            $params['dateFrom'] = $criteria->dateFrom
+                ->setTimezone(new DateTimeZone('UTC'))
+                ->format(self::UTC_TIMESTAMP_FORMAT);
         }
         if ($criteria->dateTo !== null) {
             $where[] = 'sm.recorded_at <= :dateTo';
-            $params['dateTo'] = $criteria->dateTo->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s');
+            $params['dateTo'] = $criteria->dateTo
+                ->setTimezone(new DateTimeZone('UTC'))
+                ->format(self::UTC_TIMESTAMP_FORMAT);
         }
 
-        return [implode(' AND ', $where), $params];
+        return [implode(self::SQL_AND, $where), $params];
     }
 
     /**
@@ -320,14 +364,14 @@ final readonly class DoctrineInventoryReadModel implements InventoryReadModel
             // requested facility code even for items with no rows in
             // inventory_stock_batches.
             $params['facility'] = $criteria->facilityCode;
-            $sql = 'SELECT '
-                . 'i.id AS inventory_item_id, '
-                . 'i.listing_id AS listing_id, '
+            $sql = self::SQL_SELECT
+                . self::COL_ITEM_ID
+                . self::COL_LISTING_ID
                 . ':facility AS facility_code, '
                 . 'COALESCE(SUM(sb.remaining_quantity), 0) AS on_hand, '
-                . 'i.reorder_threshold AS reorder_threshold, '
+                . self::COL_REORDER_THRESHOLD
                 . 'i.primary_vendor_id AS primary_vendor_id '
-                . 'FROM inventory_items i '
+                . self::FROM_ITEMS
                 . 'LEFT JOIN inventory_stock_batches sb '
                 . 'ON sb.item_id = i.id AND sb.facility_code = :facility '
                 . 'WHERE i.archived = false '
@@ -342,14 +386,14 @@ final readonly class DoctrineInventoryReadModel implements InventoryReadModel
             // correct here — without a facility filter we cannot
             // synthesise a facility_code for items that have no
             // batches anywhere, so they are excluded from the report.
-            $sql = 'SELECT '
-                . 'i.id AS inventory_item_id, '
-                . 'i.listing_id AS listing_id, '
+            $sql = self::SQL_SELECT
+                . self::COL_ITEM_ID
+                . self::COL_LISTING_ID
                 . 'sb.facility_code AS facility_code, '
                 . 'SUM(sb.remaining_quantity) AS on_hand, '
-                . 'i.reorder_threshold AS reorder_threshold, '
+                . self::COL_REORDER_THRESHOLD
                 . 'i.primary_vendor_id AS primary_vendor_id '
-                . 'FROM inventory_items i '
+                . self::FROM_ITEMS
                 . 'JOIN inventory_stock_batches sb ON sb.item_id = i.id '
                 . 'WHERE i.archived = false '
                 . 'GROUP BY i.id, i.listing_id, sb.facility_code, '
@@ -403,17 +447,17 @@ final readonly class DoctrineInventoryReadModel implements InventoryReadModel
     {
         [$whereClause, $params, $facilityQtySql, $facilityCodeExpr] = $this->buildCurrentStockSelect($criteria);
 
-        $sql = 'SELECT '
-            . 'i.id AS inventory_item_id, '
-            . 'l.code AS listing_code, '
-            . 'l.name AS name, '
-            . 'l.kind AS kind, '
+        $sql = self::SQL_SELECT
+            . self::COL_ITEM_ID
+            . self::COL_LISTING_CODE
+            . self::COL_NAME
+            . self::COL_KIND
             . $facilityCodeExpr . ' AS facility_code, '
             . $facilityQtySql . ' AS on_hand, '
             . 'i.reorder_threshold AS reorder_threshold '
-            . 'FROM inventory_items i '
-            . 'JOIN catalog_listings l ON l.id = i.listing_id '
-            . 'WHERE ' . $whereClause . ' '
+            . self::FROM_ITEMS
+            . self::JOIN_LISTINGS
+            . self::SQL_WHERE . $whereClause . ' '
             . 'ORDER BY l.name ASC, i.id ASC';
 
         $rows = $this->connection->fetchAllAssociative($sql, $params);
@@ -447,18 +491,18 @@ final readonly class DoctrineInventoryReadModel implements InventoryReadModel
         $chunkSize = self::STREAM_CHUNK_SIZE;
         $params['limit'] = $chunkSize;
 
-        $sql = 'SELECT '
-            . 'l.code AS listing_code, '
-            . 'l.name AS name, '
-            . 'l.kind AS kind, '
+        $sql = self::SQL_SELECT
+            . self::COL_LISTING_CODE
+            . self::COL_NAME
+            . self::COL_KIND
             . $facilityCodeExpr . ' AS facility_code, '
             . $facilityQtySql . ' AS on_hand, '
             . 'i.reorder_threshold AS reorder_threshold '
-            . 'FROM inventory_items i '
-            . 'JOIN catalog_listings l ON l.id = i.listing_id '
-            . 'WHERE ' . $whereClause . ' '
+            . self::FROM_ITEMS
+            . self::JOIN_LISTINGS
+            . self::SQL_WHERE . $whereClause . ' '
             . 'ORDER BY l.name ASC, i.id ASC '
-            . 'LIMIT :limit OFFSET :offset';
+            . self::LIMIT_OFFSET;
 
         do {
             $params['offset'] = $offset;
@@ -490,9 +534,9 @@ final readonly class DoctrineInventoryReadModel implements InventoryReadModel
 
         $totalCount = $this->scalarToInt($this->connection->fetchOne(
             'SELECT COUNT(*) FROM inventory_stock_movements sm '
-            . 'JOIN inventory_items i ON i.id = sm.item_id '
-            . 'JOIN catalog_listings l ON l.id = i.listing_id '
-            . 'WHERE ' . $whereClause,
+            . self::JOIN_ITEMS_ON_MOVEMENT
+            . self::JOIN_LISTINGS
+            . self::SQL_WHERE . $whereClause,
             $params,
         ));
 
@@ -505,12 +549,12 @@ final readonly class DoctrineInventoryReadModel implements InventoryReadModel
             'SELECT sm.id, sm.item_id, l.code AS listing_code, sm.facility_code, '
             . 'sm.kind, sm.reason, sm.quantity, sm.cost_per_unit_cents, '
             . 'sm.operator_note, sm.recorded_at '
-            . 'FROM inventory_stock_movements sm '
-            . 'JOIN inventory_items i ON i.id = sm.item_id '
-            . 'JOIN catalog_listings l ON l.id = i.listing_id '
-            . 'WHERE ' . $whereClause . ' '
-            . 'ORDER BY sm.recorded_at DESC, sm.id ASC '
-            . 'LIMIT :limit OFFSET :offset',
+            . self::FROM_MOVEMENTS
+            . self::JOIN_ITEMS_ON_MOVEMENT
+            . self::JOIN_LISTINGS
+            . self::SQL_WHERE . $whereClause . ' '
+            . self::ORDER_MOVEMENTS
+            . self::LIMIT_OFFSET,
             $params,
         );
 
@@ -553,12 +597,12 @@ final readonly class DoctrineInventoryReadModel implements InventoryReadModel
 
         $sql = 'SELECT sm.recorded_at, sm.kind, sm.reason, sm.facility_code, sm.quantity, '
             . 'sm.cost_per_unit_cents, sm.operator_note, l.code AS listing_code, sm.item_id '
-            . 'FROM inventory_stock_movements sm '
-            . 'JOIN inventory_items i ON i.id = sm.item_id '
-            . 'JOIN catalog_listings l ON l.id = i.listing_id '
-            . 'WHERE ' . $whereClause . ' '
-            . 'ORDER BY sm.recorded_at DESC, sm.id ASC '
-            . 'LIMIT :limit OFFSET :offset';
+            . self::FROM_MOVEMENTS
+            . self::JOIN_ITEMS_ON_MOVEMENT
+            . self::JOIN_LISTINGS
+            . self::SQL_WHERE . $whereClause . ' '
+            . self::ORDER_MOVEMENTS
+            . self::LIMIT_OFFSET;
 
         do {
             $params['offset'] = $offset;
@@ -613,11 +657,11 @@ final readonly class DoctrineInventoryReadModel implements InventoryReadModel
             $params['facility'] = $criteria->facilityCode;
             $where[] = 'EXISTS (SELECT 1 FROM inventory_stock_batches sb '
                 . 'WHERE sb.item_id = i.id AND sb.facility_code = :facility)';
-            $facilityQtySql = 'COALESCE((SELECT SUM(sb.remaining_quantity) FROM inventory_stock_batches sb '
+            $facilityQtySql = self::COALESCE_BATCH_QTY
                 . 'WHERE sb.item_id = i.id AND sb.facility_code = :facility), 0)';
             $facilityCodeExpr = ':facility';
         } else {
-            $facilityQtySql = 'COALESCE((SELECT SUM(sb.remaining_quantity) FROM inventory_stock_batches sb '
+            $facilityQtySql = self::COALESCE_BATCH_QTY
                 . 'WHERE sb.item_id = i.id), 0)';
             // No facility filter: surface a synthetic ALL marker so the
             // CurrentStockRowView always carries a non-empty facility
@@ -625,7 +669,7 @@ final readonly class DoctrineInventoryReadModel implements InventoryReadModel
             $facilityCodeExpr = "'ALL'";
         }
 
-        return [implode(' AND ', $where), $params, $facilityQtySql, $facilityCodeExpr];
+        return [implode(self::SQL_AND, $where), $params, $facilityQtySql, $facilityCodeExpr];
     }
 
     /**
@@ -659,16 +703,16 @@ final readonly class DoctrineInventoryReadModel implements InventoryReadModel
             $where[] = 'sm.recorded_at >= :dateFrom';
             $params['dateFrom'] = $criteria->dateFrom
                 ->setTimezone(new DateTimeZone('UTC'))
-                ->format('Y-m-d H:i:s');
+                ->format(self::UTC_TIMESTAMP_FORMAT);
         }
         if ($criteria->dateTo !== null) {
             $where[] = 'sm.recorded_at <= :dateTo';
             $params['dateTo'] = $criteria->dateTo
                 ->setTimezone(new DateTimeZone('UTC'))
-                ->format('Y-m-d H:i:s');
+                ->format(self::UTC_TIMESTAMP_FORMAT);
         }
 
-        return [implode(' AND ', $where), $params];
+        return [implode(self::SQL_AND, $where), $params];
     }
 
     public function findByIds(array $inventoryItemIds): array
@@ -678,18 +722,18 @@ final readonly class DoctrineInventoryReadModel implements InventoryReadModel
         }
 
         $rows = $this->connection->fetchAllAssociative(
-            'SELECT '
-            . 'i.id AS inventory_item_id, '
-            . 'i.listing_id AS listing_id, '
-            . 'l.code AS listing_code, '
-            . 'l.name AS name, '
-            . 'l.kind AS kind, '
-            . 'COALESCE((SELECT SUM(sb.remaining_quantity) FROM inventory_stock_batches sb '
+            self::SQL_SELECT
+            . self::COL_ITEM_ID
+            . self::COL_LISTING_ID
+            . self::COL_LISTING_CODE
+            . self::COL_NAME
+            . self::COL_KIND
+            . self::COALESCE_BATCH_QTY
             . 'WHERE sb.item_id = i.id), 0) AS total_quantity, '
-            . 'i.reorder_threshold AS reorder_threshold, '
+            . self::COL_REORDER_THRESHOLD
             . 'i.archived AS archived '
-            . 'FROM inventory_items i '
-            . 'JOIN catalog_listings l ON l.id = i.listing_id '
+            . self::FROM_ITEMS
+            . self::JOIN_LISTINGS
             . 'WHERE i.id IN (:ids) '
             . 'ORDER BY l.name ASC, i.id ASC',
             ['ids' => $inventoryItemIds],
