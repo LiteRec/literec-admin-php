@@ -3,21 +3,22 @@
    Returns one of two shapes depending on `page.page`:
 
    - page.page == 1: the full body — either the empty-state, or a
-     <div id="card-history-body"> wrapping a <table> with header, the
-     page-1 rows, and an optional "Load more" placeholder row at the
-     end. This is what replaces the lazy-load shim in _card_history.
+     div#card-history-body wrapping a table with header, the page-1
+     rows, and an optional "Load more" placeholder row at the end.
+     This is what replaces the lazy-load shim in _card_history.
 
-   - page.page  > 1: a bare sequence of <tr> rows followed (when more
-     pages remain) by the "Load more" placeholder row. The bag of <tr>
-     elements replaces the previous "Load more" row via HTMX
-     `hx-swap="outerHTML"`, so the rows slot into the existing <tbody>
+   - page.page  > 1: a bare sequence of row elements followed (when
+     more pages remain) by the "Load more" placeholder row. The bag
+     of rows replaces the previous "Load more" row via HTMX
+     hx-swap=outerHTML, so the new rows slot into the existing tbody
      and the new "Load more" placeholder ends up at the bottom — no
-     extra <thead> ever appears.
+     extra thead ever appears.
 
-   The "Load more" button is wrapped in its own <tr class="js-history-loadmore">
-   so HTMX `outerHTML` against that <tr> drops in the next page's <tr>s
-   plus a fresh placeholder. When `page.hasMore` is false, no placeholder
-   is emitted and the button simply disappears.
+   The "Load more" button is wrapped in its own row tagged
+   js-history-loadmore so HTMX outerHTML against that row drops in
+   the next page's rows plus a fresh placeholder. When page.hasMore
+   is false, no placeholder is emitted and the button simply
+   disappears.
 
    Expects:
      - householdId: string (UUID v7)
