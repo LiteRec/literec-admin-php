@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Catalog\Integration;
 
-use RuntimeException;
+use App\Tests\Support\Exception\IntentionalTestRollback;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -23,6 +23,6 @@ final class FailingPublishHandler
     {
         $this->eventBus->dispatch($command->event, [new DispatchAfterCurrentBusStamp()]);
 
-        throw new RuntimeException('rollback');
+        throw IntentionalTestRollback::create();
     }
 }

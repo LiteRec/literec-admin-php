@@ -19,7 +19,6 @@ use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\DispatchAfterCurrentBusStamp;
 use Symfony\Component\Messenger\Stamp\HandledStamp;
-use RuntimeException;
 use Throwable;
 
 /**
@@ -95,9 +94,7 @@ final readonly class RegisterInventoryItemHandler
 
         $listingId = self::extractListingId($envelope);
         if ($listingId === null) {
-            throw new RuntimeException(
-                'RegisterListing handler returned no HandledStamp — cannot continue cross-bus registration.',
-            );
+            throw CrossBusRegistrationFailed::missingHandledStamp();
         }
 
         return $listingId;
