@@ -176,20 +176,7 @@ final readonly class DoctrineInventoryReadModel implements InventoryReadModel
         $groupNamesByItem = $this->loadGroupNames($itemIds);
 
         $items = array_map(
-            function (array $row) use ($groupNamesByItem): InventorySummaryView {
-                $id = $this->rowString($row, 'inventory_item_id');
-                return new InventorySummaryView(
-                    inventoryItemId: $id,
-                    listingId: $this->rowString($row, 'listing_id'),
-                    listingCode: $this->rowString($row, 'listing_code'),
-                    name: $this->rowString($row, 'name'),
-                    kind: $this->rowString($row, 'kind'),
-                    totalQuantityOnHand: $this->rowInt($row, 'total_quantity'),
-                    reorderThresholdUnits: $this->rowInt($row, 'reorder_threshold'),
-                    archived: $this->rowBool($row, 'archived'),
-                    groupNames: $groupNamesByItem[$id] ?? [],
-                );
-            },
+            fn (array $row): InventorySummaryView => $this->mapSummaryRow($row, $groupNamesByItem),
             $rows,
         );
 
@@ -332,20 +319,36 @@ final readonly class DoctrineInventoryReadModel implements InventoryReadModel
             $where[] = 'sm.reason = :reason';
             $params['reason'] = $criteria->reason;
         }
-        if ($criteria->dateFrom !== null) {
-            $where[] = 'sm.recorded_at >= :dateFrom';
-            $params['dateFrom'] = $criteria->dateFrom
-                ->setTimezone(new DateTimeZone('UTC'))
-                ->format(self::UTC_TIMESTAMP_FORMAT);
-        }
-        if ($criteria->dateTo !== null) {
-            $where[] = 'sm.recorded_at <= :dateTo';
-            $params['dateTo'] = $criteria->dateTo
-                ->setTimezone(new DateTimeZone('UTC'))
-                ->format(self::UTC_TIMESTAMP_FORMAT);
-        }
+        $this->appendRecordedAtRange($where, $params, $criteria->dateFrom, $criteria->dateTo);
 
         return [implode(self::SQL_AND, $where), $params];
+    }
+
+    /**
+     * Appends the inclusive recorded_at lower/upper bounds shared by the
+     * stock-movement and entry-log filters, normalising both to UTC.
+     *
+     * @param list<string>          $where
+     * @param array<string, scalar> $params
+     */
+    private function appendRecordedAtRange(
+        array &$where,
+        array &$params,
+        ?DateTimeImmutable $dateFrom,
+        ?DateTimeImmutable $dateTo,
+    ): void {
+        if ($dateFrom !== null) {
+            $where[] = 'sm.recorded_at >= :dateFrom';
+            $params['dateFrom'] = $dateFrom
+                ->setTimezone(new DateTimeZone('UTC'))
+                ->format(self::UTC_TIMESTAMP_FORMAT);
+        }
+        if ($dateTo !== null) {
+            $where[] = 'sm.recorded_at <= :dateTo';
+            $params['dateTo'] = $dateTo
+                ->setTimezone(new DateTimeZone('UTC'))
+                ->format(self::UTC_TIMESTAMP_FORMAT);
+        }
     }
 
     /**
@@ -699,18 +702,7 @@ final readonly class DoctrineInventoryReadModel implements InventoryReadModel
             $where[] = 'sm.reason = :reason';
             $params['reason'] = $criteria->reason;
         }
-        if ($criteria->dateFrom !== null) {
-            $where[] = 'sm.recorded_at >= :dateFrom';
-            $params['dateFrom'] = $criteria->dateFrom
-                ->setTimezone(new DateTimeZone('UTC'))
-                ->format(self::UTC_TIMESTAMP_FORMAT);
-        }
-        if ($criteria->dateTo !== null) {
-            $where[] = 'sm.recorded_at <= :dateTo';
-            $params['dateTo'] = $criteria->dateTo
-                ->setTimezone(new DateTimeZone('UTC'))
-                ->format(self::UTC_TIMESTAMP_FORMAT);
-        }
+        $this->appendRecordedAtRange($where, $params, $criteria->dateFrom, $criteria->dateTo);
 
         return [implode(self::SQL_AND, $where), $params];
     }
@@ -744,21 +736,33 @@ final readonly class DoctrineInventoryReadModel implements InventoryReadModel
         $groupNamesByItem = $this->loadGroupNames($itemIds);
 
         return array_map(
-            function (array $row) use ($groupNamesByItem): InventorySummaryView {
-                $id = $this->rowString($row, 'inventory_item_id');
-                return new InventorySummaryView(
-                    inventoryItemId: $id,
-                    listingId: $this->rowString($row, 'listing_id'),
-                    listingCode: $this->rowString($row, 'listing_code'),
-                    name: $this->rowString($row, 'name'),
-                    kind: $this->rowString($row, 'kind'),
-                    totalQuantityOnHand: $this->rowInt($row, 'total_quantity'),
-                    reorderThresholdUnits: $this->rowInt($row, 'reorder_threshold'),
-                    archived: $this->rowBool($row, 'archived'),
-                    groupNames: $groupNamesByItem[$id] ?? [],
-                );
-            },
+            fn (array $row): InventorySummaryView => $this->mapSummaryRow($row, $groupNamesByItem),
             $rows,
+        );
+    }
+
+    /**
+     * Maps one inventory_items × catalog_listings row (with summed
+     * on-hand) to the list/detail summary view. Shared by {@see list()}
+     * and {@see findByIds()}.
+     *
+     * @param array<string, mixed>          $row
+     * @param array<string, list<string>>   $groupNamesByItem
+     */
+    private function mapSummaryRow(array $row, array $groupNamesByItem): InventorySummaryView
+    {
+        $id = $this->rowString($row, 'inventory_item_id');
+
+        return new InventorySummaryView(
+            inventoryItemId: $id,
+            listingId: $this->rowString($row, 'listing_id'),
+            listingCode: $this->rowString($row, 'listing_code'),
+            name: $this->rowString($row, 'name'),
+            kind: $this->rowString($row, 'kind'),
+            totalQuantityOnHand: $this->rowInt($row, 'total_quantity'),
+            reorderThresholdUnits: $this->rowInt($row, 'reorder_threshold'),
+            archived: $this->rowBool($row, 'archived'),
+            groupNames: $groupNamesByItem[$id] ?? [],
         );
     }
 
