@@ -84,7 +84,11 @@ ENTRYPOINT ["docker-entrypoint"]
 HEALTHCHECK --start-period=60s CMD php -r 'exit(false === @file_get_contents("http://localhost:2019/metrics", context: stream_context_create(["http" => ["timeout" => 5]])) ? 1 : 0);'
 CMD [ "frankenphp", "run", "--config", "/etc/frankenphp/Caddyfile" ]
 
-# Dev FrankenPHP image
+# Dev FrankenPHP image — used only by `docker compose up` locally. The prod
+# stage (frankenphp_prod, the last stage in this file) sets APP_ENV=prod via
+# frankenphp_prod_builder, and CI / deploy builds always pass `--target
+# frankenphp_prod`. Sonar hotspot docker:S4507 — reviewed under LRA-109,
+# marked SAFE (dev-only stage, never shipped).
 FROM frankenphp_base AS frankenphp_dev
 
 ENV APP_ENV=dev
