@@ -5,7 +5,9 @@ permissions:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # Cancel superseded PR runs, but let every push to main run to completion so
+  # each merged commit gets a verified build.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 on:
   pull_request:
@@ -14,9 +16,49 @@ on:
       - main
 
 jobs:
-  quality:
-    name: Quality gates
+  static:
+    name: ${{ matrix.name }}
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    # Static analysis never touches the database. cache:warmup (run by
+    # `composer stan`) compiles the container but does not connect: there are no
+    # custom cache warmers, and the serverVersion pin below suppresses Doctrine's
+    # version-detection connection. So no postgres service is started here.
+    env:
+      DATABASE_URL: 'postgresql://app:!ChangeMe!@127.0.0.1:5432/app?serverVersion=17&charset=utf8'
+
+    strategy:
+      # Report every tool's result in one run instead of stopping on the first
+      # failure (the previous single-job chain hid downstream results).
+      fail-fast: false
+      matrix:
+        include:
+          - name: PHPCS (PSR-12)
+            run: composer cs
+          - name: PHPStan (level 9)
+            run: composer stan
+          - name: Deptrac (architecture)
+            # Invokes the binary directly (rather than `composer deptrac`) so we
+            # can pass --formatter=github-actions for inline PR annotations.
+            run: vendor/bin/deptrac analyse --no-progress --formatter=github-actions
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Set up app
+        uses: ./.github/actions/setup-app
+
+      - name: ${{ matrix.name }}
+        run: ${{ matrix.run }}
+
+  tests:
+    name: PHPUnit
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     services:
       postgres:
@@ -44,15 +86,8 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up PHP
-        uses: shivammathur/setup-php@7c071dfe9dc99bdf297fa79cb49ea005b9fcadbc # 2.37.1
-        with:
-          php-version: '8.5'
-          coverage: none
-          tools: composer:v2
-
-      - name: Install dependencies
-        run: composer install --no-interaction --no-progress --prefer-dist
+      - name: Set up app
+        uses: ./.github/actions/setup-app
 
       - name: Create the test database
         run: php bin/console --env=test doctrine:database:create --if-not-exists
@@ -60,23 +95,13 @@ jobs:
       - name: Set up the test database schema
         run: php bin/console --env=test doctrine:migrations:migrate --no-interaction
 
-      - name: PHPCS (PSR-12)
-        run: composer cs
-
-      - name: PHPStan (level 9)
-        run: composer stan
-
-      - name: Deptrac (architecture)
-        # Invokes the binary directly (rather than `composer deptrac`) so we
-        # can pass --formatter=github-actions for inline PR annotations.
-        run: vendor/bin/deptrac analyse --no-progress --formatter=github-actions
-
       - name: PHPUnit
         run: composer test
 
   fixtures:
     name: Fixtures smoke test
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     services:
       postgres:
@@ -102,15 +127,8 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up PHP
-        uses: shivammathur/setup-php@7c071dfe9dc99bdf297fa79cb49ea005b9fcadbc # 2.37.1
-        with:
-          php-version: '8.5'
-          coverage: none
-          tools: composer:v2
-
-      - name: Install dependencies
-        run: composer install --no-interaction --no-progress --prefer-dist
+      - name: Set up app
+        uses: ./.github/actions/setup-app
 
       - name: db:reset-test (drop, create, migrate, load fixtures)
         run: composer db:reset-test
