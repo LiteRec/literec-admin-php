@@ -1,0 +1,32 @@
+name: Set up app
+description: >-
+  Set up PHP 8.5 and install Composer dependencies with a lockfile-keyed cache.
+  Callers must check out the repository before invoking this action (a local
+  composite action cannot check itself out).
+
+runs:
+  using: composite
+  steps:
+    - name: Set up PHP
+      uses: shivammathur/setup-php@7c071dfe9dc99bdf297fa79cb49ea005b9fcadbc # 2.37.1
+      with:
+        php-version: '8.5'
+        coverage: none
+        tools: composer:v2
+
+    - name: Resolve Composer cache directory
+      id: composer-cache
+      shell: bash
+      run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+    - name: Cache Composer packages
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+      with:
+        path: ${{ steps.composer-cache.outputs.dir }}
+        key: composer-${{ runner.os }}-php8.5-${{ hashFiles('**/composer.lock') }}
+        restore-keys: |
+          composer-${{ runner.os }}-php8.5-
+
+    - name: Install dependencies
+      shell: bash
+      run: composer install --no-interaction --no-progress --prefer-dist
