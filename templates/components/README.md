@@ -53,6 +53,15 @@ recolor automatically with the active theme.
 - **Icon button:** `lr-iconbtn` (`danger` variant). **Kbd:** `lr-kbd`.
 - **Text helpers:** `lr-muted`, `lr-link`, `lr-num` (tabular figures),
   `lr-row-strong`, `lr-section-label`.
+- **Fields:** `lr-field` (label + control wrapper) + `lr-label`. Inputs come in
+  two consistent variants: `lr-input` is the wrapper that hosts leading/trailing
+  icon slots (`.ico`) around a borderless `<input>` (add `is-focus` for the
+  focused look); `litrec-input` is the single-element variant for
+  Symfony-form-bound controls. `lr-select` for selects; `lr-check` + `.box` for
+  checkboxes.
+- **Tables:** `lr-table` (uppercase header cells, density-token row padding,
+  hover row, no border on the last row).
+- **Lists:** `lr-list` + `lr-list-row` (divider list).
 
 Do not transition `var()`-backed color/background/border on these classes — a
 theme switch would strand the old value (see the note in `app.css`).
