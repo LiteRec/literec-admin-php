@@ -466,6 +466,72 @@
     .lr-list-row { display: flex; align-items: center; gap: 0.75rem; padding: var(--pad-row-y) var(--pad-row-x); }
 }
 
+/* ======================================================================
+   Eagleton app-shell header chrome: brand mark, facility pill, and the
+   user avatar. Token-driven; sits in @layer components alongside the rest.
+   ====================================================================== */
+@layer components {
+    .lr-header {
+        background: var(--lr-surface);
+        border-bottom: 1px solid var(--lr-border);
+    }
+    .lr-header-in {
+        max-width: 80rem;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1.5rem;
+        padding: 0.75rem 1.5rem;
+    }
+    .lr-brand { display: flex; align-items: center; gap: 0.6rem; text-decoration: none; }
+    .lr-brand-mark {
+        width: 30px;
+        height: 30px;
+        border-radius: var(--radius-card-sm);
+        background: var(--lr-primary);
+        color: var(--lr-on-primary);
+        display: grid;
+        place-items: center;
+        flex: none;
+    }
+    .lr-brand-name {
+        font-size: 1.05rem;
+        font-weight: 800;
+        color: var(--lr-primary);
+        letter-spacing: -0.01em;
+    }
+    .lr-header-right {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        font-size: 0.8125rem;
+        color: var(--lr-text-muted);
+    }
+    .lr-facility-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        border: 1px solid var(--lr-border);
+        border-radius: var(--radius-pill);
+        padding: 0.3rem 0.7rem;
+        background: var(--lr-bg-muted);
+        color: var(--lr-text);
+    }
+    .lr-avatar {
+        width: 30px;
+        height: 30px;
+        border-radius: var(--radius-pill);
+        background: var(--lr-secondary);
+        color: var(--lr-on-secondary);
+        display: grid;
+        place-items: center;
+        font-weight: 700;
+        font-size: 0.75rem;
+        flex: none;
+    }
+}
+
 /* Hide x-cloak elements until Alpine.js has initialised. */
 [x-cloak] {
     display: none !important;

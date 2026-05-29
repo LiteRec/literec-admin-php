@@ -4,11 +4,16 @@
  */
 import './styles/app.css';
 import Alpine from 'alpinejs';
+import focus from '@alpinejs/focus';
 import htmx from 'htmx.org';
 import gsap from 'gsap';
 
 // Alpine.js — lightweight reactive UI components driven by x-* attributes.
+// The focus plugin powers the $focus magic used by the main-nav dropdowns and
+// the x-trap directive used by the header account menu (focus the first item on
+// open, restore focus to the trigger on close).
 globalThis.Alpine = Alpine;
+Alpine.plugin(focus);
 Alpine.start();
 
 // HTMX — expose globally so hx-* attributes are processed, and surface
