@@ -2,18 +2,20 @@
 
 {% block page_title %}{{ section_title }}{% endblock %}
 
-{% block page_body %}
-    {# Exercises the _breadcrumbs and _empty_state components so their
-       contracts are demonstrated in a real (always-rendered) page. The
-       trail is mocked here; real route hierarchy lands when each section
-       gets its own feature pages. #}
+{% block page_subtitle %}This area is on the navigation surface so staff can find every legacy section; the feature itself arrives in a later milestone.{% endblock %}
+
+{% block breadcrumbs %}
+    {# Breadcrumbs render above the page header. The trail is mocked here; real
+       route hierarchy lands when each section gets its own feature pages. #}
     {% include 'components/_breadcrumbs.html.twig' with {
         trail: [
             { label: 'Dashboard', route: 'app_dashboard' },
             { label: section_title },
         ],
     } only %}
+{% endblock %}
 
+{% block page_body %}
     {% include 'components/_empty_state.html.twig' with {
         title: 'Coming soon',
         message: section_title ~ ' is part of the navigation surface so staff can find every legacy area, but the feature itself arrives in a later milestone.',

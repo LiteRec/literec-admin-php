@@ -1,8 +1,15 @@
-{# @param string title    Page heading rendered as an h1. #}
-{# @param ?string actions Pre-rendered HTML for the right-side action slot. #}
+{# @param string title     Page heading rendered as an h1. #}
+{# @param ?string subtitle  Optional supporting line rendered under the title. #}
+{# @param ?string actions   Pre-rendered HTML for the right-side action slot. #}
+{% set subtitle = subtitle|default(null) %}
 {% set actions = actions|default(null) %}
-<div class="mb-6 flex items-start justify-between gap-4">
-    <h1 class="text-2xl font-bold text-litrec-text">{{ title }}</h1>
+<div class="lr-pagehead">
+    <div>
+        <h1 class="lr-pagetitle text-litrec-text">{{ title }}</h1>
+        {% if subtitle is not null and subtitle|trim is not empty %}
+            <p class="lr-pagesub">{{ subtitle }}</p>
+        {% endif %}
+    </div>
     {% if actions is not null and actions|trim is not empty %}
         <div class="flex items-center gap-2">{{ actions|raw }}</div>
     {% endif %}
