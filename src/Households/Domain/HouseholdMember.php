@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Households\Domain;
 
 use App\Households\Domain\ValueObject\DateOfBirth;
+use App\Households\Domain\ValueObject\Deactivation;
 use App\Households\Domain\ValueObject\Gender;
 use App\Households\Domain\ValueObject\MemberCode;
 use App\Households\Domain\ValueObject\MemberId;
@@ -129,14 +130,18 @@ final class HouseholdMember
         return $this->isActive;
     }
 
-    public function deactivatedReason(): ?string
+    /**
+     * The deactivation record (reason + timestamp), or null while the member
+     * is active. Materialized from the persisted scalar fields so the pair is
+     * never exposed as two loose nullable getters.
+     */
+    public function deactivation(): ?Deactivation
     {
-        return $this->deactivatedReason;
-    }
+        if ($this->deactivatedReason === null || $this->deactivatedAt === null) {
+            return null;
+        }
 
-    public function deactivatedAt(): ?DateTimeImmutable
-    {
-        return $this->deactivatedAt;
+        return new Deactivation($this->deactivatedReason, $this->deactivatedAt);
     }
 
     /**
