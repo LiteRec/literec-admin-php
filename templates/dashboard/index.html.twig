@@ -45,7 +45,8 @@
                         <span class="lr-dot" style="background: {{ dot_colors[tx.status.value] ?? 'var(--lr-text-muted)' }}"></span>
                         <div class="min-w-0 flex-1">
                             <div class="lr-row-strong truncate text-sm">{{ tx.userName }}</div>
-                            <div class="lr-muted text-xs">{{ tx.method }}</div>
+                            {# Status shown as text too, not by dot colour alone (WCAG 1.4.1). #}
+                            <div class="lr-muted text-xs">{{ tx.method }} · {{ tx.status.value|capitalize }}</div>
                         </div>
                         <div class="text-right">
                             <div class="lr-row-strong lr-num text-sm">{{ tx.amountFormatted }}</div>

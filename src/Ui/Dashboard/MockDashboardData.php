@@ -24,57 +24,89 @@ final readonly class MockDashboardData
     public function build(): DashboardData
     {
         return new DashboardData(
-            kpis: [
-                new KpiCard(
-                    "Today's Revenue",
-                    '$4,182.50',
-                    'money',
-                    'linear-gradient(135deg,#8a6508,#5e4604)',
-                    '+12% vs. yesterday',
-                ),
-                new KpiCard(
-                    'Active Memberships',
-                    '1,847',
-                    'users',
-                    'linear-gradient(135deg,#1c3d5a,#0f2840)',
-                    '+23 this week',
-                ),
-                new KpiCard(
-                    'Upcoming Reservations',
-                    '34',
-                    'calendar',
-                    'linear-gradient(135deg,#2e5847,#1f3d31)',
-                    'next 7 days',
-                ),
-                new KpiCard(
-                    'Open Refund Requests',
-                    '6',
-                    'tag',
-                    'linear-gradient(135deg,#3a6a8f,#27506e)',
-                    '2 awaiting review',
-                ),
-            ],
+            kpis: $this->buildKpis(),
             recentTransactions: $this->buildRecentTransactions(),
-            upcomingEvents: [
-                new EventItem('14', 'Jun', 'Summer Camp Kickoff', 'Community Center', 128),
-                new EventItem('17', 'Jun', 'Adult Soccer League', 'Field House', 96),
-                new EventItem('21', 'Jun', 'Family Swim Night', 'Aquatics Center', 210),
-            ],
-            facilityStatuses: [
-                new FacilityStatus('Community Center', 'Open', 'success', 847),
-                new FacilityStatus('Aquatics Center', 'Busy', 'info', 512),
-                new FacilityStatus('Field House', 'Maintenance', 'warning', 203),
-            ],
-            quickLinks: [
-                new QuickLink('Cash Register', 'cash_register_index', 'cart'),
-                new QuickLink('Programs', 'programs_index', 'calendar'),
-                new QuickLink('Users', 'users_index', 'users'),
-                new QuickLink('Memberships', 'memberships_index', 'ticket'),
-                new QuickLink('Facilities', 'facilities_index', 'tree'),
-                new QuickLink('Reports', 'reports_index', 'print'),
-                new QuickLink('Communications', 'communications_index', 'bell'),
-            ],
+            upcomingEvents: $this->buildUpcomingEvents(),
+            facilityStatuses: $this->buildFacilityStatuses(),
+            quickLinks: $this->buildQuickLinks(),
         );
+    }
+
+    /**
+     * @return list<KpiCard>
+     */
+    private function buildKpis(): array
+    {
+        return [
+            new KpiCard(
+                "Today's Revenue",
+                '$4,182.50',
+                'money',
+                'linear-gradient(135deg,#8a6508,#5e4604)',
+                '+12% vs. yesterday',
+            ),
+            new KpiCard(
+                'Active Memberships',
+                '1,847',
+                'users',
+                'linear-gradient(135deg,#1c3d5a,#0f2840)',
+                '+23 this week',
+            ),
+            new KpiCard(
+                'Upcoming Reservations',
+                '34',
+                'calendar',
+                'linear-gradient(135deg,#2e5847,#1f3d31)',
+                'next 7 days',
+            ),
+            new KpiCard(
+                'Open Refund Requests',
+                '6',
+                'tag',
+                'linear-gradient(135deg,#3a6a8f,#27506e)',
+                '2 awaiting review',
+            ),
+        ];
+    }
+
+    /**
+     * @return list<EventItem>
+     */
+    private function buildUpcomingEvents(): array
+    {
+        return [
+            new EventItem('14', 'Jun', 'Summer Camp Kickoff', 'Community Center', 128),
+            new EventItem('17', 'Jun', 'Adult Soccer League', 'Field House', 96),
+            new EventItem('21', 'Jun', 'Family Swim Night', 'Aquatics Center', 210),
+        ];
+    }
+
+    /**
+     * @return list<FacilityStatus>
+     */
+    private function buildFacilityStatuses(): array
+    {
+        return [
+            new FacilityStatus('Community Center', 'Open', 'success', 847),
+            new FacilityStatus('Aquatics Center', 'Busy', 'info', 512),
+            new FacilityStatus('Field House', 'Maintenance', 'warning', 203),
+        ];
+    }
+
+    /**
+     * @return list<QuickLink>
+     */
+    private function buildQuickLinks(): array
+    {
+        return [
+            new QuickLink('Cash Register', 'cash_register_index', 'cart'),
+            new QuickLink('Programs', 'programs_index', 'calendar'),
+            new QuickLink('Users', 'users_index', 'users'),
+            new QuickLink('Memberships', 'memberships_index', 'ticket'),
+            new QuickLink('Facilities', 'facilities_index', 'tree'),
+            new QuickLink('Reports', 'reports_index', 'print'),
+            new QuickLink('Communications', 'communications_index', 'bell'),
+        ];
     }
 
     /**

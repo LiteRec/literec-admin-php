@@ -19,5 +19,8 @@ final readonly class EventItem
         public string $location,
         public int $attendees,
     ) {
+        if ($attendees < 0) {
+            throw new \InvalidArgumentException('Event attendees cannot be negative.');
+        }
     }
 }
