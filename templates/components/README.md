@@ -12,6 +12,29 @@ so callers pass parameters explicitly — no globals, no implicit context.
 | `_status_badge.html.twig` | `string status` ∈ `succeeded \| pending \| failed \| refunded` | `{% include 'components/_status_badge.html.twig' with { status: tx.status.value } only %}` |
 | `_empty_state.html.twig` | `string title`, `string message`, `?string ctaLabel`, `?string ctaRoute` | `{% include 'components/_empty_state.html.twig' with { title: 'Coming soon', message: 'This screen arrives later.' } only %}` |
 | `_breadcrumbs.html.twig` | `array trail` of `{ label, route }` items | `{% include 'components/_breadcrumbs.html.twig' with { trail: [{label:'Dashboard',route:'app_dashboard'},{label:'Reports'}] } only %}` |
+| `_icon.html.twig` | `icon(string name, int size = 16, number stroke = 1.6, string class = '')` _(Twig macro — imported, not included)_ | `{% import 'components/_icon.html.twig' as icon %}` then `{{ icon.icon('leaf', 18) }}` |
+
+## Icons (`_icon.html.twig`)
+
+A curated SVG line-icon set on a 24x24 grid with a 1.6 default stroke. Unlike
+the other components, it is a **Twig macro**, so import it once per template
+and call it as a function:
+
+```twig
+{% import 'components/_icon.html.twig' as icon %}
+{{ icon.icon('bell', 17) }}
+{{ icon.icon('leaf', 18, 1.6, 'text-litrec-secondary') }}
+```
+
+- Icons inherit color via `stroke="currentColor"` — pass a `text-*` utility in
+  the `class` argument to recolor, or a transform utility (e.g. `rotate-90`).
+- They are decorative (`aria-hidden="true"`). When an icon is a control's only
+  visible content, label the control (`aria-label`), not the icon.
+- An unknown name renders an empty, invisible `<svg>` instead of erroring.
+- Available names: `search`, `trash`, `plus`, `chevron`, `chevronUp`,
+  `chevronR`, `user`, `users`, `cart`, `info`, `bell`, `leaf`, `tree`,
+  `calendar`, `heart`, `money`, `tag`, `ticket`, `key`, `arrowUp`, `bolt`,
+  `pin`, `check`, `grid`, `clock`, `print`, `sun`, `moon`.
 
 ## Conventions
 

@@ -1,0 +1,71 @@
+{#
+  Curated SVG line-icon set for the Eagleton staff-admin UI.
+
+  Icons are drawn on a 24x24 grid with a 1.6 default stroke and inherit their
+  color from the surrounding text via stroke="currentColor" — pass a `text-*`
+  utility class to recolor. They are decorative (aria-hidden="true"); when an
+  icon is a control's only visible content, label the control itself, not the
+  icon. An unknown name renders an empty (invisible) <svg> rather than raising
+  an error, so a typo degrades quietly instead of breaking the page.
+
+  The macro itself has no domain or application dependencies; the optional
+  `class` argument simply forwards any caller-supplied utility classes (e.g. a
+  `text-*` color token or a transform) onto the <svg>.
+
+  Usage:
+    {% import 'components/_icon.html.twig' as icon %}
+    {{ icon.icon('leaf', 18) }}
+    {{ icon.icon('bell', 17, 1.6, 'text-litrec-secondary') }}
+    {{ icon.icon('chevron', 12, 1.6, 'rotate-90') }}
+
+  @param string name    One of the keys in the path map below.
+  @param int    size    Width and height in px (default 16).
+  @param number stroke  Stroke width (default 1.6).
+  @param string class   Optional extra classes on the <svg> (color, transform).
+#}
+{% macro icon(name, size = 16, stroke = 1.6, class = '') %}
+{%- set paths = {
+    'search': '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>',
+    'trash': '<path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/>',
+    'plus': '<path d="M12 5v14M5 12h14"/>',
+    'chevron': '<path d="M6 9l6 6 6-6"/>',
+    'chevronUp': '<path d="M6 15l6-6 6 6"/>',
+    'chevronR': '<path d="M9 6l6 6-6 6"/>',
+    'user': '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-7 8-7s8 3 8 7"/>',
+    'users': '<circle cx="9" cy="9" r="3.2"/><path d="M3 19c0-3 2.7-5 6-5s6 2 6 5"/><path d="M16 6a3 3 0 0 1 0 6M22 19c0-2.5-1.5-4-4-4.5"/>',
+    'cart': '<circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h3l2.5 13h11l2-9H6"/>',
+    'info': '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',
+    'bell': '<path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6M10 20a2 2 0 0 0 4 0"/>',
+    'leaf': '<path d="M11 20A7 7 0 0 1 4 13c0-5 5-9 16-9 0 9-4 14-9 14zM4 20c2-4 5-6 9-7"/>',
+    'tree': '<path d="M12 2l5 7h-3l4 6h-4v5h-4v-5H6l4-6H7z"/>',
+    'calendar': '<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/>',
+    'heart': '<path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/>',
+    'money': '<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/>',
+    'tag': '<path d="M3 12l8-8h8v8l-8 8z"/><circle cx="15.5" cy="8.5" r="1.3"/>',
+    'ticket': '<path d="M3 8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2 2 2 0 0 0 0 4 2 2 0 0 1-2 2H5a2 2 0 0 1-2-2 2 2 0 0 0 0-4z"/><path d="M14 6v12" stroke-dasharray="2 2"/>',
+    'key': '<circle cx="8" cy="12" r="4"/><path d="M11 12h9M17 12v4M20 12v3"/>',
+    'arrowUp': '<path d="M12 19V5M6 11l6-6 6 6"/>',
+    'bolt': '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>',
+    'pin': '<path d="M12 21s7-6 7-11a7 7 0 0 0-14 0c0 5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/>',
+    'check': '<path d="M5 13l4 4L19 7"/>',
+    'grid': '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
+    'clock': '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    'print': '<path d="M6 9V3h12v6M6 18H4v-7h16v7h-2M8 14h8v7H8z"/>',
+    'sun': '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+    'moon': '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',
+} -%}
+{%- set body = paths[name]|default('') -%}
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="{{ size }}"
+     height="{{ size }}"
+     viewBox="0 0 24 24"
+     fill="none"
+     stroke="currentColor"
+     stroke-width="{{ stroke }}"
+     stroke-linecap="round"
+     stroke-linejoin="round"
+     aria-hidden="true"
+     focusable="false"
+     {%- if class %} class="{{ class }}"{% endif -%}
+>{{- body|raw -}}</svg>
+{%- endmacro %}
