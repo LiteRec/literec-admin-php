@@ -34,6 +34,8 @@ final class CashRegisterController extends AbstractController
     #[Route('/cash-register/quick', name: 'cash_register_quick_index', methods: ['GET'])]
     public function quick(): Response
     {
-        return $this->render('cash_register/quick.html.twig');
+        return $this->render('cash_register/quick.html.twig', [
+            'quick' => $this->cashRegisterData->buildQuickSale(),
+        ]);
     }
 }

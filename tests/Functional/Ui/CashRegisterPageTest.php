@@ -59,10 +59,20 @@ final class CashRegisterPageTest extends WebTestCase
         $client = static::createClient();
         $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
 
-        $client->request('GET', '/cash-register/quick');
+        $crawler = $client->request('GET', '/cash-register/quick');
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('main h1', 'Cash Register');
         self::assertSelectorTextContains('.lr-seg a[aria-current="page"]', 'Quick sale');
+
+        // Item picker: a touch-tile grid of items.
+        self::assertGreaterThanOrEqual(8, $crawler->filter('.lr-tilegrid button.lr-tile')->count());
+        self::assertSelectorTextContains('main', 'Adult Day Pass');
+
+        // Sale rail: current sale with steppers, totals, and a charge action.
+        self::assertSelectorTextContains('.lr-card-head', 'Current Sale');
+        self::assertSelectorExists('.lr-stepper');
+        self::assertSelectorTextContains('.lr-totals .row.total', '$25.68');
+        self::assertSelectorTextContains('main', 'Charge $25.68');
     }
 }

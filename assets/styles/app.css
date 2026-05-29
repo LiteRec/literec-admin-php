@@ -710,6 +710,67 @@
 
 :root[data-theme="dark"] .lr-seg a.is-active { color: var(--lr-text); }
 
+/* ======================================================================
+   Cash Register Quick sale: the touch-tile item picker grid and the qty
+   stepper. Token-driven; tiles meet the design's touch-target minimum.
+   ====================================================================== */
+@layer components {
+    .lr-tilegrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; }
+    .lr-tile {
+        border: 1px solid var(--lr-border);
+        border-radius: var(--radius-card);
+        background: var(--lr-surface);
+        padding: 0.9rem;
+        min-height: 104px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        text-align: left;
+        /* Only the tactile press is animated; var()-backed colours/shadows are
+           left to change instantly so a theme switch can't strand them. */
+        transition: transform 0.06s;
+    }
+    .lr-tile:hover { border-color: var(--lr-secondary); box-shadow: var(--shadow-card); }
+    .lr-tile:active { transform: translateY(1px); }
+    .lr-tile .tico {
+        width: 34px;
+        height: 34px;
+        border-radius: var(--radius-card-sm);
+        background: var(--lr-bg-muted);
+        color: var(--lr-secondary);
+        display: grid;
+        place-items: center;
+    }
+    .lr-tile .tcat {
+        font-size: 0.625rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--lr-text-muted);
+        font-weight: 700;
+    }
+    .lr-tile .tname { font-weight: 700; font-size: 0.875rem; line-height: 1.25; }
+    .lr-tile .tprice { font-weight: 800; font-size: 1.05rem; }
+
+    .lr-stepper {
+        display: inline-flex;
+        align-items: center;
+        border: 1px solid var(--lr-border);
+        border-radius: var(--radius-pill);
+        overflow: hidden;
+    }
+    .lr-stepper button {
+        border: 0;
+        background: var(--lr-surface);
+        color: var(--lr-text);
+        width: 26px;
+        height: 26px;
+        display: grid;
+        place-items: center;
+    }
+    .lr-stepper button:hover { background: var(--lr-bg-muted); }
+    .lr-stepper .q { min-width: 24px; text-align: center; font-weight: 700; font-size: 0.8125rem; }
+}
+
 /* Hide x-cloak elements until Alpine.js has initialised. */
 [x-cloak] {
     display: none !important;
