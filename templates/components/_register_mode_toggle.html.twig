@@ -1,0 +1,15 @@
+{# Shared Full/Quick register mode switch, rendered as a segmented control in
+   the Cash Register page-header actions slot. The two modes live at different
+   routes, so the segments are links (with aria-current on the active one)
+   rather than tab buttons.
+
+   @param string active  'full' or 'quick' — which mode is currently shown. #}
+{% import 'components/_icon.html.twig' as ui %}
+<span class="lr-seg" role="group" aria-label="Register mode">
+    <a href="{{ path('cash_register_index') }}" class="{{ active == 'full' ? 'is-active' : '' }}"{% if active == 'full' %} aria-current="page"{% endif %}>
+        {{ ui.icon('grid', 14) }} Full register
+    </a>
+    <a href="{{ path('cash_register_quick_index') }}" class="{{ active == 'quick' ? 'is-active' : '' }}"{% if active == 'quick' %} aria-current="page"{% endif %}>
+        {{ ui.icon('bolt', 14) }} Quick sale
+    </a>
+</span>

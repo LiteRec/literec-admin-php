@@ -1,0 +1,24 @@
+{% extends 'app.html.twig' %}
+
+{% block page_title %}Cash Register{% endblock %}
+{% block page_subtitle %}Quick sale — day passes, concessions &amp; basic items. No participant lookup required.{% endblock %}
+
+{% block breadcrumbs %}
+    {% include 'components/_breadcrumbs.html.twig' with {
+        trail: [{ label: 'Dashboard', route: 'app_dashboard' }, { label: 'Cash Register' }],
+    } only %}
+{% endblock %}
+
+{% block page_actions %}
+    {% include 'components/_register_mode_toggle.html.twig' with { active: 'quick' } only %}
+{% endblock %}
+
+{% block page_body %}
+    {# The touch-friendly quick-sale layout (item picker + sale rail) lands in
+       LRA-131; the route and mode toggle ship here so the Full/Quick switch is
+       live. #}
+    {% include 'components/_empty_state.html.twig' with {
+        title: 'Quick sale',
+        message: 'The touch-friendly quick-sale layout arrives in the next step.',
+    } only %}
+{% endblock %}
