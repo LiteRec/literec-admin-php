@@ -15,7 +15,7 @@ so callers pass parameters explicitly — no globals, no implicit context.
 | `_breadcrumbs.html.twig` | `array trail` of `{ label, route }` items | `{% include 'components/_breadcrumbs.html.twig' with { trail: [{label:'Dashboard',route:'app_dashboard'},{label:'Reports'}] } only %}` |
 | `_icon.html.twig` | `icon(string name, int size = 16, number stroke = 1.6, string class = '')` _(Twig macro — imported, not included)_ | `{% import 'components/_icon.html.twig' as icon %}` then `{{ icon.icon('leaf', 18) }}` |
 
-### Page header subtitle & breadcrumbs
+## Page header subtitle & breadcrumbs
 
 `app.html.twig` exposes two optional slots a feature template can fill:
 
