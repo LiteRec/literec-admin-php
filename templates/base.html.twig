@@ -4,6 +4,21 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta name="csrf-token" content="{{ csrf_token('htmx') }}">
+        {# Theme bootstrap (LRA-123): set data-theme before first paint so there
+           is no flash of the wrong theme. Reads the stored choice, else the OS
+           preference. Must stay inline and synchronous — an Alpine init runs
+           too late. #}
+        <script>
+            (function () {
+                try {
+                    var stored = localStorage.getItem('lr-theme');
+                    var theme = (stored === 'light' || stored === 'dark')
+                        ? stored
+                        : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                    document.documentElement.setAttribute('data-theme', theme);
+                } catch (e) { /* storage blocked — fall back to the light default */ }
+            })();
+        </script>
         <title>{% block title %}LiteRecAdmin{% endblock %}</title>
         {% block stylesheets %}
         {% endblock %}

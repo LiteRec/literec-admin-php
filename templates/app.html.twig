@@ -20,7 +20,23 @@
 
                     <button type="button" class="lr-iconbtn" aria-label="Notifications">{{ icon.icon('bell', 17) }}</button>
 
-                    {# Theme-toggle slot — the light/dark toggle is inserted here in LRA-123. #}
+                    {# Light/dark theme toggle (LRA-123). `dark` is seeded from the
+                       data-theme attribute the base.html.twig bootstrap script set
+                       before paint; clicking flips the attribute and persists it. #}
+                    <button
+                        type="button"
+                        class="lr-iconbtn"
+                        data-testid="theme-toggle"
+                        x-data="{ dark: document.documentElement.getAttribute('data-theme') === 'dark' }"
+                        @click="dark = !dark;
+                                document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+                                try { localStorage.setItem('lr-theme', dark ? 'dark' : 'light'); } catch (e) {}"
+                        :aria-pressed="dark ? 'true' : 'false'"
+                        aria-label="Toggle dark theme"
+                    >
+                        <span x-show="!dark">{{ icon.icon('moon', 17) }}</span>
+                        <span x-show="dark" x-cloak>{{ icon.icon('sun', 17) }}</span>
+                    </button>
 
                     {% if app.user %}
                         <div
