@@ -16,11 +16,10 @@ use PHPUnit\Framework\TestCase;
  * uppercase initials derived from a display name or username, split on
  * whitespace and the common username separators.
  *
- * Test methods use the project-standard snake_case behavioural names (see
- * CLAUDE.md). PHPMD is not part of this repo's toolchain, but the suppression
- * documents the intent for any future static-analysis pass.
- *
- * @SuppressWarnings(PHPMD.CamelCaseMethodName)
+ * Test methods use the project-standard snake_case behavioural names (CLAUDE.md);
+ * a PHPMD CamelCaseMethodName suppression is intentionally NOT added because
+ * PHPStan's strict phpDoc parser rejects that annotation and PHPMD is not part
+ * of this repo's toolchain.
  */
 #[Small]
 final class AppShellExtensionTest extends TestCase
