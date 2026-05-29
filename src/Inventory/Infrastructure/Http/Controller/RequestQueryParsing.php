@@ -11,10 +11,10 @@ use DateTimeZone;
  * Query-string parsing helpers shared by the Inventory report controllers.
  *
  * Operators drive the report and listing pages entirely through GET query
- * parameters, so the same trim-or-null, trim-or-empty, and strict YYYY-MM-DD
- * date coercions recur across several controllers. Centralising them here keeps
- * the parsing rules identical (a malformed value disables its own filter rather
- * than 400-ing the page) and keeps each controller focused on its actions.
+ * parameters, so the same trim-or-null and strict YYYY-MM-DD date coercions
+ * recur across several controllers. Centralising them here keeps the parsing
+ * rules identical (a malformed value disables its own filter rather than
+ * 400-ing the page) and keeps each controller focused on its actions.
  */
 trait RequestQueryParsing
 {
@@ -25,14 +25,6 @@ trait RequestQueryParsing
         }
         $trimmed = trim($value);
         return $trimmed === '' ? null : $trimmed;
-    }
-
-    private static function stringOrEmpty(mixed $value): string
-    {
-        if (! is_string($value)) {
-            return '';
-        }
-        return trim($value);
     }
 
     /**

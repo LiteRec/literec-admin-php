@@ -493,6 +493,14 @@ final class InventoryReportsController extends AbstractController
         );
     }
 
+    private static function stringOrEmpty(mixed $value): string
+    {
+        if (! is_string($value)) {
+            return '';
+        }
+        return trim($value);
+    }
+
     /**
      * @param list<LowStockAlertView> $alerts
      * @return list<list<string>>
