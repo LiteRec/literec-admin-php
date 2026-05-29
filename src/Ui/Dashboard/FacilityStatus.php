@@ -19,5 +19,8 @@ final readonly class FacilityStatus
         public string $badgeVariant,
         public int $visitorsToday,
     ) {
+        if ($visitorsToday < 0) {
+            throw new \InvalidArgumentException('Visitor count cannot be negative.');
+        }
     }
 }
