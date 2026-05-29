@@ -1,5 +1,7 @@
 {% extends 'app.html.twig' %}
 
+{% import 'components/_icon.html.twig' as ui %}
+
 {% block page_title %}Cash Register{% endblock %}
 {% block page_subtitle %}Quick sale — day passes, concessions &amp; basic items. No participant lookup required.{% endblock %}
 
@@ -14,11 +16,72 @@
 {% endblock %}
 
 {% block page_body %}
-    {# The touch-friendly quick-sale layout (item picker + sale rail) lands in
-       LRA-131; the route and mode toggle ship here so the Full/Quick switch is
-       live. #}
-    {% include 'components/_empty_state.html.twig' with {
-        title: 'Quick sale',
-        message: 'The touch-friendly quick-sale layout arrives in the next step.',
-    } only %}
+    {# Two-column touch layout: item picker · sticky sale rail. Stubbed sample
+       data (quick.*); every control is a non-functional placeholder. #}
+    <div class="grid grid-cols-1 items-start gap-5 lg:grid-cols-[1fr_360px]">
+
+        {# ---- item picker ---- #}
+        <div class="lr-card">
+            <div class="border-b border-litrec-border px-[var(--pad-row-x)] py-3">
+                <label class="lr-input is-focus">
+                    {{ ui.icon('search', 15, 1.6, 'ico') }}
+                    <input type="text" placeholder="Scan barcode or search items…" aria-label="Scan barcode or search items">
+                    <span class="lr-kbd">F2</span>
+                </label>
+            </div>
+            <div class="flex flex-wrap gap-2 border-b border-litrec-border px-[var(--pad-row-x)] py-3">
+                {% for category in quick.categories %}
+                    <button type="button" class="lr-chip{% if loop.first %} border-litrec-primary bg-litrec-primary text-litrec-on-primary{% endif %}"{% if loop.first %} aria-pressed="true"{% else %} aria-pressed="false"{% endif %}>{{ category }}</button>
+                {% endfor %}
+            </div>
+            <div class="lr-card-body">
+                <div class="lr-tilegrid">
+                    {% for tile in quick.tiles %}
+                        <button type="button" class="lr-tile">
+                            <span class="tico">{{ ui.icon(tile.icon, 18) }}</span>
+                            <div>
+                                <div class="tcat">{{ tile.category }}</div>
+                                <div class="tname">{{ tile.name }}</div>
+                                <div class="tprice lr-num mt-1">{{ tile.price }}</div>
+                            </div>
+                        </button>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        {# ---- sale rail (sticky) ---- #}
+        <div class="lr-card sticky top-4 overflow-hidden">
+            <div class="lr-card-head border-litrec-primary bg-litrec-primary text-litrec-on-primary">
+                <span class="lr-card-title inline-flex items-center gap-2 text-litrec-on-primary">{{ ui.icon('cart', 16) }} Current Sale</span>
+                <span class="text-xs opacity-90">{{ quick.sale|length }} items</span>
+            </div>
+            <div class="lr-list">
+                {% for line in quick.sale %}
+                    <div class="lr-list-row">
+                        <div class="flex-1"><div class="lr-row-strong text-sm">{{ line.name }}</div></div>
+                        <span class="lr-stepper">
+                            <button type="button" aria-label="Decrease {{ line.name }} quantity">{{ ui.icon('chevron', 12) }}</button>
+                            <span class="q lr-num">{{ line.quantity }}</span>
+                            <button type="button" aria-label="Increase {{ line.name }} quantity">{{ ui.icon('chevronUp', 12) }}</button>
+                        </span>
+                        <div class="min-w-14 text-right"><div class="lr-num font-bold">{{ line.price }}</div></div>
+                    </div>
+                {% endfor %}
+            </div>
+            <div class="flex flex-col gap-4 border-t border-litrec-border p-[var(--pad-card)]">
+                <div class="lr-totals">
+                    <div class="row"><span class="lr-muted">Subtotal</span><span class="lr-num">{{ quick.subtotal }}</span></div>
+                    <div class="row"><span class="lr-muted">{{ quick.taxLabel }}</span><span class="lr-num">{{ quick.tax }}</span></div>
+                    <div class="row total"><span>Total</span><span class="lr-num">{{ quick.total }}</span></div>
+                </div>
+                <div class="flex gap-2">
+                    <button type="button" class="lr-btn lr-btn-ghost flex-1 justify-center">{{ ui.icon('money', 15) }} Cash</button>
+                    <button type="button" class="lr-btn lr-btn-ghost flex-1 justify-center">{{ ui.icon('tag', 15) }} Card</button>
+                </div>
+                <button type="button" class="lr-btn lr-btn-secondary lr-btn-block lr-btn-lg font-extrabold">Charge {{ quick.total }}</button>
+                <button type="button" class="lr-btn lr-btn-block bg-transparent text-danger">{{ ui.icon('trash', 15) }} Clear sale</button>
+            </div>
+        </div>
+    </div>
 {% endblock %}
