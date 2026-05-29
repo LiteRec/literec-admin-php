@@ -227,6 +227,8 @@ final class InMemoryMemberReadModel implements MemberReadModel
 
     private function profile(HouseholdMember $member): MemberProfileDto
     {
+        $deactivation = $member->deactivation();
+
         return new MemberProfileDto(
             $member->id()->value,
             $member->code()->value,
@@ -241,8 +243,8 @@ final class InMemoryMemberReadModel implements MemberReadModel
             $member->phone()?->value,
             $member->isPrimary(),
             $member->isActive(),
-            $member->deactivatedReason(),
-            $member->deactivatedAt()?->format(\DateTimeInterface::ATOM),
+            $deactivation?->reason,
+            $deactivation?->at->format(\DateTimeInterface::ATOM),
         );
     }
 

@@ -33,12 +33,8 @@ use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
-use Symfony\Component\Messenger\Envelope;
-use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
-use Symfony\Component\Messenger\Stamp\HandledStamp;
 use Symfony\Component\Routing\Attribute\Route;
-use Throwable;
 
 /**
  * HTTP adapter for the member detail page (LRA-41) and the in-card
@@ -62,6 +58,9 @@ use Throwable;
  */
 final class MemberDetailController extends AbstractController
 {
+    use DispatchesCommandsUnwrapping;
+    use DispatchesQueriesUnwrapping;
+
     private const string UUID_V7_REGEX
         = '[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}';
 
@@ -79,6 +78,12 @@ final class MemberDetailController extends AbstractController
     private const int HISTORY_MAX_PAGE_SIZE = 50;
 
     private const string MEMBER_NOT_FOUND_MESSAGE = 'Member not found.';
+
+    private const string TEMPLATE_PROFILE_EDIT = 'households/detail/_card_profile_edit.html.twig';
+
+    private const string TEMPLATE_ADDRESS_EDIT = 'households/detail/_address_sub_card_edit.html.twig';
+
+    private const string TEMPLATE_RESIDENCY_EDIT = 'households/detail/_residency_sub_card_edit.html.twig';
 
     public function __construct(
         private readonly MessageBusInterface $queryBus,
@@ -171,7 +176,7 @@ final class MemberDetailController extends AbstractController
         $input = $this->inputFromProfile($detail);
         $form = $this->createForm(UpdateMemberProfileFormType::class, $input);
 
-        return $this->render('households/detail/_card_profile_edit.html.twig', [
+        return $this->render(self::TEMPLATE_PROFILE_EDIT, [
             'form' => $form->createView(),
             'householdId' => $householdId,
             'memberId' => $memberId,
@@ -201,7 +206,13 @@ final class MemberDetailController extends AbstractController
         $form->handleRequest($request);
 
         if (!$form->isSubmitted() || !$form->isValid()) {
-            return $this->renderEditPartial($form, $householdId, $memberId, Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->renderEditPartial(
+                self::TEMPLATE_PROFILE_EDIT,
+                $form,
+                $householdId,
+                $memberId,
+                Response::HTTP_UNPROCESSABLE_ENTITY,
+            );
         }
 
         $command = new UpdateMemberProfile(
@@ -222,7 +233,13 @@ final class MemberDetailController extends AbstractController
         } catch (InvalidPersonName $exception) {
             $this->applyNameErrorToForm($form, $exception);
 
-            return $this->renderEditPartial($form, $householdId, $memberId, Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->renderEditPartial(
+                self::TEMPLATE_PROFILE_EDIT,
+                $form,
+                $householdId,
+                $memberId,
+                Response::HTTP_UNPROCESSABLE_ENTITY,
+            );
         } catch (InvalidDateOfBirth $exception) {
             if ($form->has('dobIso')) {
                 $form->get('dobIso')->addError(new FormError($exception->getMessage()));
@@ -230,11 +247,23 @@ final class MemberDetailController extends AbstractController
                 $form->addError(new FormError($exception->getMessage()));
             }
 
-            return $this->renderEditPartial($form, $householdId, $memberId, Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->renderEditPartial(
+                self::TEMPLATE_PROFILE_EDIT,
+                $form,
+                $householdId,
+                $memberId,
+                Response::HTTP_UNPROCESSABLE_ENTITY,
+            );
         } catch (SharedDomainException $exception) {
             $form->addError(new FormError($exception->getMessage()));
 
-            return $this->renderEditPartial($form, $householdId, $memberId, Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->renderEditPartial(
+                self::TEMPLATE_PROFILE_EDIT,
+                $form,
+                $householdId,
+                $memberId,
+                Response::HTTP_UNPROCESSABLE_ENTITY,
+            );
         }
 
         // Re-load the projection so the swapped read partial reflects the
@@ -278,7 +307,7 @@ final class MemberDetailController extends AbstractController
         $input = $this->inputFromAddress($detail);
         $form = $this->createForm(UpdateHouseholdAddressFormType::class, $input);
 
-        return $this->render('households/detail/_address_sub_card_edit.html.twig', [
+        return $this->render(self::TEMPLATE_ADDRESS_EDIT, [
             'form' => $form->createView(),
             'householdId' => $householdId,
             'memberId' => $memberId,
@@ -323,7 +352,13 @@ final class MemberDetailController extends AbstractController
         }
 
         if (!$form->isSubmitted() || !$form->isValid()) {
-            return $this->renderAddressEditPartial($form, $householdId, $memberId, Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->renderEditPartial(
+                self::TEMPLATE_ADDRESS_EDIT,
+                $form,
+                $householdId,
+                $memberId,
+                Response::HTTP_UNPROCESSABLE_ENTITY,
+            );
         }
 
         $command = new UpdateHouseholdAddress(
@@ -343,11 +378,23 @@ final class MemberDetailController extends AbstractController
         } catch (InvalidAddress $exception) {
             $this->applyAddressErrorToForm($form, $exception);
 
-            return $this->renderAddressEditPartial($form, $householdId, $memberId, Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->renderEditPartial(
+                self::TEMPLATE_ADDRESS_EDIT,
+                $form,
+                $householdId,
+                $memberId,
+                Response::HTTP_UNPROCESSABLE_ENTITY,
+            );
         } catch (SharedDomainException $exception) {
             $form->addError(new FormError($exception->getMessage()));
 
-            return $this->renderAddressEditPartial($form, $householdId, $memberId, Response::HTTP_UNPROCESSABLE_ENTITY);
+            return $this->renderEditPartial(
+                self::TEMPLATE_ADDRESS_EDIT,
+                $form,
+                $householdId,
+                $memberId,
+                Response::HTTP_UNPROCESSABLE_ENTITY,
+            );
         }
 
         try {
@@ -387,7 +434,7 @@ final class MemberDetailController extends AbstractController
         $input = $this->inputFromResidency($detail);
         $form = $this->createForm(ChangeMemberResidencyFormType::class, $input);
 
-        return $this->render('households/detail/_residency_sub_card_edit.html.twig', [
+        return $this->render(self::TEMPLATE_RESIDENCY_EDIT, [
             'form' => $form->createView(),
             'householdId' => $householdId,
             'memberId' => $memberId,
@@ -417,7 +464,8 @@ final class MemberDetailController extends AbstractController
         $form->handleRequest($request);
 
         if (!$form->isSubmitted() || !$form->isValid()) {
-            return $this->renderResidencyEditPartial(
+            return $this->renderEditPartial(
+                self::TEMPLATE_RESIDENCY_EDIT,
                 $form,
                 $householdId,
                 $memberId,
@@ -440,7 +488,8 @@ final class MemberDetailController extends AbstractController
         } catch (SharedDomainException $exception) {
             $form->addError(new FormError($exception->getMessage()));
 
-            return $this->renderResidencyEditPartial(
+            return $this->renderEditPartial(
+                self::TEMPLATE_RESIDENCY_EDIT,
                 $form,
                 $householdId,
                 $memberId,
@@ -532,75 +581,17 @@ final class MemberDetailController extends AbstractController
     }
 
     /**
-     * Dispatches the GetMemberDetail query and unwraps Messenger's
-     * HandlerFailedException so the original domain exceptions reach the
-     * caller. Domain exceptions cannot leak through Messenger's bus in
-     * their raw form because handler failures are always wrapped.
+     * Dispatches the GetMemberDetail query and projects the result to
+     * MemberDetail. The query bus unwrap (so the original domain exceptions
+     * reach this controller's catch blocks) and the result-type assertion
+     * live in {@see DispatchesQueriesUnwrapping}.
      */
     private function runQuery(string $householdId, string $memberId): MemberDetail
     {
-        try {
-            $envelope = $this->queryBus->dispatch(new GetMemberDetail($householdId, $memberId));
-        } catch (HandlerFailedException $wrapper) {
-            $nested = $wrapper->getPrevious();
-            if ($nested instanceof Throwable) {
-                throw $nested;
-            }
-            throw $wrapper;
-        }
-
-        $result = $this->resultOf($envelope);
-
-        if (!$result instanceof MemberDetail) {
-            throw new \LogicException(sprintf(
-                'GetMemberDetail handler returned %s, expected %s.',
-                get_debug_type($result),
-                MemberDetail::class,
-            ));
-        }
-
-        return $result;
-    }
-
-    /**
-     * Dispatch a command through the command bus and unwrap
-     * HandlerFailedException so domain exceptions surface to the caller.
-     */
-    private function dispatchCommandUnwrapping(object $command): void
-    {
-        try {
-            $this->commandBus->dispatch($command);
-        } catch (HandlerFailedException $wrapper) {
-            $nested = $wrapper->getPrevious();
-            if ($nested instanceof Throwable) {
-                throw $nested;
-            }
-            throw $wrapper;
-        }
-    }
-
-    /**
-     * Extract the single handler result from a dispatched Envelope. Mirrors
-     * Messenger's HandleTrait behaviour without coupling the controller to
-     * the trait (the controller uses both the query bus and the command
-     * bus, which the trait cannot multiplex).
-     */
-    private function resultOf(Envelope $envelope): mixed
-    {
-        $stamps = $envelope->all(HandledStamp::class);
-
-        if ($stamps === []) {
-            throw new \LogicException('Dispatched message produced no HandledStamp.');
-        }
-
-        if (count($stamps) > 1) {
-            throw new \LogicException('Dispatched message produced more than one HandledStamp.');
-        }
-
-        /** @var HandledStamp $stamp */
-        $stamp = $stamps[0];
-
-        return $stamp->getResult();
+        return $this->dispatchQueryUnwrapping(
+            new GetMemberDetail($householdId, $memberId),
+            MemberDetail::class,
+        );
     }
 
     /**
@@ -665,59 +656,24 @@ final class MemberDetailController extends AbstractController
     }
 
     /**
+     * Re-renders a card's edit-mode partial at the given HTTP status with the
+     * form (and its errors) intact. The three card edit partials share an
+     * identical shape — form view plus the (householdId, memberId) tuple the
+     * template needs for its action URLs — so they differ only by template.
+     *
      * @template TData
+     *
      * @param FormInterface<TData> $form
      */
     private function renderEditPartial(
+        string $template,
         FormInterface $form,
         string $householdId,
         string $memberId,
         int $status,
     ): Response {
         return $this->render(
-            'households/detail/_card_profile_edit.html.twig',
-            [
-                'form' => $form->createView(),
-                'householdId' => $householdId,
-                'memberId' => $memberId,
-            ],
-            new Response(null, $status),
-        );
-    }
-
-    /**
-     * @template TData
-     * @param FormInterface<TData> $form
-     */
-    private function renderAddressEditPartial(
-        FormInterface $form,
-        string $householdId,
-        string $memberId,
-        int $status,
-    ): Response {
-        return $this->render(
-            'households/detail/_address_sub_card_edit.html.twig',
-            [
-                'form' => $form->createView(),
-                'householdId' => $householdId,
-                'memberId' => $memberId,
-            ],
-            new Response(null, $status),
-        );
-    }
-
-    /**
-     * @template TData
-     * @param FormInterface<TData> $form
-     */
-    private function renderResidencyEditPartial(
-        FormInterface $form,
-        string $householdId,
-        string $memberId,
-        int $status,
-    ): Response {
-        return $this->render(
-            'households/detail/_residency_sub_card_edit.html.twig',
+            $template,
             [
                 'form' => $form->createView(),
                 'householdId' => $householdId,

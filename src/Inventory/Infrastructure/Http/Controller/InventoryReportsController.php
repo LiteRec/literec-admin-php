@@ -20,8 +20,6 @@ use App\Inventory\Domain\Barcode\BarcodeRenderer;
 use App\Inventory\Domain\ValueObject\StockMovementKind;
 use App\Inventory\Domain\ValueObject\StockMovementReason;
 use App\Inventory\Infrastructure\Http\Csv\CsvStreamer;
-use DateTimeImmutable;
-use DateTimeZone;
 use LogicException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -54,6 +52,7 @@ final class InventoryReportsController extends AbstractController
     use HandleTrait {
         handle as private dispatchQuery;
     }
+    use RequestQueryParsing;
 
     private const string PERMISSION_VIEW = 'view_inventory';
 
@@ -528,48 +527,5 @@ final class InventoryReportsController extends AbstractController
             }
         }
         return array_values(array_unique($valid));
-    }
-
-    private static function stringOrNull(mixed $value): ?string
-    {
-        if (! is_string($value)) {
-            return null;
-        }
-        $trimmed = trim($value);
-        return $trimmed === '' ? null : $trimmed;
-    }
-
-    private static function stringOrEmpty(mixed $value): string
-    {
-        if (! is_string($value)) {
-            return '';
-        }
-        return trim($value);
-    }
-
-    /**
-     * Parses a YYYY-MM-DD operator input into a UTC `DateTimeImmutable`.
-     * Returns null on any parse failure so a malformed filter just
-     * disables itself rather than 400-ing the page.
-     */
-    private static function parseDate(?string $raw, bool $startOfDay): ?DateTimeImmutable
-    {
-        if ($raw === null) {
-            return null;
-        }
-        $parsed = DateTimeImmutable::createFromFormat(
-            'Y-m-d',
-            $raw,
-            new DateTimeZone('UTC'),
-        );
-        if ($parsed === false) {
-            return null;
-        }
-        if ($parsed->format('Y-m-d') !== $raw) {
-            return null;
-        }
-        return $startOfDay
-            ? $parsed->setTime(0, 0, 0)
-            : $parsed->setTime(23, 59, 59);
     }
 }

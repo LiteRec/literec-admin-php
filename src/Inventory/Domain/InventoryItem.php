@@ -58,6 +58,7 @@ use Psr\Clock\ClockInterface;
 final class InventoryItem
 {
     use AggregateRoot;
+    use NullSafeEquality;
 
     private InventoryItemId $id;
 
@@ -232,7 +233,13 @@ final class InventoryItem
     {
         $this->guardNotArchived();
 
-        if (self::vendorIdsEqual($this->primaryVendorId, $primaryVendorId)) {
+        if (
+            self::nullSafeEquals(
+                $this->primaryVendorId,
+                $primaryVendorId,
+                static fn (VendorId $left, VendorId $right): bool => $left->equals($right),
+            )
+        ) {
             return;
         }
 
@@ -581,18 +588,5 @@ final class InventoryItem
     {
         $cmp = $a->receivedAt() <=> $b->receivedAt();
         return $cmp !== 0 ? $cmp : strcmp($a->id()->value, $b->id()->value);
-    }
-
-    private static function vendorIdsEqual(?VendorId $a, ?VendorId $b): bool
-    {
-        if ($a === null && $b === null) {
-            return true;
-        }
-
-        if ($a === null || $b === null) {
-            return false;
-        }
-
-        return $a->equals($b);
     }
 }

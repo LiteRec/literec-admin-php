@@ -39,6 +39,7 @@ use Psr\Clock\ClockInterface;
 final class Vendor
 {
     use AggregateRoot;
+    use NullSafeEquality;
 
     private VendorId $id;
 
@@ -184,7 +185,13 @@ final class Vendor
     {
         $this->guardNotArchived();
 
-        if (self::emailsEqual($this->email, $email)) {
+        if (
+            self::nullSafeEquals(
+                $this->email,
+                $email,
+                static fn (EmailAddress $left, EmailAddress $right): bool => $left->equals($right),
+            )
+        ) {
             return;
         }
 
@@ -197,7 +204,13 @@ final class Vendor
     {
         $this->guardNotArchived();
 
-        if (self::phonesEqual($this->phone, $phone)) {
+        if (
+            self::nullSafeEquals(
+                $this->phone,
+                $phone,
+                static fn (PhoneNumber $left, PhoneNumber $right): bool => $left->equals($right),
+            )
+        ) {
             return;
         }
 
@@ -210,7 +223,13 @@ final class Vendor
     {
         $this->guardNotArchived();
 
-        if (self::addressesEqual($this->address, $address)) {
+        if (
+            self::nullSafeEquals(
+                $this->address,
+                $address,
+                static fn (VendorAddress $left, VendorAddress $right): bool => $left->equals($right),
+            )
+        ) {
             return;
         }
 
@@ -235,51 +254,5 @@ final class Vendor
         if ($this->archived) {
             throw VendorIsArchived::for($this->id);
         }
-    }
-
-    private static function emailsEqual(?EmailAddress $a, ?EmailAddress $b): bool
-    {
-        return self::nullableEqual(
-            $a,
-            $b,
-            static fn (EmailAddress $left, EmailAddress $right): bool => $left->equals($right),
-        );
-    }
-
-    private static function phonesEqual(?PhoneNumber $a, ?PhoneNumber $b): bool
-    {
-        return self::nullableEqual(
-            $a,
-            $b,
-            static fn (PhoneNumber $left, PhoneNumber $right): bool => $left->equals($right),
-        );
-    }
-
-    private static function addressesEqual(?VendorAddress $a, ?VendorAddress $b): bool
-    {
-        return self::nullableEqual(
-            $a,
-            $b,
-            static fn (VendorAddress $left, VendorAddress $right): bool => $left->equals($right),
-        );
-    }
-
-    /**
-     * @template T of object
-     * @param T|null $a
-     * @param T|null $b
-     * @param callable(T, T): bool $compare
-     */
-    private static function nullableEqual(?object $a, ?object $b, callable $compare): bool
-    {
-        if ($a === null && $b === null) {
-            return true;
-        }
-
-        if ($a === null || $b === null) {
-            return false;
-        }
-
-        return $compare($a, $b);
     }
 }

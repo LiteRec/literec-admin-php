@@ -220,8 +220,10 @@ trait HouseholdsContractCases
         $second = $byId[self::SECOND_MEMBER_ID];
         self::assertSame(ResidencyStatus::Member, $second->residencyStatus());
         self::assertFalse($second->isActive());
-        self::assertSame('moved out of state', $second->deactivatedReason());
-        self::assertNotNull($second->deactivatedAt());
+        $deactivation = $second->deactivation();
+        self::assertNotNull($deactivation);
+        self::assertSame('moved out of state', $deactivation->reason);
+        self::assertInstanceOf(\DateTimeImmutable::class, $deactivation->at);
     }
 
     #[Test]

@@ -1,0 +1,228 @@
+# yaml-language-server: $schema=../../vendor/symfony/routing/Loader/schema/routing.schema.json
+#
+# Placeholder "coming soon" destinations. Every nav target that does not yet
+# have a real controller maps here: one route per entry, all dispatched to the
+# single invokable App\Controller\PlaceholderController, which renders the
+# shared stub using the per-route `sectionTitle` default. Route names use the
+# ubiquitous staff/admin language (e.g. membership_cards_index) so a feature can
+# later swap its entry for a dedicated controller without rewiring nav links.
+#
+# The Inventory list page (route name `inventory_index`, /admin/inventory) is
+# served by App\Inventory\Infrastructure\Http\Controller\ListInventoryController
+# (LRA-85); its placeholder entry was removed when the real controller landed.
+
+cash_register_index:
+    path: /cash-register
+    controller: App\Controller\PlaceholderController
+    methods: [GET]
+    defaults: { sectionTitle: 'Cash Register' }
+
+pos_transactions_index:
+    path: /cash-register/pos-transactions
+    controller: App\Controller\PlaceholderController
+    methods: [GET]
+    defaults: { sectionTitle: 'POS Transactions' }
+
+payment_plans_all_index:
+    path: /cash-register/payment-plans
+    controller: App\Controller\PlaceholderController
+    methods: [GET]
+    defaults: { sectionTitle: 'All Payment Plan Invoices' }
+
+eft_all_index:
+    path: /cash-register/efts
+    controller: App\Controller\PlaceholderController
+    methods: [GET]
+    defaults: { sectionTitle: 'All EFT Invoices' }
+
+gift_cards_index:
+    path: /cash-register/gift-cards
+    controller: App\Controller\PlaceholderController
+    methods: [GET]
+    defaults: { sectionTitle: 'Gift Cards' }
+
+programs_index:
+    path: /programs
+    controller: App\Controller\PlaceholderController
+    methods: [GET]
+    defaults: { sectionTitle: 'Programs' }
+
+program_types_index:
+    path: /programs/types
+    controller: App\Controller\PlaceholderController
+    methods: [GET]
+    defaults: { sectionTitle: 'Program Types' }
+
+program_payment_plans_index:
+    path: /programs/payment-plans
+    controller: App\Controller\PlaceholderController
+    methods: [GET]
+    defaults: { sectionTitle: 'Program Payment Plan Invoices' }
+
+program_efts_index:
+    path: /programs/efts
+    controller: App\Controller\PlaceholderController
+    methods: [GET]
+    defaults: { sectionTitle: 'Program EFT Invoices' }
+
+refunds_index:
+    path: /users/refunds
+    controller: App\Controller\PlaceholderController
+    methods: [GET]
+    defaults: { sectionTitle: 'Refunds' }
+
+user_groups_index:
+    path: /users/groups
+    controller: App\Controller\PlaceholderController
+    methods: [GET]
+    defaults: { sectionTitle: 'User Groups' }
+
+memberships_index:
+    path: /memberships
+    controller: App\Controller\PlaceholderController
+    methods: [GET]
+    defaults: { sectionTitle: 'Memberships' }
+
+membership_types_index:
+    path: /memberships/types
+    controller: App\Controller\PlaceholderController
+    methods: [GET]
+    defaults: { sectionTitle: 'Membership Types' }
+
+membership_logger_index:
+    path: /memberships/logger
+    controller: App\Controller\PlaceholderController
+    methods: [GET]
+    defaults: { sectionTitle: 'Membership Logger' }
+
+membership_cards_index:
+    path: /memberships/cards
+    controller: App\Controller\PlaceholderController
+    methods: [GET]
+    defaults: { sectionTitle: 'Membership Cards' }
+
+membership_payment_plans_index:
+    path: /memberships/payment-plans
+    controller: App\Controller\PlaceholderController
+    methods: [GET]
+    defaults: { sectionTitle: 'Membership Payment Plan Invoices' }
+
+membership_efts_index:
+    path: /memberships/efts
+    controller: App\Controller\PlaceholderController
+    methods: [GET]
+    defaults: { sectionTitle: 'Membership EFT Invoices' }
+
+facilities_index:
+    path: /facilities
+    controller: App\Controller\PlaceholderController
+    methods: [GET]
+    defaults: { sectionTitle: 'Facilities' }
+
+facility_calendar_index:
+    path: /facilities/calendar
+    controller: App\Controller\PlaceholderController
+    methods: [GET]
+    defaults: { sectionTitle: 'Calendar' }
+
+rental_codes_index:
+    path: /facilities/rental-codes
+    controller: App\Controller\PlaceholderController
+    methods: [GET]
+    defaults: { sectionTitle: 'Rental Codes' }
+
+user_rentals_index:
+    path: /facilities/user-rentals
+    controller: App\Controller\PlaceholderController
+    methods: [GET]
+    defaults: { sectionTitle: 'Manage User Rentals' }
+
+rental_payment_plans_index:
+    path: /facilities/payment-plans
+    controller: App\Controller\PlaceholderController
+    methods: [GET]
+    defaults: { sectionTitle: 'Rental Payment Plan Invoices' }
+
+rental_efts_index:
+    path: /facilities/efts
+    controller: App\Controller\PlaceholderController
+    methods: [GET]
+    defaults: { sectionTitle: 'Rental EFT Invoices' }
+
+reports_index:
+    path: /reports
+    controller: App\Controller\PlaceholderController
+    methods: [GET]
+    defaults: { sectionTitle: 'Reports' }
+
+reports_general_ledger_index:
+    path: /reports/general-ledger
+    controller: App\Controller\PlaceholderController
+    methods: [GET]
+    defaults: { sectionTitle: 'General Ledger Reports' }
+
+reports_users_index:
+    path: /reports/users
+    controller: App\Controller\PlaceholderController
+    methods: [GET]
+    defaults: { sectionTitle: 'User Reports' }
+
+reports_programs_index:
+    path: /reports/programs
+    controller: App\Controller\PlaceholderController
+    methods: [GET]
+    defaults: { sectionTitle: 'Program Reports' }
+
+reports_memberships_index:
+    path: /reports/memberships
+    controller: App\Controller\PlaceholderController
+    methods: [GET]
+    defaults: { sectionTitle: 'Membership Reports' }
+
+reports_facilities_index:
+    path: /reports/facilities
+    controller: App\Controller\PlaceholderController
+    methods: [GET]
+    defaults: { sectionTitle: 'Facility Reports' }
+
+reports_inventory_index:
+    path: /reports/inventory
+    controller: App\Controller\PlaceholderController
+    methods: [GET]
+    defaults: { sectionTitle: 'Inventory Reports' }
+
+reports_payment_method_index:
+    path: /reports/payment-methods
+    controller: App\Controller\PlaceholderController
+    methods: [GET]
+    defaults: { sectionTitle: 'Payment Method Reports' }
+
+communications_index:
+    path: /communications
+    controller: App\Controller\PlaceholderController
+    methods: [GET]
+    defaults: { sectionTitle: 'Communications' }
+
+comm_send_message_index:
+    path: /communications/send-message
+    controller: App\Controller\PlaceholderController
+    methods: [GET]
+    defaults: { sectionTitle: 'Send Message' }
+
+comm_group_builder_index:
+    path: /communications/group-builder
+    controller: App\Controller\PlaceholderController
+    methods: [GET]
+    defaults: { sectionTitle: 'Group Builder' }
+
+comm_twitter_index:
+    path: /communications/twitter
+    controller: App\Controller\PlaceholderController
+    methods: [GET]
+    defaults: { sectionTitle: 'Twitter' }
+
+comm_settings_index:
+    path: /communications/settings
+    controller: App\Controller\PlaceholderController
+    methods: [GET]
+    defaults: { sectionTitle: 'Communication Settings' }
