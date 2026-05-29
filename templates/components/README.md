@@ -9,7 +9,8 @@ so callers pass parameters explicitly — no globals, no implicit context.
 | `_main_nav.html.twig` | _(no parameters; reads `main_navigation()` from `App\Ui\Twig\NavigationExtension`)_ | `{% include 'components/_main_nav.html.twig' %}` |
 | `_kpi_card.html.twig` | `string label`, `string value`, `?string delta` | `{% include 'components/_kpi_card.html.twig' with { label: 'Today\'s Revenue', value: '$4,182.50', delta: '+12% vs. yesterday' } only %}` |
 | `_page_header.html.twig` | `string title`, `?string actions` _(pre-rendered HTML, rendered raw)_ | `{% include 'components/_page_header.html.twig' with { title: 'Admin Dashboard', actions: actionsHtml } only %}` |
-| `_status_badge.html.twig` | `string status` ∈ `succeeded \| pending \| failed \| refunded` | `{% include 'components/_status_badge.html.twig' with { status: tx.status.value } only %}` |
+| `_badge.html.twig` | `string label`, `string variant` ∈ `success \| warning \| danger \| info \| neutral`, `?string class` | `{% include 'components/_badge.html.twig' with { label: 'Excellent', variant: 'success' } only %}` |
+| `_status_badge.html.twig` | `string status` ∈ `succeeded \| pending \| failed \| refunded` _(maps onto `_badge`)_ | `{% include 'components/_status_badge.html.twig' with { status: tx.status.value } only %}` |
 | `_empty_state.html.twig` | `string title`, `string message`, `?string ctaLabel`, `?string ctaRoute` | `{% include 'components/_empty_state.html.twig' with { title: 'Coming soon', message: 'This screen arrives later.' } only %}` |
 | `_breadcrumbs.html.twig` | `array trail` of `{ label, route }` items | `{% include 'components/_breadcrumbs.html.twig' with { trail: [{label:'Dashboard',route:'app_dashboard'},{label:'Reports'}] } only %}` |
 | `_icon.html.twig` | `icon(string name, int size = 16, number stroke = 1.6, string class = '')` _(Twig macro — imported, not included)_ | `{% import 'components/_icon.html.twig' as icon %}` then `{{ icon.icon('leaf', 18) }}` |
@@ -35,6 +36,26 @@ and call it as a function:
   `chevronR`, `user`, `users`, `cart`, `info`, `bell`, `leaf`, `tree`,
   `calendar`, `heart`, `money`, `tag`, `ticket`, `key`, `arrowUp`, `bolt`,
   `pin`, `check`, `grid`, `clock`, `print`, `sun`, `moon`.
+
+## `lr-` component classes
+
+Beyond the Twig partials, the Eagleton component layer ships as token-driven
+CSS classes in `assets/styles/app.css` (under `@layer components`). Compose
+them directly in markup; they are global (not scoped to `.lr-screen`) and
+recolor automatically with the active theme.
+
+- **Buttons:** `lr-btn` with modifiers `lr-btn-ghost`, `lr-btn-primary`,
+  `lr-btn-secondary`, `lr-btn-danger`, `lr-btn-lg`, `lr-btn-block`.
+- **Cards:** `lr-card` + `lr-card-head`, `lr-card-title`, `lr-card-body`.
+- **Badges:** prefer the `_badge.html.twig` partial; the underlying classes are
+  `lr-badge` + a variant (`success`, `warning`, `danger`, `info`, `neutral`).
+- **Chips:** `lr-chip`. **Tabs:** `lr-tabs` + `lr-tab` (`is-active`).
+- **Icon button:** `lr-iconbtn` (`danger` variant). **Kbd:** `lr-kbd`.
+- **Text helpers:** `lr-muted`, `lr-link`, `lr-num` (tabular figures),
+  `lr-row-strong`, `lr-section-label`.
+
+Do not transition `var()`-backed color/background/border on these classes — a
+theme switch would strand the old value (see the note in `app.css`).
 
 ## Conventions
 

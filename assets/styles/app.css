@@ -72,6 +72,7 @@
     --lr-on-secondary: #0a1820;
     --lr-accent: #2e5847;
     --lr-on-accent: #fafcfd;
+    --lr-on-danger: #fafcfd;
 
     /* Accessible inline-link gold: the brand gold (#b8860b) only reaches
        ~3.3:1 on white and fails AA for text, so links use a darkened gold. */
@@ -129,6 +130,8 @@
     --lr-on-secondary: #0a1820;
     --lr-accent: #5a9e7c;
     --lr-on-accent: #0a1820;
+    /* Dark danger is a light red, so text on a danger fill must be dark. */
+    --lr-on-danger: #450a0a;
     --lr-link: #e0b84a;
     --lr-sidebar-bg: #080c10;
     --lr-sidebar-text: #f0f5f8;
@@ -243,6 +246,145 @@
        focus. */
     outline: 2px solid var(--lr-primary);
     outline-offset: 2px;
+}
+
+/* ======================================================================
+   Eagleton "lr-" component layer: buttons, cards, badges, chips, tabs, icon
+   buttons, the kbd element, and the small text helpers they lean on. (LRA-126
+   extends this layer with form fields, tables, and lists.) Every value is
+   token-driven. Placed in @layer components so Tailwind utilities still win
+   the cascade and callers can override.
+
+   NB: do not transition var()-backed color/background/border — transitioning
+   a property bound to a theme variable suppresses the update when only the
+   variable changes (theme switch), stranding the old value. Hover feedback is
+   instant, which is fine.
+   ====================================================================== */
+@layer components {
+    /* text helpers */
+    .lr-muted { color: var(--lr-text-muted); }
+    .lr-link { color: var(--lr-link); }
+    .lr-num { font-variant-numeric: tabular-nums; }
+    .lr-row-strong { font-weight: 600; }
+    .lr-section-label {
+        font-size: 0.6875rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--lr-text-muted);
+    }
+
+    /* buttons */
+    .lr-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        border: 1px solid transparent;
+        border-radius: var(--radius-card-sm);
+        padding: 0.5rem 0.85rem;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        background: var(--lr-bg-muted);
+        color: var(--lr-text);
+    }
+    .lr-btn:hover { background: var(--lr-border); }
+    .lr-btn-ghost { background: transparent; border-color: var(--lr-border); }
+    .lr-btn-ghost:hover { background: var(--lr-bg-muted); }
+    .lr-btn-primary { background: var(--lr-primary); color: var(--lr-on-primary); }
+    .lr-btn-primary:hover { background: var(--lr-primary-strong); }
+    .lr-btn-secondary { background: var(--lr-secondary); color: var(--lr-on-secondary); }
+    .lr-btn-secondary:hover { background: var(--lr-secondary-strong); }
+    .lr-btn-danger { background: var(--lr-danger); color: var(--lr-on-danger); }
+    .lr-btn-lg { padding: 0.75rem 1.1rem; font-size: 0.95rem; }
+    .lr-btn-block { width: 100%; justify-content: center; }
+
+    /* cards / panels */
+    .lr-card {
+        background: var(--lr-surface);
+        border: 1px solid var(--lr-border);
+        border-radius: var(--radius-card);
+        box-shadow: var(--shadow-card);
+    }
+    .lr-card-head {
+        padding: 0.75rem var(--pad-row-x);
+        border-bottom: 1px solid var(--lr-border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+    }
+    .lr-card-title { font-size: 0.95rem; font-weight: 700; }
+    .lr-card-body { padding: var(--pad-card); }
+
+    /* badges */
+    .lr-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        border-radius: var(--radius-pill);
+        padding: 0.15rem 0.55rem;
+        font-size: 0.6875rem;
+        font-weight: 700;
+    }
+    .lr-badge.success { background: var(--lr-success-bg); color: var(--lr-success-fg); }
+    .lr-badge.warning { background: var(--lr-warning-bg); color: var(--lr-warning-fg); }
+    .lr-badge.danger { background: var(--lr-danger-bg); color: var(--lr-danger-fg); }
+    .lr-badge.info { background: var(--lr-info-bg); color: var(--lr-info-fg); }
+    .lr-badge.neutral { background: var(--lr-bg-muted); color: var(--lr-text-muted); }
+
+    /* chips */
+    .lr-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        border: 1px solid var(--lr-border);
+        border-radius: var(--radius-pill);
+        padding: 0.25rem 0.6rem;
+        font-size: 0.75rem;
+        background: var(--lr-bg-muted);
+    }
+
+    /* tabs */
+    .lr-tabs { display: flex; gap: 0.25rem; border-bottom: 1px solid var(--lr-border); }
+    .lr-tab {
+        padding: 0.6rem 0.95rem;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: var(--lr-text-muted);
+        border: 0;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -1px;
+        background: none;
+    }
+    .lr-tab:hover { color: var(--lr-text); }
+    .lr-tab.is-active { color: var(--lr-primary); border-bottom-color: var(--lr-secondary); }
+    :root[data-theme="dark"] .lr-tab.is-active { color: var(--lr-text); }
+
+    /* icon button */
+    .lr-iconbtn {
+        width: 30px;
+        height: 30px;
+        border-radius: var(--radius-card-sm);
+        border: 1px solid transparent;
+        background: transparent;
+        color: var(--lr-text-muted);
+        display: inline-grid;
+        place-items: center;
+    }
+    .lr-iconbtn:hover { background: var(--lr-bg-muted); color: var(--lr-text); }
+    .lr-iconbtn.danger:hover { background: var(--lr-danger-bg); color: var(--lr-danger-fg); }
+
+    /* keyboard key */
+    .lr-kbd {
+        font-family: var(--lr-mono);
+        font-size: 0.7rem;
+        border: 1px solid var(--lr-border);
+        border-bottom-width: 2px;
+        border-radius: 4px;
+        padding: 0.05rem 0.35rem;
+        color: var(--lr-text-muted);
+        background: var(--lr-surface);
+    }
 }
 
 /* Hide x-cloak elements until Alpine.js has initialised. */
