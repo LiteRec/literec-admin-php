@@ -15,6 +15,12 @@ use PHPUnit\Framework\TestCase;
  * Pins the avatar-initials helper used by the app-shell header: up to two
  * uppercase initials derived from a display name or username, split on
  * whitespace and the common username separators.
+ *
+ * Test methods use the project-standard snake_case behavioural names (see
+ * CLAUDE.md). PHPMD is not part of this repo's toolchain, but the suppression
+ * documents the intent for any future static-analysis pass.
+ *
+ * @SuppressWarnings(PHPMD.CamelCaseMethodName)
  */
 #[Small]
 final class AppShellExtensionTest extends TestCase
