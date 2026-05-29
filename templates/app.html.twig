@@ -36,7 +36,7 @@
                                 aria-haspopup="true"
                                 :aria-expanded="open ? 'true' : 'false'"
                                 aria-label="Account menu for {{ app.user.username }}"
-                            >{{ app.user.username|user_initials }}</button>
+                            ><span aria-hidden="true">{{ app.user.username|user_initials }}</span></button>
 
                             <div
                                 x-show="open"
