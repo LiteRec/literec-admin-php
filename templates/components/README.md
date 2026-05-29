@@ -14,6 +14,7 @@ so callers pass parameters explicitly — no globals, no implicit context.
 | `_empty_state.html.twig` | `string title`, `string message`, `?string ctaLabel`, `?string ctaRoute` | `{% include 'components/_empty_state.html.twig' with { title: 'Coming soon', message: 'This screen arrives later.' } only %}` |
 | `_breadcrumbs.html.twig` | `array trail` of `{ label, route }` items | `{% include 'components/_breadcrumbs.html.twig' with { trail: [{label:'Dashboard',route:'app_dashboard'},{label:'Reports'}] } only %}` |
 | `_icon.html.twig` | `icon(string name, int size = 16, number stroke = 1.6, string class = '')` _(Twig macro — imported, not included)_ | `{% import 'components/_icon.html.twig' as icon %}` then `{{ icon.icon('leaf', 18) }}` |
+| `_register_mode_toggle.html.twig` | `string active` ∈ `full \| quick` | `{% include 'components/_register_mode_toggle.html.twig' with { active: 'full' } only %}` |
 
 ## Page header subtitle & breadcrumbs
 
@@ -81,6 +82,8 @@ recolor automatically with the active theme.
 - **Tables:** `lr-table` (uppercase header cells, density-token row padding,
   hover row, no border on the last row).
 - **Lists:** `lr-list` + `lr-list-row` (divider list).
+- **Dashboard:** `lr-kpi` (gradient tile + `.ico`/`.val`/`.lbl`/`.delta`/`.blob`), `lr-quick` (dashed action tile), `lr-dot` (status dot), `lr-datechip` (`.d`/`.m`).
+- **Cash Register:** `lr-seg` (Full/Quick segmented toggle), `lr-totals` (`.row`/`.row.total`), `lr-avatar-lg` + `lr-avatar-xl-initials`.
 
 Do not transition `var()`-backed color/background/border on these classes — a
 theme switch would strand the old value (see the note in `app.css`).

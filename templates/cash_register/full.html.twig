@@ -1,0 +1,159 @@
+{% extends 'app.html.twig' %}
+
+{% import 'components/_icon.html.twig' as ui %}
+
+{% block page_title %}Cash Register{% endblock %}
+{% block page_subtitle %}Build a sale, then take payment.{% endblock %}
+
+{% block breadcrumbs %}
+    {% include 'components/_breadcrumbs.html.twig' with {
+        trail: [{ label: 'Dashboard', route: 'app_dashboard' }, { label: 'Cash Register' }],
+    } only %}
+{% endblock %}
+
+{% block page_actions %}
+    {% include 'components/_register_mode_toggle.html.twig' with { active: 'full' } only %}
+    <button type="button" class="lr-btn lr-btn-ghost">{{ ui.icon('clock', 15) }} Held sales</button>
+{% endblock %}
+
+{% block page_body %}
+    {# Three-pane layout: payer · builder + cart · sticky summary. Stubbed sample
+       data (register.*); every control is a non-functional placeholder — no
+       backend mutation happens on this screen. #}
+    {% set kind_variants = { 'program': 'info', 'membership': 'success', 'item': 'neutral', 'rental': 'warning' } %}
+    <div class="grid grid-cols-1 items-start gap-5 lg:grid-cols-[244px_1fr_332px]">
+
+        {# ---- Payer ---- #}
+        <div class="lr-card">
+            <div class="lr-card-head"><span class="lr-card-title">Payer</span></div>
+            <div class="lr-card-body flex flex-col gap-3">
+                <div class="lr-avatar-lg"><span class="lr-avatar-xl-initials">{{ register.payer.initials }}</span></div>
+                <div>
+                    <div class="text-sm font-bold">{{ register.payer.name }}</div>
+                    <div class="lr-muted font-mono text-xs">{{ register.payer.id }}</div>
+                </div>
+                <div class="flex flex-col gap-1 text-xs">
+                    <div class="lr-muted">{{ register.payer.household }}</div>
+                    <div class="lr-muted">{{ register.payer.email }}</div>
+                    <div class="lr-muted">{{ register.payer.phone }}</div>
+                </div>
+                <div class="flex items-center justify-between border-t border-litrec-border pt-2">
+                    <span class="lr-muted text-xs">Account balance</span>
+                    {% include 'components/_badge.html.twig' with { label: register.payer.accountBalance, variant: 'success' } only %}
+                </div>
+            </div>
+        </div>
+
+        {# ---- Builder + cart ---- #}
+        <div class="flex flex-col gap-5">
+            <div class="lr-card">
+                <div class="px-[var(--pad-row-x)] pt-1">
+                    <div class="lr-tabs">
+                        <button type="button" class="lr-tab is-active">Programs</button>
+                        <button type="button" class="lr-tab">Memberships</button>
+                        <button type="button" class="lr-tab">Reservations</button>
+                        <button type="button" class="lr-tab">Items</button>
+                        <button type="button" class="lr-tab">Rentals</button>
+                    </div>
+                </div>
+                <div class="lr-card-body">
+                    <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
+                        {# left: lookup #}
+                        <div class="flex flex-col gap-3">
+                            <label class="lr-field">
+                                <span class="lr-label">Participant</span>
+                                <span class="lr-input">{{ ui.icon('search', 15, 1.6, 'ico') }}<input type="text" value="{{ register.participantName }}">{{ ui.icon('info', 15, 1.6, 'ico') }}</span>
+                            </label>
+                            <label class="lr-field">
+                                <span class="lr-label">Program ID</span>
+                                <span class="lr-input is-focus">{{ ui.icon('search', 15, 1.6, 'ico') }}<input type="text" value="{{ register.participantId }}"></span>
+                            </label>
+                            <div class="rounded-card-sm border border-litrec-border bg-litrec-surface-2 px-3 py-3">
+                                <div class="font-bold">{{ register.program.name }}</div>
+                                <div class="lr-muted mt-0.5 text-xs">{{ register.program.schedule }}</div>
+                                <div class="lr-num mt-1.5 text-lg font-extrabold">{{ register.program.price }}</div>
+                            </div>
+                            <label class="lr-check"><span class="box">{{ ui.icon('check', 11, 3) }}</span> Include program registration &amp; associated fee</label>
+                            <div><button type="button" class="lr-btn lr-btn-ghost">Discounts (0) {{ ui.icon('chevron', 12) }}</button></div>
+                        </div>
+                        {# right: add-on options #}
+                        <div>
+                            <div class="lr-section-label mb-2">Add-on options</div>
+                            <div class="lr-card shadow-none">
+                                <table class="lr-table">
+                                    <thead><tr><th>Option</th><th class="w-20">Disc.</th><th class="w-20 text-right">Price</th></tr></thead>
+                                    <tbody>
+                                        {% for option in register.addOnOptions %}
+                                            <tr>
+                                                <td>
+                                                    <label class="lr-check">
+                                                        <span class="box{% if not option.checked %} bg-transparent{% endif %}">{% if option.checked %}{{ ui.icon('check', 11, 3) }}{% endif %}</span>
+                                                        {{ option.name }}
+                                                    </label>
+                                                </td>
+                                                <td><span class="lr-select inline-flex items-center gap-1">0 {{ ui.icon('chevron', 11) }}</span></td>
+                                                <td class="lr-num text-right font-semibold">{{ option.price }}</td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-4 flex items-center justify-between border-t border-litrec-border pt-4">
+                        <div><span class="lr-section-label">Line price</span><div class="lr-num text-2xl font-extrabold">{{ register.program.price }}</div></div>
+                        <button type="button" class="lr-btn lr-btn-primary lr-btn-lg">{{ ui.icon('plus', 16) }} Add to Cart</button>
+                    </div>
+                </div>
+            </div>
+
+            {# cart #}
+            <div class="lr-card">
+                <div class="lr-card-head">
+                    <span class="lr-card-title inline-flex items-center gap-2">{{ ui.icon('cart', 16) }} Shopping Cart</span>
+                    <span class="lr-muted text-xs">{{ register.cart|length }} items</span>
+                </div>
+                <table class="lr-table">
+                    <thead><tr><th>Description</th><th class="w-16">Qty</th><th class="w-24 text-right">Price</th><th class="w-11"></th></tr></thead>
+                    <tbody>
+                        {% for line in register.cart %}
+                            <tr>
+                                <td>
+                                    <div class="flex items-center gap-2">
+                                        {% include 'components/_badge.html.twig' with { label: line.kind|capitalize, variant: kind_variants[line.kind] ?? 'neutral' } only %}
+                                        <span class="lr-row-strong">{{ line.name }}</span>
+                                    </div>
+                                    <div class="lr-muted mt-0.5 font-mono text-xs">{{ line.code }}</div>
+                                </td>
+                                <td><span class="lr-chip lr-num">{{ line.quantity }}</span></td>
+                                <td class="lr-num text-right font-semibold">{{ line.price }}</td>
+                                <td><button type="button" class="lr-iconbtn danger" aria-label="Remove {{ line.name }}">{{ ui.icon('trash', 15) }}</button></td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {# ---- Summary (sticky) ---- #}
+        <div class="lr-card sticky top-4">
+            <div class="lr-card-body flex flex-col gap-4">
+                <label class="lr-field">
+                    <span class="lr-label">Facility</span>
+                    <span class="lr-select flex justify-between">{{ register.facility }} {{ ui.icon('chevron', 12) }}</span>
+                </label>
+                <div class="lr-totals">
+                    <div class="row"><span class="lr-muted">Subtotal</span><span class="lr-num">{{ register.totals.subtotal }}</span></div>
+                    <div class="row"><span class="lr-muted">Discounts</span><span class="lr-num">{{ register.totals.discounts }}</span></div>
+                    <div class="row"><span class="lr-muted">Tax</span><span class="lr-num">{{ register.totals.tax }}</span></div>
+                    <div class="row total"><span>Total</span><span class="lr-num">{{ register.totals.total }}</span></div>
+                </div>
+                <div class="flex flex-col gap-2">
+                    <button type="button" class="lr-btn lr-btn-ghost lr-btn-block">{{ ui.icon('money', 16) }} Open Cash Register</button>
+                    <button type="button" class="lr-btn lr-btn-secondary lr-btn-block lr-btn-lg font-extrabold">Complete Sale · {{ register.totals.total }}</button>
+                    <button type="button" class="lr-btn lr-btn-block bg-transparent text-danger">{{ ui.icon('trash', 15) }} Clear sale</button>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

@@ -636,6 +636,62 @@
     .lr-datechip .m { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; }
 }
 
+/* ======================================================================
+   Cash Register: the Full/Quick segmented mode toggle, the summary totals
+   block, and the large payer avatar. Token-driven. (LRA-131 adds the
+   quick-sale tile grid and stepper.)
+   ====================================================================== */
+@layer components {
+    .lr-seg {
+        display: inline-flex;
+        background: var(--lr-bg-muted);
+        border: 1px solid var(--lr-border);
+        border-radius: var(--radius-card);
+        padding: 3px;
+        gap: 2px;
+    }
+    .lr-seg a {
+        border: 0;
+        background: transparent;
+        color: var(--lr-text-muted);
+        font: inherit;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        text-decoration: none;
+        padding: 0.4rem 0.8rem;
+        border-radius: calc(var(--radius-card) - 3px);
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+    .lr-seg a:hover { color: var(--lr-text); }
+    .lr-seg a.is-active { background: var(--lr-surface); color: var(--lr-primary); box-shadow: var(--shadow-card); }
+
+    .lr-totals { display: flex; flex-direction: column; gap: 0.4rem; }
+    .lr-totals .row { display: flex; align-items: center; justify-content: space-between; font-size: 0.875rem; }
+    .lr-totals .row.total {
+        font-size: 1.25rem;
+        font-weight: 800;
+        border-top: 1px solid var(--lr-border);
+        padding-top: 0.6rem;
+        margin-top: 0.2rem;
+    }
+
+    .lr-avatar-lg {
+        width: 100%;
+        aspect-ratio: 1;
+        border-radius: var(--radius-card);
+        background: var(--lr-bg-muted);
+        border: 1px solid var(--lr-border);
+        display: grid;
+        place-items: center;
+        color: var(--lr-text-muted);
+    }
+    .lr-avatar-xl-initials { font-size: 2.6rem; font-weight: 800; color: var(--lr-primary); opacity: 0.85; }
+}
+
+:root[data-theme="dark"] .lr-seg a.is-active { color: var(--lr-text); }
+
 /* Hide x-cloak elements until Alpine.js has initialised. */
 [x-cloak] {
     display: none !important;

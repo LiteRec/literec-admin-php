@@ -10,12 +10,10 @@
 # The Inventory list page (route name `inventory_index`, /admin/inventory) is
 # served by App\Inventory\Infrastructure\Http\Controller\ListInventoryController
 # (LRA-85); its placeholder entry was removed when the real controller landed.
-
-cash_register_index:
-    path: /cash-register
-    controller: App\Controller\PlaceholderController
-    methods: [GET]
-    defaults: { sectionTitle: 'Cash Register' }
+# The Cash Register pages (route names `cash_register_index` /cash-register and
+# `cash_register_quick_index` /cash-register/quick) are served by
+# App\Controller\CashRegisterController (LRA-130/131); their placeholder entry
+# was removed when that controller landed.
 
 pos_transactions_index:
     path: /cash-register/pos-transactions
