@@ -64,7 +64,9 @@
                         {% for m in detail.householdMembers %}
                             {% set isActiveMember = m.memberId == detail.profile.memberId %}
                             {% set pushUrl = path('member_detail', { householdId: detail.household.householdId, memberId: m.memberId }) %}
-                            {# NOSONAR Web:S6819 — tr cannot be replaced with button; this is the established clickable-row pattern (role=button + tabindex + keyboard handler). #}
+                            {# Clickable member row: a table row cannot be a button element, so it
+                               uses the role=button + tabindex + keydown pattern. Web:S6819 is
+                               suppressed for this file in sonar-project.properties with the rationale. #}
                             <tr
                                 data-testid="household-member-row-{{ m.memberId }}"
                                 {% if isActiveMember %}

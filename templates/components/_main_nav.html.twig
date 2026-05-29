@@ -10,7 +10,10 @@
        the menubar would force the two-word "Cash Register" label onto two
        lines, so the mobile hamburger panel below takes over up to 1023px. #}
     <div class="mx-auto hidden max-w-7xl px-6 lg:block">
-        {# NOSONAR Web:S6842 — ul + role=menubar is the documented WAI-ARIA Authoring Practices menubar pattern. #}
+        {# role=menubar list with role=presentation items and role=menuitem
+           links is the WAI-ARIA Authoring Practices menubar pattern. The
+           ARIA-role lint (Web:S6842/S6819) is suppressed for this file in
+           sonar-project.properties with the rationale. #}
         <ul role="menubar" class="flex items-stretch gap-1">
             {% for index, item in nav.items %}
                 {% set active = is_active_nav_item(item, current_route) %}
@@ -45,7 +48,6 @@
                             <span aria-hidden="true">▾</span>
                         </button>
 
-                        {# NOSONAR Web:S6842 — ul + role=menu is the documented WAI-ARIA Authoring Practices submenu pattern. #}
                         <ul
                             role="menu"
                             x-show="openIndex === {{ index }}"
