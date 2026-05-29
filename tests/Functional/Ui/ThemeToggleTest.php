@@ -58,7 +58,12 @@ final class ThemeToggleTest extends WebTestCase
         self::assertSelectorExists('header button[data-testid="theme-toggle"]');
         self::assertSelectorExists('header button[data-testid="theme-toggle"][aria-label="Toggle dark theme"]');
 
-        $toggleHtml = $client->getCrawler()->filter('header button[data-testid="theme-toggle"]')->outerHtml();
-        self::assertStringContainsString("localStorage.setItem('lr-theme'", $toggleHtml);
+        // The Alpine @click hook drives persistence. Assert it on the raw
+        // response: Symfony's HTML5 crawler drops @-prefixed attributes, so it
+        // is invisible to filter()/outerHtml() even though browsers honour it.
+        self::assertStringContainsString(
+            "localStorage.setItem('lr-theme'",
+            (string) $client->getResponse()->getContent(),
+        );
     }
 }
