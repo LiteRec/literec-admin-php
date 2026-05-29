@@ -186,60 +186,36 @@ final class InventoryItemFormController extends AbstractController
         $form = $this->createForm(InventoryItemFormType::class, $input);
         $form->handleRequest($request);
 
-        if (!$form->isSubmitted() || !$form->isValid()) {
-            return $this->reRenderForm(
-                $form,
-                'edit',
-                $this->generateUrl('inventory_item_update', ['itemId' => $itemId]),
-                self::EDIT_TITLE,
-                self::EDIT_SUBMIT,
-            );
+        if ($form->isSubmitted() && $form->isValid()) {
+            try {
+                $this->dispatchCommandUnwrapping(new UpdateInventoryItemSettings(
+                    itemId: $itemId,
+                    posColorHex: (string) $input->posColorHex,
+                    primaryVendorId: self::normalizeVendorId($input->vendorId),
+                    trackInventory: $input->trackInventory,
+                    rentable: $input->rentable,
+                    reorderThresholdUnits: (int) $input->reorderThresholdUnits,
+                ));
+
+                $this->dispatchListingUpdates($listing, $input);
+
+                return $this->savedResponse();
+            } catch (InvalidPosColor $exception) {
+                $form->get('posColorHex')->addError(new FormError($exception->getMessage()));
+            } catch (VendorNotFound $exception) {
+                $form->get('vendorId')->addError(new FormError($exception->getMessage()));
+            } catch (Throwable) {
+                $form->addError(new FormError(self::GENERIC_SAVE_FAILURE));
+            }
         }
 
-        try {
-            $this->dispatchCommandUnwrapping(new UpdateInventoryItemSettings(
-                itemId: $itemId,
-                posColorHex: (string) $input->posColorHex,
-                primaryVendorId: self::normalizeVendorId($input->vendorId),
-                trackInventory: $input->trackInventory,
-                rentable: $input->rentable,
-                reorderThresholdUnits: (int) $input->reorderThresholdUnits,
-            ));
-
-            $this->dispatchListingUpdates($listing, $input);
-        } catch (InvalidPosColor $exception) {
-            $form->get('posColorHex')->addError(new FormError($exception->getMessage()));
-
-            return $this->reRenderForm(
-                $form,
-                'edit',
-                $this->generateUrl('inventory_item_update', ['itemId' => $itemId]),
-                self::EDIT_TITLE,
-                self::EDIT_SUBMIT,
-            );
-        } catch (VendorNotFound $exception) {
-            $form->get('vendorId')->addError(new FormError($exception->getMessage()));
-
-            return $this->reRenderForm(
-                $form,
-                'edit',
-                $this->generateUrl('inventory_item_update', ['itemId' => $itemId]),
-                self::EDIT_TITLE,
-                self::EDIT_SUBMIT,
-            );
-        } catch (Throwable) {
-            $form->addError(new FormError(self::GENERIC_SAVE_FAILURE));
-
-            return $this->reRenderForm(
-                $form,
-                'edit',
-                $this->generateUrl('inventory_item_update', ['itemId' => $itemId]),
-                self::EDIT_TITLE,
-                self::EDIT_SUBMIT,
-            );
-        }
-
-        return $this->savedResponse();
+        return $this->reRenderForm(
+            $form,
+            'edit',
+            $this->generateUrl('inventory_item_update', ['itemId' => $itemId]),
+            self::EDIT_TITLE,
+            self::EDIT_SUBMIT,
+        );
     }
 
     #[Route(

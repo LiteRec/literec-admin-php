@@ -94,74 +94,18 @@ final class CatalogIntegrationListener
             return;
         }
 
-        $listingId = ListingId::fromString($event->listingId);
         $facility = FacilityCode::fromString($event->facilityCode);
         $saleQuantity = Quantity::ofUnits($event->quantity);
 
-        try {
-            $masterItem = $this->inventoryItems->byListingId($listingId);
-        } catch (InventoryItemNotFound) {
-            $this->logger->error('Inventory ACL: unknown inventory item for LineSold listing.', [
-                'listing_id' => $event->listingId,
-                'transaction_id' => $event->transactionId,
-            ]);
-            $this->dispatchFailure(
-                $event,
-                StockConsumptionFailed::REASON_UNKNOWN_INVENTORY_ITEM,
-                offendingInventoryItemId: null,
-                offendingLinkId: null,
-            );
+        $masterItem = $this->resolveMasterItem($event);
+        if ($masterItem === null) {
             return;
         }
 
         $componentTuples = $this->expandCombo($masterItem, $saleQuantity);
 
-        // Idempotency guard: if the ledger already carries a CONSUMED
-        // row for any of these (transaction_id, item_id, facility_code)
-        // tuples, the envelope has already been processed (Messenger
-        // at-least-once redelivery). Short-circuit before re-consuming.
-        foreach ($componentTuples as [$componentId]) {
-            if (
-                $this->movementLedger->hasConsumedFor(
-                    $event->transactionId,
-                    $event->listingId,
-                    $componentId,
-                    $facility,
-                )
-            ) {
-                $this->logger->info('Inventory ACL: duplicate LineSold envelope ignored.', [
-                    'transaction_id' => $event->transactionId,
-                    'inventory_item_id' => $componentId->value,
-                    'facility_code' => $event->facilityCode,
-                ]);
-                return;
-            }
-        }
-
-        // Pre-flight: walk every active item link for the components and
-        // bail out before mutating stock if any constraint blocks the sale.
-        foreach ($componentTuples as [$componentId, $componentQty]) {
-            $violation = $this->firstLinkViolation(
-                $componentId,
-                $componentQty,
-                $facility,
-                $event->occurredAt,
-            );
-            if ($violation !== null) {
-                $this->logger->warning('Inventory ACL: item link blocks consumption.', [
-                    'transaction_id' => $event->transactionId,
-                    'inventory_item_id' => $componentId->value,
-                    'link_id' => $violation['linkId'],
-                    'violation' => $violation['reason'],
-                ]);
-                $this->dispatchFailure(
-                    $event,
-                    StockConsumptionFailed::REASON_LINK_VIOLATION,
-                    offendingInventoryItemId: $componentId->value,
-                    offendingLinkId: $violation['linkId'],
-                );
-                return;
-            }
+        if ($this->preflightBlocks($event, $componentTuples, $facility)) {
+            return;
         }
 
         // Consume FIFO from each component. Failures rethrow after we
@@ -224,6 +168,94 @@ final class CatalogIntegrationListener
             'listing_id' => $event->listingId,
             'components' => count($componentTuples),
         ]);
+    }
+
+    /**
+     * Resolves the inventory item backing the sold listing, or null when the
+     * listing has no inventory item — in which case a StockConsumptionFailed
+     * envelope is emitted and the caller stops processing.
+     */
+    private function resolveMasterItem(LineSold $event): ?InventoryItem
+    {
+        try {
+            return $this->inventoryItems->byListingId(ListingId::fromString($event->listingId));
+        } catch (InventoryItemNotFound) {
+            $this->logger->error('Inventory ACL: unknown inventory item for LineSold listing.', [
+                'listing_id' => $event->listingId,
+                'transaction_id' => $event->transactionId,
+            ]);
+            $this->dispatchFailure(
+                $event,
+                StockConsumptionFailed::REASON_UNKNOWN_INVENTORY_ITEM,
+                offendingInventoryItemId: null,
+                offendingLinkId: null,
+            );
+
+            return null;
+        }
+    }
+
+    /**
+     * Pre-flight checks run before any stock is mutated. Returns true (and has
+     * already logged / emitted the appropriate StockConsumptionFailed) when
+     * the sale must not proceed: either the envelope is a duplicate the ledger
+     * already consumed, or an active item link blocks one of the components.
+     *
+     * @param list<array{0: InventoryItemId, 1: Quantity}> $componentTuples
+     */
+    private function preflightBlocks(LineSold $event, array $componentTuples, FacilityCode $facility): bool
+    {
+        // Idempotency guard: if the ledger already carries a CONSUMED row for
+        // any of these (transaction_id, item_id, facility_code) tuples, the
+        // envelope has already been processed (Messenger at-least-once
+        // redelivery). Short-circuit before re-consuming.
+        foreach ($componentTuples as [$componentId]) {
+            if (
+                $this->movementLedger->hasConsumedFor(
+                    $event->transactionId,
+                    $event->listingId,
+                    $componentId,
+                    $facility,
+                )
+            ) {
+                $this->logger->info('Inventory ACL: duplicate LineSold envelope ignored.', [
+                    'transaction_id' => $event->transactionId,
+                    'inventory_item_id' => $componentId->value,
+                    'facility_code' => $event->facilityCode,
+                ]);
+
+                return true;
+            }
+        }
+
+        // Walk every active item link for the components and bail out before
+        // mutating stock if any constraint blocks the sale.
+        foreach ($componentTuples as [$componentId, $componentQty]) {
+            $violation = $this->firstLinkViolation(
+                $componentId,
+                $componentQty,
+                $facility,
+                $event->occurredAt,
+            );
+            if ($violation !== null) {
+                $this->logger->warning('Inventory ACL: item link blocks consumption.', [
+                    'transaction_id' => $event->transactionId,
+                    'inventory_item_id' => $componentId->value,
+                    'link_id' => $violation['linkId'],
+                    'violation' => $violation['reason'],
+                ]);
+                $this->dispatchFailure(
+                    $event,
+                    StockConsumptionFailed::REASON_LINK_VIOLATION,
+                    offendingInventoryItemId: $componentId->value,
+                    offendingLinkId: $violation['linkId'],
+                );
+
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

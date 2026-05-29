@@ -163,10 +163,7 @@ final class ListInventoryController extends AbstractController
             return $value;
         }
 
-        if (! is_string($value) && ! is_int($value)) {
-            return false;
-        }
-
-        return in_array((string) $value, ['1', 'true', 'on', 'yes'], true);
+        return (is_string($value) || is_int($value))
+            && in_array((string) $value, ['1', 'true', 'on', 'yes'], true);
     }
 }

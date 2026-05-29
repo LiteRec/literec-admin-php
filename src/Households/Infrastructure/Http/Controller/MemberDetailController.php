@@ -207,80 +207,47 @@ final class MemberDetailController extends AbstractController
         $form = $this->createForm(UpdateMemberProfileFormType::class, $input);
         $form->handleRequest($request);
 
-        if (!$form->isSubmitted() || !$form->isValid()) {
-            return $this->renderEditPartial(
-                self::TEMPLATE_PROFILE_EDIT,
-                $form,
-                $householdId,
-                $memberId,
-                Response::HTTP_UNPROCESSABLE_ENTITY,
-            );
-        }
+        if ($form->isSubmitted() && $form->isValid()) {
+            try {
+                $this->dispatchCommandUnwrapping(new UpdateMemberProfile(
+                    householdId: $householdId,
+                    memberId: $memberId,
+                    firstName: (string) $input->firstName,
+                    lastName: (string) $input->lastName,
+                    middleName: $input->middleName,
+                    suffix: $input->suffix,
+                    dobIso: (string) $input->dobIso,
+                    genderCode: (string) $input->genderCode,
+                ));
 
-        $command = new UpdateMemberProfile(
-            householdId: $householdId,
-            memberId: $memberId,
-            firstName: (string) $input->firstName,
-            lastName: (string) $input->lastName,
-            middleName: $input->middleName,
-            suffix: $input->suffix,
-            dobIso: (string) $input->dobIso,
-            genderCode: (string) $input->genderCode,
-        );
-
-        try {
-            $this->dispatchCommandUnwrapping($command);
-        } catch (MemberNotFound | HouseholdNotFound | InvalidHouseholdId | InvalidMemberId) {
-            throw $this->createNotFoundException(self::MEMBER_NOT_FOUND_MESSAGE);
-        } catch (InvalidPersonName $exception) {
-            $this->applyNameErrorToForm($form, $exception);
-
-            return $this->renderEditPartial(
-                self::TEMPLATE_PROFILE_EDIT,
-                $form,
-                $householdId,
-                $memberId,
-                Response::HTTP_UNPROCESSABLE_ENTITY,
-            );
-        } catch (InvalidDateOfBirth $exception) {
-            if ($form->has('dobIso')) {
-                $form->get('dobIso')->addError(new FormError($exception->getMessage()));
-            } else {
+                // Re-load the projection so the swapped read partial reflects
+                // the freshly persisted values; an unchanged submit yields the
+                // same projection and the card still swaps back to read mode.
+                return $this->render('households/detail/_card_profile_read.html.twig', [
+                    'detail' => $this->runQuery($householdId, $memberId),
+                ]);
+            } catch (MemberNotFound | HouseholdNotFound | InvalidHouseholdId | InvalidMemberId) {
+                throw $this->createNotFoundException(self::MEMBER_NOT_FOUND_MESSAGE);
+            } catch (InvalidPersonName $exception) {
+                $this->applyNameErrorToForm($form, $exception);
+            } catch (InvalidDateOfBirth $exception) {
+                if ($form->has('dobIso')) {
+                    $form->get('dobIso')->addError(new FormError($exception->getMessage()));
+                } else {
+                    $form->addError(new FormError($exception->getMessage()));
+                }
+            } catch (SharedDomainException $exception) {
                 $form->addError(new FormError($exception->getMessage()));
             }
-
-            return $this->renderEditPartial(
-                self::TEMPLATE_PROFILE_EDIT,
-                $form,
-                $householdId,
-                $memberId,
-                Response::HTTP_UNPROCESSABLE_ENTITY,
-            );
-        } catch (SharedDomainException $exception) {
-            $form->addError(new FormError($exception->getMessage()));
-
-            return $this->renderEditPartial(
-                self::TEMPLATE_PROFILE_EDIT,
-                $form,
-                $householdId,
-                $memberId,
-                Response::HTTP_UNPROCESSABLE_ENTITY,
-            );
         }
 
-        // Re-load the projection so the swapped read partial reflects the
-        // freshly persisted values. The aggregate's no-op guard means an
-        // unchanged submit yields the same projection; the card still swaps
-        // back to read mode either way.
-        try {
-            $detail = $this->runQuery($householdId, $memberId);
-        } catch (MemberNotFound | HouseholdNotFound | InvalidHouseholdId | InvalidMemberId) {
-            throw $this->createNotFoundException(self::MEMBER_NOT_FOUND_MESSAGE);
-        }
-
-        return $this->render('households/detail/_card_profile_read.html.twig', [
-            'detail' => $detail,
-        ]);
+        return $this->renderEditPartial(
+            self::TEMPLATE_PROFILE_EDIT,
+            $form,
+            $householdId,
+            $memberId,
+            Response::HTTP_UNPROCESSABLE_ENTITY,
+        );
     }
 
     /**
@@ -353,61 +320,39 @@ final class MemberDetailController extends AbstractController
             throw $this->createNotFoundException(self::MEMBER_NOT_FOUND_MESSAGE);
         }
 
-        if (!$form->isSubmitted() || !$form->isValid()) {
-            return $this->renderEditPartial(
-                self::TEMPLATE_ADDRESS_EDIT,
-                $form,
-                $householdId,
-                $memberId,
-                Response::HTTP_UNPROCESSABLE_ENTITY,
-            );
+        if ($form->isSubmitted() && $form->isValid()) {
+            try {
+                $this->dispatchCommandUnwrapping(new UpdateHouseholdAddress(
+                    householdId: $householdId,
+                    street: (string) $input->street,
+                    unit: $input->unit,
+                    city: (string) $input->city,
+                    state: (string) $input->state,
+                    postalCode: (string) $input->postalCode,
+                    country: (string) $input->country,
+                ));
+
+                return $this->render('households/detail/_address_sub_card_read.html.twig', [
+                    'detail' => $this->runQuery($householdId, $memberId),
+                ]);
+            } catch (HouseholdNotFound | InvalidHouseholdId) {
+                throw $this->createNotFoundException('Household not found.');
+            } catch (MemberNotFound | InvalidMemberId) {
+                throw $this->createNotFoundException(self::MEMBER_NOT_FOUND_MESSAGE);
+            } catch (InvalidAddress $exception) {
+                $this->applyAddressErrorToForm($form, $exception);
+            } catch (SharedDomainException $exception) {
+                $form->addError(new FormError($exception->getMessage()));
+            }
         }
 
-        $command = new UpdateHouseholdAddress(
-            householdId: $householdId,
-            street: (string) $input->street,
-            unit: $input->unit,
-            city: (string) $input->city,
-            state: (string) $input->state,
-            postalCode: (string) $input->postalCode,
-            country: (string) $input->country,
+        return $this->renderEditPartial(
+            self::TEMPLATE_ADDRESS_EDIT,
+            $form,
+            $householdId,
+            $memberId,
+            Response::HTTP_UNPROCESSABLE_ENTITY,
         );
-
-        try {
-            $this->dispatchCommandUnwrapping($command);
-        } catch (HouseholdNotFound | InvalidHouseholdId) {
-            throw $this->createNotFoundException('Household not found.');
-        } catch (InvalidAddress $exception) {
-            $this->applyAddressErrorToForm($form, $exception);
-
-            return $this->renderEditPartial(
-                self::TEMPLATE_ADDRESS_EDIT,
-                $form,
-                $householdId,
-                $memberId,
-                Response::HTTP_UNPROCESSABLE_ENTITY,
-            );
-        } catch (SharedDomainException $exception) {
-            $form->addError(new FormError($exception->getMessage()));
-
-            return $this->renderEditPartial(
-                self::TEMPLATE_ADDRESS_EDIT,
-                $form,
-                $householdId,
-                $memberId,
-                Response::HTTP_UNPROCESSABLE_ENTITY,
-            );
-        }
-
-        try {
-            $detail = $this->runQuery($householdId, $memberId);
-        } catch (MemberNotFound | HouseholdNotFound | InvalidHouseholdId | InvalidMemberId) {
-            throw $this->createNotFoundException(self::MEMBER_NOT_FOUND_MESSAGE);
-        }
-
-        return $this->render('households/detail/_address_sub_card_read.html.twig', [
-            'detail' => $detail,
-        ]);
     }
 
     /**

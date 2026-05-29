@@ -106,78 +106,39 @@ final class ItemGroupFormController extends AbstractController
         $form = $this->createForm(ItemGroupFormType::class, $input);
         $form->handleRequest($request);
 
-        if (!$form->isSubmitted() || !$form->isValid()) {
-            return $this->reRenderForm(
-                $form,
-                self::MODE_CREATE,
-                $this->generateUrl('inventory_group_create'),
-                self::MODAL_TITLE_CREATE,
-                self::SUBMIT_LABEL_CREATE,
-            );
+        if ($form->isSubmitted() && $form->isValid()) {
+            $facilityCodes = $this->extractFacilityCodes($input);
+
+            if ($input->scope === ItemGroupFormInput::SCOPE_FACILITY && $facilityCodes === []) {
+                $form->get(self::FACILITY_CODE_FIELD)->addError(new FormError(self::FACILITY_REQUIRED_MESSAGE));
+            } else {
+                try {
+                    $this->dispatchCommandUnwrapping(new CreateItemGroup(
+                        name: (string) $input->name,
+                        colorHex: (string) $input->colorHex,
+                        facilityCodes: $facilityCodes,
+                    ));
+
+                    return $this->savedResponse();
+                } catch (DuplicateItemGroupName | InvalidItemGroupName $exception) {
+                    $form->get(self::NAME_FIELD)->addError(new FormError($exception->getMessage()));
+                } catch (InvalidPosColor $exception) {
+                    $form->get(self::COLOR_FIELD)->addError(new FormError($exception->getMessage()));
+                } catch (FacilityScopeEmpty $exception) {
+                    $form->get(self::FACILITY_CODE_FIELD)->addError(new FormError($exception->getMessage()));
+                } catch (Throwable) {
+                    $form->addError(new FormError(self::GENERIC_SAVE_FAILURE));
+                }
+            }
         }
 
-        $facilityCodes = $this->extractFacilityCodes($input);
-        if ($input->scope === ItemGroupFormInput::SCOPE_FACILITY && $facilityCodes === []) {
-            $form->get(self::FACILITY_CODE_FIELD)->addError(new FormError(self::FACILITY_REQUIRED_MESSAGE));
-
-            return $this->reRenderForm(
-                $form,
-                self::MODE_CREATE,
-                $this->generateUrl('inventory_group_create'),
-                self::MODAL_TITLE_CREATE,
-                self::SUBMIT_LABEL_CREATE,
-            );
-        }
-
-        try {
-            $this->dispatchCommandUnwrapping(new CreateItemGroup(
-                name: (string) $input->name,
-                colorHex: (string) $input->colorHex,
-                facilityCodes: $facilityCodes,
-            ));
-        } catch (DuplicateItemGroupName | InvalidItemGroupName $exception) {
-            $form->get(self::NAME_FIELD)->addError(new FormError($exception->getMessage()));
-
-            return $this->reRenderForm(
-                $form,
-                self::MODE_CREATE,
-                $this->generateUrl('inventory_group_create'),
-                self::MODAL_TITLE_CREATE,
-                self::SUBMIT_LABEL_CREATE,
-            );
-        } catch (InvalidPosColor $exception) {
-            $form->get(self::COLOR_FIELD)->addError(new FormError($exception->getMessage()));
-
-            return $this->reRenderForm(
-                $form,
-                self::MODE_CREATE,
-                $this->generateUrl('inventory_group_create'),
-                self::MODAL_TITLE_CREATE,
-                self::SUBMIT_LABEL_CREATE,
-            );
-        } catch (FacilityScopeEmpty $exception) {
-            $form->get(self::FACILITY_CODE_FIELD)->addError(new FormError($exception->getMessage()));
-
-            return $this->reRenderForm(
-                $form,
-                self::MODE_CREATE,
-                $this->generateUrl('inventory_group_create'),
-                self::MODAL_TITLE_CREATE,
-                self::SUBMIT_LABEL_CREATE,
-            );
-        } catch (Throwable) {
-            $form->addError(new FormError(self::GENERIC_SAVE_FAILURE));
-
-            return $this->reRenderForm(
-                $form,
-                self::MODE_CREATE,
-                $this->generateUrl('inventory_group_create'),
-                self::MODAL_TITLE_CREATE,
-                self::SUBMIT_LABEL_CREATE,
-            );
-        }
-
-        return $this->savedResponse();
+        return $this->reRenderForm(
+            $form,
+            self::MODE_CREATE,
+            $this->generateUrl('inventory_group_create'),
+            self::MODAL_TITLE_CREATE,
+            self::SUBMIT_LABEL_CREATE,
+        );
     }
 
     #[Route(
@@ -213,60 +174,36 @@ final class ItemGroupFormController extends AbstractController
         $form = $this->createForm(ItemGroupFormType::class, $input);
         $form->handleRequest($request);
 
-        if (!$form->isSubmitted() || !$form->isValid()) {
-            return $this->reRenderForm(
-                $form,
-                self::MODE_EDIT,
-                $this->generateUrl('inventory_group_update', ['groupId' => $groupId]),
-                self::MODAL_TITLE_EDIT,
-                self::SUBMIT_LABEL_EDIT,
-            );
+        if ($form->isSubmitted() && $form->isValid()) {
+            try {
+                $this->dispatchCommandUnwrapping(new RenameItemGroup(
+                    groupId: $groupId,
+                    name: (string) $input->name,
+                ));
+                $this->dispatchCommandUnwrapping(new RecolorItemGroup(
+                    groupId: $groupId,
+                    colorHex: (string) $input->colorHex,
+                ));
+
+                return $this->savedResponse();
+            } catch (ItemGroupNotFound) {
+                throw $this->createNotFoundException(self::NOT_FOUND_MESSAGE);
+            } catch (DuplicateItemGroupName | InvalidItemGroupName $exception) {
+                $form->get(self::NAME_FIELD)->addError(new FormError($exception->getMessage()));
+            } catch (InvalidPosColor $exception) {
+                $form->get(self::COLOR_FIELD)->addError(new FormError($exception->getMessage()));
+            } catch (Throwable) {
+                $form->addError(new FormError(self::GENERIC_SAVE_FAILURE));
+            }
         }
 
-        try {
-            $this->dispatchCommandUnwrapping(new RenameItemGroup(
-                groupId: $groupId,
-                name: (string) $input->name,
-            ));
-            $this->dispatchCommandUnwrapping(new RecolorItemGroup(
-                groupId: $groupId,
-                colorHex: (string) $input->colorHex,
-            ));
-        } catch (ItemGroupNotFound) {
-            throw $this->createNotFoundException(self::NOT_FOUND_MESSAGE);
-        } catch (DuplicateItemGroupName | InvalidItemGroupName $exception) {
-            $form->get(self::NAME_FIELD)->addError(new FormError($exception->getMessage()));
-
-            return $this->reRenderForm(
-                $form,
-                self::MODE_EDIT,
-                $this->generateUrl('inventory_group_update', ['groupId' => $groupId]),
-                self::MODAL_TITLE_EDIT,
-                self::SUBMIT_LABEL_EDIT,
-            );
-        } catch (InvalidPosColor $exception) {
-            $form->get(self::COLOR_FIELD)->addError(new FormError($exception->getMessage()));
-
-            return $this->reRenderForm(
-                $form,
-                self::MODE_EDIT,
-                $this->generateUrl('inventory_group_update', ['groupId' => $groupId]),
-                self::MODAL_TITLE_EDIT,
-                self::SUBMIT_LABEL_EDIT,
-            );
-        } catch (Throwable) {
-            $form->addError(new FormError(self::GENERIC_SAVE_FAILURE));
-
-            return $this->reRenderForm(
-                $form,
-                self::MODE_EDIT,
-                $this->generateUrl('inventory_group_update', ['groupId' => $groupId]),
-                self::MODAL_TITLE_EDIT,
-                self::SUBMIT_LABEL_EDIT,
-            );
-        }
-
-        return $this->savedResponse();
+        return $this->reRenderForm(
+            $form,
+            self::MODE_EDIT,
+            $this->generateUrl('inventory_group_update', ['groupId' => $groupId]),
+            self::MODAL_TITLE_EDIT,
+            self::SUBMIT_LABEL_EDIT,
+        );
     }
 
     #[Route(

@@ -154,25 +154,27 @@ final class TakeInventoryController extends AbstractController
         $input = $form->getData();
         $this->overwriteWithSnapshot($input, $snapshot);
 
-        // Atomic validation pass: every variance row must carry a reason.
-        $atomicallyRejected = $this->validateVariancesAtomically($form, $input);
-        if ($atomicallyRejected) {
+        return $this->commitCount($form, $facility, $input);
+    }
+
+    /**
+     * Validates that every variance row carries a reason, then dispatches one
+     * AdjustStock per variance row (each in its own transaction — committed
+     * rows are not rolled back when a later row hits a concurrent-modification
+     * race). Re-renders the grid at 422 on an atomic rejection or 409 when a
+     * row failed; otherwise returns the success response.
+     *
+     * @param FormInterface<TakeInventoryInput> $form
+     */
+    private function commitCount(FormInterface $form, string $facility, TakeInventoryInput $input): Response
+    {
+        if ($this->validateVariancesAtomically($form, $input)) {
             return $this->renderGrid($form, $facility, [], null, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        // Dispatch one AdjustStock per variance row. Each command runs in
-        // its own transaction — committed rows are NOT rolled back when
-        // a later row hits a concurrent-modification race.
         $rowErrors = $this->dispatchVarianceRows($input, $facility);
-
         if ($rowErrors !== []) {
-            return $this->renderGrid(
-                $form,
-                $facility,
-                $rowErrors,
-                null,
-                Response::HTTP_CONFLICT,
-            );
+            return $this->renderGrid($form, $facility, $rowErrors, null, Response::HTTP_CONFLICT);
         }
 
         return $this->adjustedResponse();
@@ -181,10 +183,7 @@ final class TakeInventoryController extends AbstractController
     private function normalizedFacility(Request $request): ?string
     {
         $raw = $request->query->get('facilityCode');
-        if (!is_string($raw)) {
-            return null;
-        }
-        $trimmed = trim($raw);
+        $trimmed = is_string($raw) ? trim($raw) : '';
         if ($trimmed === '') {
             return null;
         }

@@ -95,33 +95,29 @@ final class ItemLinkFormController extends AbstractController
         $form = $this->createForm(ItemLinkFormType::class, $input);
         $form->handleRequest($request);
 
-        if (!$form->isSubmitted() || !$form->isValid()) {
-            return $this->reRenderForm($form, $itemId);
+        if ($form->isSubmitted() && $form->isValid()) {
+            try {
+                $this->dispatchCommandUnwrapping(new LinkItem(
+                    masterItemId: $itemId,
+                    linkedItemId: (string) $input->linkedItemId,
+                    reservedQuantityUnits: $input->reservedQuantityUnits,
+                    unlimited: $input->unlimited,
+                    minRequiredUnits: $input->minRequiredUnits,
+                    maxPerPurchaseUnits: $input->maxPerPurchaseUnits,
+                    includeUntilIso: $input->includeUntilIso,
+                ));
+
+                return $this->savedResponse();
+            } catch (InventoryItemNotFound) {
+                throw $this->createNotFoundException(self::ITEM_NOT_FOUND_MESSAGE);
+            } catch (DuplicateItemLink | LinkToSelfForbidden $exception) {
+                $form->get(self::LINKED_ITEM_FIELD)->addError(new FormError($exception->getMessage()));
+            } catch (Throwable) {
+                $form->addError(new FormError(self::GENERIC_SAVE_FAILURE));
+            }
         }
 
-        try {
-            $this->dispatchCommandUnwrapping(new LinkItem(
-                masterItemId: $itemId,
-                linkedItemId: (string) $input->linkedItemId,
-                reservedQuantityUnits: $input->reservedQuantityUnits,
-                unlimited: $input->unlimited,
-                minRequiredUnits: $input->minRequiredUnits,
-                maxPerPurchaseUnits: $input->maxPerPurchaseUnits,
-                includeUntilIso: $input->includeUntilIso,
-            ));
-        } catch (InventoryItemNotFound) {
-            throw $this->createNotFoundException(self::ITEM_NOT_FOUND_MESSAGE);
-        } catch (DuplicateItemLink | LinkToSelfForbidden $exception) {
-            $form->get(self::LINKED_ITEM_FIELD)->addError(new FormError($exception->getMessage()));
-
-            return $this->reRenderForm($form, $itemId);
-        } catch (Throwable) {
-            $form->addError(new FormError(self::GENERIC_SAVE_FAILURE));
-
-            return $this->reRenderForm($form, $itemId);
-        }
-
-        return $this->savedResponse();
+        return $this->reRenderForm($form, $itemId);
     }
 
     #[Route(

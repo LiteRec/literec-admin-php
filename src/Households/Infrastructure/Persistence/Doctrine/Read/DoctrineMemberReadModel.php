@@ -381,17 +381,10 @@ final class DoctrineMemberReadModel implements MemberReadModel
 
     private function normalizeDate(mixed $value): ?string
     {
-        if ($value === null) {
-            return null;
-        }
         if ($value instanceof \DateTimeInterface) {
             return $value->format('Y-m-d');
         }
-
-        if (!is_string($value)) {
-            return null;
-        }
-        if ($value === '') {
+        if (! is_string($value) || $value === '') {
             return null;
         }
 
@@ -404,17 +397,10 @@ final class DoctrineMemberReadModel implements MemberReadModel
 
     private function normalizeDateTime(mixed $value): ?string
     {
-        if ($value === null) {
-            return null;
-        }
         if ($value instanceof \DateTimeInterface) {
             return $value->format(\DateTimeInterface::ATOM);
         }
-
-        if (!is_string($value)) {
-            return null;
-        }
-        if ($value === '') {
+        if (! is_string($value) || $value === '') {
             return null;
         }
 

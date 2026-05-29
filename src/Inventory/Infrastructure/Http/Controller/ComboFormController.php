@@ -112,49 +112,33 @@ final class ComboFormController extends AbstractController
         $form = $this->createForm(ComboFormType::class, $input, ['mode' => $mode]);
         $form->handleRequest($request);
 
-        if (!$form->isSubmitted() || !$form->isValid()) {
-            return $this->reRenderForm(
-                $form,
-                self::MODE_CREATE,
-                $this->generateUrl('inventory_combo_create'),
-                self::MODAL_TITLE_CREATE,
-                self::SUBMIT_LABEL_CREATE,
-            );
+        if ($form->isSubmitted() && $form->isValid()) {
+            try {
+                $this->dispatchCommandUnwrapping(new DefineCombo(
+                    listingId: (string) $input->parentListingId,
+                    components: $this->mapComponents($input),
+                ));
+
+                return $this->savedResponse();
+            } catch (
+                ComboRequiresComponents
+                | InvalidComboComponent
+                | ComboMayNotContainCombo
+                | ComboCycleDetected $exception
+            ) {
+                $form->get(self::COMPONENTS_FIELD)->addError(new FormError($exception->getMessage()));
+            } catch (Throwable) {
+                $form->addError(new FormError(self::GENERIC_SAVE_FAILURE));
+            }
         }
 
-        try {
-            $this->dispatchCommandUnwrapping(new DefineCombo(
-                listingId: (string) $input->parentListingId,
-                components: $this->mapComponents($input),
-            ));
-        } catch (
-            ComboRequiresComponents
-            | InvalidComboComponent
-            | ComboMayNotContainCombo
-            | ComboCycleDetected $exception
-        ) {
-            $form->get(self::COMPONENTS_FIELD)->addError(new FormError($exception->getMessage()));
-
-            return $this->reRenderForm(
-                $form,
-                self::MODE_CREATE,
-                $this->generateUrl('inventory_combo_create'),
-                self::MODAL_TITLE_CREATE,
-                self::SUBMIT_LABEL_CREATE,
-            );
-        } catch (Throwable) {
-            $form->addError(new FormError(self::GENERIC_SAVE_FAILURE));
-
-            return $this->reRenderForm(
-                $form,
-                self::MODE_CREATE,
-                $this->generateUrl('inventory_combo_create'),
-                self::MODAL_TITLE_CREATE,
-                self::SUBMIT_LABEL_CREATE,
-            );
-        }
-
-        return $this->savedResponse();
+        return $this->reRenderForm(
+            $form,
+            self::MODE_CREATE,
+            $this->generateUrl('inventory_combo_create'),
+            self::MODAL_TITLE_CREATE,
+            self::SUBMIT_LABEL_CREATE,
+        );
     }
 
     #[Route(
@@ -198,51 +182,35 @@ final class ComboFormController extends AbstractController
         $form = $this->createForm(ComboFormType::class, $input, ['mode' => $mode]);
         $form->handleRequest($request);
 
-        if (!$form->isSubmitted() || !$form->isValid()) {
-            return $this->reRenderForm(
-                $form,
-                self::MODE_EDIT,
-                $this->generateUrl('inventory_combo_update', ['comboId' => $comboId]),
-                self::MODAL_TITLE_EDIT,
-                self::SUBMIT_LABEL_EDIT,
-            );
+        if ($form->isSubmitted() && $form->isValid()) {
+            try {
+                $this->dispatchCommandUnwrapping(new UpdateComboComponents(
+                    comboId: $comboId,
+                    components: $this->mapComponents($input),
+                ));
+
+                return $this->savedResponse();
+            } catch (ComboNotFound) {
+                throw $this->createNotFoundException(self::NOT_FOUND_MESSAGE);
+            } catch (
+                ComboRequiresComponents
+                | InvalidComboComponent
+                | ComboMayNotContainCombo
+                | ComboCycleDetected $exception
+            ) {
+                $form->get(self::COMPONENTS_FIELD)->addError(new FormError($exception->getMessage()));
+            } catch (Throwable) {
+                $form->addError(new FormError(self::GENERIC_SAVE_FAILURE));
+            }
         }
 
-        try {
-            $this->dispatchCommandUnwrapping(new UpdateComboComponents(
-                comboId: $comboId,
-                components: $this->mapComponents($input),
-            ));
-        } catch (ComboNotFound) {
-            throw $this->createNotFoundException(self::NOT_FOUND_MESSAGE);
-        } catch (
-            ComboRequiresComponents
-            | InvalidComboComponent
-            | ComboMayNotContainCombo
-            | ComboCycleDetected $exception
-        ) {
-            $form->get(self::COMPONENTS_FIELD)->addError(new FormError($exception->getMessage()));
-
-            return $this->reRenderForm(
-                $form,
-                self::MODE_EDIT,
-                $this->generateUrl('inventory_combo_update', ['comboId' => $comboId]),
-                self::MODAL_TITLE_EDIT,
-                self::SUBMIT_LABEL_EDIT,
-            );
-        } catch (Throwable) {
-            $form->addError(new FormError(self::GENERIC_SAVE_FAILURE));
-
-            return $this->reRenderForm(
-                $form,
-                self::MODE_EDIT,
-                $this->generateUrl('inventory_combo_update', ['comboId' => $comboId]),
-                self::MODAL_TITLE_EDIT,
-                self::SUBMIT_LABEL_EDIT,
-            );
-        }
-
-        return $this->savedResponse();
+        return $this->reRenderForm(
+            $form,
+            self::MODE_EDIT,
+            $this->generateUrl('inventory_combo_update', ['comboId' => $comboId]),
+            self::MODAL_TITLE_EDIT,
+            self::SUBMIT_LABEL_EDIT,
+        );
     }
 
     #[Route(

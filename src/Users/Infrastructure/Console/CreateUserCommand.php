@@ -15,6 +15,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\HandledStamp;
@@ -59,32 +60,76 @@ final class CreateUserCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
 
-        $username = $input->getArgument('username');
+        $credentials = $this->readCredentials($input, $io);
+        if ($credentials === null) {
+            return Command::INVALID;
+        }
 
-        if (!is_string($username) || $username === '') {
+        try {
+            $envelope = $this->commandBus->dispatch(new RegisterUser(
+                $credentials['username'],
+                $credentials['password'],
+                $this->readRoles($input),
+            ));
+        } catch (HandlerFailedException $e) {
+            return $this->reportHandlerFailure($e, $io);
+        }
+
+        return $this->reportResult($envelope, $credentials['username'], $io);
+    }
+
+    /**
+     * Validates the CLI credentials, printing an error and returning null on
+     * the first problem so the caller can exit INVALID once.
+     *
+     * @return array{username: string, password: string}|null
+     */
+    private function readCredentials(InputInterface $input, SymfonyStyle $io): ?array
+    {
+        $username = $input->getArgument('username');
+        if (! is_string($username) || $username === '') {
             $io->error('The username argument must be a non-empty string.');
 
-            return Command::INVALID;
+            return null;
         }
 
-        $password = $input->getOption('password');
-
+        $password = $this->readPassword($input, $io);
         if ($password === null) {
-            $password = $io->askHidden('Password');
+            return null;
         }
 
-        if (!is_string($password) || $password === '') {
+        return ['username' => $username, 'password' => $password];
+    }
+
+    /**
+     * Reads the password from the --password option or an interactive hidden
+     * prompt, enforcing the non-empty and minimum-length rules. Returns null
+     * (after printing the error) when the input is unusable.
+     */
+    private function readPassword(InputInterface $input, SymfonyStyle $io): ?string
+    {
+        $password = $input->getOption('password') ?? $io->askHidden('Password');
+
+        if (! is_string($password) || $password === '') {
             $io->error('A non-empty password is required (pass --password or answer the prompt).');
 
-            return Command::INVALID;
+            return null;
         }
 
         if (mb_strlen($password, 'UTF-8') < self::MINIMUM_PASSWORD_LENGTH) {
             $io->error(sprintf('The password must be at least %d characters long.', self::MINIMUM_PASSWORD_LENGTH));
 
-            return Command::INVALID;
+            return null;
         }
 
+        return $password;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function readRoles(InputInterface $input): array
+    {
         $rolesArgument = $input->getArgument('roles');
         $roles = [];
 
@@ -96,23 +141,20 @@ final class CreateUserCommand extends Command
             }
         }
 
-        try {
-            $envelope = $this->commandBus->dispatch(new RegisterUser($username, $password, $roles));
-        } catch (HandlerFailedException $e) {
-            return $this->reportHandlerFailure($e, $io);
-        }
+        return $roles;
+    }
 
-        $stamp = $envelope->last(HandledStamp::class);
-        if ($stamp === null) {
-            $io->error('Command bus returned no HandledStamp; the handler did not run.');
+    /**
+     * Reports the dispatch outcome: SUCCESS when the handler returned a
+     * UserId, FAILURE otherwise (no stamp or an unexpected result type).
+     */
+    private function reportResult(Envelope $envelope, string $username, SymfonyStyle $io): int
+    {
+        $id = $envelope->last(HandledStamp::class)?->getResult();
 
-            return Command::FAILURE;
-        }
-
-        $id = $stamp->getResult();
-        if (!$id instanceof UserId) {
+        if (! $id instanceof UserId) {
             $io->error(sprintf(
-                'RegisterUser handler returned %s; expected UserId.',
+                'RegisterUser handler did not return a UserId (got %s).',
                 get_debug_type($id),
             ));
 
