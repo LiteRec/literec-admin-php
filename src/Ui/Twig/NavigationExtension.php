@@ -39,16 +39,13 @@ final class NavigationExtension extends AbstractExtension
             return false;
         }
 
-        if ($item->route === $currentRoute) {
-            return true;
-        }
-
         foreach ($item->children as $child) {
             if ($child->route === $currentRoute) {
                 return true;
             }
         }
 
-        return false;
+        // A top-level item is also active when its own route matches.
+        return $item->route === $currentRoute;
     }
 }

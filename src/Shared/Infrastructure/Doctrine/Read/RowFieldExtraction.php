@@ -23,16 +23,13 @@ trait RowFieldExtraction
     private function rowString(array $row, string $key): string
     {
         $value = $row[$key] ?? null;
-        if (is_string($value)) {
-            return $value;
-        }
-        if (is_int($value) || is_float($value)) {
-            return (string) $value;
-        }
-        if (is_bool($value)) {
-            return $value ? '1' : '0';
-        }
-        return '';
+
+        return match (true) {
+            is_string($value) => $value,
+            is_int($value), is_float($value) => (string) $value,
+            is_bool($value) => $value ? '1' : '0',
+            default => '',
+        };
     }
 
     /**
@@ -41,19 +38,13 @@ trait RowFieldExtraction
     private function rowNullableString(array $row, string $key): ?string
     {
         $value = $row[$key] ?? null;
-        if ($value === null) {
-            return null;
-        }
-        if (is_string($value)) {
-            return $value;
-        }
-        if (is_int($value) || is_float($value)) {
-            return (string) $value;
-        }
-        if (is_bool($value)) {
-            return $value ? '1' : '0';
-        }
-        return null;
+
+        return match (true) {
+            is_string($value) => $value,
+            is_int($value), is_float($value) => (string) $value,
+            is_bool($value) => $value ? '1' : '0',
+            default => null,
+        };
     }
 
     /**
@@ -62,19 +53,8 @@ trait RowFieldExtraction
     private function rowInt(array $row, string $key): int
     {
         $value = $row[$key] ?? null;
-        if (is_int($value)) {
-            return $value;
-        }
-        if (is_float($value)) {
-            return (int) $value;
-        }
-        if (is_string($value) && is_numeric($value)) {
-            return (int) $value;
-        }
-        if (is_bool($value)) {
-            return $value ? 1 : 0;
-        }
-        return 0;
+
+        return $this->scalarToInt($value);
     }
 
     /**
@@ -83,33 +63,24 @@ trait RowFieldExtraction
     private function rowBool(array $row, string $key): bool
     {
         $value = $row[$key] ?? null;
-        if (is_bool($value)) {
-            return $value;
-        }
-        if (is_int($value)) {
-            return $value !== 0;
-        }
-        if (is_string($value)) {
-            $lower = strtolower($value);
-            return $value !== '' && $value !== '0' && $lower !== 'f' && $lower !== 'false';
-        }
-        return false;
+
+        return match (true) {
+            is_bool($value) => $value,
+            is_int($value) => $value !== 0,
+            is_string($value) => $value !== '' && $value !== '0'
+                && strtolower($value) !== 'f'
+                && strtolower($value) !== 'false',
+            default => false,
+        };
     }
 
     private function scalarToInt(mixed $value): int
     {
-        if (is_int($value)) {
-            return $value;
-        }
-        if (is_string($value) && is_numeric($value)) {
-            return (int) $value;
-        }
-        if (is_float($value)) {
-            return (int) $value;
-        }
-        if (is_bool($value)) {
-            return $value ? 1 : 0;
-        }
-        return 0;
+        return match (true) {
+            is_int($value) => $value,
+            is_string($value) && is_numeric($value), is_float($value) => (int) $value,
+            is_bool($value) => $value ? 1 : 0,
+            default => 0,
+        };
     }
 }

@@ -104,31 +104,22 @@ final readonly class Address
      */
     private static function validatePostalCode(string $postal, string $country): string
     {
-        switch ($country) {
-            case 'US':
-                if (preg_match(self::US_ZIP_PATTERN, $postal) !== 1) {
-                    throw InvalidAddress::invalidPostalCode($country);
-                }
+        // CA is stored uppercased; every other country keeps the trimmed
+        // input as-is (the emptyField guard already ran on it).
+        $normalised = $country === 'CA' ? strtoupper($postal) : $postal;
 
-                return $postal;
-            case 'CA':
-                $up = strtoupper($postal);
-                if (preg_match(self::CA_POSTAL_PATTERN, $up) !== 1) {
-                    throw InvalidAddress::invalidPostalCode($country);
-                }
+        $valid = match ($country) {
+            'US' => preg_match(self::US_ZIP_PATTERN, $postal) === 1,
+            'CA' => preg_match(self::CA_POSTAL_PATTERN, $normalised) === 1,
+            'GB' => strlen($postal) >= 2 && strlen($postal) <= 10,
+            default => true,
+        };
 
-                return $up;
-            case 'GB':
-                $len = strlen($postal);
-                if ($len < 2 || $len > 10) {
-                    throw InvalidAddress::invalidPostalCode($country);
-                }
-
-                return $postal;
-            default:
-                // emptyField guard already ran on the trimmed value.
-                return $postal;
+        if (! $valid) {
+            throw InvalidAddress::invalidPostalCode($country);
         }
+
+        return $normalised;
     }
 
     public function equals(self $other): bool

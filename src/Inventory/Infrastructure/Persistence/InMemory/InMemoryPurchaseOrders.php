@@ -112,18 +112,10 @@ final class InMemoryPurchaseOrders implements PurchaseOrders
     ): array {
         return array_filter(
             $this->byId,
-            static function (PurchaseOrder $o) use ($vendorId, $status, $facility): bool {
-                if ($vendorId !== null && ! $o->vendorId()->equals($vendorId)) {
-                    return false;
-                }
-                if ($status !== null && $o->status() !== $status) {
-                    return false;
-                }
-                if ($facility !== null && ! $o->facilityCode()->equals($facility)) {
-                    return false;
-                }
-                return true;
-            },
+            static fn (PurchaseOrder $o): bool =>
+                ($vendorId === null || $o->vendorId()->equals($vendorId))
+                && ($status === null || $o->status() === $status)
+                && ($facility === null || $o->facilityCode()->equals($facility)),
         );
     }
 

@@ -219,27 +219,23 @@ final class ItemLink
             return null;
         }
 
-        if (! $this->unlimited && $this->reservedQuantity->units > 0) {
-            $reserved = $linkedReservedAlready->units + $linkedQtyInThisPurchase->units;
-            $available = $linkedStockOnHand->units - $reserved;
-            if ($available < $this->reservedQuantity->units) {
-                return LinkViolation::RESERVED_QUANTITY_BREACHED;
-            }
-        }
-
+        $reserved = $linkedReservedAlready->units + $linkedQtyInThisPurchase->units;
+        $available = $linkedStockOnHand->units - $reserved;
         $required = $this->minRequired->units * $masterQtySold->units;
-        if ($linkedQtyInThisPurchase->units < $required) {
-            return LinkViolation::MIN_REQUIRED_NOT_MET;
-        }
 
-        if (
+        // Evaluated in declared order; the first matching rule wins.
+        return match (true) {
+            ! $this->unlimited
+                && $this->reservedQuantity->units > 0
+                && $available < $this->reservedQuantity->units
+                    => LinkViolation::RESERVED_QUANTITY_BREACHED,
+            $linkedQtyInThisPurchase->units < $required
+                    => LinkViolation::MIN_REQUIRED_NOT_MET,
             $this->maxPerPurchase->units > 0
-            && $linkedQtyInThisPurchase->units > $this->maxPerPurchase->units
-        ) {
-            return LinkViolation::MAX_PER_PURCHASE_EXCEEDED;
-        }
-
-        return null;
+                && $linkedQtyInThisPurchase->units > $this->maxPerPurchase->units
+                    => LinkViolation::MAX_PER_PURCHASE_EXCEEDED,
+            default => null,
+        };
     }
 
     private static function datesEqual(?DateTimeImmutable $a, ?DateTimeImmutable $b): bool

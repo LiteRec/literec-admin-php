@@ -37,22 +37,21 @@ trait RequestQueryParsing
         if ($raw === null) {
             return null;
         }
+
         $parsed = DateTimeImmutable::createFromFormat(
             'Y-m-d',
             $raw,
             new DateTimeZone('UTC'),
         );
-        if ($parsed === false) {
-            return null;
-        }
+
         // createFromFormat silently normalizes invalid dates like
-        // 2026-02-31 -> 2026-03-03 and returns a DateTimeImmutable, so we
+        // 2026-02-31 -> 2026-03-03 and still returns a DateTimeImmutable, so
         // round-trip back to the same Y-m-d string to confirm strict
-        // validity. Anything that mutates is treated as a parse failure
-        // and the filter just disables itself.
-        if ($parsed->format('Y-m-d') !== $raw) {
+        // validity. A parse failure or any mutation disables the filter.
+        if ($parsed === false || $parsed->format('Y-m-d') !== $raw) {
             return null;
         }
+
         return $startOfDay
             ? $parsed->setTime(0, 0, 0)
             : $parsed->setTime(23, 59, 59);

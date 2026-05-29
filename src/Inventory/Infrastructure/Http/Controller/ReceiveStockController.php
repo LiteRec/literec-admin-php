@@ -127,6 +127,25 @@ final class ReceiveStockController extends AbstractController
             return $this->renderDialog($form, $itemId, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
+        return $this->dispatchReceive($itemId, $input, $costNote, $form);
+    }
+
+    /**
+     * Dispatches the receive command and maps the two recoverable failures
+     * back to the dialog: a concurrent-modification conflict (409, with an
+     * outerHTML reswap) or any other failure (422). Returns the saved
+     * response on success.
+     *
+     * @template TData
+     *
+     * @param FormInterface<TData> $form
+     */
+    private function dispatchReceive(
+        string $itemId,
+        ReceiveStockInput $input,
+        string $costNote,
+        FormInterface $form,
+    ): Response {
         try {
             $this->dispatchCommandUnwrapping(new ReceiveStockManually(
                 itemId: $itemId,
@@ -140,9 +159,11 @@ final class ReceiveStockController extends AbstractController
             $form->addError(new FormError(self::CONCURRENT_NOTICE));
             $response = $this->renderDialog($form, $itemId, Response::HTTP_CONFLICT);
             $response->headers->set('Hx-Reswap', 'outerHTML');
+
             return $response;
         } catch (Throwable) {
             $form->addError(new FormError(self::GENERIC_RECEIVE_FAILURE));
+
             return $this->renderDialog($form, $itemId, Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
@@ -208,7 +229,6 @@ final class ReceiveStockController extends AbstractController
     {
         $perUnit = $input->costPerUnitCents;
         $total = $input->totalCostCents;
-        $quantity = $input->quantityUnits;
 
         if ($perUnit !== null && $total !== null) {
             $form->get('costPerUnitCents')->addError(new FormError(self::ERR_COST_BOTH));
@@ -221,38 +241,52 @@ final class ReceiveStockController extends AbstractController
             return [true, ''];
         }
 
-        if ($total !== null) {
-            if ($quantity === null || $quantity < 1) {
-                $form->get('totalCostCents')->addError(new FormError(self::ERR_QUANTITY_FOR_TOTAL));
-                return [true, ''];
-            }
-            $derived = intdiv($total, $quantity);
-            $remainder = $total - ($derived * $quantity);
-            $input->costPerUnitCents = $derived;
-            if ($remainder > 0) {
-                $unit = $remainder === 1 ? 'cent' : 'cents';
-                return [false, sprintf('(%d %s remainder)', $remainder, $unit)];
-            }
+        return $this->resolveCostFromTotal($form, $input, $total);
+    }
+
+    /**
+     * Resolves the per-unit cost when only the total was supplied. When the
+     * per-unit value was supplied directly ($total is null) there is nothing
+     * to derive. Mutates $input->costPerUnitCents with the derived value and
+     * returns the same [invalid, note] tuple as {@see normalizeCost()}.
+     *
+     * @template TData
+     *
+     * @param FormInterface<TData> $form
+     *
+     * @return array{0: bool, 1: string}
+     */
+    private function resolveCostFromTotal(FormInterface $form, ReceiveStockInput $input, ?int $total): array
+    {
+        if ($total === null) {
             return [false, ''];
         }
 
-        // perUnit was supplied directly — nothing to derive.
-        return [false, ''];
+        $quantity = $input->quantityUnits;
+        if ($quantity === null || $quantity < 1) {
+            $form->get('totalCostCents')->addError(new FormError(self::ERR_QUANTITY_FOR_TOTAL));
+            return [true, ''];
+        }
+
+        $derived = intdiv($total, $quantity);
+        $remainder = $total - ($derived * $quantity);
+        $input->costPerUnitCents = $derived;
+
+        $note = $remainder > 0
+            ? sprintf('(%d %s remainder)', $remainder, $remainder === 1 ? 'cent' : 'cents')
+            : '';
+
+        return [false, $note];
     }
 
     private function buildFinalComment(?string $operatorComment, string $costNote): ?string
     {
-        $operatorComment = $operatorComment !== null ? trim($operatorComment) : '';
-        if ($operatorComment === '' && $costNote === '') {
-            return null;
-        }
-        if ($operatorComment === '') {
-            return $costNote;
-        }
-        if ($costNote === '') {
-            return $operatorComment;
-        }
-        return $operatorComment . ' ' . $costNote;
+        $parts = array_filter(
+            [$operatorComment !== null ? trim($operatorComment) : '', $costNote],
+            static fn (string $part): bool => $part !== '',
+        );
+
+        return $parts === [] ? null : implode(' ', $parts);
     }
 
     /**

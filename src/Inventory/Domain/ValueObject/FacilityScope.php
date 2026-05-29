@@ -74,17 +74,19 @@ final readonly class FacilityScope
 
     public function equals(self $other): bool
     {
-        if ($this->isAll !== $other->isAll) {
+        if (
+            $this->isAll !== $other->isAll
+            || count($this->facilities) !== count($other->facilities)
+        ) {
             return false;
         }
-        if (count($this->facilities) !== count($other->facilities)) {
-            return false;
-        }
+
         foreach ($this->facilities as $i => $facility) {
             if (! $facility->equals($other->facilities[$i])) {
                 return false;
             }
         }
+
         return true;
     }
 }

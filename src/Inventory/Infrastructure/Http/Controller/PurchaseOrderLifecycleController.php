@@ -146,8 +146,12 @@ final class PurchaseOrderLifecycleController extends AbstractController
             return $this->genericFailureResponse(Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        $now = new DateTimeImmutable();
-        $nowIso = $now->format(DateTimeInterface::ATOM);
+        return $this->dispatchReceiveLine($poId, $lineId, $quantity);
+    }
+
+    private function dispatchReceiveLine(string $poId, string $lineId, int $quantity): Response
+    {
+        $nowIso = (new DateTimeImmutable())->format(DateTimeInterface::ATOM);
 
         try {
             $this->dispatchCommandUnwrapping(new ReceivePurchaseOrderLine(

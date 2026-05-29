@@ -105,32 +105,23 @@ final readonly class VendorAddress
      */
     private static function validatePostalCode(string $postal, string $country): string
     {
-        switch ($country) {
-            case 'US':
-                if (preg_match(self::US_ZIP_PATTERN, $postal) !== 1) {
-                    throw InvalidVendorAddress::invalidPostalCode($country);
-                }
+        // CA is stored uppercased; every other country keeps the trimmed
+        // input as-is. UK postcodes are ASCII by spec, so strlen is
+        // sufficient and avoids depending on ext-mbstring.
+        $normalised = $country === 'CA' ? strtoupper($postal) : $postal;
 
-                return $postal;
-            case 'CA':
-                $up = strtoupper($postal);
-                if (preg_match(self::CA_POSTAL_PATTERN, $up) !== 1) {
-                    throw InvalidVendorAddress::invalidPostalCode($country);
-                }
+        $valid = match ($country) {
+            'US' => preg_match(self::US_ZIP_PATTERN, $postal) === 1,
+            'CA' => preg_match(self::CA_POSTAL_PATTERN, $normalised) === 1,
+            'GB' => strlen($postal) >= 2 && strlen($postal) <= 10,
+            default => true,
+        };
 
-                return $up;
-            case 'GB':
-                // UK postcodes are ASCII by spec; strlen is sufficient
-                // and avoids depending on ext-mbstring for this branch.
-                $len = strlen($postal);
-                if ($len < 2 || $len > 10) {
-                    throw InvalidVendorAddress::invalidPostalCode($country);
-                }
-
-                return $postal;
-            default:
-                return $postal;
+        if (! $valid) {
+            throw InvalidVendorAddress::invalidPostalCode($country);
         }
+
+        return $normalised;
     }
 
     public function equals(self $other): bool
