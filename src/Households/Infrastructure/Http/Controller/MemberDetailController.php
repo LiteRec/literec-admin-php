@@ -26,6 +26,7 @@ use App\Households\Infrastructure\Http\Form\UpdateHouseholdAddressInput;
 use App\Households\Infrastructure\Http\Form\UpdateMemberProfileFormType;
 use App\Households\Infrastructure\Http\Form\UpdateMemberProfileInput;
 use App\Shared\Domain\Exception\SharedDomainException;
+use LogicException;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
@@ -33,8 +34,12 @@ use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\Messenger\Envelope;
+use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\HandledStamp;
 use Symfony\Component\Routing\Attribute\Route;
+use Throwable;
 
 /**
  * HTTP adapter for the member detail page (LRA-41) and the in-card
@@ -58,9 +63,6 @@ use Symfony\Component\Routing\Attribute\Route;
  */
 final class MemberDetailController extends AbstractController
 {
-    use DispatchesCommandsUnwrapping;
-    use DispatchesQueriesUnwrapping;
-
     private const string UUID_V7_REGEX
         = '[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}';
 
@@ -581,17 +583,75 @@ final class MemberDetailController extends AbstractController
     }
 
     /**
-     * Dispatches the GetMemberDetail query and projects the result to
-     * MemberDetail. The query bus unwrap (so the original domain exceptions
-     * reach this controller's catch blocks) and the result-type assertion
-     * live in {@see DispatchesQueriesUnwrapping}.
+     * Dispatches the GetMemberDetail query and unwraps Messenger's
+     * HandlerFailedException so the original domain exceptions reach the
+     * caller. Domain exceptions cannot leak through Messenger's bus in
+     * their raw form because handler failures are always wrapped.
      */
     private function runQuery(string $householdId, string $memberId): MemberDetail
     {
-        return $this->dispatchQueryUnwrapping(
-            new GetMemberDetail($householdId, $memberId),
-            MemberDetail::class,
-        );
+        try {
+            $envelope = $this->queryBus->dispatch(new GetMemberDetail($householdId, $memberId));
+        } catch (HandlerFailedException $wrapper) {
+            $nested = $wrapper->getPrevious();
+            if ($nested instanceof Throwable) {
+                throw $nested;
+            }
+            throw $wrapper;
+        }
+
+        $result = $this->resultOf($envelope);
+
+        if (!$result instanceof MemberDetail) {
+            throw new LogicException(sprintf(
+                'GetMemberDetail handler returned %s, expected %s.',
+                get_debug_type($result),
+                MemberDetail::class,
+            ));
+        }
+
+        return $result;
+    }
+
+    /**
+     * Dispatch a command through the command bus and unwrap
+     * HandlerFailedException so domain exceptions surface to the caller.
+     */
+    private function dispatchCommandUnwrapping(object $command): void
+    {
+        try {
+            $this->commandBus->dispatch($command);
+        } catch (HandlerFailedException $wrapper) {
+            $nested = $wrapper->getPrevious();
+            if ($nested instanceof Throwable) {
+                throw $nested;
+            }
+            throw $wrapper;
+        }
+    }
+
+    /**
+     * Extract the single handler result from a dispatched Envelope. Mirrors
+     * Messenger's HandleTrait behaviour without coupling the controller to
+     * the trait (the controller uses both the query bus and the command
+     * bus, which the trait cannot multiplex).
+     */
+    private function resultOf(Envelope $envelope): mixed
+    {
+        $stamps = $envelope->all(HandledStamp::class);
+
+        if ($stamps === []) {
+            throw new LogicException('Dispatched message produced no HandledStamp.');
+        }
+
+        if (count($stamps) > 1) {
+            throw new LogicException('Dispatched message produced more than one HandledStamp.');
+        }
+
+        /** @var HandledStamp $stamp */
+        $stamp = $stamps[0];
+
+        return $stamp->getResult();
     }
 
     /**
