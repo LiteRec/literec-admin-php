@@ -29,6 +29,7 @@ final class PostalCodeRule
      */
     public static function normalize(string $postal, string $country): ?string
     {
+        $postal = trim($postal);
         $normalised = $country === 'CA' ? strtoupper($postal) : $postal;
 
         $valid = match ($country) {
