@@ -1,73 +1,128 @@
 {% extends 'app.html.twig' %}
 
+{% import 'components/_icon.html.twig' as ui %}
+
 {% block page_title %}Admin Dashboard{% endblock %}
 
 {% block page_subtitle %}Welcome back. Here's what's happening across your facilities today.{% endblock %}
 
 {% block page_body %}
-    {# KPI cards row — each tile rendered through the reusable _kpi_card component. #}
-    <section aria-labelledby="kpi-heading" class="mb-8">
+    {# KPI tiles — gradient cards rendered through the reusable _kpi_card component. #}
+    <section aria-labelledby="kpi-heading" class="mb-6">
         <h2 id="kpi-heading" class="sr-only">Key performance indicators</h2>
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {% for kpi in dashboard.kpis %}
                 {% include 'components/_kpi_card.html.twig' with {
-                    label: kpi.label,
+                    icon: kpi.icon,
                     value: kpi.value,
+                    label: kpi.label,
+                    gradient: kpi.gradient,
                     delta: kpi.delta,
                 } only %}
             {% endfor %}
         </div>
     </section>
 
-    {# Two-column layout at lg: transactions on the left, schedule on the right. #}
-    <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <section aria-labelledby="transactions-heading" class="lg:col-span-2 rounded-card border border-litrec-border bg-litrec-surface shadow-card">
-            <header class="border-b border-litrec-border px-5 py-3">
-                <h2 id="transactions-heading" class="text-base font-semibold text-litrec-text">Recent Transactions</h2>
-            </header>
-            <ul class="divide-y divide-litrec-border">
+    <div class="mb-5 grid grid-cols-1 gap-5 lg:grid-cols-2">
+        {# Recent Activity — real transaction feed, shown as a status-dotted list. #}
+        <section aria-labelledby="activity-heading" data-gsap="card" class="lr-card">
+            <div class="lr-card-head">
+                <span class="lr-card-title inline-flex items-center gap-2">
+                    {{ ui.icon('bolt', 16, 1.6, 'text-litrec-secondary') }}
+                    <span id="activity-heading">Recent Activity</span>
+                </span>
+                <a href="{{ path('reports_index') }}" class="lr-link text-xs font-semibold">View all</a>
+            </div>
+            {% set dot_colors = {
+                'succeeded': 'var(--lr-success)',
+                'pending':   'var(--lr-warning)',
+                'failed':    'var(--lr-danger)',
+                'refunded':  'var(--lr-info)',
+            } %}
+            <div class="lr-list">
                 {% for tx in dashboard.recentTransactions %}
-                    <li class="flex items-center justify-between gap-4 px-5 py-3">
-                        <div class="min-w-0">
-                            <p class="truncate text-sm font-semibold text-litrec-text">{{ tx.userName }}</p>
-                            <p class="text-xs text-litrec-text-muted">{{ tx.method }} · {{ tx.at|date('g:i A') }}</p>
+                    <div class="lr-list-row">
+                        <span class="lr-dot" style="background: {{ dot_colors[tx.status.value] ?? 'var(--lr-text-muted)' }}"></span>
+                        <div class="min-w-0 flex-1">
+                            <div class="lr-row-strong truncate text-sm">{{ tx.userName }}</div>
+                            <div class="lr-muted text-xs">{{ tx.method }}</div>
                         </div>
-                        <div class="flex items-center gap-3 text-right">
-                            <span class="text-sm font-semibold text-litrec-text">{{ tx.amountFormatted }}</span>
-                            {% include 'components/_status_badge.html.twig' with { status: tx.status.value } only %}
+                        <div class="text-right">
+                            <div class="lr-row-strong lr-num text-sm">{{ tx.amountFormatted }}</div>
+                            <div class="lr-muted text-xs">{{ tx.at|date('g:i A') }}</div>
                         </div>
-                    </li>
+                    </div>
                 {% endfor %}
-            </ul>
+            </div>
         </section>
 
-        <section aria-labelledby="schedule-heading" class="rounded-card border border-litrec-border bg-litrec-surface shadow-card">
-            <header class="border-b border-litrec-border px-5 py-3">
-                <h2 id="schedule-heading" class="text-base font-semibold text-litrec-text">Today's Schedule</h2>
-            </header>
-            <ul class="divide-y divide-litrec-border">
-                {% for item in dashboard.todaysSchedule %}
-                    <li class="px-5 py-3">
-                        <p class="text-sm font-semibold text-litrec-text">{{ item.timeLabel }} — {{ item.facility }}</p>
-                        <p class="text-xs text-litrec-text-muted">{{ item.partyName }}</p>
-                    </li>
+        {# Upcoming Events — presentation-only sample data (Scheduling context pending). #}
+        <section aria-labelledby="events-heading" data-gsap="card" class="lr-card">
+            <div class="lr-card-head">
+                <span class="lr-card-title inline-flex items-center gap-2">
+                    {{ ui.icon('calendar', 16, 1.6, 'text-litrec-secondary') }}
+                    <span id="events-heading">Upcoming Events</span>
+                </span>
+                <a href="{{ path('facilities_index') }}" class="lr-link text-xs font-semibold">View calendar</a>
+            </div>
+            <div class="lr-list">
+                {% for event in dashboard.upcomingEvents %}
+                    <div class="lr-list-row">
+                        <span class="lr-datechip"><span class="d lr-num">{{ event.day }}</span><span class="m">{{ event.month }}</span></span>
+                        <div class="min-w-0 flex-1">
+                            <div class="lr-row-strong truncate text-sm">{{ event.title }}</div>
+                            <div class="lr-muted inline-flex items-center gap-1 text-xs">{{ ui.icon('pin', 11) }} {{ event.location }}</div>
+                        </div>
+                        <span class="lr-chip lr-num">{{ ui.icon('users', 12) }} {{ event.attendees }}</span>
+                    </div>
                 {% endfor %}
-            </ul>
+            </div>
         </section>
     </div>
 
-    {# Quick Links tile grid. #}
-    <section aria-labelledby="quicklinks-heading" class="mt-8">
-        <h2 id="quicklinks-heading" class="mb-3 text-sm font-semibold uppercase tracking-wide text-litrec-text-muted">Quick Links</h2>
-        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
-            {% for link in dashboard.quickLinks %}
-                <a
-                    href="{{ path(link.route) }}"
-                    class="rounded-card border border-litrec-border bg-litrec-surface px-3 py-4 text-center text-sm font-semibold text-litrec-text shadow-card hover:bg-litrec-bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
-                >
-                    {{ link.label }}
-                </a>
-            {% endfor %}
-        </div>
-    </section>
+    <div class="grid grid-cols-1 gap-5 lg:grid-cols-3">
+        {# Facility Status — presentation-only sample data (Facilities read model pending). #}
+        <section aria-labelledby="facilities-heading" data-gsap="card" class="lr-card lg:col-span-2">
+            <div class="lr-card-head">
+                <span class="lr-card-title inline-flex items-center gap-2">
+                    {{ ui.icon('tree', 16, 1.6, 'text-litrec-secondary') }}
+                    <span id="facilities-heading">Facility Status</span>
+                </span>
+                <a href="{{ path('facilities_index') }}" class="lr-link text-xs font-semibold">All facilities</a>
+            </div>
+            <div class="lr-list">
+                {% for facility in dashboard.facilityStatuses %}
+                    <div class="lr-list-row">
+                        <div class="flex-1">
+                            <div class="lr-row-strong text-sm">{{ facility.name }}</div>
+                            <div class="mt-1 inline-flex items-center gap-2">
+                                {% include 'components/_badge.html.twig' with { label: facility.conditionLabel, variant: facility.badgeVariant, class: 'uppercase' } only %}
+                                <span class="lr-muted text-xs"><span class="lr-num">{{ facility.visitorsToday }}</span> visitors today</span>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </section>
+
+        {# Quick Actions — real nav routes as dashed tiles. #}
+        <section aria-labelledby="quick-actions-heading" data-gsap="card" class="lr-card">
+            <div class="lr-card-head">
+                <span class="lr-card-title inline-flex items-center gap-2">
+                    {{ ui.icon('bolt', 16, 1.6, 'text-litrec-secondary') }}
+                    <span id="quick-actions-heading">Quick Actions</span>
+                </span>
+            </div>
+            <div class="lr-card-body">
+                <div class="grid grid-cols-2 gap-3">
+                    {% for link in dashboard.quickLinks %}
+                        <a href="{{ path(link.route) }}" class="lr-quick">
+                            {{ ui.icon(link.icon, 20) }}
+                            <span class="text-sm font-semibold">{{ link.label }}</span>
+                        </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+    </div>
 {% endblock %}

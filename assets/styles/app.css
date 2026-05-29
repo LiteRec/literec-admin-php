@@ -559,6 +559,83 @@
     .lr-crumbs .sep { opacity: 0.5; }
 }
 
+/* ======================================================================
+   Dashboard widgets: gradient KPI tiles, dashed quick-action tiles, the
+   activity status dot, and the upcoming-event date chip. Token-driven; the
+   KPI tile uses a caller-supplied gradient and white-on-gradient text.
+   ====================================================================== */
+@layer components {
+    .lr-kpi {
+        border-radius: var(--radius-card);
+        padding: var(--pad-card);
+        position: relative;
+        overflow: hidden;
+        color: #fff;
+        min-height: 116px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+    .lr-kpi .ico {
+        width: 34px;
+        height: 34px;
+        border-radius: var(--radius-card-sm);
+        background: rgb(255 255 255 / 0.16);
+        display: grid;
+        place-items: center;
+    }
+    .lr-kpi .val { font-size: 1.8rem; font-weight: 800; line-height: 1; }
+    .lr-kpi .lbl { font-size: 0.8125rem; opacity: 0.96; margin-top: 0.2rem; }
+    .lr-kpi .delta {
+        font-size: 0.6875rem;
+        font-weight: 700;
+        background: rgb(0 0 0 / 0.26);
+        border-radius: var(--radius-pill);
+        padding: 0.1rem 0.45rem;
+        align-self: flex-start;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+    .lr-kpi .blob {
+        position: absolute;
+        right: -28px;
+        bottom: -36px;
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background: rgb(255 255 255 / 0.08);
+    }
+
+    .lr-quick {
+        border: 1px dashed var(--lr-border);
+        border-radius: var(--radius-card);
+        padding: var(--pad-card);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--lr-text-muted);
+        background: var(--lr-surface);
+        text-align: center;
+    }
+    .lr-quick:hover { border-color: var(--lr-secondary); color: var(--lr-text); }
+
+    .lr-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+
+    .lr-datechip {
+        background: var(--lr-secondary);
+        color: var(--lr-on-secondary);
+        border-radius: var(--radius-card-sm);
+        width: 42px;
+        text-align: center;
+        padding: 0.3rem 0;
+        flex: none;
+    }
+    .lr-datechip .d { font-size: 1.05rem; font-weight: 800; line-height: 1; }
+    .lr-datechip .m { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; }
+}
+
 /* Hide x-cloak elements until Alpine.js has initialised. */
 [x-cloak] {
     display: none !important;

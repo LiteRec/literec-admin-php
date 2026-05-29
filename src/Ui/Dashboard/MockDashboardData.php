@@ -25,28 +25,54 @@ final readonly class MockDashboardData
     {
         return new DashboardData(
             kpis: [
-                new KpiCard("Today's Revenue", '$4,182.50', '+12% vs. yesterday'),
-                new KpiCard('Active Memberships', '1,847', '+23 this week'),
-                new KpiCard('Upcoming Reservations', '34', 'next 7 days'),
-                new KpiCard('Open Refund Requests', '6', '2 awaiting review'),
+                new KpiCard(
+                    "Today's Revenue",
+                    '$4,182.50',
+                    'money',
+                    'linear-gradient(135deg,#8a6508,#5e4604)',
+                    '+12% vs. yesterday',
+                ),
+                new KpiCard(
+                    'Active Memberships',
+                    '1,847',
+                    'users',
+                    'linear-gradient(135deg,#1c3d5a,#0f2840)',
+                    '+23 this week',
+                ),
+                new KpiCard(
+                    'Upcoming Reservations',
+                    '34',
+                    'calendar',
+                    'linear-gradient(135deg,#2e5847,#1f3d31)',
+                    'next 7 days',
+                ),
+                new KpiCard(
+                    'Open Refund Requests',
+                    '6',
+                    'tag',
+                    'linear-gradient(135deg,#3a6a8f,#27506e)',
+                    '2 awaiting review',
+                ),
             ],
             recentTransactions: $this->buildRecentTransactions(),
-            todaysSchedule: [
-                new ScheduleItem('9:00 AM', 'Court A', 'Eastside Pickleball Club'),
-                new ScheduleItem('10:30 AM', 'Pool', 'Otter Swim Lessons'),
-                new ScheduleItem('12:00 PM', 'Gymnasium', 'Senior Basketball Open Play'),
-                new ScheduleItem('2:00 PM', 'Studio 2', 'Tuesday Yoga'),
-                new ScheduleItem('3:30 PM', 'Court B', 'Junior Tennis Camp'),
-                new ScheduleItem('5:00 PM', 'Conf. Rm. 1', 'Membership Committee'),
+            upcomingEvents: [
+                new EventItem('14', 'Jun', 'Summer Camp Kickoff', 'Community Center', 128),
+                new EventItem('17', 'Jun', 'Adult Soccer League', 'Field House', 96),
+                new EventItem('21', 'Jun', 'Family Swim Night', 'Aquatics Center', 210),
+            ],
+            facilityStatuses: [
+                new FacilityStatus('Community Center', 'Open', 'success', 847),
+                new FacilityStatus('Aquatics Center', 'Busy', 'info', 512),
+                new FacilityStatus('Field House', 'Maintenance', 'warning', 203),
             ],
             quickLinks: [
-                new QuickLink('Cash Register', 'cash_register_index'),
-                new QuickLink('Programs', 'programs_index'),
-                new QuickLink('Users', 'users_index'),
-                new QuickLink('Memberships', 'memberships_index'),
-                new QuickLink('Facilities', 'facilities_index'),
-                new QuickLink('Reports', 'reports_index'),
-                new QuickLink('Communications', 'communications_index'),
+                new QuickLink('Cash Register', 'cash_register_index', 'cart'),
+                new QuickLink('Programs', 'programs_index', 'calendar'),
+                new QuickLink('Users', 'users_index', 'users'),
+                new QuickLink('Memberships', 'memberships_index', 'ticket'),
+                new QuickLink('Facilities', 'facilities_index', 'tree'),
+                new QuickLink('Reports', 'reports_index', 'print'),
+                new QuickLink('Communications', 'communications_index', 'bell'),
             ],
         );
     }

@@ -20,8 +20,8 @@ final class DashboardPageTest extends WebTestCase
     private const string TEST_USERNAME = 'dashboard_e2e';
 
     #[Test]
-    #[TestDox('Signed-in staff land on a populated Admin Dashboard.')]
-    public function dashboard_renders_kpis_transactions_schedule_and_quick_links(): void
+    #[TestDox('Signed-in staff land on the redesigned Admin Dashboard with all Eagleton sections.')]
+    public function dashboard_renders_the_eagleton_sections(): void
     {
         $client = static::createClient();
         $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
@@ -30,22 +30,29 @@ final class DashboardPageTest extends WebTestCase
         self::assertResponseIsSuccessful();
 
         self::assertSelectorTextContains('main h1', 'Admin Dashboard');
+        self::assertSelectorTextContains('.lr-pagesub', 'Welcome back');
 
+        // KPI gradient tiles: four, each a GSAP card carrying its label in .lbl.
         $kpiLabels = $crawler
-            ->filter('[aria-labelledby="kpi-heading"] [data-gsap="card"] p:first-child')
+            ->filter('[aria-labelledby="kpi-heading"] .lr-kpi[data-gsap="card"] .lbl')
             ->each(static fn ($n): string => trim($n->text()));
         self::assertSame(
             ["Today's Revenue", 'Active Memberships', 'Upcoming Reservations', 'Open Refund Requests'],
             $kpiLabels,
         );
 
-        $transactionRows = $crawler->filter('[aria-labelledby="transactions-heading"] ul > li')->count();
-        self::assertGreaterThanOrEqual(10, $transactionRows);
+        // Recent Activity feed carries every mock transaction row.
+        $activityRows = $crawler->filter('[aria-labelledby="activity-heading"] .lr-list-row')->count();
+        self::assertGreaterThanOrEqual(10, $activityRows);
 
-        $scheduleRows = $crawler->filter('[aria-labelledby="schedule-heading"] ul > li')->count();
-        self::assertGreaterThanOrEqual(5, $scheduleRows);
+        // Stubbed presentation sections render.
+        $eventRows = $crawler->filter('[aria-labelledby="events-heading"] .lr-list-row')->count();
+        self::assertGreaterThanOrEqual(3, $eventRows);
+        $facilityRows = $crawler->filter('[aria-labelledby="facilities-heading"] .lr-list-row')->count();
+        self::assertGreaterThanOrEqual(3, $facilityRows);
 
-        $quickLinks = $crawler->filter('[aria-labelledby="quicklinks-heading"] a')->count();
-        self::assertSame(7, $quickLinks);
+        // Quick Actions: the seven nav routes as dashed tiles.
+        $quickActions = $crawler->filter('[aria-labelledby="quick-actions-heading"] a.lr-quick')->count();
+        self::assertSame(7, $quickActions);
     }
 }
