@@ -216,8 +216,11 @@
    ---------------------------------------------------------------------- */
 .lr-screen {
     font-family: var(--font-sans);
+    font-size: var(--text-body);
+    line-height: 1.45;
     background: var(--lr-bg);
     color: var(--lr-text);
+    -webkit-font-smoothing: antialiased;
 }
 
 /* Pin placeholders to the muted token (>= 5.7:1) instead of the UA's
