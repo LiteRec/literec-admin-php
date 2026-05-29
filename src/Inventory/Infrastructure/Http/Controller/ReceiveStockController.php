@@ -272,9 +272,9 @@ final class ReceiveStockController extends AbstractController
         $remainder = $total - ($derived * $quantity);
         $input->costPerUnitCents = $derived;
 
-        $note = $remainder > 0
-            ? sprintf('(%d %s remainder)', $remainder, $remainder === 1 ? 'cent' : 'cents')
-            : '';
+        // Two separate ternaries (not nested) keep this at one return.
+        $unit = $remainder === 1 ? 'cent' : 'cents';
+        $note = $remainder > 0 ? sprintf('(%d %s remainder)', $remainder, $unit) : '';
 
         return [false, $note];
     }

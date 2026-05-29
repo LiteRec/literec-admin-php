@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Inventory\Domain\ValueObject;
 
 use App\Inventory\Domain\Exception\InvalidVendorAddress;
+use App\Shared\Domain\ValueObject\PostalCodeRule;
 
 /**
  * Composite postal address for a vendor. Country is an ISO 3166-1 alpha-2
@@ -25,8 +26,6 @@ use App\Inventory\Domain\Exception\InvalidVendorAddress;
 final readonly class VendorAddress
 {
     private const COUNTRY_PATTERN = '/^[A-Z]{2}$/';
-    private const US_ZIP_PATTERN = '/^\d{5}(-\d{4})?$/';
-    private const CA_POSTAL_PATTERN = '/^[ABCEGHJKLMNPRSTVXY]\d[ABCEGHJKLMNPRSTVWXYZ] \d[ABCEGHJKLMNPRSTVWXYZ]\d$/';
 
     public string $street;
     public ?string $unit;
@@ -105,19 +104,8 @@ final readonly class VendorAddress
      */
     private static function validatePostalCode(string $postal, string $country): string
     {
-        // CA is stored uppercased; every other country keeps the trimmed
-        // input as-is. UK postcodes are ASCII by spec, so strlen is
-        // sufficient and avoids depending on ext-mbstring.
-        $normalised = $country === 'CA' ? strtoupper($postal) : $postal;
-
-        $valid = match ($country) {
-            'US' => preg_match(self::US_ZIP_PATTERN, $postal) === 1,
-            'CA' => preg_match(self::CA_POSTAL_PATTERN, $normalised) === 1,
-            'GB' => strlen($postal) >= 2 && strlen($postal) <= 10,
-            default => true,
-        };
-
-        if (! $valid) {
+        $normalised = PostalCodeRule::normalize($postal, $country);
+        if ($normalised === null) {
             throw InvalidVendorAddress::invalidPostalCode($country);
         }
 

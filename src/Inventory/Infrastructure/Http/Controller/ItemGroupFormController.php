@@ -106,30 +106,8 @@ final class ItemGroupFormController extends AbstractController
         $form = $this->createForm(ItemGroupFormType::class, $input);
         $form->handleRequest($request);
 
-        if ($form->isSubmitted() && $form->isValid()) {
-            $facilityCodes = $this->extractFacilityCodes($input);
-
-            if ($input->scope === ItemGroupFormInput::SCOPE_FACILITY && $facilityCodes === []) {
-                $form->get(self::FACILITY_CODE_FIELD)->addError(new FormError(self::FACILITY_REQUIRED_MESSAGE));
-            } else {
-                try {
-                    $this->dispatchCommandUnwrapping(new CreateItemGroup(
-                        name: (string) $input->name,
-                        colorHex: (string) $input->colorHex,
-                        facilityCodes: $facilityCodes,
-                    ));
-
-                    return $this->savedResponse();
-                } catch (DuplicateItemGroupName | InvalidItemGroupName $exception) {
-                    $form->get(self::NAME_FIELD)->addError(new FormError($exception->getMessage()));
-                } catch (InvalidPosColor $exception) {
-                    $form->get(self::COLOR_FIELD)->addError(new FormError($exception->getMessage()));
-                } catch (FacilityScopeEmpty $exception) {
-                    $form->get(self::FACILITY_CODE_FIELD)->addError(new FormError($exception->getMessage()));
-                } catch (Throwable) {
-                    $form->addError(new FormError(self::GENERIC_SAVE_FAILURE));
-                }
-            }
+        if ($form->isSubmitted() && $form->isValid() && $this->saveNewGroup($form, $input)) {
+            return $this->savedResponse();
         }
 
         return $this->reRenderForm(
@@ -139,6 +117,43 @@ final class ItemGroupFormController extends AbstractController
             self::MODAL_TITLE_CREATE,
             self::SUBMIT_LABEL_CREATE,
         );
+    }
+
+    /**
+     * Attempts to create the item group from a validated form. Returns true on
+     * success; on a facility-scope problem or a domain failure it attaches the
+     * field-level error to $form and returns false so the caller re-renders.
+     *
+     * @param FormInterface<ItemGroupFormInput> $form
+     */
+    private function saveNewGroup(FormInterface $form, ItemGroupFormInput $input): bool
+    {
+        $facilityCodes = $this->extractFacilityCodes($input);
+        if ($input->scope === ItemGroupFormInput::SCOPE_FACILITY && $facilityCodes === []) {
+            $form->get(self::FACILITY_CODE_FIELD)->addError(new FormError(self::FACILITY_REQUIRED_MESSAGE));
+
+            return false;
+        }
+
+        try {
+            $this->dispatchCommandUnwrapping(new CreateItemGroup(
+                name: (string) $input->name,
+                colorHex: (string) $input->colorHex,
+                facilityCodes: $facilityCodes,
+            ));
+
+            return true;
+        } catch (DuplicateItemGroupName | InvalidItemGroupName $exception) {
+            $form->get(self::NAME_FIELD)->addError(new FormError($exception->getMessage()));
+        } catch (InvalidPosColor $exception) {
+            $form->get(self::COLOR_FIELD)->addError(new FormError($exception->getMessage()));
+        } catch (FacilityScopeEmpty $exception) {
+            $form->get(self::FACILITY_CODE_FIELD)->addError(new FormError($exception->getMessage()));
+        } catch (Throwable) {
+            $form->addError(new FormError(self::GENERIC_SAVE_FAILURE));
+        }
+
+        return false;
     }
 
     #[Route(
