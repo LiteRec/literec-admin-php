@@ -16,7 +16,10 @@
 #}
 {% set id = id|default('modal') %}
 {% set headingId = headingId|default(id ~ '-title') %}
-{# NOSONAR Web:S6819 — keeping role=dialog rather than native <dialog> because the Alpine-driven open/dismiss state, htmx swap targeting, and existing CSS positioning are wired against the div root. Switch to <dialog> tracked separately. #}
+{# role=dialog + aria-modal modal root. A native dialog-element migration is
+   tracked separately (the Alpine open/dismiss state, htmx swap target, and CSS
+   are wired against this container). Web:S6819 is suppressed for this file in
+   sonar-project.properties with the rationale. #}
 <div
     id="{{ id }}"
     class="modal-root fixed inset-0 z-50 flex items-center justify-center p-4"
