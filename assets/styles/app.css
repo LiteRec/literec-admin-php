@@ -387,6 +387,85 @@
     }
 }
 
+/* ======================================================================
+   Eagleton "lr-" component layer (data entry & display): form fields,
+   inputs, selects, checkboxes, tables, and divider lists. Complements the
+   primitives above; every value is token-driven.
+   ====================================================================== */
+@layer components {
+    /* fields & inputs */
+    .lr-field { display: flex; flex-direction: column; gap: 0.3rem; }
+    .lr-label { font-size: 0.75rem; font-weight: 600; color: var(--lr-text-muted); }
+
+    /* lr-input is the wrapper variant: a bordered row that hosts leading/
+       trailing icon slots (.ico) around a borderless <input>. For a plain
+       Symfony-form-bound control, use the .litrec-input single-element variant
+       below — both share the same border, radius, and focus treatment so the
+       two read identically. */
+    .lr-input {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        border: 1px solid var(--lr-border);
+        border-radius: var(--radius-card-sm);
+        background: var(--lr-surface);
+        padding: 0.5rem 0.7rem;
+        color: var(--lr-text);
+        font-size: 0.875rem;
+    }
+    .lr-input.is-focus { border-color: var(--lr-primary); box-shadow: 0 0 0 1px var(--lr-primary); }
+    .lr-input input { border: 0; outline: 0; background: transparent; color: inherit; font: inherit; width: 100%; }
+    .lr-input .ico { color: var(--lr-text-muted); flex: none; }
+
+    .lr-select {
+        border: 1px solid var(--lr-border);
+        border-radius: var(--radius-card-sm);
+        background: var(--lr-surface);
+        padding: 0.4rem 0.6rem;
+        color: var(--lr-text);
+        font: inherit;
+        font-size: 0.8125rem;
+    }
+
+    .lr-check { display: inline-flex; align-items: flex-start; gap: 0.5rem; font-size: 0.8125rem; }
+    .lr-check .box {
+        width: 16px;
+        height: 16px;
+        border-radius: 3px;
+        border: 1.5px solid var(--lr-primary);
+        background: var(--lr-primary);
+        color: var(--lr-on-primary);
+        display: grid;
+        place-items: center;
+        flex: none;
+        margin-top: 1px;
+    }
+
+    /* tables */
+    .lr-table { width: 100%; border-collapse: collapse; font-size: 0.8125rem; }
+    .lr-table th {
+        text-align: left;
+        font-size: 0.6875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--lr-text-muted);
+        font-weight: 700;
+        padding: 0.5rem var(--pad-row-x);
+        border-bottom: 1px solid var(--lr-border);
+    }
+    .lr-table td {
+        padding: var(--pad-row-y) var(--pad-row-x);
+        border-bottom: 1px solid var(--lr-border);
+        vertical-align: middle;
+    }
+    .lr-table tbody tr:last-child td { border-bottom: 0; }
+    .lr-table tbody tr:hover { background: var(--lr-surface-2); }
+
+    /* divider list */
+    .lr-list > * + * { border-top: 1px solid var(--lr-border); }
+    .lr-list-row { display: flex; align-items: center; gap: 0.75rem; padding: var(--pad-row-y) var(--pad-row-x); }
+}
+
 /* Hide x-cloak elements until Alpine.js has initialised. */
 [x-cloak] {
     display: none !important;
@@ -395,7 +474,14 @@
 /* Shared input style used by Symfony form rows in dialogs (LRA-40). The
    class is applied via {{ form_row(..., { attr: { class: 'litrec-input' } }) }}
    so every text/email/date input gets the same Tailwind-derived treatment
-   without repeating a dozen utilities in every template. */
+   without repeating a dozen utilities in every template.
+
+   This is the single-element variant: a Symfony form binds directly to one
+   <input>/<select>, so the control itself carries the border, radius, and
+   focus ring. The .lr-input above is the wrapper variant for hand-built rows
+   that need leading/trailing icon slots. Both deliberately share the same
+   border (--lr-border), radius (--radius-card-sm), and --lr-primary focus
+   treatment so dialog forms and the new screens look identical. */
 .litrec-input {
     display: block;
     width: 100%;
