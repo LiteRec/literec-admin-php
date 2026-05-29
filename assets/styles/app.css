@@ -7,43 +7,51 @@
 /*
  * Design tokens for LiteRecAdmin — Eagleton palette.
  *
- * Every token is published as a Tailwind utility (e.g. --color-litrec-ink
- * → text-litrec-ink, bg-litrec-ink, border-litrec-ink). The @theme block
- * binds each Tailwind variable to a neutral semantic CSS variable
- * (--lr-*), and the :root rules below choose light or dark Eagleton
- * values. Light is the default; @media (prefers-color-scheme: dark) and
- * the explicit [data-theme="dark"] / [data-theme="light"] attributes
- * select between modes.
+ * Every color token is published as a Tailwind utility (e.g.
+ * --color-litrec-ink → text-litrec-ink, bg-litrec-ink, border-litrec-ink).
+ * The @theme block binds each Tailwind variable to a neutral semantic CSS
+ * variable (--lr-*); the :root and :root[data-theme="dark"] blocks below
+ * choose the light or dark Eagleton value for each --lr-* token.
+ *
+ * Theme selection
+ *   Light is the default (:root). Dark is opt-in via data-theme="dark" on
+ *   <html>. The header toggle (LRA-123) writes that attribute on user action
+ *   and, on first load, seeds it from the OS prefers-color-scheme — so theme
+ *   selection is driven by one attribute rather than a CSS media query.
  *
  * Colors
  *   litrec-bg            — page background.
  *   litrec-bg-muted      — subtle background fills (table stripes, inset panels).
  *   litrec-surface       — card / panel surface.
+ *   litrec-surface-2     — secondary inset surface (hover rows, sub-panels).
  *   litrec-edge          — legacy alias for the border token (maps to --lr-border).
- *                           Kept so templates predating this palette keep rendering.
  *   litrec-border        — explicit border / divider colour (maps to --lr-border).
  *   litrec-ink           — legacy alias for the body-text token (maps to --lr-text).
- *                           Kept so templates predating this palette keep rendering.
  *   litrec-text          — body text colour (maps to --lr-text).
  *   litrec-text-muted    — secondary text.
  *   litrec-primary       — Eagleton brand primary (deep navy in light, soft blue in dark).
  *   litrec-primary-strong — hover / pressed variant of primary.
  *   litrec-secondary     — Eagleton brand secondary (warm gold).
  *   litrec-secondary-strong — hover / pressed variant of secondary.
+ *   litrec-on-secondary  — text/icon colour on a secondary fill.
  *   litrec-accent        — Eagleton brand accent (forest green).
+ *   litrec-link          — accessible inline-link gold (AA on the page background).
  *   litrec-sidebar-bg    — full-bleed sidebar background (used for nav strips).
  *   litrec-sidebar-text  — text color on sidebar-bg.
- *   success / warning / danger / info — semantic state colors.
+ *   success / warning / danger / info — semantic state colors (foreground use).
+ *   {state}-bg / {state}-fg — paired surface + text for state badges/pills.
  *
  * Typography
  *   --font-sans — the single application sans stack.
+ *   --lr-mono   — monospace stack for codes, IDs, and tabular figures.
  *   --text-h1 .. --text-h4 — heading scale used by _page_header and feature templates.
  *   --text-body — default body font size.
  *
- * Surface
- *   --radius-card — corner radius for cards, panels, and modals.
- *   --radius-card-sm — tighter radius for inline badges / pills.
- *   --shadow-card — resting shadow for cards and panels.
+ * Surface & density
+ *   --radius-card / --radius-card-sm / --radius-pill — corner radii (rounded baked).
+ *   --shadow-card / --shadow-pop — resting and popover shadows.
+ *   --pad-card / --pad-row-y / --pad-row-x / --gap-stack — spacing knobs
+ *     (compact density baked as the shipped default).
  */
 
 :root {
@@ -52,6 +60,7 @@
     --lr-bg: #fafcfd;
     --lr-bg-muted: #f0f5f8;
     --lr-surface: #ffffff;
+    --lr-surface-2: #f6fafc;
     --lr-border: #d8e4ec;
     --lr-text: #0a1820;
     --lr-text-muted: #4a6070;
@@ -63,51 +72,52 @@
     --lr-on-secondary: #0a1820;
     --lr-accent: #2e5847;
     --lr-on-accent: #fafcfd;
+
+    /* Accessible inline-link gold: the brand gold (#b8860b) only reaches
+       ~3.3:1 on white and fails AA for text, so links use a darkened gold. */
+    --lr-link: #8a6508;
+
     --lr-sidebar-bg: #0f2840;
     --lr-sidebar-text: #fafcfd;
 
     --lr-success: #15803d;
-    --lr-warning: #ca8a04;
+    --lr-warning: #a16207;
     --lr-danger: #b91c1c;
     --lr-info: #1d4ed8;
 
+    --lr-success-bg: #dcfce7;
+    --lr-success-fg: #166534;
+    --lr-warning-bg: #fef9c3;
+    --lr-warning-fg: #854d0e;
+    --lr-danger-bg: #fee2e2;
+    --lr-danger-fg: #991b1b;
+    --lr-info-bg: #dbeafe;
+    --lr-info-fg: #1e40af;
+
+    /* Monospace stack for codes/IDs/tabular figures (theme-independent). */
+    --lr-mono: ui-monospace, "SFMono-Regular", "Menlo", "Consolas", monospace;
+
+    /* Density knobs — compact baked as the shipped default. */
+    --pad-card: 0.875rem;
+    --pad-row-y: 0.5rem;
+    --pad-row-x: 0.875rem;
+    --gap-stack: 1rem;
+
     --lr-shadow-card: 0 1px 2px rgb(0 0 0 / 0.05), 0 1px 3px rgb(0 0 0 / 0.08);
+    --lr-shadow-pop: 0 10px 30px rgb(10 24 32 / 0.16), 0 2px 6px rgb(10 24 32 / 0.08);
 }
 
-/* OS-level dark mode — applies when the user has not set an explicit
-   data-theme override on <html>. */
-@media (prefers-color-scheme: dark) {
-    :root:not([data-theme]) {
-        color-scheme: dark;
-
-        --lr-bg: #101820;
-        --lr-bg-muted: #080c10;
-        --lr-surface: #1a2530;
-        --lr-border: #2a3a48;
-        --lr-text: #f0f5f8;
-        --lr-text-muted: #8aa8c0;
-        --lr-primary: #a8c5e2;
-        --lr-primary-strong: #c8ddf0;
-        --lr-on-primary: #0a1820;
-        --lr-secondary: #daa520;
-        --lr-secondary-strong: #f0c040;
-        --lr-on-secondary: #0a1820;
-        --lr-accent: #5a9e7c;
-        --lr-on-accent: #0a1820;
-        --lr-sidebar-bg: #080c10;
-        --lr-sidebar-text: #f0f5f8;
-
-        --lr-shadow-card: 0 1px 2px rgb(0 0 0 / 0.35), 0 1px 3px rgb(0 0 0 / 0.45);
-    }
-}
-
-/* Explicit overrides take precedence over the OS preference. */
+/* Dark theme. Driven entirely by [data-theme="dark"] on <html>: the header
+   toggle (LRA-123) sets it on user action and, on first load, from the OS
+   prefers-color-scheme. State colors are lightened so badge/pill foregrounds
+   keep AA contrast on dark surfaces (the light reds/greens drop below 4.5:1). */
 :root[data-theme="dark"] {
     color-scheme: dark;
 
     --lr-bg: #101820;
     --lr-bg-muted: #080c10;
     --lr-surface: #1a2530;
+    --lr-surface-2: #141d26;
     --lr-border: #2a3a48;
     --lr-text: #f0f5f8;
     --lr-text-muted: #8aa8c0;
@@ -119,33 +129,26 @@
     --lr-on-secondary: #0a1820;
     --lr-accent: #5a9e7c;
     --lr-on-accent: #0a1820;
+    --lr-link: #e0b84a;
     --lr-sidebar-bg: #080c10;
     --lr-sidebar-text: #f0f5f8;
 
+    --lr-success: #5fc98a;
+    --lr-warning: #fcd34d;
+    --lr-danger: #f49a9a;
+    --lr-info: #93c5fd;
+
+    --lr-success-bg: #052e16;
+    --lr-success-fg: #86efac;
+    --lr-warning-bg: #422006;
+    --lr-warning-fg: #fde047;
+    --lr-danger-bg: #450a0a;
+    --lr-danger-fg: #fca5a5;
+    --lr-info-bg: #0c1f44;
+    --lr-info-fg: #93c5fd;
+
     --lr-shadow-card: 0 1px 2px rgb(0 0 0 / 0.35), 0 1px 3px rgb(0 0 0 / 0.45);
-}
-
-:root[data-theme="light"] {
-    color-scheme: light;
-
-    --lr-bg: #fafcfd;
-    --lr-bg-muted: #f0f5f8;
-    --lr-surface: #ffffff;
-    --lr-border: #d8e4ec;
-    --lr-text: #0a1820;
-    --lr-text-muted: #4a6070;
-    --lr-primary: #1c3d5a;
-    --lr-primary-strong: #0f2840;
-    --lr-on-primary: #fafcfd;
-    --lr-secondary: #b8860b;
-    --lr-secondary-strong: #8a6508;
-    --lr-on-secondary: #0a1820;
-    --lr-accent: #2e5847;
-    --lr-on-accent: #fafcfd;
-    --lr-sidebar-bg: #0f2840;
-    --lr-sidebar-text: #fafcfd;
-
-    --lr-shadow-card: 0 1px 2px rgb(0 0 0 / 0.05), 0 1px 3px rgb(0 0 0 / 0.08);
+    --lr-shadow-pop: 0 14px 36px rgb(0 0 0 / 0.55), 0 2px 6px rgb(0 0 0 / 0.4);
 }
 
 @theme {
@@ -159,6 +162,7 @@
     /* Semantic Eagleton tokens. */
     --color-litrec-bg-muted: var(--lr-bg-muted);
     --color-litrec-surface: var(--lr-surface);
+    --color-litrec-surface-2: var(--lr-surface-2);
     --color-litrec-border: var(--lr-border);
     --color-litrec-text: var(--lr-text);
     --color-litrec-text-muted: var(--lr-text-muted);
@@ -170,6 +174,7 @@
     --color-litrec-on-secondary: var(--lr-on-secondary);
     --color-litrec-accent: var(--lr-accent);
     --color-litrec-on-accent: var(--lr-on-accent);
+    --color-litrec-link: var(--lr-link);
     --color-litrec-sidebar-bg: var(--lr-sidebar-bg);
     --color-litrec-sidebar-text: var(--lr-sidebar-text);
 
@@ -178,7 +183,17 @@
     --color-danger: var(--lr-danger);
     --color-info: var(--lr-info);
 
-    --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --color-success-bg: var(--lr-success-bg);
+    --color-success-fg: var(--lr-success-fg);
+    --color-warning-bg: var(--lr-warning-bg);
+    --color-warning-fg: var(--lr-warning-fg);
+    --color-danger-bg: var(--lr-danger-bg);
+    --color-danger-fg: var(--lr-danger-fg);
+    --color-info-bg: var(--lr-info-bg);
+    --color-info-fg: var(--lr-info-fg);
+
+    --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Roboto", "Helvetica Neue", "Arial", sans-serif;
+    --font-mono: var(--lr-mono);
 
     --text-h1: 2rem;
     --text-h2: 1.5rem;
@@ -186,9 +201,45 @@
     --text-h4: 1.125rem;
     --text-body: 0.875rem;
 
-    --radius-card: 0.25rem;
-    --radius-card-sm: 0.125rem;
+    /* Rounded corners baked as the shipped default. */
+    --radius-card: 0.625rem;
+    --radius-card-sm: 0.375rem;
+    --radius-pill: 999px;
     --shadow-card: var(--lr-shadow-card);
+    --shadow-pop: var(--lr-shadow-pop);
+}
+
+/* ----------------------------------------------------------------------
+   App shell base — scoped to .lr-screen so the Eagleton typography and the
+   global accessibility rules apply to the authenticated shell without
+   leaking onto the standalone login page (which stays on base.html.twig).
+   ---------------------------------------------------------------------- */
+.lr-screen {
+    font-family: var(--font-sans);
+    background: var(--lr-bg);
+    color: var(--lr-text);
+}
+
+/* Pin placeholders to the muted token (>= 5.7:1) instead of the UA's
+   low-contrast default so they clear AA. */
+.lr-screen ::placeholder {
+    color: var(--lr-text-muted);
+    opacity: 1;
+}
+
+/* WCAG 2.2 (2.4.11 / 2.4.13) — every interactive control gets a clearly
+   visible keyboard focus indicator in both themes. */
+.lr-screen a:focus-visible,
+.lr-screen button:focus-visible,
+.lr-screen input:focus-visible,
+.lr-screen select:focus-visible,
+.lr-screen textarea:focus-visible,
+.lr-screen [tabindex]:not([tabindex="-1"]):focus-visible {
+    /* No border-radius here: a modern outline already follows each element's
+       own corner radius, so setting it would reshape pill/sharp controls on
+       focus. */
+    outline: 2px solid var(--lr-primary);
+    outline-offset: 2px;
 }
 
 /* Hide x-cloak elements until Alpine.js has initialised. */
@@ -204,7 +255,7 @@
     display: block;
     width: 100%;
     margin-top: 0.25rem;
-    border-radius: 0.375rem;
+    border-radius: var(--radius-card-sm);
     border: 1px solid var(--lr-border);
     background-color: var(--lr-surface);
     padding: 0.5rem 0.75rem;
