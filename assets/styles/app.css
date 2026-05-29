@@ -427,19 +427,37 @@
         font-size: 0.8125rem;
     }
 
-    .lr-check { display: inline-flex; align-items: flex-start; gap: 0.5rem; font-size: 0.8125rem; }
+    .lr-check { display: inline-flex; align-items: flex-start; gap: 0.5rem; font-size: 0.8125rem; cursor: pointer; }
+    /* Visually hide the real checkbox but keep it in the accessibility tree and
+       keyboard-focusable; the styled .box (which must be its next sibling)
+       mirrors the input's :checked and :focus-visible state. */
+    .lr-check input[type="checkbox"] {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        padding: 0;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+        border: 0;
+    }
     .lr-check .box {
         width: 16px;
         height: 16px;
         border-radius: 3px;
         border: 1.5px solid var(--lr-primary);
-        background: var(--lr-primary);
+        background: transparent;
         color: var(--lr-on-primary);
         display: grid;
         place-items: center;
         flex: none;
         margin-top: 1px;
     }
+    .lr-check .box svg { visibility: hidden; }
+    .lr-check input[type="checkbox"]:checked + .box { background: var(--lr-primary); }
+    .lr-check input[type="checkbox"]:checked + .box svg { visibility: visible; }
+    .lr-check input[type="checkbox"]:focus-visible + .box { outline: 2px solid var(--lr-primary); outline-offset: 2px; }
 
     /* tables */
     .lr-table { width: 100%; border-collapse: collapse; font-size: 0.8125rem; }

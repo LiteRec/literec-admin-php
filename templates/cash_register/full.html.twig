@@ -73,7 +73,7 @@
                                 <div class="lr-muted mt-0.5 text-xs">{{ register.program.schedule }}</div>
                                 <div class="lr-num mt-1.5 text-lg font-extrabold">{{ register.program.price }}</div>
                             </div>
-                            <label class="lr-check"><span class="box">{{ ui.icon('check', 11, 3) }}</span> Include program registration &amp; associated fee</label>
+                            <label class="lr-check"><input type="checkbox" checked> <span class="box">{{ ui.icon('check', 11, 3) }}</span> Include program registration &amp; associated fee</label>
                             <div><button type="button" class="lr-btn lr-btn-ghost">Discounts (0) {{ ui.icon('chevron', 12) }}</button></div>
                         </div>
                         {# right: add-on options #}
@@ -87,11 +87,16 @@
                                             <tr>
                                                 <td>
                                                     <label class="lr-check">
-                                                        <span class="box{% if not option.checked %} bg-transparent{% endif %}">{% if option.checked %}{{ ui.icon('check', 11, 3) }}{% endif %}</span>
+                                                        <input type="checkbox"{% if option.checked %} checked{% endif %}>
+                                                        <span class="box">{{ ui.icon('check', 11, 3) }}</span>
                                                         {{ option.name }}
                                                     </label>
                                                 </td>
-                                                <td><span class="lr-select inline-flex items-center gap-1">0 {{ ui.icon('chevron', 11) }}</span></td>
+                                                <td>
+                                                    <select class="lr-select" aria-label="Discount for {{ option.name }}">
+                                                        <option>0</option><option>1</option><option>2</option>
+                                                    </select>
+                                                </td>
                                                 <td class="lr-num text-right font-semibold">{{ option.price }}</td>
                                             </tr>
                                         {% endfor %}
@@ -140,7 +145,7 @@
             <div class="lr-card-body flex flex-col gap-4">
                 <label class="lr-field">
                     <span class="lr-label">Facility</span>
-                    <span class="lr-select flex justify-between">{{ register.facility }} {{ ui.icon('chevron', 12) }}</span>
+                    <select class="lr-select"><option selected>{{ register.facility }}</option></select>
                 </label>
                 <div class="lr-totals">
                     <div class="row"><span class="lr-muted">Subtotal</span><span class="lr-num">{{ register.totals.subtotal }}</span></div>
