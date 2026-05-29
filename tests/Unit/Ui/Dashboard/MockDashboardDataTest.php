@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace App\Tests\Unit\Ui\Dashboard;
 
 use App\Ui\Dashboard\DashboardData;
+use App\Ui\Dashboard\EventItem;
+use App\Ui\Dashboard\FacilityStatus;
 use App\Ui\Dashboard\KpiCard;
 use App\Ui\Dashboard\MockDashboardData;
 use App\Ui\Dashboard\QuickLink;
-use App\Ui\Dashboard\ScheduleItem;
 use App\Ui\Dashboard\TransactionRow;
 use App\Ui\Dashboard\TransactionStatus;
 use DateTimeImmutable;
@@ -22,7 +23,7 @@ use Psr\Clock\ClockInterface;
 final class MockDashboardDataTest extends TestCase
 {
     #[Test]
-    #[TestDox('Builds four KPI cards covering revenue, memberships, reservations, refunds.')]
+    #[TestDox('Builds four KPI cards (revenue, memberships, reservations, refunds), each with an icon and gradient.')]
     public function it_builds_the_four_documented_kpi_cards(): void
     {
         $data = $this->buildData();
@@ -33,6 +34,10 @@ final class MockDashboardDataTest extends TestCase
             ["Today's Revenue", 'Active Memberships', 'Upcoming Reservations', 'Open Refund Requests'],
             $labels,
         );
+        foreach ($data->kpis as $kpi) {
+            self::assertNotSame('', $kpi->icon);
+            self::assertStringContainsString('gradient', $kpi->gradient);
+        }
     }
 
     #[Test]
@@ -51,19 +56,38 @@ final class MockDashboardDataTest extends TestCase
     }
 
     #[Test]
-    #[TestDox("Today's schedule has at least five upcoming items.")]
-    public function todays_schedule_has_at_least_five_items(): void
+    #[TestDox('Upcoming events sample has at least three dated entries.')]
+    public function upcoming_events_have_at_least_three_entries(): void
     {
         $data = $this->buildData();
 
-        self::assertGreaterThanOrEqual(5, count($data->todaysSchedule));
-        foreach ($data->todaysSchedule as $item) {
-            self::assertInstanceOf(ScheduleItem::class, $item);
+        self::assertGreaterThanOrEqual(3, count($data->upcomingEvents));
+        foreach ($data->upcomingEvents as $event) {
+            self::assertInstanceOf(EventItem::class, $event);
+            self::assertNotSame('', $event->title);
+            self::assertGreaterThanOrEqual(0, $event->attendees);
         }
     }
 
     #[Test]
-    #[TestDox('Quick links target the seven top-level nav route names.')]
+    #[TestDox('Facility status sample lists facilities with a known badge variant and visitor count.')]
+    public function facility_statuses_have_a_badge_variant_and_visitor_count(): void
+    {
+        $data = $this->buildData();
+
+        self::assertGreaterThanOrEqual(3, count($data->facilityStatuses));
+        foreach ($data->facilityStatuses as $facility) {
+            self::assertInstanceOf(FacilityStatus::class, $facility);
+            self::assertContains(
+                $facility->badgeVariant,
+                ['success', 'warning', 'danger', 'info', 'neutral'],
+            );
+            self::assertGreaterThanOrEqual(0, $facility->visitorsToday);
+        }
+    }
+
+    #[Test]
+    #[TestDox('Quick actions target the seven top-level nav route names, each with an icon.')]
     public function quick_links_target_the_seven_nav_categories(): void
     {
         $data = $this->buildData();
@@ -82,6 +106,9 @@ final class MockDashboardDataTest extends TestCase
             ],
             $routes,
         );
+        foreach ($data->quickLinks as $link) {
+            self::assertNotSame('', $link->icon);
+        }
     }
 
     private function buildData(): DashboardData

@@ -1,11 +1,18 @@
-{# @param string label  Visible KPI label (e.g. "Today's Revenue"). #}
-{# @param string value  Pre-formatted value (e.g. "$4,182.50", "1,847"). #}
-{# @param ?string delta Optional supporting line (e.g. "+12% vs. yesterday"). #}
+{# @param string icon     Curated icon name for the tile chip. #}
+{# @param string value    Pre-formatted value (e.g. "$4,182.50", "1,847"). #}
+{# @param string label    Visible KPI label (e.g. "Today's Revenue"). #}
+{# @param string gradient Trusted CSS gradient (server-side constant) for the tile background. #}
+{# @param ?string delta   Optional supporting delta, shown in a pill. #}
+{% import 'components/_icon.html.twig' as ui %}
 {% set delta = delta|default(null) %}
-<div data-gsap="card" class="rounded-card border border-litrec-border bg-litrec-surface p-5 shadow-card">
-    <p class="text-xs uppercase tracking-wide text-litrec-text-muted">{{ label }}</p>
-    <p class="mt-2 text-2xl font-bold text-litrec-text">{{ value }}</p>
-    {% if delta is not null %}
-        <p class="mt-1 text-xs text-litrec-text-muted">{{ delta }}</p>
-    {% endif %}
+<div data-gsap="card" class="lr-kpi" style="background: {{ gradient }}">
+    <div><span class="ico">{{ ui.icon(icon, 18) }}</span></div>
+    <div>
+        <div class="val lr-num">{{ value }}</div>
+        <div class="lbl">{{ label }}</div>
+        {% if delta is not null and delta|trim is not empty %}
+            <div class="mt-2"><span class="delta">{{ ui.icon('arrowUp', 11) }} {{ delta }}</span></div>
+        {% endif %}
+    </div>
+    <span class="blob"></span>
 </div>
