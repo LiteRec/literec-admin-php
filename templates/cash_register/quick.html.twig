@@ -61,9 +61,9 @@
                     <div class="lr-list-row">
                         <div class="flex-1"><div class="lr-row-strong text-sm">{{ line.name }}</div></div>
                         <span class="lr-stepper">
-                            <button type="button" aria-label="Decrease {{ line.name }} quantity">{{ ui.icon('chevron', 12) }}</button>
+                            <button type="button"><span class="sr-only">Decrease {{ line.name }} quantity</span>{{ ui.icon('chevron', 12) }}</button>
                             <span class="q lr-num">{{ line.quantity }}</span>
-                            <button type="button" aria-label="Increase {{ line.name }} quantity">{{ ui.icon('chevronUp', 12) }}</button>
+                            <button type="button"><span class="sr-only">Increase {{ line.name }} quantity</span>{{ ui.icon('chevronUp', 12) }}</button>
                         </span>
                         <div class="min-w-14 text-right"><div class="lr-num font-bold">{{ line.price }}</div></div>
                     </div>
