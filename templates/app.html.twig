@@ -83,15 +83,22 @@
         {% include 'components/_main_nav.html.twig' %}
 
         <main class="mx-auto w-full max-w-7xl flex-1 px-6 py-8">
+            {# Breadcrumbs slot: pages fill it by including _breadcrumbs with a
+               trail array (a block can't carry an array, so the include lives in
+               the page, not here). Renders nothing when a page provides none. #}
+            {% block breadcrumbs %}{% endblock %}
+
             {# Define-and-capture pattern: declare the blocks so children can
                override them, then forward them as parameters to the
                _page_header component. The header markup itself lives in
                the component, not here. #}
             {% set page_title_text %}{% block page_title %}{% endblock %}{% endset %}
+            {% set page_subtitle_text %}{% block page_subtitle %}{% endblock %}{% endset %}
             {% set page_actions_html %}{% block page_actions %}{% endblock %}{% endset %}
 
             {% include 'components/_page_header.html.twig' with {
                 title: page_title_text,
+                subtitle: page_subtitle_text,
                 actions: page_actions_html,
             } only %}
 

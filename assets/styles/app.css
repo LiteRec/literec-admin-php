@@ -532,6 +532,33 @@
     }
 }
 
+/* ======================================================================
+   Page header: title, optional subtitle, and breadcrumbs. Token-driven.
+   ====================================================================== */
+@layer components {
+    .lr-pagehead {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: var(--gap-stack);
+    }
+    .lr-pagetitle { font-size: 1.75rem; font-weight: 800; letter-spacing: -0.02em; }
+    .lr-pagesub { color: var(--lr-text-muted); margin-top: 0.15rem; }
+
+    .lr-crumbs {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.8125rem;
+        color: var(--lr-text-muted);
+        margin-bottom: 0.5rem;
+    }
+    .lr-crumbs a { color: var(--lr-text-muted); text-decoration: none; }
+    .lr-crumbs a:hover { color: var(--lr-text); }
+    .lr-crumbs .sep { opacity: 0.5; }
+}
+
 /* Hide x-cloak elements until Alpine.js has initialised. */
 [x-cloak] {
     display: none !important;

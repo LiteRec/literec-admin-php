@@ -1,18 +1,20 @@
 {# @param array trail List of crumbs, each shaped like { label: string, route: ?string }.
-   The last crumb is rendered as plain text even if it has a route (current page marker). #}
+   The last crumb is rendered as plain text even if it has a route (current page marker).
+   Styled with the Eagleton lr-crumbs classes; an ordered list keeps the
+   breadcrumb semantics. #}
 {% set trail = trail|default([]) %}
 {% if trail|length > 0 %}
-    <nav aria-label="Breadcrumb" class="mb-4 text-xs text-litrec-text-muted">
-        <ol class="flex flex-wrap items-center gap-1">
+    <nav aria-label="Breadcrumb" class="lr-crumbs">
+        <ol class="flex flex-wrap items-center gap-[0.4rem]">
             {% for crumb in trail %}
                 {% set isLast = loop.last %}
-                <li class="flex items-center gap-1">
+                <li class="flex items-center gap-[0.4rem]">
                     {% if not isLast and crumb.route is defined and crumb.route is not null %}
-                        <a href="{{ path(crumb.route) }}" class="hover:text-litrec-text">{{ crumb.label }}</a>
+                        <a href="{{ path(crumb.route) }}">{{ crumb.label }}</a>
                     {% else %}
-                        <span aria-current="{{ isLast ? 'page' : 'false' }}" class="{{ isLast ? 'text-litrec-text font-semibold' : '' }}">{{ crumb.label }}</span>
+                        <span aria-current="{{ isLast ? 'page' : 'false' }}" class="{{ isLast ? 'font-semibold text-litrec-text' : '' }}">{{ crumb.label }}</span>
                     {% endif %}
-                    {% if not isLast %}<span aria-hidden="true">/</span>{% endif %}
+                    {% if not isLast %}<span class="sep" aria-hidden="true">/</span>{% endif %}
                 </li>
             {% endfor %}
         </ol>
