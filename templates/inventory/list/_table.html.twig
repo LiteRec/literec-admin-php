@@ -123,7 +123,7 @@
                                     aria-haspopup="dialog"
                                     aria-label="Receive stock for {{ item.listingCode }}"
                                     data-testid="receive-stock-{{ item.inventoryItemId }}"
-                                    class="ml-2 inline-flex items-center rounded-md border border-litrec-border bg-litrec-surface px-2 py-0.5 text-[0.65rem] font-semibold text-litrec-text hover:bg-litrec-bg-muted focus:outline-none focus:ring-2 focus:ring-litrec-primary"
+                                    class="ml-2 inline-flex min-h-[24px] items-center rounded-md border border-litrec-border bg-litrec-surface px-2 py-1 text-[0.65rem] font-semibold text-litrec-text hover:bg-litrec-bg-muted focus:outline-none focus:ring-2 focus:ring-litrec-primary"
                                 >
                                     Receive
                                 </button>
@@ -133,7 +133,7 @@
                                     href="{{ path('inventory_item_history', { itemId: item.inventoryItemId }) }}"
                                     aria-label="View stock movement history for {{ item.listingCode }}"
                                     data-testid="history-link-{{ item.inventoryItemId }}"
-                                    class="ml-2 inline-flex items-center rounded-md border border-litrec-border bg-litrec-surface px-2 py-0.5 text-[0.65rem] font-semibold text-litrec-text hover:bg-litrec-bg-muted focus:outline-none focus:ring-2 focus:ring-litrec-primary"
+                                    class="ml-2 inline-flex min-h-[24px] items-center rounded-md border border-litrec-border bg-litrec-surface px-2 py-1 text-[0.65rem] font-semibold text-litrec-text hover:bg-litrec-bg-muted focus:outline-none focus:ring-2 focus:ring-litrec-primary"
                                 >
                                     History
                                 </a>
