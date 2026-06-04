@@ -10,8 +10,10 @@ import { ADMIN_STATE } from './tests/e2e/support/auth';
  * `E2E_BASE_URL` at the docker stack (for example https://localhost) to run the
  * suite against that instead; the built-in web server is then not started.
  */
-const baseURL = process.env.E2E_BASE_URL ?? 'http://127.0.0.1:8000';
-const usesManagedServer = process.env.E2E_BASE_URL === undefined;
+// Treat an unset OR empty/whitespace E2E_BASE_URL as "use the managed server".
+const e2eBaseUrl = process.env.E2E_BASE_URL?.trim();
+const baseURL = e2eBaseUrl || 'http://127.0.0.1:8000';
+const usesManagedServer = !e2eBaseUrl;
 
 // Forwarded explicitly to the managed server: PHP's built-in server reads the
 // database connection and environment from these. CI sets DATABASE_URL to its
