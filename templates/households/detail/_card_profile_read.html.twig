@@ -16,7 +16,6 @@
         <button
             type="button"
             data-testid="profile-edit"
-            aria-haspopup="false"
             hx-get="{{ path('member_profile_edit_form', { householdId: detail.household.householdId, memberId: detail.profile.memberId }) }}"
             hx-target="#card-profile-body"
             hx-swap="outerHTML"

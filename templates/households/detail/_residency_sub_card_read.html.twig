@@ -21,7 +21,6 @@
         <button
             type="button"
             data-testid="residency-edit"
-            aria-haspopup="false"
             hx-get="{{ path('member_residency_edit_form', { householdId: detail.household.householdId, memberId: detail.profile.memberId }) }}"
             hx-target="#residency-sub-card-body"
             hx-swap="outerHTML"
