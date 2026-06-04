@@ -57,7 +57,7 @@ test.describe('item groups', () => {
 });
 
 test.describe('combos', () => {
-  test('combo create form adds component rows and validates input', async ({ page }) => {
+  test('combo create form adds component rows dynamically', async ({ page }) => {
     await page.goto('/admin/inventory');
     await page.getByTestId('open-new-inventory-combo').click();
     const dialog = page.locator('#inventory-combo-create-modal');
@@ -66,17 +66,25 @@ test.describe('combos', () => {
     const rows = dialog.getByTestId('combo-component-row');
     const initialCount = await rows.count();
     await dialog.getByTestId('combo-add-component').click();
-    await expect(rows).toHaveCount(initialCount + 1);
 
-    // Submitting garbage UUIDs is rejected at the boundary with a mapped error,
-    // never a raw exception.
-    await dialog.getByLabel('Parent catalog listing id').fill('not-a-uuid');
+    await expect(rows).toHaveCount(initialCount + 1);
+  });
+
+  test('combo create rejects an invalid parent listing id', async ({ page }) => {
+    await page.goto('/admin/inventory');
+    await page.getByTestId('open-new-inventory-combo').click();
+    const dialog = page.locator('#inventory-combo-create-modal');
+    await expect(dialog).toBeVisible();
+
+    const parentField = dialog.getByLabel('Parent catalog listing id');
+    await parentField.fill('not-a-uuid');
     await dialog.getByTestId('inventory-combo-submit').click();
 
-    // Invalid input is rejected with a mapped validation alert (the form
-    // surfaces errors as a form-level/components alert rather than a per-field
-    // message), and no raw exception/stack trace is leaked.
-    await expect(dialog.getByRole('alert')).toBeVisible();
+    // Rejected at the boundary, specifically on the parent field: the form
+    // re-renders with the invalid parent value preserved (the create modal
+    // stays open, never emitting comboSaved) and no raw exception leaks.
+    await expect(parentField).toHaveValue('not-a-uuid');
+    await expect(dialog).toBeVisible();
     await expect(dialog.getByText(/Stack Trace|Exception/i)).toHaveCount(0);
   });
 });
