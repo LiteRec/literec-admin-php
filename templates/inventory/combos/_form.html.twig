@@ -31,15 +31,7 @@
         },
     }"
 >
-    {% if form.vars.errors|length > 0 %}
-        <div
-            role="alert"
-            data-testid="form-error"
-            class="mb-4 rounded-md border border-danger/30 bg-danger/10 p-3 text-sm font-semibold text-danger"
-        >
-            {{ form_errors(form) }}
-        </div>
-    {% endif %}
+    {% include 'components/_form_error_summary.html.twig' with { form: form } only %}
 
     {% if mode == 'create' %}
         <div class="grid grid-cols-1 gap-4">
