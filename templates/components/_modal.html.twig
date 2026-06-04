@@ -46,7 +46,7 @@
        First focusable child receives focus automatically; on close, focus
        is returned to the element that opened the dialog. #}
     <div
-        class="relative z-10 w-full max-w-2xl rounded-card border border-litrec-border bg-litrec-surface p-6 shadow-card"
+        class="relative z-10 max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-card border border-litrec-border bg-litrec-surface p-6 shadow-card"
         x-trap.noscroll.inert="open"
         @click.outside="dismiss()"
     >
