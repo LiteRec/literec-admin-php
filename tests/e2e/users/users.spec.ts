@@ -78,6 +78,9 @@ test.describe('member detail', () => {
     await expect(page.getByTestId('card-address')).toBeVisible();
     await expect(page.getByTestId('card-history')).toBeVisible();
     await expect(page.getByTestId('profile-email')).toContainText(ALICE_EMAIL);
+    // Residency is a sub-card within the Address & Residency card; Alice is a Resident.
+    await expect(page.getByTestId('residency-sub-card-body')).toBeVisible();
+    await expect(page.getByTestId('residency-status-badge')).toContainText('Resident');
   });
 });
 
