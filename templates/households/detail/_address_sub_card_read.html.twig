@@ -14,7 +14,6 @@
         <button
             type="button"
             data-testid="address-edit"
-            aria-haspopup="false"
             hx-get="{{ path('member_address_edit_form', { householdId: detail.household.householdId, memberId: detail.profile.memberId }) }}"
             hx-target="#address-sub-card-body"
             hx-swap="outerHTML"
