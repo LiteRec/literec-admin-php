@@ -73,6 +73,9 @@ test.describe('combos', () => {
     await dialog.getByLabel('Parent catalog listing id').fill('not-a-uuid');
     await dialog.getByTestId('inventory-combo-submit').click();
 
+    // Invalid input is rejected with a mapped validation alert (the form
+    // surfaces errors as a form-level/components alert rather than a per-field
+    // message), and no raw exception/stack trace is leaked.
     await expect(dialog.getByRole('alert')).toBeVisible();
     await expect(dialog.getByText(/Stack Trace|Exception/i)).toHaveCount(0);
   });
