@@ -172,7 +172,7 @@ final class MemberDetailController extends AbstractController
      */
     private function memberLoadedTrigger(MemberDetail $detail): string
     {
-        $name = trim($detail->profile->firstName . ' ' . $detail->profile->lastName);
+        $name = $detail->profile->fullName;
 
         return (string) json_encode(
             [self::HX_TRIGGER_MEMBER_LOADED => ['name' => $name]],

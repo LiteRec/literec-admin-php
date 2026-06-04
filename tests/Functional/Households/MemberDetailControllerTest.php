@@ -164,8 +164,11 @@ final class MemberDetailControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         $trigger = (string) $client->getResponse()->headers->get('HX-Trigger');
-        self::assertStringContainsString('memberLoaded', $trigger);
-        self::assertStringContainsString('Alice Smith', $trigger);
+        self::assertSame(
+            ['memberLoaded' => ['name' => 'Alice Smith']],
+            json_decode($trigger, true),
+            'HX-Trigger must be valid JSON naming the loaded member for the live region.',
+        );
     }
 
     private function seedHouseholdA(): void
