@@ -23,3 +23,12 @@
 /.deptrac.cache
 /junit-report.xml
 ###< deptrac/deptrac ###
+
+###> playwright e2e (LRA-161) ###
+/node_modules/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.auth/
+/playwright/.cache/
+###< playwright e2e (LRA-161) ###
