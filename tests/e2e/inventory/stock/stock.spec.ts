@@ -73,20 +73,30 @@ test.describe('take inventory', () => {
     const grid = page.locator('#take-inventory-grid');
     await expect(grid).toBeVisible();
 
-    // Identify the first row's item and its FAC-A expected on-hand.
-    const firstRow = grid.locator('[data-testid^="take-row-"]').first();
-    await expect(firstRow).toBeVisible();
-    const index = ((await firstRow.getAttribute('data-testid')) ?? '').replace('take-row-', '');
-    const itemId = await firstRow.locator('input[name$="[itemId]"]').inputValue();
+    // Identify the first row's item id.
+    const itemId = await grid
+      .locator('[data-testid^="take-row-"]')
+      .first()
+      .locator('input[name$="[itemId]"]')
+      .inputValue();
     expect(itemId).not.toBe('');
 
     // Total on-hand before the count (navigates away, so re-open the grid after).
     const before = await onHand(page, itemId);
 
+    // Re-open the grid and re-locate the same item's row by its id (not a stale
+    // index), so the count targets the correct row after the reload.
     await page.goto('/admin/inventory/take?facilityCode=FAC-A');
+    const row = grid
+      .locator('tr[data-testid^="take-row-"]')
+      .filter({ has: page.locator(`input[name$="[itemId]"][value="${itemId}"]`) });
+    const index = ((await row.getAttribute('data-testid')) ?? '').replace('take-row-', '');
+
     const facilityExpected = Number(
       (await page.getByTestId(`row-${index}-expected`).innerText()).trim(),
     );
+    expect(Number.isFinite(facilityExpected)).toBe(true);
+
     // Count one unit above the facility expected → a +1 variance → total +1.
     await page.getByTestId(`row-${index}-actual`).fill(String(facilityExpected + 1));
     await page.getByTestId(`row-${index}-reason`).selectOption('found');
