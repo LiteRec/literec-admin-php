@@ -38,18 +38,22 @@ final class RegisterHouseholdFormType extends AbstractType
             ->add('firstName', TextType::class, [
                 'label' => 'First name',
                 'required' => true,
+                'attr' => ['autocomplete' => 'given-name'],
             ])
             ->add('lastName', TextType::class, [
                 'label' => 'Last name',
                 'required' => true,
+                'attr' => ['autocomplete' => 'family-name'],
             ])
             ->add('middleName', TextType::class, [
                 'label' => 'Middle name',
                 'required' => false,
+                'attr' => ['autocomplete' => 'additional-name'],
             ])
             ->add('suffix', TextType::class, [
                 'label' => 'Suffix',
                 'required' => false,
+                'attr' => ['autocomplete' => 'honorific-suffix'],
             ])
             ->add('dobIso', DateType::class, [
                 'label' => 'Date of birth',
@@ -58,6 +62,7 @@ final class RegisterHouseholdFormType extends AbstractType
                 'input' => 'string',
                 'format' => 'yyyy-MM-dd',
                 'required' => true,
+                'attr' => ['autocomplete' => 'bday'],
             ])
             ->add('genderCode', ChoiceType::class, [
                 'label' => 'Gender',
@@ -73,10 +78,12 @@ final class RegisterHouseholdFormType extends AbstractType
             ->add('email', EmailType::class, [
                 'label' => 'Email',
                 'required' => true,
+                'attr' => ['autocomplete' => 'email'],
             ])
             ->add('phone', TextType::class, [
                 'label' => 'Phone',
                 'required' => true,
+                'attr' => ['autocomplete' => 'tel'],
             ])
             ->add('residencyStatusCode', ChoiceType::class, [
                 'label' => 'Residency status',
@@ -92,26 +99,32 @@ final class RegisterHouseholdFormType extends AbstractType
             ->add('street', TextType::class, [
                 'label' => 'Street',
                 'required' => true,
+                'attr' => ['autocomplete' => 'address-line1'],
             ])
             ->add('unit', TextType::class, [
                 'label' => 'Unit',
                 'required' => false,
+                'attr' => ['autocomplete' => 'address-line2'],
             ])
             ->add('city', TextType::class, [
                 'label' => 'City',
                 'required' => true,
+                'attr' => ['autocomplete' => 'address-level2'],
             ])
             ->add('state', TextType::class, [
                 'label' => 'State',
                 'required' => true,
+                'attr' => ['autocomplete' => 'address-level1'],
             ])
             ->add('postalCode', TextType::class, [
                 'label' => 'Postal code',
                 'required' => true,
+                'attr' => ['autocomplete' => 'postal-code'],
             ])
             ->add('country', TextType::class, [
                 'label' => 'Country',
                 'required' => true,
+                'attr' => ['autocomplete' => 'country'],
             ]);
     }
 

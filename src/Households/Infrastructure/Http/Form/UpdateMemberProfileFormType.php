@@ -31,18 +31,22 @@ final class UpdateMemberProfileFormType extends AbstractType
             ->add('firstName', TextType::class, [
                 'label' => 'First name',
                 'required' => true,
+                'attr' => ['autocomplete' => 'given-name'],
             ])
             ->add('middleName', TextType::class, [
                 'label' => 'Middle name',
                 'required' => false,
+                'attr' => ['autocomplete' => 'additional-name'],
             ])
             ->add('lastName', TextType::class, [
                 'label' => 'Last name',
                 'required' => true,
+                'attr' => ['autocomplete' => 'family-name'],
             ])
             ->add('suffix', TextType::class, [
                 'label' => 'Suffix',
                 'required' => false,
+                'attr' => ['autocomplete' => 'honorific-suffix'],
             ])
             ->add('dobIso', DateType::class, [
                 'label' => 'Date of birth',
@@ -51,6 +55,7 @@ final class UpdateMemberProfileFormType extends AbstractType
                 'input' => 'string',
                 'format' => 'yyyy-MM-dd',
                 'required' => true,
+                'attr' => ['autocomplete' => 'bday'],
             ])
             ->add('genderCode', ChoiceType::class, [
                 'label' => 'Gender',

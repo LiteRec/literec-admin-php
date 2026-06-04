@@ -21,22 +21,28 @@
         action="{{ path('inventory_reports_barcode_form') }}"
         class="grid grid-cols-1 gap-2 sm:grid-cols-3"
     >
-        <input
-            type="text"
-            name="search"
-            placeholder="Search by name or code"
-            value="{{ app.request.query.get('search')|default('') }}"
-            data-testid="report-barcode-search"
-            class="rounded-md border border-litrec-border bg-litrec-surface px-2 py-1 text-sm text-litrec-text"
-        />
-        <input
-            type="text"
-            name="facilityCode"
-            placeholder="Facility code"
-            value="{{ app.request.query.get('facilityCode')|default('') }}"
-            data-testid="report-barcode-facility"
-            class="rounded-md border border-litrec-border bg-litrec-surface px-2 py-1 text-sm text-litrec-text"
-        />
+        <label class="block">
+            <span class="sr-only">Search by name or code</span>
+            <input
+                type="text"
+                name="search"
+                placeholder="Search by name or code"
+                value="{{ app.request.query.get('search')|default('') }}"
+                data-testid="report-barcode-search"
+                class="w-full rounded-md border border-litrec-border bg-litrec-surface px-2 py-1 text-sm text-litrec-text"
+            />
+        </label>
+        <label class="block">
+            <span class="sr-only">Facility code</span>
+            <input
+                type="text"
+                name="facilityCode"
+                placeholder="Facility code"
+                value="{{ app.request.query.get('facilityCode')|default('') }}"
+                data-testid="report-barcode-facility"
+                class="w-full rounded-md border border-litrec-border bg-litrec-surface px-2 py-1 text-sm text-litrec-text"
+            />
+        </label>
         <button type="submit" class="rounded-md bg-litrec-primary px-3 py-1 text-sm font-semibold text-litrec-on-primary">
             Filter
         </button>

@@ -56,27 +56,37 @@
                             {{ expectedValue }}
                         </td>
                         <td class="px-2 py-2">
-                            {{ form_widget(line.actual, {
-                                attr: {
-                                    class: 'litrec-input w-24',
-                                    min: '0',
-                                    'data-testid': 'row-' ~ index ~ '-actual',
-                                    'x-model.number': 'actual',
-                                }
-                            }) }}
-                            {% if line.actual.vars.errors|length > 0 %}
-                                <p class="text-xs text-danger mt-1" data-testid="row-{{ index }}-actual-error">{{ form_errors(line.actual) }}</p>
+                            {% set actualErrorId = 'row-' ~ index ~ '-actual-error' %}
+                            {% set actualHasError = line.actual.vars.errors|length > 0 %}
+                            {% set actualAttr = {
+                                class: 'litrec-input w-24',
+                                min: '0',
+                                'data-testid': 'row-' ~ index ~ '-actual',
+                                'x-model.number': 'actual',
+                                'aria-label': 'Counted units for ' ~ line.listingCode.vars.value,
+                            } %}
+                            {% if actualHasError %}
+                                {% set actualAttr = actualAttr|merge({ 'aria-invalid': 'true', 'aria-describedby': actualErrorId }) %}
+                            {% endif %}
+                            {{ form_widget(line.actual, { attr: actualAttr }) }}
+                            {% if actualHasError %}
+                                <p id="{{ actualErrorId }}" class="text-xs text-danger mt-1" data-testid="{{ actualErrorId }}">{{ form_errors(line.actual) }}</p>
                             {% endif %}
                         </td>
                         <td class="px-2 py-2">
-                            {{ form_widget(line.reason, {
-                                attr: {
-                                    class: 'litrec-input',
-                                    'data-testid': 'row-' ~ index ~ '-reason',
-                                }
-                            }) }}
-                            {% if line.reason.vars.errors|length > 0 %}
-                                <p class="text-xs text-danger mt-1" data-testid="row-{{ index }}-reason-error">{{ form_errors(line.reason) }}</p>
+                            {% set reasonErrorId = 'row-' ~ index ~ '-reason-error' %}
+                            {% set reasonHasError = line.reason.vars.errors|length > 0 %}
+                            {% set reasonAttr = {
+                                class: 'litrec-input',
+                                'data-testid': 'row-' ~ index ~ '-reason',
+                                'aria-label': 'Reason for ' ~ line.listingCode.vars.value,
+                            } %}
+                            {% if reasonHasError %}
+                                {% set reasonAttr = reasonAttr|merge({ 'aria-invalid': 'true', 'aria-describedby': reasonErrorId }) %}
+                            {% endif %}
+                            {{ form_widget(line.reason, { attr: reasonAttr }) }}
+                            {% if reasonHasError %}
+                                <p id="{{ reasonErrorId }}" class="text-xs text-danger mt-1" data-testid="{{ reasonErrorId }}">{{ form_errors(line.reason) }}</p>
                             {% endif %}
                         </td>
                         <td class="px-2 py-2">
@@ -85,6 +95,7 @@
                                     class: 'litrec-input',
                                     'data-testid': 'row-' ~ index ~ '-note',
                                     maxlength: maxReasonNoteLength,
+                                    'aria-label': 'Note for ' ~ line.listingCode.vars.value,
                                 }
                             }) }}
                         </td>
