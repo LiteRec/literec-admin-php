@@ -14,7 +14,7 @@ export const ADMIN_STATE = path.join(AUTH_DIR, 'admin.json');
 export const MEMBER_STATE = path.join(AUTH_DIR, 'member.json');
 
 /** An empty storage state, for suites that must run unauthenticated. */
-export const ANON_STATE = { cookies: [], origins: [] } as const;
+export const ANON_STATE = { cookies: [], origins: [] };
 
 /**
  * Shared login value for every seeded principal. This is the well-known,
