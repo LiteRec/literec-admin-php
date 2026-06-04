@@ -1,5 +1,15 @@
+import type { Page } from '@playwright/test';
 import { test, expect } from '../../support/fixtures';
-import { readCsvDownload } from '../../support/downloads';
+import { readCsvDownload, type ParsedCsv } from '../../support/downloads';
+
+/** Clicks a report's "Export CSV" control and returns the parsed download. */
+async function exportReportCsv(page: Page, exportTestId: string): Promise<ParsedCsv> {
+  const [download] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByTestId(exportTestId).click(),
+  ]);
+  return readCsvDownload(download);
+}
 
 /**
  * S10 (LRA-172): Inventory reports hub. Current stock and low-stock alerts are
@@ -23,11 +33,7 @@ test.describe('inventory reports hub', () => {
     await expect(page.getByTestId('report-current-stock-table')).toBeVisible();
     expect(await page.locator('[data-testid^="report-current-stock-row-"]').count()).toBeGreaterThan(0);
 
-    const [download] = await Promise.all([
-      page.waitForEvent('download'),
-      page.getByTestId('report-current-stock-export').click(),
-    ]);
-    const csv = await readCsvDownload(download);
+    const csv = await exportReportCsv(page, 'report-current-stock-export');
 
     expect(csv.header).toEqual([
       'Code',
@@ -45,11 +51,7 @@ test.describe('inventory reports hub', () => {
     await page.goto('/admin/inventory/reports');
     await expect(page.getByTestId('report-card-entry-log')).toBeVisible();
 
-    const [download] = await Promise.all([
-      page.waitForEvent('download'),
-      page.getByTestId('report-entry-log-export').click(),
-    ]);
-    const csv = await readCsvDownload(download);
+    const csv = await exportReportCsv(page, 'report-entry-log-export');
 
     expect(csv.header).toEqual([
       'Date',
@@ -71,11 +73,7 @@ test.describe('inventory reports hub', () => {
     await expect(page.getByTestId('report-low-stock-table')).toBeVisible();
     expect(await page.locator('[data-testid^="report-low-stock-row-"]').count()).toBeGreaterThan(0);
 
-    const [download] = await Promise.all([
-      page.waitForEvent('download'),
-      page.getByTestId('report-low-stock-export').click(),
-    ]);
-    const csv = await readCsvDownload(download);
+    const csv = await exportReportCsv(page, 'report-low-stock-export');
 
     expect(csv.header).toEqual([
       'ItemId',
