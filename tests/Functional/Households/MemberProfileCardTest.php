@@ -116,7 +116,7 @@ final class MemberProfileCardTest extends WebTestCase
         // even with no errors, but sr-only and empty so it stays silent until a
         // 422 fills it.
         $errorRegion = $crawler->filter('[data-testid="profile-form-error"]');
-        self::assertGreaterThan(0, $errorRegion->count(), 'The error region must always be present.');
+        self::assertCount(1, $errorRegion, 'Expected exactly one persistent error region.');
         self::assertStringContainsString('sr-only', (string) $errorRegion->attr('class'));
         self::assertSame('', trim($errorRegion->text('')));
     }
