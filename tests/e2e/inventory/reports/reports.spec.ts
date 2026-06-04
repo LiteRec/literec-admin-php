@@ -2,6 +2,14 @@ import type { Page } from '@playwright/test';
 import { test, expect } from '../../support/fixtures';
 import { readCsvDownload, type ParsedCsv } from '../../support/downloads';
 
+/**
+ * S10 (LRA-172): Inventory reports hub. Current stock and low-stock alerts are
+ * non-empty in the seed (every item has stock, and odd items keep only 5-9
+ * units at FAC-A against reorder thresholds up to 14). The entry log is empty
+ * (stock is held as batches with no movement-ledger entries), so it is asserted
+ * by its header row. The barcode picker prints selected labels.
+ */
+
 /** Clicks a report's "Export CSV" control and returns the parsed download. */
 async function exportReportCsv(page: Page, exportTestId: string): Promise<ParsedCsv> {
   const [download] = await Promise.all([
@@ -11,13 +19,24 @@ async function exportReportCsv(page: Page, exportTestId: string): Promise<Parsed
   return readCsvDownload(download);
 }
 
-/**
- * S10 (LRA-172): Inventory reports hub. Current stock and low-stock alerts are
- * non-empty in the seed (every item has stock, and odd items keep only 5-9
- * units at FAC-A against reorder thresholds up to 14). The entry log is empty
- * (stock is held as batches with no movement-ledger entries), so it is asserted
- * by its header row. The barcode picker prints selected labels.
- */
+// Reports that render rows from the seed and export a populated CSV.
+const POPULATED_REPORTS = [
+  {
+    name: 'current stock',
+    tableId: 'report-current-stock-table',
+    rowPrefix: 'report-current-stock-row-',
+    exportId: 'report-current-stock-export',
+    header: ['Code', 'Name', 'Kind', 'Facility', 'OnHand', 'ReorderThreshold', 'AtOrBelowThreshold'],
+  },
+  {
+    name: 'low stock',
+    tableId: 'report-low-stock-table',
+    rowPrefix: 'report-low-stock-row-',
+    exportId: 'report-low-stock-export',
+    header: ['ItemId', 'ListingId', 'Facility', 'OnHand', 'ReorderThreshold', 'Shortfall', 'PrimaryVendorId'],
+  },
+];
+
 test.describe('inventory reports hub', () => {
   test('renders the report cards', async ({ page }) => {
     await page.goto('/admin/inventory/reports');
@@ -28,24 +47,18 @@ test.describe('inventory reports hub', () => {
     await expect(page.getByTestId('report-card-barcode-batch')).toBeVisible();
   });
 
-  test('current stock renders rows and exports a populated CSV', async ({ page }) => {
-    await page.goto('/admin/inventory/reports');
-    await expect(page.getByTestId('report-current-stock-table')).toBeVisible();
-    expect(await page.locator('[data-testid^="report-current-stock-row-"]').count()).toBeGreaterThan(0);
+  for (const report of POPULATED_REPORTS) {
+    test(`${report.name} renders rows and exports a populated CSV`, async ({ page }) => {
+      await page.goto('/admin/inventory/reports');
+      await expect(page.getByTestId(report.tableId)).toBeVisible();
+      expect(await page.locator(`[data-testid^="${report.rowPrefix}"]`).count()).toBeGreaterThan(0);
 
-    const csv = await exportReportCsv(page, 'report-current-stock-export');
+      const csv = await exportReportCsv(page, report.exportId);
 
-    expect(csv.header).toEqual([
-      'Code',
-      'Name',
-      'Kind',
-      'Facility',
-      'OnHand',
-      'ReorderThreshold',
-      'AtOrBelowThreshold',
-    ]);
-    expect(csv.rows.length).toBeGreaterThan(0);
-  });
+      expect(csv.header).toEqual(report.header);
+      expect(csv.rows.length).toBeGreaterThan(0);
+    });
+  }
 
   test('entry log exports a CSV with the documented header', async ({ page }) => {
     await page.goto('/admin/inventory/reports');
@@ -64,27 +77,6 @@ test.describe('inventory reports hub', () => {
       'CostPerUnit',
       'OperatorNote',
     ]);
-  });
-
-  test('low stock lists threshold breaches and exports a populated CSV', async ({ page }) => {
-    await page.goto('/admin/inventory/reports');
-    // Odd items keep only 5-9 units at FAC-A against reorder thresholds up to 14,
-    // so the seed has at-or-below-threshold alerts.
-    await expect(page.getByTestId('report-low-stock-table')).toBeVisible();
-    expect(await page.locator('[data-testid^="report-low-stock-row-"]').count()).toBeGreaterThan(0);
-
-    const csv = await exportReportCsv(page, 'report-low-stock-export');
-
-    expect(csv.header).toEqual([
-      'ItemId',
-      'ListingId',
-      'Facility',
-      'OnHand',
-      'ReorderThreshold',
-      'Shortfall',
-      'PrimaryVendorId',
-    ]);
-    expect(csv.rows.length).toBeGreaterThan(0);
   });
 });
 
