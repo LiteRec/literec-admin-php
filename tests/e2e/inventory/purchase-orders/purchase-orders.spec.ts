@@ -17,9 +17,11 @@ test.describe('purchase order list', () => {
     await expect(page.getByTestId('purchase-orders-table')).toBeVisible();
 
     await page.goto('/admin/inventory/purchase-orders?status=draft');
-    const draftRows = page.locator('[data-testid^="po-row-"]');
-    await expect(draftRows).not.toHaveCount(0);
-    await expect(page.locator('[data-testid^="po-status-"]').first()).toContainText('draft');
+    const statuses = page.locator('[data-testid^="po-status-"]');
+    await expect(statuses).not.toHaveCount(0);
+    // Every row in the filtered list is a draft.
+    const texts = await statuses.allTextContents();
+    expect(texts.every((text) => text.includes('draft'))).toBe(true);
   });
 });
 
