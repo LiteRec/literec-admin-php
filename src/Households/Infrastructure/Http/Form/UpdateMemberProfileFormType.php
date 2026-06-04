@@ -4,11 +4,7 @@ declare(strict_types=1);
 
 namespace App\Households\Infrastructure\Http\Form;
 
-use App\Households\Domain\ValueObject\Gender;
 use Symfony\Component\Form\AbstractType;
-use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
-use Symfony\Component\Form\Extension\Core\Type\DateType;
-use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
@@ -25,49 +21,16 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
  */
 final class UpdateMemberProfileFormType extends AbstractType
 {
+    use BuildsHouseholdFormFields;
+
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
-        $builder
-            ->add('firstName', TextType::class, [
-                'label' => 'First name',
-                'required' => true,
-                'attr' => ['autocomplete' => 'given-name'],
-            ])
-            ->add('middleName', TextType::class, [
-                'label' => 'Middle name',
-                'required' => false,
-                'attr' => ['autocomplete' => 'additional-name'],
-            ])
-            ->add('lastName', TextType::class, [
-                'label' => 'Last name',
-                'required' => true,
-                'attr' => ['autocomplete' => 'family-name'],
-            ])
-            ->add('suffix', TextType::class, [
-                'label' => 'Suffix',
-                'required' => false,
-                'attr' => ['autocomplete' => 'honorific-suffix'],
-            ])
-            ->add('dobIso', DateType::class, [
-                'label' => 'Date of birth',
-                'widget' => 'single_text',
-                'html5' => true,
-                'input' => 'string',
-                'format' => 'yyyy-MM-dd',
-                'required' => true,
-                'attr' => ['autocomplete' => 'bday'],
-            ])
-            ->add('genderCode', ChoiceType::class, [
-                'label' => 'Gender',
-                'choices' => [
-                    'Female' => Gender::Female->value,
-                    'Male' => Gender::Male->value,
-                    'Other' => Gender::Other->value,
-                    'Unspecified' => Gender::Unspecified->value,
-                ],
-                'placeholder' => 'Select…',
-                'required' => true,
-            ]);
+        $this->addAutocompleteTextField($builder, 'firstName', 'First name', true, 'given-name');
+        $this->addAutocompleteTextField($builder, 'middleName', 'Middle name', false, 'additional-name');
+        $this->addAutocompleteTextField($builder, 'lastName', 'Last name', true, 'family-name');
+        $this->addAutocompleteTextField($builder, 'suffix', 'Suffix', false, 'honorific-suffix');
+        $this->addDateOfBirthField($builder);
+        $this->addGenderField($builder);
     }
 
     public function configureOptions(OptionsResolver $resolver): void

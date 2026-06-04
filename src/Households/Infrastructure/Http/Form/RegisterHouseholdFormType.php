@@ -23,8 +23,7 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
  */
 final class RegisterHouseholdFormType extends AbstractType
 {
-    use AddsHouseholdMemberFields;
-    use AddsHouseholdAddressFields;
+    use BuildsHouseholdFormFields;
 
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {

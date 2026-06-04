@@ -23,7 +23,7 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
  */
 final class UpdateHouseholdAddressFormType extends AbstractType
 {
-    use AddsHouseholdAddressFields;
+    use BuildsHouseholdFormFields;
 
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
