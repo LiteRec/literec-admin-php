@@ -62,7 +62,7 @@ npm run test:e2e:ui       # Playwright UI mode
 
 | testid | Template | Added by |
 |--------|----------|----------|
-| _(none yet)_ | | |
+| `kpi-card`, `kpi-value` | `templates/components/_kpi_card.html.twig` | S3 (LRA-165) |
 
 ## Layout
 

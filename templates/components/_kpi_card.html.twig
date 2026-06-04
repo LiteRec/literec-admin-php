@@ -5,10 +5,10 @@
 {# @param ?string delta   Optional supporting delta, shown in a pill. #}
 {% import 'components/_icon.html.twig' as ui %}
 {% set delta = delta|default(null) %}
-<div data-gsap="card" class="lr-kpi" style="background: {{ gradient }}">
+<div data-gsap="card" data-testid="kpi-card" class="lr-kpi" style="background: {{ gradient }}">
     <div><span class="ico">{{ ui.icon(icon, 18) }}</span></div>
     <div>
-        <div class="val lr-num">{{ value }}</div>
+        <div class="val lr-num" data-testid="kpi-value">{{ value }}</div>
         <div class="lbl">{{ label }}</div>
         {% if delta is not null and delta|trim is not empty %}
             <div class="mt-2"><span class="delta">{{ ui.icon('arrowUp', 11) }} {{ delta }}</span></div>
