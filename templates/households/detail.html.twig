@@ -43,26 +43,14 @@
         </div>
         <div class="flex flex-wrap items-center gap-2">
             {% if detail.profile.isActive %}
-                <span
-                    data-testid="badge-active"
-                    class="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-800"
-                >Active</span>
+                {% include 'components/_badge.html.twig' with { label: 'Active', variant: 'success', testid: 'badge-active' } only %}
             {% else %}
-                <span
-                    data-testid="badge-deactivated"
-                    class="inline-flex items-center rounded-full bg-gray-200 px-2 py-0.5 text-xs font-semibold text-gray-700"
-                >Deactivated</span>
+                {% include 'components/_badge.html.twig' with { label: 'Deactivated', variant: 'neutral', testid: 'badge-deactivated' } only %}
             {% endif %}
             {% if detail.profile.isPrimary %}
-                <span
-                    data-testid="badge-primary"
-                    class="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-800"
-                >Primary</span>
+                {% include 'components/_badge.html.twig' with { label: 'Primary', variant: 'info', testid: 'badge-primary' } only %}
             {% else %}
-                <span
-                    data-testid="badge-secondary"
-                    class="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-700"
-                >Secondary</span>
+                {% include 'components/_badge.html.twig' with { label: 'Secondary', variant: 'neutral', testid: 'badge-secondary' } only %}
             {% endif %}
         </div>
     </header>

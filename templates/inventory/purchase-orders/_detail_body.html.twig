@@ -26,10 +26,7 @@
         <div>
             <dt class="text-litrec-text-muted">Status</dt>
             <dd>
-                <span
-                    class="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-800"
-                    data-testid="po-status"
-                >{{ detail.status }}</span>
+                {% include 'components/_badge.html.twig' with { label: detail.status, variant: 'info', testid: 'po-status' } only %}
             </dd>
         </div>
         {% if detail.sentAtIso %}
@@ -99,13 +96,9 @@
                         </td>
                         <td class="whitespace-nowrap px-3 py-2">
                             {% if line.isFullyReceived %}
-                                <span class="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-800">
-                                    Fully received
-                                </span>
+                                {% include 'components/_badge.html.twig' with { label: 'Fully received', variant: 'success' } only %}
                             {% else %}
-                                <span class="inline-flex items-center rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-semibold text-yellow-800">
-                                    Open
-                                </span>
+                                {% include 'components/_badge.html.twig' with { label: 'Open', variant: 'warning' } only %}
                             {% endif %}
                         </td>
                         {% if 'receiveLine' in detail.allowedTransitions and is_granted('manage_purchase_orders') %}

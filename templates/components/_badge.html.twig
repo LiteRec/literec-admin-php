@@ -4,9 +4,11 @@
    @param string  label    Visible badge text.
    @param string  variant  One of: success, warning, danger, info, neutral.
                            Defaults to neutral for any unknown value.
-   @param ?string class    Optional extra classes (e.g. uppercase tracking). #}
+   @param ?string class    Optional extra classes (e.g. uppercase tracking).
+   @param ?string testid   Optional data-testid for the pill. #}
 {% set variant = variant|default('neutral') %}
 {% set known = ['success', 'warning', 'danger', 'info', 'neutral'] %}
 {% set variant = variant in known ? variant : 'neutral' %}
 {% set class = class|default('') %}
-<span class="lr-badge {{ variant }}{% if class %} {{ class }}{% endif %}">{{ label }}</span>
+{% set testid = testid|default(null) %}
+<span class="lr-badge {{ variant }}{% if class %} {{ class }}{% endif %}"{% if testid %} data-testid="{{ testid }}"{% endif %}>{{ label }}</span>

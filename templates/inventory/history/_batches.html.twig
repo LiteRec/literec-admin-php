@@ -53,9 +53,9 @@
                                     <td class="whitespace-nowrap px-3 py-2 text-right font-mono text-litrec-text-muted">{{ batch.costPerUnitCents }}</td>
                                     <td class="whitespace-nowrap px-3 py-2">
                                         {% if loop.first and batch.remainingQuantityUnits > 0 %}
-                                            <span class="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-800" data-testid="history-batch-next-to-consume">Next to consume</span>
+                                            {% include 'components/_badge.html.twig' with { label: 'Next to consume', variant: 'success', testid: 'history-batch-next-to-consume' } only %}
                                         {% elseif batch.remainingQuantityUnits == 0 %}
-                                            <span class="inline-flex items-center rounded-full bg-gray-200 px-2 py-0.5 text-xs font-semibold text-gray-700">Depleted</span>
+                                            {% include 'components/_badge.html.twig' with { label: 'Depleted', variant: 'neutral' } only %}
                                         {% else %}
                                             <span class="text-xs text-litrec-text-muted">—</span>
                                         {% endif %}
