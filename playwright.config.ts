@@ -41,10 +41,10 @@ export default defineConfig({
     ignoreHTTPSErrors: true,
   },
   projects: [
-    { name: 'setup', testMatch: /.*\.setup\.ts/ },
+    { name: 'setup', testMatch: '**/*.setup.ts' },
     {
       name: 'chromium',
-      testIgnore: /.*\.setup\.ts/,
+      testIgnore: '**/*.setup.ts',
       // Most suites run as the seeded admin. Suites that need anonymous or
       // member context override storageState per file (see tests/e2e/README.md).
       use: { ...devices['Desktop Chrome'], storageState: ADMIN_STATE },

@@ -16,10 +16,18 @@ export const MEMBER_STATE = path.join(AUTH_DIR, 'member.json');
 /** An empty storage state, for suites that must run unauthenticated. */
 export const ANON_STATE = { cookies: [], origins: [] } as const;
 
+/**
+ * Shared login value for every seeded principal. This is the well-known,
+ * non-secret password set by UsersFixtures for the `test` fixtures group, not a
+ * real credential; override it with E2E_PASSWORD when running against an
+ * instance seeded differently.
+ */
+const seededLogin = process.env.E2E_PASSWORD ?? 'fixture-password-1234';
+
 /** Seeded principals from the `test` fixtures group (UsersFixtures). */
 export const CREDENTIALS = {
-  admin: { username: 'admin', password: 'fixture-password-1234' },
-  member: { username: 'member-1', password: 'fixture-password-1234' },
+  admin: { username: 'admin', password: seededLogin },
+  member: { username: 'member-1', password: seededLogin },
 } as const;
 
 /** Logs in through the real login form and waits for the dashboard. */
