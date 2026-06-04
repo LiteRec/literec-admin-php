@@ -200,8 +200,8 @@ final class InventoryReportsControllerTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         $srLabels = $crawler->filter('label .sr-only')->each(static fn ($node): string => trim($node->text()));
-        self::assertContains('Search by name or code', $srLabels, 'Barcode search input must have a programmatic label.');
-        self::assertContains('Facility code', $srLabels, 'Barcode facility-code input must have a programmatic label.');
+        self::assertContains('Search by name or code', $srLabels, 'Search input needs a label.');
+        self::assertContains('Facility code', $srLabels, 'Facility-code input needs a label.');
     }
 
     #[Test]
