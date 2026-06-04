@@ -1,0 +1,21 @@
+{# Persistent form-error summary (LRA-158, WCAG 2.2 SC 4.1.3).
+
+   Rendered unconditionally so the role="alert" region is always present in the
+   DOM: a 422 re-render then fills an existing live region rather than inserting
+   a brand-new node, which assistive tech announces more reliably. When the form
+   is valid the region is sr-only and empty, so it occupies no space and stays
+   silent. A single source of truth for the dialog/card form error block, so
+   callers no longer hand-roll the alert markup.
+
+   @param form    The Symfony form view.
+   @param ?string testid  Optional data-testid (defaults to "form-error"). #}
+{% set testid = testid|default('form-error') %}
+<div
+    role="alert"
+    data-testid="{{ testid }}"
+    class="{{ form.vars.errors|length > 0 ? 'mb-4 rounded-md border border-danger/30 bg-danger/10 p-3 text-sm font-semibold text-danger' : 'sr-only' }}"
+>
+    {%- if form.vars.errors|length > 0 -%}
+        {{ form_errors(form) }}
+    {%- endif -%}
+</div>

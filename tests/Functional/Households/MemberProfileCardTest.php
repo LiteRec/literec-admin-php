@@ -111,6 +111,14 @@ final class MemberProfileCardTest extends WebTestCase
         // Gender select pre-populated to 'F'.
         $selected = $crawler->filter('select[name="update_member_profile[genderCode]"] option[selected]');
         self::assertSame('F', $selected->attr('value'));
+
+        // The error summary region is persistent (LRA-158, WCAG 4.1.3): present
+        // even with no errors, but sr-only and empty so it stays silent until a
+        // 422 fills it.
+        $errorRegion = $crawler->filter('[data-testid="profile-form-error"]');
+        self::assertGreaterThan(0, $errorRegion->count(), 'The error region must always be present.');
+        self::assertStringContainsString('sr-only', (string) $errorRegion->attr('class'));
+        self::assertSame('', trim($errorRegion->text('')));
     }
 
     #[Test]
