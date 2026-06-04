@@ -41,7 +41,7 @@
             } %}
             <div class="lr-list">
                 {% for tx in dashboard.recentTransactions %}
-                    <div class="lr-list-row">
+                    <div class="lr-list-row" data-testid="activity-row">
                         <span class="lr-dot" style="background: {{ dot_colors[tx.status.value] ?? 'var(--lr-text-muted)' }}"></span>
                         <div class="min-w-0 flex-1">
                             <div class="lr-row-strong truncate text-sm">{{ tx.userName }}</div>
@@ -68,7 +68,7 @@
             </div>
             <div class="lr-list">
                 {% for event in dashboard.upcomingEvents %}
-                    <div class="lr-list-row">
+                    <div class="lr-list-row" data-testid="event-row">
                         <span class="lr-datechip"><span class="d lr-num">{{ event.day }}</span><span class="m">{{ event.month }}</span></span>
                         <div class="min-w-0 flex-1">
                             <div class="lr-row-strong truncate text-sm">{{ event.title }}</div>
