@@ -62,6 +62,10 @@
     --lr-surface: #ffffff;
     --lr-surface-2: #f6fafc;
     --lr-border: #d8e4ec;
+    /* Interactive-control border (LRA-155, WCAG 1.4.11). Darker than the soft
+       --lr-border divider so input/select boundaries clear 3:1 against both the
+       surface and the page background; decorative dividers keep --lr-border. */
+    --lr-control-border: #74899a;
     --lr-text: #0a1820;
     --lr-text-muted: #4a6070;
     --lr-primary: #1c3d5a;
@@ -120,6 +124,7 @@
     --lr-surface: #1a2530;
     --lr-surface-2: #141d26;
     --lr-border: #2a3a48;
+    --lr-control-border: #6f8799;
     --lr-text: #f0f5f8;
     --lr-text-muted: #8aa8c0;
     --lr-primary: #a8c5e2;
@@ -406,7 +411,7 @@
         display: flex;
         align-items: center;
         gap: 0.5rem;
-        border: 1px solid var(--lr-border);
+        border: 1px solid var(--lr-control-border);
         border-radius: var(--radius-card-sm);
         background: var(--lr-surface);
         padding: 0.5rem 0.7rem;
@@ -418,7 +423,7 @@
     .lr-input .ico { color: var(--lr-text-muted); flex: none; }
 
     .lr-select {
-        border: 1px solid var(--lr-border);
+        border: 1px solid var(--lr-control-border);
         border-radius: var(--radius-card-sm);
         background: var(--lr-surface);
         padding: 0.4rem 0.6rem;
@@ -594,6 +599,18 @@
         flex-direction: column;
         justify-content: space-between;
     }
+    /* Scrim (LRA-155, WCAG 1.4.3): darken the caller-supplied gradient behind
+       the white tile text so the small label/delta text keeps adequate contrast
+       regardless of the gradient's lightest stop. The content divs sit above it;
+       the decorative .blob span is unaffected. */
+    .lr-kpi::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: rgb(0 0 0 / 0.22);
+        pointer-events: none;
+    }
+    .lr-kpi > div { position: relative; }
     .lr-kpi .ico {
         width: 34px;
         height: 34px;
@@ -792,7 +809,7 @@
     width: 100%;
     margin-top: 0.25rem;
     border-radius: var(--radius-card-sm);
-    border: 1px solid var(--lr-border);
+    border: 1px solid var(--lr-control-border);
     background-color: var(--lr-surface);
     padding: 0.5rem 0.75rem;
     color: var(--lr-text);

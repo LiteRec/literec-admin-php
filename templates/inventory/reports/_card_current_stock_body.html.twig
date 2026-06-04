@@ -27,7 +27,14 @@
                         <td class="px-3 py-2 font-mono text-xs text-litrec-text">{{ row.listingCode }}</td>
                         <td class="px-3 py-2 text-litrec-text">{{ row.name }}</td>
                         <td class="px-3 py-2 text-litrec-text-muted">{{ row.facilityCode }}</td>
-                        <td class="px-3 py-2 text-right font-mono text-litrec-text">{{ row.onHandUnits }}</td>
+                        <td class="px-3 py-2 text-right font-mono text-litrec-text">
+                            {{ row.onHandUnits }}
+                            {% if row.isAtOrBelowThreshold %}
+                                {# Non-color marker (LRA-155, WCAG 1.4.1): the red row tint
+                                   alone must not be the only signal that stock is low. #}
+                                {% include 'components/_badge.html.twig' with { label: 'Low', variant: 'danger' } only %}
+                            {% endif %}
+                        </td>
                         <td class="px-3 py-2 text-right font-mono text-litrec-text-muted">
                             {% if row.reorderThresholdUnits > 0 %}{{ row.reorderThresholdUnits }}{% else %}—{% endif %}
                         </td>
