@@ -14,6 +14,12 @@
                  with the list-page partials so a future "no matches for
                  \"$criteria.lastName\"" message can be added without
                  changing the call site) #}
+{# Out-of-band polite announcement (LRA-153) of the result count so screen
+   readers hear it on every search swap without focus moving. The matching id
+   lives in the dialog body so it exists before the first swap. #}
+<span id="member-lookup-status" hx-swap-oob="true" aria-live="polite" class="sr-only">
+    {%- if page.totalItems == 0 -%}No members match.{%- else -%}{{ page.totalItems }} member{{ page.totalItems == 1 ? '' : 's' }} found.{%- endif -%}
+</span>
 {% if page.totalItems == 0 %}
     <p
         data-testid="member-lookup-empty"

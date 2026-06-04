@@ -5,6 +5,13 @@
 {% block body %}
     {% import 'components/_icon.html.twig' as icon %}
     <div class="lr-screen flex min-h-screen flex-col">
+        {# Shared polite live region (LRA-153). HTMX success responses emit
+           HX-Trigger events that bubble to the body; assets/app.js writes a
+           short status message here so screen readers hear the outcome of an
+           in-place update (a save, a purchase-order transition, a member
+           switch) without any focus change. #}
+        <div id="lr-live" role="status" aria-live="polite" aria-atomic="true" class="sr-only"></div>
+
         <header class="lr-header">
             <div class="lr-header-in">
                 <a href="{{ path('app_dashboard') }}" class="lr-brand" aria-label="LiteRecAdmin home">

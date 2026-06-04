@@ -121,23 +121,14 @@ final class MemberProfileCardTest extends WebTestCase
         $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
         $this->seedHouseholdA();
 
-        $token = $this->csrfTokenFromEditForm($client);
-
-        $client->request(
-            'POST',
-            sprintf(self::ROUTE_PROFILE, self::HOUSEHOLD_A, self::A_PRIMARY_ID),
-            [
-                'update_member_profile' => [
-                    'firstName' => 'Alicia',
-                    'middleName' => 'Renee',
-                    'lastName' => 'Smith-Jones',
-                    'suffix' => '',
-                    'dobIso' => '1991-04-05',
-                    'genderCode' => 'F',
-                    '_token' => $token,
-                ],
-            ],
-        );
+        $this->postProfileUpdate($client, self::HOUSEHOLD_A, self::A_PRIMARY_ID, [
+            'firstName' => 'Alicia',
+            'middleName' => 'Renee',
+            'lastName' => 'Smith-Jones',
+            'suffix' => '',
+            'dobIso' => '1991-04-05',
+            'genderCode' => 'F',
+        ]);
 
         self::assertResponseIsSuccessful();
         self::assertSelectorExists('[data-testid="card-profile-body"]');
@@ -153,6 +144,27 @@ final class MemberProfileCardTest extends WebTestCase
         $member = $this->firstMember($household);
         self::assertSame('Alicia', $member->name()->firstName);
         self::assertSame('Smith-Jones', $member->name()->lastName);
+    }
+
+    #[Test]
+    #[TestDox('A successful profile POST sets the profileSaved HX-Trigger so the live region announces the save.')]
+    public function post_profile_success_sets_profile_saved_hx_trigger(): void
+    {
+        $client = static::createClient();
+        $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
+        $this->seedHouseholdA();
+
+        $this->postProfileUpdate($client, self::HOUSEHOLD_A, self::A_PRIMARY_ID, [
+            'firstName' => 'Alicia',
+            'middleName' => 'Renee',
+            'lastName' => 'Smith-Jones',
+            'suffix' => '',
+            'dobIso' => '1991-04-05',
+            'genderCode' => 'F',
+        ]);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame('profileSaved', $client->getResponse()->headers->get('HX-Trigger'));
     }
 
     #[Test]
@@ -185,6 +197,10 @@ final class MemberProfileCardTest extends WebTestCase
         );
 
         self::assertResponseStatusCodeSame(422);
+        self::assertNull(
+            $client->getResponse()->headers->get('HX-Trigger'),
+            'A 422 profile POST must not emit the profileSaved trigger.',
+        );
         self::assertSelectorExists('#card-profile-body form');
         // The error surfaces on the dob field or at the form root; either
         // way the rendered fragment contains the not-future message text.
@@ -224,6 +240,10 @@ final class MemberProfileCardTest extends WebTestCase
         );
 
         self::assertResponseStatusCodeSame(422);
+        self::assertNull(
+            $client->getResponse()->headers->get('HX-Trigger'),
+            'A CSRF-rejected profile POST must not emit the profileSaved trigger.',
+        );
 
         // The aggregate must not have been mutated.
         $repo = static::getContainer()->get(Households::class);
@@ -265,6 +285,32 @@ final class MemberProfileCardTest extends WebTestCase
         );
 
         self::assertResponseStatusCodeSame(404);
+        self::assertNull(
+            $client->getResponse()->headers->get('HX-Trigger'),
+            'A 404 profile POST must not emit the profileSaved trigger.',
+        );
+    }
+
+    /**
+     * POSTs a profile update for the given member with a valid CSRF token
+     * pulled from the real edit form. Callers assert on the resulting
+     * response.
+     *
+     * @param array<string, string> $profileData
+     */
+    private function postProfileUpdate(
+        \Symfony\Bundle\FrameworkBundle\KernelBrowser $client,
+        string $householdId,
+        string $memberId,
+        array $profileData,
+    ): void {
+        $profileData['_token'] = $this->csrfTokenFromEditForm($client);
+
+        $client->request(
+            'POST',
+            sprintf(self::ROUTE_PROFILE, $householdId, $memberId),
+            ['update_member_profile' => $profileData],
+        );
     }
 
     private function csrfTokenFromEditForm(\Symfony\Bundle\FrameworkBundle\KernelBrowser $client): string

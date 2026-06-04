@@ -4,6 +4,16 @@
      - criteria: SearchMembersCriteria #}
 {% set baseQuery = app.request.query.all %}
 
+{# Live-region OOB update (LRA-153) so screen readers hear the new count on
+   every HTMX swap. The matching id is rendered (without hx-swap-oob) in the
+   list shell so it exists on first paint. Mirrors the inventory list. #}
+<span
+    id="members-result-summary"
+    hx-swap-oob="true"
+    aria-live="polite"
+    class="sr-only"
+>Showing {{ page.items|length }} of {{ page.totalItems }} {{ page.totalItems == 1 ? 'member' : 'members' }}</span>
+
 {# Empty state fires only when the underlying result set is truly empty.
    page.items can be empty on an out-of-range page even when totalItems > 0,
    in which case the user should see the pagination footer rather than a

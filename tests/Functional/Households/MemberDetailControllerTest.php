@@ -149,6 +149,25 @@ final class MemberDetailControllerTest extends WebTestCase
         );
     }
 
+    #[Test]
+    #[TestDox('GET _lower-cards sets a memberLoaded HX-Trigger naming the member for the live region.')]
+    public function lower_cards_sets_member_loaded_hx_trigger(): void
+    {
+        $client = static::createClient();
+        $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
+        $this->seedHouseholdA();
+
+        $client->request(
+            'GET',
+            sprintf('/admin/users/%s/%s/_lower-cards', self::HOUSEHOLD_A, self::A_PRIMARY_ID),
+        );
+
+        self::assertResponseIsSuccessful();
+        $trigger = (string) $client->getResponse()->headers->get('HX-Trigger');
+        self::assertStringContainsString('memberLoaded', $trigger);
+        self::assertStringContainsString('Alice Smith', $trigger);
+    }
+
     private function seedHouseholdA(): void
     {
         $repo = static::getContainer()->get(Households::class);
