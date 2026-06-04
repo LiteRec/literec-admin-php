@@ -100,6 +100,7 @@ test.describe('create and edit', () => {
     await expect(editDialog).toBeVisible();
     await editDialog.getByLabel('Name').fill(`${NEW_NAME} EDITED`);
     await editDialog.getByTestId('inventory-item-submit').click();
+    await expect(editDialog).toBeHidden();
 
     await expect(page.getByText(`${NEW_NAME} EDITED`)).toBeVisible();
   });
