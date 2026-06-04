@@ -50,6 +50,22 @@ final class AppShellTest extends WebTestCase
     }
 
     #[Test]
+    #[TestDox('The shell exposes a "Skip to main content" link targeting the focusable main landmark (WCAG 2.4.1).')]
+    public function shell_exposes_a_skip_to_main_content_link(): void
+    {
+        $client = static::createClient();
+        $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
+
+        $crawler = $client->request('GET', '/dashboard');
+
+        self::assertResponseIsSuccessful();
+        $skip = $crawler->filter('a[href="#main-content"]');
+        self::assertGreaterThan(0, $skip->count(), 'A skip-to-main-content link must be present.');
+        self::assertSame('Skip to main content', trim($skip->first()->text('')));
+        self::assertSelectorExists('main#main-content[tabindex="-1"]');
+    }
+
+    #[Test]
     #[TestDox('The public login page stays on base.html.twig and does not render the authenticated shell.')]
     public function login_page_does_not_render_the_app_shell(): void
     {
@@ -61,5 +77,9 @@ final class AppShellTest extends WebTestCase
         self::assertSelectorNotExists('header [data-testid="selected-facility"]');
         self::assertSelectorNotExists('nav[aria-label="Main navigation"]');
         self::assertSelectorNotExists('footer');
+        // The skip link lives in base.html.twig, so even the bare login page
+        // gets it, targeting the login page's own <main> (WCAG 2.4.1).
+        self::assertSelectorExists('a[href="#main-content"]');
+        self::assertSelectorExists('main#main-content[tabindex="-1"]');
     }
 }

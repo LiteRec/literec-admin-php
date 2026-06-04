@@ -816,10 +816,14 @@
     font-size: 0.875rem;
 }
 
-.litrec-input:focus {
+.litrec-input:focus-visible {
     border-color: var(--lr-primary);
-    outline: none;
-    box-shadow: 0 0 0 1px var(--lr-primary);
+    /* A transparent outline becomes a real focus ring in forced-colors mode,
+       where the box-shadow ring is suppressed (LRA-156, WCAG 2.4.7). Using
+       :focus-visible shows the ring for keyboard focus only. */
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 2px var(--lr-primary);
 }
 
 /* HTMX request indicator — shown only while a request is in flight. */
