@@ -93,6 +93,16 @@
         <button type="submit" class="sr-only">Search</button>
     </form>
 
+    {# Polite live region (LRA-153): announces the result count on every HTMX
+       search swap without moving focus. Kept outside the results container so
+       the announcement stays concise (a count, not the whole table); the
+       results partial refreshes it out-of-band. #}
+    <span
+        id="member-lookup-status"
+        aria-live="polite"
+        class="sr-only"
+    >Enter a search filter to find members.</span>
+
     <div
         id="member-lookup-results"
         data-testid="member-lookup-results"

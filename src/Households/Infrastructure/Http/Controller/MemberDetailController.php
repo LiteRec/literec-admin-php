@@ -87,6 +87,17 @@ final class MemberDetailController extends AbstractController
 
     private const string TEMPLATE_RESIDENCY_EDIT = 'households/detail/_residency_sub_card_edit.html.twig';
 
+    /**
+     * HTMX response header (LRA-153). Success responses set it so assets/app.js
+     * can announce the outcome of an in-place update in the shared #lr-live
+     * region without a focus change.
+     */
+    private const string HEADER_HX_TRIGGER = 'HX-Trigger';
+
+    private const string HX_TRIGGER_PROFILE_SAVED = 'profileSaved';
+
+    private const string HX_TRIGGER_MEMBER_LOADED = 'memberLoaded';
+
     public function __construct(
         private readonly MessageBusInterface $queryBus,
         private readonly MessageBusInterface $commandBus,
@@ -147,9 +158,26 @@ final class MemberDetailController extends AbstractController
             throw $this->createNotFoundException(self::MEMBER_NOT_FOUND_MESSAGE);
         }
 
-        return $this->render('households/detail/_lower_cards.html.twig', [
+        $response = $this->render('households/detail/_lower_cards.html.twig', [
             'detail' => $detail,
         ]);
+        $response->headers->set(self::HEADER_HX_TRIGGER, $this->memberLoadedTrigger($detail));
+
+        return $response;
+    }
+
+    /**
+     * Builds the HX-Trigger payload that names the freshly loaded member so
+     * the shared #lr-live region can announce the context switch (LRA-153).
+     */
+    private function memberLoadedTrigger(MemberDetail $detail): string
+    {
+        $name = trim($detail->profile->firstName . ' ' . $detail->profile->lastName);
+
+        return (string) json_encode(
+            [self::HX_TRIGGER_MEMBER_LOADED => ['name' => $name]],
+            JSON_THROW_ON_ERROR,
+        );
     }
 
     /**
@@ -223,9 +251,12 @@ final class MemberDetailController extends AbstractController
                 // Re-load the projection so the swapped read partial reflects
                 // the freshly persisted values; an unchanged submit yields the
                 // same projection and the card still swaps back to read mode.
-                return $this->render('households/detail/_card_profile_read.html.twig', [
+                $response = $this->render('households/detail/_card_profile_read.html.twig', [
                     'detail' => $this->runQuery($householdId, $memberId),
                 ]);
+                $response->headers->set(self::HEADER_HX_TRIGGER, self::HX_TRIGGER_PROFILE_SAVED);
+
+                return $response;
             } catch (MemberNotFound | HouseholdNotFound | InvalidHouseholdId | InvalidMemberId) {
                 throw $this->createNotFoundException(self::MEMBER_NOT_FOUND_MESSAGE);
             } catch (InvalidPersonName $exception) {

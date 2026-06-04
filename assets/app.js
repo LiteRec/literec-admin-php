@@ -48,6 +48,49 @@ document.body.addEventListener('htmx:afterRequest', (event) => {
     }
 });
 
+// Accessible status announcements (LRA-153). HTMX success responses carry
+// HX-Trigger events that bubble to the body; the ones that represent a
+// completed in-place action are mapped to a short message and written to the
+// shared #lr-live polite region so screen-reader users hear the outcome
+// without a focus change. Events that carry a payload (memberLoaded) are
+// handled separately so the announcement can name the selected row.
+const LIVE_REGION_MESSAGES = {
+    inventoryItemSaved: 'Inventory item saved.',
+    stockReceived: 'Stock received.',
+    stockAdjusted: 'Stock adjusted.',
+    comboSaved: 'Combo saved.',
+    groupSaved: 'Group saved.',
+    linkSaved: 'Link saved.',
+    poSent: 'Purchase order marked as sent.',
+    poLineReceived: 'Purchase order line received.',
+    poVerified: 'Purchase order delivery verified.',
+    profileSaved: 'Profile saved.',
+};
+
+function announceStatus(message) {
+    const region = document.getElementById('lr-live');
+
+    if (!region || !message) {
+        return;
+    }
+
+    // Clear first so the region is seen to change even when the same message
+    // repeats; assistive tech only announces an actual content change.
+    region.textContent = '';
+    globalThis.requestAnimationFrame(() => {
+        region.textContent = message;
+    });
+}
+
+Object.entries(LIVE_REGION_MESSAGES).forEach(([eventName, message]) => {
+    document.body.addEventListener(eventName, () => announceStatus(message));
+});
+
+document.body.addEventListener('memberLoaded', (event) => {
+    const name = event.detail?.name;
+    announceStatus(name ? `Showing ${name}.` : 'Member updated.');
+});
+
 // GSAP — expose globally and apply a subtle entrance animation to any
 // element marked with data-gsap="card".
 globalThis.gsap = gsap;

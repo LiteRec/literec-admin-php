@@ -32,6 +32,16 @@
 {% block page_body %}
     {% include 'households/list/_filters.html.twig' %}
 
+    {# Polite live region (LRA-153), mirroring the inventory list pattern:
+       refreshed out-of-band by the table partial on every HTMX swap so the
+       result count is announced without moving focus. This initial copy
+       guarantees the region exists on first paint. #}
+    <span
+        id="members-result-summary"
+        aria-live="polite"
+        class="sr-only"
+    >Showing {{ page.items|length }} of {{ page.totalItems }} {{ page.totalItems == 1 ? 'member' : 'members' }}</span>
+
     <div
         id="members-table"
         data-testid="members-table"
