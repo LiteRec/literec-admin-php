@@ -191,6 +191,20 @@ final class InventoryReportsControllerTest extends WebTestCase
     }
 
     #[Test]
+    #[TestDox('The barcode picker filter inputs expose programmatic labels (WCAG 3.3.2).')]
+    public function barcode_filter_inputs_have_programmatic_labels(): void
+    {
+        $client = $this->signInAndSeed();
+
+        $crawler = $client->request('GET', self::ROUTE_BARCODE_FORM);
+
+        self::assertResponseIsSuccessful();
+        $srLabels = $crawler->filter('label .sr-only')->each(static fn ($node): string => trim($node->text()));
+        self::assertContains('Search by name or code', $srLabels, 'Barcode search input must have a programmatic label.');
+        self::assertContains('Facility code', $srLabels, 'Barcode facility-code input must have a programmatic label.');
+    }
+
+    #[Test]
     #[TestDox('POST /barcodes/print with two item ids returns 200 and renders a label per id.')]
     public function post_barcode_print_renders_label_per_item(): void
     {
