@@ -24,7 +24,7 @@ test.describe('dashboard', () => {
     const activity = page.getByRole('region', { name: 'Recent Activity' });
 
     await expect(activity).toBeVisible();
-    await expect(activity.locator('.lr-list-row')).not.toHaveCount(0);
+    await expect(activity.getByTestId('activity-row')).not.toHaveCount(0);
     await expect(activity).toContainText(/Succeeded|Pending|Failed|Refunded/);
   });
 
@@ -32,12 +32,12 @@ test.describe('dashboard', () => {
     const events = page.getByRole('region', { name: 'Upcoming Events' });
 
     await expect(events).toBeVisible();
-    await expect(events.locator('.lr-list-row')).not.toHaveCount(0);
+    await expect(events.getByTestId('event-row')).not.toHaveCount(0);
   });
 
   test('renders quick actions that navigate', async ({ page }) => {
     const quickActions = page.getByRole('region', { name: 'Quick Actions' });
-    const links = quickActions.locator('a.lr-quick');
+    const links = quickActions.getByRole('link');
 
     await expect(quickActions).toBeVisible();
     await expect(links).not.toHaveCount(0);
