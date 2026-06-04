@@ -65,6 +65,7 @@ npm run test:e2e:ui       # Playwright UI mode
 | `kpi-card`, `kpi-value` | `templates/components/_kpi_card.html.twig` | S3 (LRA-165) |
 | `activity-row`, `event-row` | `templates/dashboard/index.html.twig` | S3 (LRA-165) |
 | `quick-tile` | `templates/cash_register/quick.html.twig` | S4 (LRA-166) |
+| `combo-component-row` | `templates/inventory/combos/_form.html.twig` | S7 (LRA-169) |
 
 ## Layout
 

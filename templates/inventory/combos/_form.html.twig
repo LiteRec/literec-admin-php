@@ -20,6 +20,7 @@
             this.index = this.index + 1;
             var wrapper = document.createElement('div');
             wrapper.className = 'combo-component-row mb-2 grid grid-cols-2 gap-2 sm:grid-cols-[3fr,1fr,auto] sm:items-end';
+            wrapper.setAttribute('data-testid', 'combo-component-row');
             wrapper.innerHTML = html;
             var rm = document.createElement('button');
             rm.type = 'button';
@@ -60,7 +61,7 @@
 
         <div x-ref="rows" data-testid="combo-component-rows">
             {% for component in form.components %}
-                <div class="combo-component-row mb-2 grid grid-cols-2 gap-2 sm:grid-cols-[3fr,1fr,auto] sm:items-end">
+                <div class="combo-component-row mb-2 grid grid-cols-2 gap-2 sm:grid-cols-[3fr,1fr,auto] sm:items-end" data-testid="combo-component-row">
                     {{ form_widget(component) }}
                     <button
                         type="button"
