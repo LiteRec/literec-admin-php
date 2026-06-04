@@ -199,9 +199,17 @@ final class InventoryReportsControllerTest extends WebTestCase
         $crawler = $client->request('GET', self::ROUTE_BARCODE_FORM);
 
         self::assertResponseIsSuccessful();
-        $srLabels = $crawler->filter('label .sr-only')->each(static fn ($node): string => trim($node->text()));
-        self::assertContains('Search by name or code', $srLabels, 'Search input needs a label.');
-        self::assertContains('Facility code', $srLabels, 'Facility-code input needs a label.');
+        $searchLabel = trim((string) $crawler
+            ->filter('label:has(input[name="search"]) .sr-only')
+            ->first()
+            ->text(''));
+        self::assertSame('Search by name or code', $searchLabel, 'Search input needs a label.');
+
+        $facilityLabel = trim((string) $crawler
+            ->filter('label:has(input[name="facilityCode"]) .sr-only')
+            ->first()
+            ->text(''));
+        self::assertSame('Facility code', $facilityLabel, 'Facility-code input needs a label.');
     }
 
     #[Test]
