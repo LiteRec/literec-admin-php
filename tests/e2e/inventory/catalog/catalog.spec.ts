@@ -1,4 +1,5 @@
 import { test, expect } from '../../support/fixtures';
+import { ANCHORS } from '../../support/anchors';
 
 /**
  * S7 (LRA-169): Inventory item groups, combos and item links.
@@ -12,7 +13,7 @@ import { test, expect } from '../../support/fixtures';
  * create form (dynamic component rows + boundary validation).
  */
 const RUN = `${Date.now()}`;
-const SEEDED_GROUP_NAME = 'Top Sellers Q1';
+const SEEDED_GROUP_NAME = ANCHORS.inventory.group;
 
 test.describe('item groups', () => {
   test('creates a group via the modal', async ({ page }) => {

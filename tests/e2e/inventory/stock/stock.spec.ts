@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test';
 import { test, expect } from '../../support/fixtures';
+import { ANCHORS } from '../../support/anchors';
 
 /**
  * S8 (LRA-170): Inventory stock operations — receiving stock and physical-count
@@ -31,15 +32,15 @@ async function onHand(page: Page, itemId: string): Promise<number> {
 
 test.describe('receive stock', () => {
   test('increases on-hand by the received quantity', async ({ page }) => {
-    const itemId = await itemIdFromSearch(page, 'Test Item 0001');
+    const itemId = await itemIdFromSearch(page, ANCHORS.inventory.items.first.name);
     const before = await onHand(page, itemId);
 
-    await page.goto('/admin/inventory?search=Test%20Item%200001');
+    await page.goto(`/admin/inventory?search=${encodeURIComponent(ANCHORS.inventory.items.first.name)}`);
     await page.getByTestId(`receive-stock-${itemId}`).click();
     const dialog = page.locator('#receive-stock-modal');
     await expect(dialog).toBeVisible();
 
-    await dialog.getByLabel('Facility').selectOption('FAC-A');
+    await dialog.getByLabel('Facility').selectOption(ANCHORS.inventory.facility);
     await dialog.getByLabel('Quantity (units)').fill('5');
     await dialog.getByLabel('Cost per unit (cents)').fill('100');
     await dialog.getByTestId('receive-stock-submit').click();
@@ -49,13 +50,13 @@ test.describe('receive stock', () => {
   });
 
   test('rejects a non-positive receipt quantity with a mapped error', async ({ page }) => {
-    const itemId = await itemIdFromSearch(page, 'Test Item 0002');
+    const itemId = await itemIdFromSearch(page, ANCHORS.inventory.items.second.name);
 
     await page.getByTestId(`receive-stock-${itemId}`).click();
     const dialog = page.locator('#receive-stock-modal');
     await expect(dialog).toBeVisible();
 
-    await dialog.getByLabel('Facility').selectOption('FAC-A');
+    await dialog.getByLabel('Facility').selectOption(ANCHORS.inventory.facility);
     await dialog.getByLabel('Quantity (units)').fill('0');
     await dialog.getByLabel('Cost per unit (cents)').fill('100');
     await dialog.getByTestId('receive-stock-submit').click();
@@ -69,7 +70,7 @@ test.describe('receive stock', () => {
 
 test.describe('take inventory', () => {
   test('posts a physical-count variance and adjusts on-hand', async ({ page }) => {
-    await page.goto('/admin/inventory/take?facilityCode=FAC-A');
+    await page.goto(`/admin/inventory/take?facilityCode=${ANCHORS.inventory.facility}`);
     const grid = page.locator('#take-inventory-grid');
     await expect(grid).toBeVisible();
 
@@ -86,7 +87,7 @@ test.describe('take inventory', () => {
 
     // Re-open the grid and re-locate the same item's row by its id (not a stale
     // index), so the count targets the correct row after the reload.
-    await page.goto('/admin/inventory/take?facilityCode=FAC-A');
+    await page.goto(`/admin/inventory/take?facilityCode=${ANCHORS.inventory.facility}`);
     const row = grid
       .locator('tr[data-testid^="take-row-"]')
       .filter({ has: page.locator(`input[name$="[itemId]"][value="${itemId}"]`) });

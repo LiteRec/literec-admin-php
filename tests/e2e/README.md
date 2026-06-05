@@ -73,8 +73,39 @@ npm run test:e2e:ui       # Playwright UI mode
   page-error collector fails any test that triggers an uncaught browser exception.
 - **Downloads:** use `readCsvDownload` from `support/downloads.ts` for CSV export
   assertions.
-- **Seeded data:** assert against curated personas (`admin`, `member-1`…`member-5`)
-  and seeded inventory; treat created rows as additive and name them per-run.
+- **Seeded data:** read only the documented **anchors** (see below); treat created
+  rows as additive and name them per-run.
+
+## Anchor data (persistent DB)
+
+The E2E lane is a **persistent** database (it is not dropped between runs), so the
+suite must pass when run repeatedly with no intervening reset. The contract that
+makes that possible (LRA-178):
+
+- **Reads depend only on anchors** — a small set of immutable seeded rows that
+  humans and tests agree not to mutate. They are defined once in
+  `support/anchors.ts` (and the seeded login users `admin` / `member-1` in
+  `support/auth.ts`); specs import them instead of hard-coding seeded identifiers.
+- **Writes stay additive or idempotent** — every mutating flow creates a per-run
+  unique row (timestamped name) or asserts a delta (`before + n`), never an
+  absolute count, so it never disturbs an anchor or a previous run.
+
+The anchor set (do **not** edit these rows when testing by hand):
+
+| Anchor | Identifier | Read by |
+|--------|------------|---------|
+| Admin / member login | `admin`, `member-1` | auth, navigation |
+| Curated member | `Alice Smith` (`alice.smith@example.com`, Resident) | users, a11y |
+| Curated member | `Frank Miller` | users |
+| Seeded item | `ITEM-0001` / `Test Item 0001` (and `0002`, `0003`, `0007`) | items, stock, PO |
+| Item code sort scope | `ITEM-009` → `ITEM-0090`…`ITEM-0092` | items |
+| Seeded item group | `Top Sellers Q1` | catalog |
+| Seeded facility | `FAC-A` | stock, PO |
+| Seeded draft POs | 6 draft purchase orders (read-only) | purchase-orders list |
+
+The purchase-order lifecycle test creates its **own** per-run draft PO (harvesting
+a real vendor id from a seeded PO's detail and an item id from the inventory list)
+rather than consuming a seeded draft, so the seeded drafts remain stable anchors.
 
 ### Added `data-testid` hooks
 
@@ -84,6 +115,7 @@ npm run test:e2e:ui       # Playwright UI mode
 | `activity-row`, `event-row` | `templates/dashboard/index.html.twig` | S3 (LRA-165) |
 | `quick-tile` | `templates/cash_register/quick.html.twig` | S4 (LRA-166) |
 | `combo-component-row` | `templates/inventory/combos/_form.html.twig` | S7 (LRA-169) |
+| `po-detail-vendor-id` | `templates/inventory/purchase-orders/_detail_body.html.twig` | S9 (LRA-178) |
 
 ## Layout
 
