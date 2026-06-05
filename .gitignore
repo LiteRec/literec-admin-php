@@ -24,6 +24,10 @@
 /junit-report.xml
 ###< deptrac/deptrac ###
 
+# Auto-generated Symfony config / IDE array-shape reference. It is rebuilt on
+# every container compile (cache:clear, composer install), so tracking it just
+# dirties the working tree with framework-version noise.
+/config/reference.php
 ###> playwright e2e (LRA-161) ###
 /node_modules/
 /test-results/
