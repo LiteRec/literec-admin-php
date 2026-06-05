@@ -1,6 +1,7 @@
 import type { Page } from '@playwright/test';
 import { test, expect } from '../../support/fixtures';
 import { ANCHORS } from '../../support/anchors';
+import { itemIdFromSearch } from '../../support/inventory';
 
 /**
  * S8 (LRA-170): Inventory stock operations — receiving stock and physical-count
@@ -8,18 +9,6 @@ import { ANCHORS } from '../../support/anchors';
  * batch; a take variance adjusts on-hand), so each operation is verified by the
  * total on-hand shown on the item-history page changing by the expected delta.
  */
-async function itemIdFromSearch(page: Page, term: string): Promise<string> {
-  await page.goto(`/admin/inventory?search=${encodeURIComponent(term)}`);
-  const row = page.locator('[data-testid^="inventory-row-"]').first();
-  await expect(row).toBeVisible();
-  await expect(row).toContainText(term);
-  const testId = await row.getAttribute('data-testid');
-  if (!testId) {
-    throw new Error(`inventory row for "${term}" is missing its data-testid`);
-  }
-  return testId.replace('inventory-row-', '');
-}
-
 async function onHand(page: Page, itemId: string): Promise<number> {
   await page.goto(`/admin/inventory/${itemId}/history`);
   const text = (await page.getByTestId('history-on-hand').innerText()).trim();

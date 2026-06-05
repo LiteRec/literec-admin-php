@@ -1,6 +1,7 @@
 import type { Page } from '@playwright/test';
 import { test, expect } from '../../support/fixtures';
 import { ANCHORS } from '../../support/anchors';
+import { itemIdFromSearch } from '../../support/inventory';
 
 /**
  * S9 (LRA-171): Inventory purchase-order lifecycle.
@@ -20,19 +21,6 @@ async function seededVendorId(page: Page): Promise<string> {
   const vendorId = (await page.getByTestId('po-detail-vendor-id').innerText()).trim();
   expect(vendorId).not.toBe('');
   return vendorId;
-}
-
-/** Resolves a seeded item's UUID from the inventory list by its name. */
-async function itemIdFromSearch(page: Page, term: string): Promise<string> {
-  await page.goto(`/admin/inventory?search=${encodeURIComponent(term)}`);
-  const row = page.locator('[data-testid^="inventory-row-"]').first();
-  await expect(row).toBeVisible();
-  await expect(row).toContainText(term);
-  const testId = await row.getAttribute('data-testid');
-  if (!testId) {
-    throw new Error(`inventory row for "${term}" is missing its data-testid`);
-  }
-  return testId.replace('inventory-row-', '');
 }
 
 /** Creates a fresh draft PO via the form and lands on its detail page. */
