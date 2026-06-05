@@ -29,10 +29,17 @@ function placeholderRoutes(): PlaceholderRoute[] {
     path.join(process.cwd(), 'config/routes/placeholders.yaml'),
     'utf8',
   );
-  const document = (yaml.load(source) ?? {}) as Record<string, PlaceholderDefinition>;
+  // JSON_SCHEMA parses only standard JSON-compatible types — appropriate for a
+  // Symfony routing file and free of any custom-tag surprises.
+  const document: unknown = yaml.load(source, { schema: yaml.JSON_SCHEMA });
+  if (typeof document !== 'object' || document === null) {
+    throw new Error('config/routes/placeholders.yaml did not parse to an object');
+  }
+
   const routes: PlaceholderRoute[] = [];
-  for (const definition of Object.values(document)) {
-    if (definition?.path && definition.defaults?.sectionTitle) {
+  for (const value of Object.values(document)) {
+    const definition = value as PlaceholderDefinition;
+    if (typeof definition?.path === 'string' && typeof definition.defaults?.sectionTitle === 'string') {
       routes.push({ path: definition.path, sectionTitle: definition.defaults.sectionTitle });
     }
   }
