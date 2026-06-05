@@ -37,7 +37,7 @@
             <div class="lr-card-body">
                 <div class="lr-tilegrid">
                     {% for tile in quick.tiles %}
-                        <button type="button" class="lr-tile">
+                        <button type="button" class="lr-tile" data-testid="quick-tile">
                             <span class="tico">{{ ui.icon(tile.icon, 18) }}</span>
                             <div>
                                 <div class="tcat">{{ tile.category }}</div>
