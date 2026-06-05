@@ -454,3 +454,11 @@ deptrac:
         SharedInfrastructure:
             - PsrClock
             - SymfonyMessenger
+            # LRA-177: the E2E seed/reset console commands and the
+            # PostgresSnapshot template-database tool live here. They use
+            # Symfony Console and Doctrine DBAL (a maintenance connection that
+            # clones/restores the E2E database). Only other Infrastructure
+            # layers reach into SharedInfrastructure, so Domain/Application
+            # stay framework-free.
+            - Doctrine
+            - Symfony
