@@ -2,6 +2,7 @@ import type { Page } from '@playwright/test';
 import { test, expect } from '../../support/fixtures';
 import { readCsvDownload } from '../../support/downloads';
 import { ANCHORS } from '../../support/anchors';
+import { itemIdFromSearch } from '../../support/inventory';
 
 const ITEMS = ANCHORS.inventory.items;
 
@@ -17,19 +18,6 @@ const NEW_NAME = `E2E Item ${RUN}`;
 
 const firstRowCode = (page: Page) =>
   page.locator('[data-testid^="inventory-row-"]').first().locator('[data-testid^="edit-inventory-item-"]');
-
-async function itemIdFromSearch(page: Page, term: string): Promise<string> {
-  // Server-side filtering via the query param is deterministic; the HTMX
-  // debounced input filter is exercised by the controller the same way.
-  await page.goto(`/admin/inventory?search=${encodeURIComponent(term)}`);
-  const row = page.locator('[data-testid^="inventory-row-"]').first();
-  await expect(row).toBeVisible();
-  const testId = await row.getAttribute('data-testid');
-  if (!testId) {
-    throw new Error(`inventory row for "${term}" is missing its data-testid`);
-  }
-  return testId.replace('inventory-row-', '');
-}
 
 test.describe('inventory list', () => {
   test('renders the table and filters by search', async ({ page }) => {
