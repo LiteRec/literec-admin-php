@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test';
 import { test, expect } from '../support/fixtures';
+import { ANCHORS } from '../support/anchors';
 
 /**
  * S5 (LRA-167): Users & Households. Read assertions reach curated seeded
@@ -11,7 +12,8 @@ import { test, expect } from '../support/fixtures';
 
 // Unique suffix so created households/emails do not collide across runs.
 const RUN = `${Date.now()}`;
-const ALICE_EMAIL = 'alice.smith@example.com';
+const ALICE = ANCHORS.members.alice;
+const FRANK = ANCHORS.members.frank;
 
 async function createHousehold(page: Page, firstName: string, lastName: string): Promise<void> {
   await page.goto('/admin/users');
@@ -43,44 +45,44 @@ test.describe('directory', () => {
     await page.goto('/admin/users');
     await expect(page.getByTestId('members-table')).toBeVisible();
 
-    await page.locator('#filter-email').fill(ALICE_EMAIL);
+    await page.locator('#filter-email').fill(ALICE.email);
 
-    await expect(page.getByRole('link', { name: 'Alice Smith' })).toBeVisible();
+    await expect(page.getByRole('link', { name: ALICE.name })).toBeVisible();
   });
 
   test('filters the directory by last name', async ({ page }) => {
     await page.goto('/admin/users');
 
-    await page.locator('#filter-lastName').fill('Miller');
+    await page.locator('#filter-lastName').fill(FRANK.lastName);
 
-    await expect(page.getByRole('link', { name: 'Frank Miller' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Alice Smith' })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: FRANK.name })).toBeVisible();
+    await expect(page.getByRole('link', { name: ALICE.name })).toHaveCount(0);
   });
 
   test('member lookup validates input at the boundary and returns matches', async ({ request }) => {
     const invalid = await request.get('/admin/users/_lookup?pageSize=999');
     expect(invalid.status()).toBe(400);
 
-    const byLastName = await request.get('/admin/users/_lookup?lastName=Smith');
+    const byLastName = await request.get(`/admin/users/_lookup?lastName=${ALICE.lastName}`);
     expect(byLastName.ok()).toBeTruthy();
-    expect(await byLastName.text()).toContain('Alice Smith');
+    expect(await byLastName.text()).toContain(ALICE.name);
   });
 });
 
 test.describe('member detail', () => {
   test('shows the profile, address, residency and history cards', async ({ page }) => {
     await page.goto('/admin/users');
-    await page.locator('#filter-email').fill(ALICE_EMAIL);
-    await page.getByRole('link', { name: 'Alice Smith' }).click();
+    await page.locator('#filter-email').fill(ALICE.email);
+    await page.getByRole('link', { name: ALICE.name }).click();
 
-    await expect(page.getByTestId('member-header')).toContainText('Alice Smith');
+    await expect(page.getByTestId('member-header')).toContainText(ALICE.name);
     await expect(page.getByTestId('card-profile')).toBeVisible();
     await expect(page.getByTestId('card-address')).toBeVisible();
     await expect(page.getByTestId('card-history')).toBeVisible();
-    await expect(page.getByTestId('profile-email')).toContainText(ALICE_EMAIL);
+    await expect(page.getByTestId('profile-email')).toContainText(ALICE.email);
     // Residency is a sub-card within the Address & Residency card; Alice is a Resident.
     await expect(page.getByTestId('residency-sub-card-body')).toBeVisible();
-    await expect(page.getByTestId('residency-status-badge')).toContainText('Resident');
+    await expect(page.getByTestId('residency-status-badge')).toContainText(ALICE.residency);
   });
 });
 

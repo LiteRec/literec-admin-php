@@ -2,6 +2,7 @@ import AxeBuilder from '@axe-core/playwright';
 import type { Page } from '@playwright/test';
 import { test, expect } from '../support/fixtures';
 import { ANON_STATE } from '../support/auth';
+import { ANCHORS } from '../support/anchors';
 
 /**
  * S12 (LRA-174): accessibility smoke. Runs axe across a representative page
@@ -48,8 +49,8 @@ test.describe('accessibility smoke @a11y', () => {
 
   test('member detail has no new serious or critical axe violations', async ({ page }) => {
     await page.goto('/admin/users');
-    await page.locator('#filter-email').fill('alice.smith@example.com');
-    await page.getByRole('link', { name: 'Alice Smith' }).click();
+    await page.locator('#filter-email').fill(ANCHORS.members.alice.email);
+    await page.getByRole('link', { name: ANCHORS.members.alice.name }).click();
     await expect(page.getByTestId('member-header')).toBeVisible();
 
     expect(await newSeriousViolations(page)).toEqual([]);

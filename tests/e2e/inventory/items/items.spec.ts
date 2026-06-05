@@ -1,6 +1,9 @@
 import type { Page } from '@playwright/test';
 import { test, expect } from '../../support/fixtures';
 import { readCsvDownload } from '../../support/downloads';
+import { ANCHORS } from '../../support/anchors';
+
+const ITEMS = ANCHORS.inventory.items;
 
 /**
  * S6 (LRA-168): Inventory item management. Read assertions use the seeded
@@ -33,20 +36,20 @@ test.describe('inventory list', () => {
     await page.goto('/admin/inventory');
     await expect(page.getByTestId('inventory-table')).toBeVisible();
 
-    await page.goto('/admin/inventory?search=Test%20Item%200007');
+    await page.goto(`/admin/inventory?search=${encodeURIComponent(ITEMS.seventh.name)}`);
 
-    await expect(page.getByRole('button', { name: 'ITEM-0007', exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'ITEM-0001', exact: true })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: ITEMS.seventh.code, exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: ITEMS.first.code, exact: true })).toHaveCount(0);
   });
 
   test('sorts by code and falls back on an invalid sort', async ({ page }) => {
     // Scope to the ITEM-0090..0092 codes so both sort directions are
     // deterministic regardless of per-run created (E2E-) items.
-    await page.goto('/admin/inventory?search=ITEM-009&sort=code');
-    await expect(firstRowCode(page)).toHaveText('ITEM-0090');
+    await page.goto(`/admin/inventory?search=${ITEMS.sortScope}&sort=code`);
+    await expect(firstRowCode(page)).toHaveText(ITEMS.sortLowest);
 
-    await page.goto('/admin/inventory?search=ITEM-009&sort=-code');
-    await expect(firstRowCode(page)).toHaveText('ITEM-0092');
+    await page.goto(`/admin/inventory?search=${ITEMS.sortScope}&sort=-code`);
+    await expect(firstRowCode(page)).toHaveText(ITEMS.sortHighest);
 
     // Invalid sort is rejected at the boundary and falls back to the default.
     await page.goto('/admin/inventory?sort=not-a-sort');
@@ -63,13 +66,13 @@ test.describe('inventory list', () => {
   });
 
   test('archived-only filter excludes active items', async ({ page }) => {
-    await page.goto('/admin/inventory?search=Test%20Item%200001');
-    await expect(page.getByRole('button', { name: 'ITEM-0001', exact: true })).toBeVisible();
+    await page.goto(`/admin/inventory?search=${encodeURIComponent(ITEMS.first.name)}`);
+    await expect(page.getByRole('button', { name: ITEMS.first.code, exact: true })).toBeVisible();
 
-    await page.goto('/admin/inventory?archived=1&search=Test%20Item%200001');
+    await page.goto(`/admin/inventory?archived=1&search=${encodeURIComponent(ITEMS.first.name)}`);
 
     await expect(page.getByTestId('inventory-table')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'ITEM-0001', exact: true })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: ITEMS.first.code, exact: true })).toHaveCount(0);
   });
 });
 
@@ -108,19 +111,19 @@ test.describe('create and edit', () => {
 
 test.describe('barcode', () => {
   test('renders a printable barcode for an item', async ({ page }) => {
-    const itemId = await itemIdFromSearch(page, 'Test Item 0001');
+    const itemId = await itemIdFromSearch(page, ITEMS.first.name);
 
     await page.goto(`/admin/inventory/${itemId}/barcode`);
 
     await expect(page.getByTestId('barcode-render')).toBeVisible();
-    await expect(page.getByTestId('barcode-code')).toContainText('ITEM-0001');
+    await expect(page.getByTestId('barcode-code')).toContainText(ITEMS.first.code);
     await expect(page.getByTestId('print-barcode')).toBeVisible();
   });
 });
 
 test.describe('history', () => {
   test('renders the history page, loads batches, and exports a CSV', async ({ page }) => {
-    const itemId = await itemIdFromSearch(page, 'Test Item 0001');
+    const itemId = await itemIdFromSearch(page, ITEMS.first.name);
 
     await page.getByTestId(`history-link-${itemId}`).click();
     await expect(page).toHaveURL(`/admin/inventory/${itemId}/history`);
