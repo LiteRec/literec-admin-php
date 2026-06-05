@@ -123,6 +123,13 @@
             "@php bin/console doctrine:migrations:migrate -n --env=test",
             "@php bin/console doctrine:fixtures:load -n --group=test --env=test"
         ],
+        "db:reset-e2e": [
+            "@putenv DATABASE_URL=postgresql://app:!ChangeMe!@127.0.0.1:5432/app_e2e?serverVersion=17&charset=utf8",
+            "@php bin/console doctrine:database:drop --if-exists --force --env=test",
+            "@php bin/console doctrine:database:create --env=test",
+            "@php bin/console doctrine:migrations:migrate -n --env=test",
+            "@php bin/console doctrine:fixtures:load -n --group=test --env=test"
+        ],
         "fixtures:dev": "@php bin/console doctrine:fixtures:load -n --group=dev --env=dev",
         "fixtures:test": "@php bin/console doctrine:fixtures:load -n --group=test --env=test",
         "qa": [
@@ -144,6 +151,7 @@
         "test:slow": "Build Tailwind, then run only the tests in the slow group",
         "db:reset": "Drop, recreate, migrate, and reseed the dev database from fixtures (group dev)",
         "db:reset-test": "Drop, recreate, migrate, and reseed the test database from fixtures (group test)",
+        "db:reset-e2e": "Drop, recreate, migrate, and reseed the dedicated E2E database (app_e2e_test) from fixtures; selects the lane via the single DATABASE_URL env variable (LRA-176)",
         "fixtures:dev": "Load fixtures (group dev) into the dev database (no drop/migrate)",
         "fixtures:test": "Load fixtures (group test) into the test database (no drop/migrate)",
         "qa": "Run all quality gates: coding standards, static analysis, architecture and tests"
