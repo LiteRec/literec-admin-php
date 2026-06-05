@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "8093d3fe6d0445530d85d0bae56895aa",
+    "content-hash": "a19762bee999772f420ab0977b0bb2c4",
     "packages": [
         {
             "name": "composer/semver",
@@ -7602,16 +7602,16 @@
         },
         {
             "name": "symfonycasts/tailwind-bundle",
-            "version": "v0.12.0",
+            "version": "v0.13.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/SymfonyCasts/tailwind-bundle.git",
-                "reference": "17c85e25d3ceb54b8599e8ca4c5b67c485f2a48a"
+                "reference": "0cedad5861c365d61bb9fdd52124b4bdf57c477c"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/SymfonyCasts/tailwind-bundle/zipball/17c85e25d3ceb54b8599e8ca4c5b67c485f2a48a",
-                "reference": "17c85e25d3ceb54b8599e8ca4c5b67c485f2a48a",
+                "url": "https://api.github.com/repos/SymfonyCasts/tailwind-bundle/zipball/0cedad5861c365d61bb9fdd52124b4bdf57c477c",
+                "reference": "0cedad5861c365d61bb9fdd52124b4bdf57c477c",
                 "shasum": ""
             },
             "require": {
@@ -7652,9 +7652,9 @@
             ],
             "support": {
                 "issues": "https://github.com/SymfonyCasts/tailwind-bundle/issues",
-                "source": "https://github.com/SymfonyCasts/tailwind-bundle/tree/v0.12.0"
+                "source": "https://github.com/SymfonyCasts/tailwind-bundle/tree/v0.13.0"
             },
-            "time": "2025-11-24T10:14:04+00:00"
+            "time": "2026-05-29T11:22:13+00:00"
         },
         {
             "name": "twig/extra-bundle",
