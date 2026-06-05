@@ -8,8 +8,23 @@ vault.
 ## How it runs
 
 The app is driven over plain HTTP through PHP's built-in web server against a
-seeded `test`-env database (`app_test`). No FrankenPHP/TLS docker stack is
-required, so the suite behaves identically locally and in CI.
+seeded, persistent E2E database. No FrankenPHP/TLS docker stack is required, so
+the suite behaves identically locally and in CI.
+
+The E2E lane is its own database, separate from the dev and functional/integration
+databases (LRA-176):
+
+| Lane | `APP_ENV` | `DATABASE_URL` base name | Physical database |
+|------|-----------|--------------------------|-------------------|
+| dev | `dev` | `app` | `app` |
+| functional / integration (PHPUnit, rolled back) | `test` | `app` | `app_test` |
+| E2E / human testing (persistent) | `test` | `app_e2e` | `app_e2e_test` |
+
+The server runs under `APP_ENV=test`, so the test-env `_test` suffix turns the
+`DATABASE_URL` base name `app_e2e` into the physical database `app_e2e_test`. The
+lane is selected entirely by the single `DATABASE_URL` env variable: CI sets it to
+its postgres service; locally `playwright.config.ts` defaults to the `app_e2e`
+connection (override with `DATABASE_URL` to point elsewhere).
 
 - `playwright.config.ts` starts `php -S 127.0.0.1:8000 -t public public/index.php`
   (`APP_ENV=test`, `PHP_CLI_SERVER_WORKERS=4`) and waits for `/health`.
@@ -23,16 +38,19 @@ docker stack) to skip the managed server and run against that URL.
 ## Prerequisites
 
 ```bash
-# 1. A reachable Postgres and the seeded test database
-export DATABASE_URL='postgresql://app:!ChangeMe!@127.0.0.1:5432/app?serverVersion=17&charset=utf8'
+# 1. A reachable Postgres and the seeded E2E database
 composer install
 php bin/console tailwind:build
-composer db:reset-test          # creates app_test, migrates, loads `test` fixtures
+composer db:reset-e2e           # creates app_e2e_test, migrates, loads `test` fixtures
 
 # 2. Node tooling
 npm install
 npm run e2e:install             # downloads the Chromium browser
 ```
+
+`composer db:reset-e2e` carries the E2E `DATABASE_URL` itself, so no manual export
+is needed; Playwright also defaults to the same `app_e2e` connection. To run the
+suite against a different database, export `DATABASE_URL` before invoking it.
 
 ## Running
 

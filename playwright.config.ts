@@ -4,11 +4,15 @@ import { ADMIN_STATE } from './tests/e2e/support/auth';
 /**
  * Master Playwright configuration for the LiteRecAdmin E2E suite (LRA-161).
  *
- * The app is driven over plain HTTP via PHP's built-in server against a seeded
- * `test`-env database (`app_test`), so the suite runs identically on a
- * developer machine and in CI without the FrankenPHP/TLS docker stack. Point
- * `E2E_BASE_URL` at the docker stack (for example https://localhost) to run the
- * suite against that instead; the built-in web server is then not started.
+ * The app is driven over plain HTTP via PHP's built-in server against a seeded,
+ * persistent E2E database. The server runs under `APP_ENV=test`, so the test-env
+ * `_test` suffix turns the `DATABASE_URL` base name `app_e2e` into the physical
+ * database `app_e2e_test` — distinct from the dev database (`app`) and from the
+ * functional/integration rollback database (`app_test`), so E2E mutations never
+ * touch them (LRA-176). The suite runs identically on a developer machine and in
+ * CI without the FrankenPHP/TLS docker stack. Point `E2E_BASE_URL` at the docker
+ * stack (for example https://localhost) to run the suite against that instead;
+ * the built-in web server is then not started.
  */
 // Treat an unset OR empty/whitespace E2E_BASE_URL as "use the managed server".
 const e2eBaseUrl = process.env.E2E_BASE_URL?.trim();
@@ -17,10 +21,12 @@ const usesManagedServer = !e2eBaseUrl;
 
 // Forwarded explicitly to the managed server: PHP's built-in server reads the
 // database connection and environment from these. CI sets DATABASE_URL to its
-// postgres service; locally it defaults to the standard dev connection.
+// postgres service; locally it defaults to the dedicated E2E lane (base name
+// `app_e2e`, physical `app_e2e_test` under the test-env suffix) so the suite
+// never touches the dev or functional/integration databases (LRA-176).
 const databaseUrl =
   process.env.DATABASE_URL ??
-  'postgresql://app:!ChangeMe!@127.0.0.1:5432/app?serverVersion=17&charset=utf8';
+  'postgresql://app:!ChangeMe!@127.0.0.1:5432/app_e2e?serverVersion=17&charset=utf8';
 
 export default defineConfig({
   testDir: './tests/e2e',
