@@ -120,43 +120,20 @@ final class PostgresSnapshot
 
     /**
      * Opens a connection to the `postgres` maintenance database on the same
-     * server, reusing the application connection's host/port/credentials. The
-     * driver is fixed to pdo_pgsql because the template-database operations are
-     * Postgres-specific; building an explicit param literal also keeps the
-     * DBAL Params shape intact for static analysis.
+     * server, reusing every parameter of the application connection (host,
+     * port, credentials, TLS/socket and driver options) and only swapping the
+     * target database name. The transient `url`, the `dbname_suffix` (which DBAL
+     * would otherwise append to the maintenance database name, e.g. the test
+     * env's `_test`) and the DAMA test-bundle marker are dropped so they cannot
+     * interfere with the maintenance connection.
      */
     private function maintenanceConnection(): Connection
     {
         $params = $this->connection->getParams();
+        $params['dbname'] = self::MAINTENANCE_DATABASE;
+        unset($params['url'], $params['dbname_suffix'], $params['dama.connection_key']);
 
-        return DriverManager::getConnection([
-            'driver' => 'pdo_pgsql',
-            'host' => $this->stringParam($params, 'host'),
-            'port' => $this->intParam($params, 'port') ?: 5432,
-            'user' => $this->stringParam($params, 'user'),
-            'password' => $this->stringParam($params, 'password'),
-            'dbname' => self::MAINTENANCE_DATABASE,
-        ]);
-    }
-
-    /**
-     * @param array<string, mixed> $params
-     */
-    private function stringParam(array $params, string $key): string
-    {
-        $value = $params[$key] ?? null;
-
-        return is_scalar($value) ? (string) $value : '';
-    }
-
-    /**
-     * @param array<string, mixed> $params
-     */
-    private function intParam(array $params, string $key): int
-    {
-        $value = $params[$key] ?? null;
-
-        return is_numeric($value) ? (int) $value : 0;
+        return DriverManager::getConnection($params);
     }
 
     private function terminateConnections(Connection $maintenance, string $database): void

@@ -7,12 +7,12 @@ namespace App\Shared\Infrastructure\Console;
 use App\Shared\Infrastructure\Database\E2eDatabaseGuard;
 use App\Shared\Infrastructure\Database\PostgresSnapshot;
 use Doctrine\DBAL\Connection;
-use RuntimeException;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Throwable;
 
 /**
  * Restores the persistent E2E database from its snapshot in seconds (LRA-177).
@@ -51,8 +51,8 @@ final class ResetE2eDatabaseCommand extends Command
 
         try {
             $this->snapshot->restore();
-        } catch (RuntimeException $e) {
-            $io->error($e->getMessage());
+        } catch (Throwable $e) {
+            $io->error(sprintf('Restore failed: %s', $e->getMessage()));
 
             return Command::FAILURE;
         }

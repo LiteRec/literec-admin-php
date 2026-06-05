@@ -8,7 +8,6 @@ use App\Shared\Infrastructure\Database\E2eDatabaseGuard;
 use App\Shared\Infrastructure\Database\PostgresSnapshot;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception as DbalException;
-use RuntimeException;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\ArrayInput;
@@ -16,17 +15,20 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Throwable;
 
 /**
  * Seeds the persistent E2E database and captures a restore snapshot (LRA-177).
  *
- * Forward-migrates the existing database (no drop), loads the `test` fixtures
- * when the database is empty (or always with --fresh, which is duplicate-safe
- * because the loader purges first), then captures a template snapshot so
+ * Forward-migrates the existing database (no drop), then — when the database is
+ * empty or --fresh is given — loads the `test` fixtures (--fresh is duplicate-safe
+ * because the loader purges first) and captures a template snapshot so
  * {@see ResetE2eDatabaseCommand} can restore the known-good state in seconds.
  *
- * Re-running without --fresh is a no-op once seeded, so the command is safe to
- * run repeatedly. Refuses to touch anything but the E2E lane.
+ * When the database is already seeded and --fresh is not given, the command is a
+ * no-op: it loads nothing and, crucially, does NOT re-capture the snapshot, so a
+ * baseline can never be overwritten by a state a prior test run left dirty. Safe
+ * to run repeatedly. Refuses to touch anything but the E2E lane.
  */
 #[AsCommand(
     name: 'app:seed:e2e',
@@ -85,21 +87,30 @@ final class SeedE2eDatabaseCommand extends Command
             return Command::FAILURE;
         }
 
-        if ($input->getOption('fresh') === true || ! $this->alreadySeeded()) {
-            $loaded = $this->runSubCommand('doctrine:fixtures:load', ['--group' => ['test']], $output);
-            if ($loaded !== Command::SUCCESS) {
-                $io->error('Fixture load failed.');
+        // When the database is already seeded and no rebuild is requested, leave
+        // it AND its snapshot untouched: re-capturing here could overwrite the
+        // known-good baseline with a state a prior test run left dirty.
+        if ($input->getOption('fresh') !== true && $this->alreadySeeded()) {
+            $io->note(sprintf(
+                'Database "%s" is already seeded; left it and its snapshot untouched '
+                . '(use --fresh to rebuild and re-snapshot).',
+                $database,
+            ));
 
-                return Command::FAILURE;
-            }
-        } else {
-            $io->note('Database already seeded; skipping fixture load (use --fresh to rebuild).');
+            return Command::SUCCESS;
+        }
+
+        $loaded = $this->runSubCommand('doctrine:fixtures:load', ['--group' => ['test']], $output);
+        if ($loaded !== Command::SUCCESS) {
+            $io->error('Fixture load failed.');
+
+            return Command::FAILURE;
         }
 
         try {
             $this->snapshot->capture();
-        } catch (RuntimeException $e) {
-            $io->error($e->getMessage());
+        } catch (Throwable $e) {
+            $io->error(sprintf('Snapshot capture failed: %s', $e->getMessage()));
 
             return Command::FAILURE;
         }
