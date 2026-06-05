@@ -27,6 +27,7 @@ async function itemIdFromSearch(page: Page, term: string): Promise<string> {
   await page.goto(`/admin/inventory?search=${encodeURIComponent(term)}`);
   const row = page.locator('[data-testid^="inventory-row-"]').first();
   await expect(row).toBeVisible();
+  await expect(row).toContainText(term);
   const testId = await row.getAttribute('data-testid');
   if (!testId) {
     throw new Error(`inventory row for "${term}" is missing its data-testid`);
