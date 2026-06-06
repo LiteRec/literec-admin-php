@@ -96,6 +96,12 @@ composer fixtures:test
 contributors who prefer the `make` workflow. `composer.json` remains
 the single source of truth.
 
+The dev and functional/integration databases are dropped and recreated by the
+commands above. The **persistent** E2E / human-testing database (`app_e2e`) is
+not — schema changes roll **forward** over its seeded rows instead. See
+[`docs/e2e-migrations.md`](docs/e2e-migrations.md) for that flow, how to keep the
+restore snapshot in step with the schema, and the migration review checklist.
+
 ### Available groups
 
 | Group | Contents | Typical use |
