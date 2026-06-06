@@ -35,6 +35,10 @@ connection (override with `DATABASE_URL` to point elsewhere).
 Point `E2E_BASE_URL` at another instance (for example `https://localhost` for the
 docker stack) to skip the managed server and run against that URL.
 
+For the database behind the suite — where it lives, how to seed and reset it, the
+read-only anchor contract, and how seeded dates age — see the operator guide,
+[`../../docs/e2e-database.md`](../../docs/e2e-database.md).
+
 ## Prerequisites
 
 ```bash

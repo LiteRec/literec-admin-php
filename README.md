@@ -98,9 +98,12 @@ the single source of truth.
 
 The dev and functional/integration databases are dropped and recreated by the
 commands above. The **persistent** E2E / human-testing database (`app_e2e`) is
-not — schema changes roll **forward** over its seeded rows instead. See
-[`docs/e2e-migrations.md`](docs/e2e-migrations.md) for that flow, how to keep the
-restore snapshot in step with the schema, and the migration review checklist.
+not — it is seeded once and restored from a snapshot, and schema changes roll
+**forward** over its seeded rows. See
+[`docs/e2e-database.md`](docs/e2e-database.md) for the operator guide (where it
+lives, how to seed/reset it, the read-only anchor contract, and the seed-date
+aging strategy), and [`docs/e2e-migrations.md`](docs/e2e-migrations.md) for the
+forward-migrate flow and the migration review checklist.
 
 ### Available groups
 
