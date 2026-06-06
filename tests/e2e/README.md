@@ -107,6 +107,12 @@ The purchase-order lifecycle test creates its **own** per-run draft PO (harvesti
 a real vendor id from a seeded PO's detail and an item id from the inventory list)
 rather than consuming a seeded draft, so the seeded drafts remain stable anchors.
 
+Because this database persists, schema changes are applied **forward** over its
+seeded rows rather than by drop-and-recreate. When a migration lands, bring the
+lane up to head and rebuild the snapshot as described in
+[`../../docs/e2e-migrations.md`](../../docs/e2e-migrations.md), which also carries
+the migration review checklist for changes that must be safe over seeded data.
+
 ### Added `data-testid` hooks
 
 | testid | Template | Added by |
