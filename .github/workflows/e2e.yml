@@ -38,9 +38,12 @@ jobs:
           --health-retries 10
 
     env:
-      # The managed PHP server and the seed step both read this; the test env
-      # appends the `_test` suffix, so the suite runs against `app_test`.
-      DATABASE_URL: 'postgresql://app:!ChangeMe!@127.0.0.1:5432/app?serverVersion=17&charset=utf8'
+      # The managed PHP server and the seed/restore commands all read this. Point
+      # it at the E2E lane (base name `app_e2e`); the test env appends the `_test`
+      # suffix, so the suite runs against the physical `app_e2e_test` database
+      # (LRA-176) — distinct from the dev database (`app`) and the
+      # functional/integration rollback database (`app_test`).
+      DATABASE_URL: 'postgresql://app:!ChangeMe!@127.0.0.1:5432/app_e2e?serverVersion=17&charset=utf8'
 
     steps:
       - name: Checkout
@@ -54,8 +57,30 @@ jobs:
       - name: Build Tailwind CSS
         run: php bin/console tailwind:build
 
-      - name: Seed the test database
-        run: composer db:reset-test
+      # The ephemeral postgres service starts with only the `app` database, so
+      # provision the E2E lane database first — the CI analog of the persistent
+      # lane provisioned in LRA-176. (app:seed:e2e introspects the connection to
+      # guard the lane before it can create the database, so the database must
+      # already exist when it runs.) This mirrors the "Create the test database"
+      # step in the PHPUnit job of ci.yml.
+      - name: Provision the E2E database
+        run: php bin/console --env=test doctrine:database:create --if-not-exists
+
+      # Seed once (migrate forward + load fixtures + capture a template
+      # snapshot), then restore from that snapshot so the suite runs against the
+      # fast restore path — the same path used to reset state locally between
+      # runs (LRA-177) — rather than the slow per-fixture command dispatch of
+      # `composer db:reset-test`. The commands are invoked directly (not via the
+      # `composer seed:e2e`/`reset:e2e` wrappers, whose `@putenv` hardcodes a
+      # local URL) so they inherit the job's DATABASE_URL — the single source of
+      # truth shared with the managed PHP server below. Snapshot/restore uses
+      # Postgres TEMPLATE databases through the PHP pdo_pgsql driver, so no
+      # psql/pg_dump client tools are needed on the runner.
+      - name: Seed the E2E database and capture a snapshot
+        run: php bin/console --env=test app:seed:e2e
+
+      - name: Restore the E2E database from the snapshot
+        run: php bin/console --env=test app:reset:e2e
 
       - name: Set up Node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
