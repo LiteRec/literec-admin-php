@@ -10,6 +10,50 @@
 @source inline("{bg-,text-,border-}litrec-{neutral,accent,sage}-{100..900..100}");
 
 /*
+ * Self-hosted display/body faces (LRA-184). Served from assets/fonts/ through
+ * AssetMapper — url() below is resolved and versioned relative to this file,
+ * so no request ever leaves the origin (required for isolated facility
+ * networks). Latin-only subsets; font-display: swap avoids blocking render
+ * while keeping the fallback stack in --font-heading / --font-body visible
+ * until the face loads.
+ */
+@font-face {
+    font-family: "Caprasimo";
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url("../fonts/caprasimo-400.woff2") format("woff2");
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+    font-family: "Figtree";
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url("../fonts/figtree-400.woff2") format("woff2");
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+    font-family: "Figtree";
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url("../fonts/figtree-600.woff2") format("woff2");
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+    font-family: "Figtree";
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url("../fonts/figtree-700.woff2") format("woff2");
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/*
  * Design tokens for LiteRecAdmin — Organic palette.
  *
  * Every color token is published as a Tailwind utility (e.g.
@@ -55,9 +99,11 @@
  *   litrec-sage-100..900    — sage tonal ramp (backs accent/success).
  *
  * Typography
- *   --font-sans — the single application sans stack.
+ *   --font-heading — Caprasimo display face for headings, titles and large numbers.
+ *   --font-body    — Figtree text face; --font-sans aliases to it for the
+ *     application's single sans stack (Tailwind's font-sans utility).
  *   --lr-mono   — monospace stack for codes, IDs, and tabular figures.
- *   --text-h1 .. --text-h4 — heading scale used by _page_header and feature templates.
+ *   --text-h1 .. --text-h4, --text-h6 — heading scale used by _page_header and feature templates.
  *   --text-body — default body font size.
  *
  * Surface & density
@@ -291,14 +337,17 @@
     --color-info-bg: var(--lr-info-bg);
     --color-info-fg: var(--lr-info-fg);
 
-    --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Roboto", "Helvetica Neue", "Arial", sans-serif;
+    --font-heading: "Caprasimo", system-ui, sans-serif;
+    --font-body: "Figtree", system-ui, sans-serif;
+    --font-sans: var(--font-body);
     --font-mono: var(--lr-mono);
 
-    --text-h1: 2rem;
-    --text-h2: 1.5rem;
-    --text-h3: 1.25rem;
-    --text-h4: 1.125rem;
-    --text-body: 0.875rem;
+    --text-h1: 2.625rem;
+    --text-h2: 2rem;
+    --text-h3: 1.5625rem;
+    --text-h4: 1.25rem;
+    --text-h6: 0.8125rem;
+    --text-body: 0.9375rem;
 
     /* Rounded corners baked as the shipped default. */
     --radius-card: 1.75rem;
@@ -320,10 +369,28 @@
 .lr-screen {
     font-family: var(--font-sans);
     font-size: var(--text-body);
-    line-height: 1.45;
+    line-height: 1.55;
     background: var(--lr-bg);
     color: var(--lr-text);
     -webkit-font-smoothing: antialiased;
+}
+
+/* Heading face + type scale (LRA-184). Font-family only for h1..h4 — sizing
+   stays with the role classes (.lr-pagetitle etc.) that already tune it per
+   context, so this doesn't fight their specificity or shift unrelated
+   Tailwind-sized headings across the app. */
+.lr-screen h1,
+.lr-screen h2,
+.lr-screen h3,
+.lr-screen h4 {
+    font-family: var(--font-heading);
+    letter-spacing: -0.015em;
+}
+.lr-screen h6 {
+    font-family: var(--font-heading);
+    font-size: var(--text-h6);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
 }
 
 /* Pin placeholders to the muted token (>= 5.7:1) instead of the UA's
@@ -382,6 +449,7 @@
         border: 1px solid transparent;
         border-radius: var(--radius-card-sm);
         padding: 0.5rem 0.85rem;
+        font-family: var(--font-heading);
         font-size: 0.8125rem;
         font-weight: 600;
         background: var(--lr-bg-muted);
@@ -413,7 +481,7 @@
         justify-content: space-between;
         gap: 0.75rem;
     }
-    .lr-card-title { font-size: 0.95rem; font-weight: 700; }
+    .lr-card-title { font-family: var(--font-heading); font-size: 0.95rem; font-weight: 700; }
     .lr-card-body { padding: var(--pad-card); }
 
     /* badges */
@@ -661,7 +729,7 @@
         gap: 1rem;
         margin-bottom: var(--gap-stack);
     }
-    .lr-pagetitle { font-size: 1.75rem; font-weight: 800; letter-spacing: -0.02em; }
+    .lr-pagetitle { font-family: var(--font-heading); font-size: var(--text-h1); font-weight: 800; letter-spacing: -0.015em; }
     .lr-pagesub { color: var(--lr-text-muted); margin-top: 0.15rem; }
 
     .lr-crumbs {
@@ -714,7 +782,7 @@
         display: grid;
         place-items: center;
     }
-    .lr-kpi .val { font-size: 1.8rem; font-weight: 800; line-height: 1; }
+    .lr-kpi .val { font-family: var(--font-heading); font-size: 1.8rem; font-weight: 800; line-height: 1; }
     .lr-kpi .lbl { font-size: 0.8125rem; opacity: 0.96; margin-top: 0.2rem; }
     .lr-kpi .delta {
         font-size: 0.6875rem;
@@ -806,6 +874,9 @@
         padding-top: 0.6rem;
         margin-top: 0.2rem;
     }
+    .lr-totals .row.total .lr-num {
+        font-family: var(--font-heading);
+    }
 
     .lr-avatar-lg {
         width: 100%;
@@ -861,7 +932,7 @@
         font-weight: 700;
     }
     .lr-tile .tname { font-weight: 700; font-size: 0.875rem; line-height: 1.25; }
-    .lr-tile .tprice { font-weight: 800; font-size: 1.05rem; }
+    .lr-tile .tprice { font-family: var(--font-heading); font-weight: 800; font-size: 1.05rem; }
 
     .lr-stepper {
         display: inline-flex;
