@@ -20,6 +20,12 @@
             })();
         </script>
         <title>{% block title %}LiteRecAdmin{% endblock %}</title>
+        {# Preload the two primary self-hosted faces (LRA-184) — the display
+           weight used for headings/titles and the body weight used for most
+           running text — so the first paint doesn't wait on the stylesheet
+           to discover them via @font-face. #}
+        <link rel="preload" href="{{ asset('fonts/caprasimo-400.woff2') }}" as="font" type="font/woff2" crossorigin>
+        <link rel="preload" href="{{ asset('fonts/figtree-400.woff2') }}" as="font" type="font/woff2" crossorigin>
         {% block stylesheets %}
         {% endblock %}
 
