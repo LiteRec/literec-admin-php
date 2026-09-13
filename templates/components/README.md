@@ -13,7 +13,7 @@ so callers pass parameters explicitly — no globals, no implicit context.
 | `_status_badge.html.twig` | `string status` ∈ `succeeded \| pending \| failed \| refunded` _(maps onto `_badge`)_ | `{% include 'components/_status_badge.html.twig' with { status: tx.status.value } only %}` |
 | `_empty_state.html.twig` | `string title`, `string message`, `?string ctaLabel`, `?string ctaRoute` | `{% include 'components/_empty_state.html.twig' with { title: 'Coming soon', message: 'This screen arrives later.' } only %}` |
 | `_breadcrumbs.html.twig` | `array trail` of `{ label, route }` items | `{% include 'components/_breadcrumbs.html.twig' with { trail: [{label:'Dashboard',route:'app_dashboard'},{label:'Reports'}] } only %}` |
-| `_icon.html.twig` | `icon(string name, int size = 16, number stroke = 1.6, string class = '')` _(Twig macro — imported, not included)_ | `{% import 'components/_icon.html.twig' as icon %}` then `{{ icon.icon('leaf', 18) }}` |
+| `_icon.html.twig` | `icon(string name, int size = 16, number stroke = 2.75, string class = '')` _(Twig macro — imported, not included)_ | `{% import 'components/_icon.html.twig' as icon %}` then `{{ icon.icon('leaf', 18) }}` |
 | `_register_mode_toggle.html.twig` | `string active` ∈ `full \| quick` | `{% include 'components/_register_mode_toggle.html.twig' with { active: 'full' } only %}` |
 
 ## Page header subtitle & breadcrumbs
@@ -37,14 +37,14 @@ array, which Twig blocks can't carry — so the page does the include itself.
 
 ## Icons (`_icon.html.twig`)
 
-A curated SVG line-icon set on a 24x24 grid with a 1.6 default stroke. Unlike
-the other components, it is a **Twig macro**, so import it once per template
-and call it as a function:
+A curated SVG line-icon set on a 24x24 grid, drawn from Lucide icon paths at a
+2.75 default stroke. Unlike the other components, it is a **Twig macro**, so
+import it once per template and call it as a function:
 
 ```twig
 {% import 'components/_icon.html.twig' as icon %}
 {{ icon.icon('bell', 17) }}
-{{ icon.icon('leaf', 18, 1.6, 'text-litrec-secondary') }}
+{{ icon.icon('leaf', 18, 2.75, 'text-litrec-secondary') }}
 ```
 
 - Icons inherit color via `stroke="currentColor"` — pass a `text-*` utility in
@@ -55,11 +55,12 @@ and call it as a function:
 - Available names: `search`, `trash`, `plus`, `chevron`, `chevronUp`,
   `chevronR`, `user`, `users`, `cart`, `info`, `bell`, `leaf`, `tree`,
   `calendar`, `heart`, `money`, `tag`, `ticket`, `key`, `arrowUp`, `bolt`,
-  `pin`, `check`, `grid`, `clock`, `print`, `sun`, `moon`.
+  `pin`, `check`, `grid`, `clock`, `print`, `printer`, `sun`, `moon`, `minus`,
+  `x`, `arrow`, `card`, `gift`, `sliders`, `more`.
 
 ## `lr-` component classes
 
-Beyond the Twig partials, the Eagleton component layer ships as token-driven
+Beyond the Twig partials, the Organic component layer ships as token-driven
 CSS classes in `assets/styles/app.css` (under `@layer components`). Compose
 them directly in markup; they are global (not scoped to `.lr-screen`) and
 recolor automatically with the active theme.
