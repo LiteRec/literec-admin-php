@@ -4,14 +4,21 @@
 @source "../../templates";
 @source "../../assets";
 
+/* Force-generate the Organic tonal ramp utilities even though no template
+   currently uses them, so bg-litrec-sage-200 / text-litrec-accent-800 style
+   utilities are available the moment a template reaches for one. */
+@source inline("{bg-,text-,border-}litrec-{neutral,accent,sage}-{100..900..100}");
+
 /*
- * Design tokens for LiteRecAdmin — Eagleton palette.
+ * Design tokens for LiteRecAdmin — Organic palette.
  *
  * Every color token is published as a Tailwind utility (e.g.
  * --color-litrec-ink → text-litrec-ink, bg-litrec-ink, border-litrec-ink).
  * The @theme block binds each Tailwind variable to a neutral semantic CSS
  * variable (--lr-*); the :root and :root[data-theme="dark"] blocks below
- * choose the light or dark Eagleton value for each --lr-* token.
+ * choose the light or dark Organic value for each --lr-* token. The three
+ * tonal ramps (neutral, accent, sage) back both the semantic tokens and their
+ * own litrec-{ramp}-{100..900} Tailwind utilities.
  *
  * Theme selection
  *   Light is the default (:root). Dark is opt-in via data-theme="dark" on
@@ -29,17 +36,23 @@
  *   litrec-ink           — legacy alias for the body-text token (maps to --lr-text).
  *   litrec-text          — body text colour (maps to --lr-text).
  *   litrec-text-muted    — secondary text.
- *   litrec-primary       — Eagleton brand primary (deep navy in light, soft blue in dark).
+ *   litrec-primary       — Organic brand primary (terracotta).
  *   litrec-primary-strong — hover / pressed variant of primary.
- *   litrec-secondary     — Eagleton brand secondary (warm gold).
+ *   litrec-secondary     — alias of primary; the Organic system has no
+ *                          distinct secondary hue (see the retirement note
+ *                          on --lr-secondary below).
  *   litrec-secondary-strong — hover / pressed variant of secondary.
  *   litrec-on-secondary  — text/icon colour on a secondary fill.
- *   litrec-accent        — Eagleton brand accent (forest green).
- *   litrec-link          — accessible inline-link gold (AA on the page background).
+ *   litrec-accent        — Organic brand accent (sage green).
+ *   litrec-link          — inline-link colour, drawn from the terracotta
+ *                          ramp (accent-700) for AA contrast at text size.
  *   litrec-sidebar-bg    — full-bleed sidebar background (used for nav strips).
  *   litrec-sidebar-text  — text color on sidebar-bg.
  *   success / warning / danger / info — semantic state colors (foreground use).
  *   {state}-bg / {state}-fg — paired surface + text for state badges/pills.
+ *   litrec-neutral-100..900 — warm sand/neutral tonal ramp.
+ *   litrec-accent-100..900  — terracotta tonal ramp (backs primary/secondary).
+ *   litrec-sage-100..900    — sage tonal ramp (backs accent/success).
  *
  * Typography
  *   --font-sans — the single application sans stack.
@@ -49,67 +62,107 @@
  *
  * Surface & density
  *   --radius-card / --radius-card-sm / --radius-pill — corner radii (rounded baked).
- *   --shadow-card / --shadow-pop — resting and popover shadows.
+ *   --shadow-card / --shadow-pop / --shadow-md — resting, popover, and
+ *     medium elevation shadows.
  *   --pad-card / --pad-row-y / --pad-row-x / --gap-stack — spacing knobs
- *     (compact density baked as the shipped default).
+ *     (Organic 1.10 density scale baked as the shipped default).
  */
 
 :root {
     color-scheme: light;
 
-    --lr-bg: #fafcfd;
-    --lr-bg-muted: #f0f5f8;
-    --lr-surface: #ffffff;
-    --lr-surface-2: #f6fafc;
-    --lr-border: #d8e4ec;
+    /* Organic tonal ramps — copied from the design system's Organic sheet.
+       Exported as Tailwind utilities below (bg-litrec-sage-200, etc). */
+    --lr-neutral-100: #f9f4ed;
+    --lr-neutral-200: #ebddc5;
+    --lr-neutral-300: #d9c4a3;
+    --lr-neutral-400: #c2aa84;
+    --lr-neutral-500: #a89068;
+    --lr-neutral-600: #84755c;
+    --lr-neutral-700: #645c50;
+    --lr-neutral-800: #48433a;
+    --lr-neutral-900: #312d26;
+
+    --lr-accent-100: #f6ede6;
+    --lr-accent-200: #eed8c9;
+    --lr-accent-300: #e3bba1;
+    --lr-accent-400: #d5986f;
+    --lr-accent-500: #c67139;
+    --lr-accent-600: #b2622d;
+    --lr-accent-700: #965022;
+    --lr-accent-800: #6b3c1c;
+    --lr-accent-900: #462916;
+
+    --lr-sage-100: #f0f3e9;
+    --lr-sage-200: #dce3ce;
+    --lr-sage-300: #c1cdad;
+    --lr-sage-400: #a4b28a;
+    --lr-sage-500: #7a8a5e;
+    --lr-sage-600: #728157;
+    --lr-sage-700: #596642;
+    --lr-sage-800: #3e492d;
+    --lr-sage-900: #262d1a;
+
+    --lr-bg: #f5ead8;
+    --lr-bg-muted: #eee7db;
+    --lr-surface: #f9f4ed;
+    --lr-surface-2: #ebddc5;
+    --lr-border: color-mix(in srgb, #201e1d 16%, transparent);
     /* Interactive-control border (LRA-155, WCAG 1.4.11). Darker than the soft
        --lr-border divider so input/select boundaries clear 3:1 against both the
        surface and the page background; decorative dividers keep --lr-border. */
-    --lr-control-border: #74899a;
-    --lr-text: #0a1820;
-    --lr-text-muted: #4a6070;
-    --lr-primary: #1c3d5a;
-    --lr-primary-strong: #0f2840;
-    --lr-on-primary: #fafcfd;
-    --lr-secondary: #b8860b;
-    --lr-secondary-strong: #8a6508;
-    --lr-on-secondary: #0a1820;
-    --lr-accent: #2e5847;
-    --lr-on-accent: #fafcfd;
-    --lr-on-danger: #fafcfd;
+    --lr-control-border: var(--lr-neutral-600);
+    --lr-text: #201e1d;
+    --lr-text-muted: #645c50;
+    --lr-primary: #c67139;
+    --lr-primary-strong: #b2622d;
+    --lr-on-primary: #f5ead8;
+    /* The Organic system has no distinct secondary brand hue, so --lr-secondary
+       is retired as its own color and aliases the terracotta ramp (same as
+       --lr-primary) purely so existing --lr-secondary* consumers keep working. */
+    --lr-secondary: var(--lr-primary);
+    --lr-secondary-strong: var(--lr-primary-strong);
+    --lr-on-secondary: var(--lr-on-primary);
+    --lr-accent: #7a8a5e;
+    --lr-on-accent: #f5ead8;
+    --lr-on-danger: #f5ead8;
 
-    /* Accessible inline-link gold: the brand gold (#b8860b) only reaches
-       ~3.3:1 on white and fails AA for text, so links use a darkened gold. */
-    --lr-link: #8a6508;
+    /* Inline links use the terracotta ramp's accent-700 step, dark enough for
+       AA contrast at text size on the Organic page background. */
+    --lr-link: var(--lr-accent-700);
 
-    --lr-sidebar-bg: #0f2840;
-    --lr-sidebar-text: #fafcfd;
+    --lr-sidebar-bg: #b2622d;
+    --lr-sidebar-text: #f5ead8;
 
-    --lr-success: #15803d;
-    --lr-warning: #a16207;
+    --lr-success: var(--lr-sage-700);
+    --lr-warning: var(--lr-accent-700);
     --lr-danger: #b91c1c;
     --lr-info: #1d4ed8;
 
-    --lr-success-bg: #dcfce7;
-    --lr-success-fg: #166534;
-    --lr-warning-bg: #fef9c3;
-    --lr-warning-fg: #854d0e;
-    --lr-danger-bg: #fee2e2;
-    --lr-danger-fg: #991b1b;
+    --lr-success-bg: var(--lr-sage-100);
+    --lr-success-fg: var(--lr-sage-800);
+    --lr-warning-bg: var(--lr-accent-100);
+    --lr-warning-fg: var(--lr-accent-800);
+    --lr-neutral-bg: var(--lr-neutral-200);
+    --lr-neutral-fg: var(--lr-neutral-800);
+    /* Danger has no equivalent in either ramp, so it stays a true red pair. */
+    --lr-danger-bg: #fbe3dd;
+    --lr-danger-fg: #8a2c1c;
     --lr-info-bg: #dbeafe;
     --lr-info-fg: #1e40af;
 
     /* Monospace stack for codes/IDs/tabular figures (theme-independent). */
     --lr-mono: ui-monospace, "SFMono-Regular", "Menlo", "Consolas", monospace;
 
-    /* Density knobs — compact baked as the shipped default. */
-    --pad-card: 0.875rem;
-    --pad-row-y: 0.5rem;
-    --pad-row-x: 0.875rem;
-    --gap-stack: 1rem;
+    /* Density knobs — Organic 1.10 density scale baked as the shipped default. */
+    --pad-card: 1.1rem;
+    --pad-row-y: 0.55rem;
+    --pad-row-x: 0.825rem;
+    --gap-stack: 1.1rem;
 
-    --lr-shadow-card: 0 1px 2px rgb(0 0 0 / 0.05), 0 1px 3px rgb(0 0 0 / 0.08);
-    --lr-shadow-pop: 0 10px 30px rgb(10 24 32 / 0.16), 0 2px 6px rgb(10 24 32 / 0.08);
+    --lr-shadow-card: 0 1px 2px color-mix(in srgb, #2e2b25 14%, transparent);
+    --lr-shadow-pop: 0 12px 32px color-mix(in srgb, #2e2b25 22%, transparent);
+    --lr-shadow-md: 0 3px 10px color-mix(in srgb, #2e2b25 16%, transparent);
 }
 
 /* Dark theme. Driven entirely by [data-theme="dark"] on <html>: the header
@@ -150,6 +203,10 @@
     --lr-success-fg: #86efac;
     --lr-warning-bg: #422006;
     --lr-warning-fg: #fde047;
+    /* Not redesigned for Organic yet (LRA-183 keeps the dark block compiling
+       only); matches the .lr-badge.neutral treatment it replaces. */
+    --lr-neutral-bg: var(--lr-bg-muted);
+    --lr-neutral-fg: var(--lr-text-muted);
     --lr-danger-bg: #450a0a;
     --lr-danger-fg: #fca5a5;
     --lr-info-bg: #0c1f44;
@@ -162,12 +219,44 @@
 @theme {
     /* Legacy aliases — kept so existing templates that use
        bg-litrec-bg / text-litrec-ink / border-litrec-edge continue to render.
-       The values themselves now follow the active Eagleton mode. */
+       The values themselves now follow the active Organic mode. */
     --color-litrec-bg: var(--lr-bg);
     --color-litrec-edge: var(--lr-border);
     --color-litrec-ink: var(--lr-text);
 
-    /* Semantic Eagleton tokens. */
+    /* Organic tonal ramps, published as litrec-{ramp}-{100..900} utilities
+       (e.g. bg-litrec-sage-200, text-litrec-accent-800). */
+    --color-litrec-neutral-100: var(--lr-neutral-100);
+    --color-litrec-neutral-200: var(--lr-neutral-200);
+    --color-litrec-neutral-300: var(--lr-neutral-300);
+    --color-litrec-neutral-400: var(--lr-neutral-400);
+    --color-litrec-neutral-500: var(--lr-neutral-500);
+    --color-litrec-neutral-600: var(--lr-neutral-600);
+    --color-litrec-neutral-700: var(--lr-neutral-700);
+    --color-litrec-neutral-800: var(--lr-neutral-800);
+    --color-litrec-neutral-900: var(--lr-neutral-900);
+
+    --color-litrec-accent-100: var(--lr-accent-100);
+    --color-litrec-accent-200: var(--lr-accent-200);
+    --color-litrec-accent-300: var(--lr-accent-300);
+    --color-litrec-accent-400: var(--lr-accent-400);
+    --color-litrec-accent-500: var(--lr-accent-500);
+    --color-litrec-accent-600: var(--lr-accent-600);
+    --color-litrec-accent-700: var(--lr-accent-700);
+    --color-litrec-accent-800: var(--lr-accent-800);
+    --color-litrec-accent-900: var(--lr-accent-900);
+
+    --color-litrec-sage-100: var(--lr-sage-100);
+    --color-litrec-sage-200: var(--lr-sage-200);
+    --color-litrec-sage-300: var(--lr-sage-300);
+    --color-litrec-sage-400: var(--lr-sage-400);
+    --color-litrec-sage-500: var(--lr-sage-500);
+    --color-litrec-sage-600: var(--lr-sage-600);
+    --color-litrec-sage-700: var(--lr-sage-700);
+    --color-litrec-sage-800: var(--lr-sage-800);
+    --color-litrec-sage-900: var(--lr-sage-900);
+
+    /* Semantic Organic tokens. */
     --color-litrec-bg-muted: var(--lr-bg-muted);
     --color-litrec-surface: var(--lr-surface);
     --color-litrec-surface-2: var(--lr-surface-2);
@@ -195,6 +284,8 @@
     --color-success-fg: var(--lr-success-fg);
     --color-warning-bg: var(--lr-warning-bg);
     --color-warning-fg: var(--lr-warning-fg);
+    --color-neutral-bg: var(--lr-neutral-bg);
+    --color-neutral-fg: var(--lr-neutral-fg);
     --color-danger-bg: var(--lr-danger-bg);
     --color-danger-fg: var(--lr-danger-fg);
     --color-info-bg: var(--lr-info-bg);
@@ -210,15 +301,19 @@
     --text-body: 0.875rem;
 
     /* Rounded corners baked as the shipped default. */
-    --radius-card: 0.625rem;
-    --radius-card-sm: 0.375rem;
+    --radius-card: 1.75rem;
+    --radius-card-sm: 1rem;
     --radius-pill: 999px;
     --shadow-card: var(--lr-shadow-card);
     --shadow-pop: var(--lr-shadow-pop);
+    /* Overrides Tailwind's built-in shadow-md so existing shadow-md
+       consumers (dialogs, form cards) pick up the Organic elevation without
+       template changes. */
+    --shadow-md: var(--lr-shadow-md);
 }
 
 /* ----------------------------------------------------------------------
-   App shell base — scoped to .lr-screen so the Eagleton typography and the
+   App shell base — scoped to .lr-screen so the Organic typography and the
    global accessibility rules apply to the authenticated shell without
    leaking onto the standalone login page (which stays on base.html.twig).
    ---------------------------------------------------------------------- */
@@ -254,7 +349,7 @@
 }
 
 /* ======================================================================
-   Eagleton "lr-" component layer: buttons, cards, badges, chips, tabs, icon
+   Organic "lr-" component layer: buttons, cards, badges, chips, tabs, icon
    buttons, the kbd element, and the small text helpers they lean on. (LRA-126
    extends this layer with form fields, tables, and lists.) Every value is
    token-driven. Placed in @layer components so Tailwind utilities still win
@@ -335,7 +430,7 @@
     .lr-badge.warning { background: var(--lr-warning-bg); color: var(--lr-warning-fg); }
     .lr-badge.danger { background: var(--lr-danger-bg); color: var(--lr-danger-fg); }
     .lr-badge.info { background: var(--lr-info-bg); color: var(--lr-info-fg); }
-    .lr-badge.neutral { background: var(--lr-bg-muted); color: var(--lr-text-muted); }
+    .lr-badge.neutral { background: var(--lr-neutral-bg); color: var(--lr-neutral-fg); }
 
     /* chips */
     .lr-chip {
@@ -393,7 +488,7 @@
 }
 
 /* ======================================================================
-   Eagleton "lr-" component layer (data entry & display): form fields,
+   Organic "lr-" component layer (data entry & display): form fields,
    inputs, selects, checkboxes, tables, and divider lists. Complements the
    primitives above; every value is token-driven.
    ====================================================================== */
@@ -490,7 +585,7 @@
 }
 
 /* ======================================================================
-   Eagleton app-shell header chrome: brand mark, facility pill, and the
+   Organic app-shell header chrome: brand mark, facility pill, and the
    user avatar. Token-driven; sits in @layer components alongside the rest.
    ====================================================================== */
 @layer components {
