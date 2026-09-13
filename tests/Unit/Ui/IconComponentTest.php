@@ -64,17 +64,17 @@ final class IconComponentTest extends TestCase
         self::assertStringContainsString('fill="none"', $svg);
         self::assertStringContainsString('aria-hidden="true"', $svg);
         // The leaf path geometry is present.
-        self::assertStringContainsString('<path d="M11 20A7 7', $svg);
+        self::assertStringContainsString('<path d="M11 20a10 10', $svg);
     }
 
     #[Test]
-    #[TestDox('Defaults are 16px / 1.6 stroke; size, stroke and class arguments override them.')]
+    #[TestDox('Defaults are 16px / 2.75 stroke; size, stroke and class arguments override them.')]
     public function it_applies_size_stroke_and_class(): void
     {
         $default = $this->renderIcon("{{ icon.icon('bell') }}");
         self::assertStringContainsString('width="16"', $default);
         self::assertStringContainsString('height="16"', $default);
-        self::assertStringContainsString('stroke-width="1.6"', $default);
+        self::assertStringContainsString('stroke-width="2.75"', $default);
         self::assertStringNotContainsString('class=', $default);
 
         $custom = $this->renderIcon("{{ icon.icon('bell', 24, 2, 'text-litrec-secondary rotate-90') }}");
@@ -124,7 +124,7 @@ final class IconComponentTest extends TestCase
             'search', 'trash', 'plus', 'chevron', 'chevronUp', 'chevronR', 'user', 'users',
             'cart', 'info', 'bell', 'leaf', 'tree', 'calendar', 'heart', 'money', 'tag',
             'ticket', 'key', 'arrowUp', 'bolt', 'pin', 'check', 'grid', 'clock', 'print',
-            'sun', 'moon',
+            'sun', 'moon', 'minus', 'x', 'arrow', 'card', 'gift', 'sliders', 'more', 'printer',
         ];
 
         foreach ($names as $name) {
