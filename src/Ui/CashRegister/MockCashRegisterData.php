@@ -200,7 +200,7 @@ final readonly class MockCashRegisterData
                 new TenderOption('card', 'Card', 'card'),
                 new TenderOption('gift-card', 'Gift card', 'gift'),
             ],
-            taxRate: 0.07,
+            taxRateBasisPoints: 700,
             subtotal: '$24.00',
             taxLabel: 'Tax (7%)',
             tax: '$1.68',

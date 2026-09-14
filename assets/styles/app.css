@@ -1297,8 +1297,11 @@
     .lr-tile .tname { font-weight: 700; font-size: 0.875rem; line-height: 1.25; }
     .lr-tile .tprice { font-family: var(--font-heading); font-synthesis-weight: none; font-weight: 800; font-size: 1.05rem; }
 
-    /* Quantity badge — an accent pill pinned to the tile's top-right corner,
-       shown once the Alpine sale state has at least one unit of that tile. */
+    /* Quantity badge — a pill pinned to the tile's top-right corner, shown
+       once the Alpine sale state has at least one unit of that tile.
+       neutral-900/neutral-100 (12.51:1, both themes) rather than
+       --lr-primary/--lr-on-primary: that pair is only 3.03:1 in the light
+       theme, below AA for this 0.75rem/800-weight text (review finding). */
     .lr-tile .tile-qty-badge {
         position: absolute;
         top: -8px;
@@ -1307,8 +1310,8 @@
         height: 26px;
         padding: 0 6px;
         border-radius: var(--radius-pill);
-        background: var(--lr-primary);
-        color: var(--lr-on-primary);
+        background: var(--lr-neutral-900);
+        color: var(--lr-neutral-100);
         display: inline-flex;
         align-items: center;
         justify-content: center;

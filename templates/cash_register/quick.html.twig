@@ -35,7 +35,7 @@
             {{ quick.tiles|json_encode }},
             {{ initialQuantities|json_encode }},
             {{ quick.tenders|json_encode }},
-            {{ quick.taxRate }}
+            {{ quick.taxRateBasisPoints }}
         )"
     >
 
@@ -54,10 +54,11 @@
                 {% for category in quick.categories %}
                     <button
                         type="button"
-                        class="lr-chip"
-                        :class="activeCategory === '{{ category }}' ? 'is-active' : ''"
-                        :aria-pressed="(activeCategory === '{{ category }}').toString()"
-                        @click="activeCategory = '{{ category }}'"
+                        class="lr-chip{% if loop.first %} is-active{% endif %}"
+                        :class="{ 'is-active': activeCategory === {{ category|json_encode }} }"
+                        aria-pressed="{{ loop.first ? 'true' : 'false' }}"
+                        :aria-pressed="(activeCategory === {{ category|json_encode }}).toString()"
+                        @click="activeCategory = {{ category|json_encode }}"
                         data-testid="quick-sale-category-{{ loop.index0 }}"
                     >{{ category }}</button>
                 {% endfor %}
@@ -65,19 +66,20 @@
             <div class="lr-card-body">
                 <div class="lr-tilegrid">
                     {% for tile in quick.tiles %}
+                        {% set seededQty = initialQuantities[tile.id]|default(0) %}
                         <button
                             type="button"
                             class="lr-tile"
                             data-testid="quick-tile"
-                            x-show="isVisible('{{ tile.category }}', '{{ tile.name|lower }}')"
-                            @click="addTile('{{ tile.id }}')"
+                            x-show="isVisible({{ tile.id|json_encode }})"
+                            @click="addTile({{ tile.id|json_encode }})"
                         >
                             <span
                                 class="tile-qty-badge lr-num"
-                                x-show="quantityFor('{{ tile.id }}') > 0"
-                                x-cloak
-                                x-text="quantityFor('{{ tile.id }}')"
-                            >{{ initialQuantities[tile.id]|default(0) }}</span>
+                                x-show="quantityFor({{ tile.id|json_encode }}) > 0"
+                                {% if seededQty == 0 %}x-cloak{% endif %}
+                                x-text="quantityFor({{ tile.id|json_encode }})"
+                            >{{ seededQty }}</span>
                             <span class="tico tico-{{ tile.tint.value }}">{{ ui.icon(tile.icon, 18) }}</span>
                             <div>
                                 <div class="tcat">{{ tile.category }}</div>
@@ -104,20 +106,21 @@
 
             <div class="lr-list flex-1 overflow-y-auto">
                 {% for tile in quick.tiles %}
+                    {% set seededQty = initialQuantities[tile.id]|default(0) %}
                     <div
                         class="lr-list-row"
-                        x-show="quantityFor('{{ tile.id }}') > 0"
-                        x-cloak
+                        x-show="quantityFor({{ tile.id|json_encode }}) > 0"
+                        {% if seededQty == 0 %}x-cloak{% endif %}
                         data-testid="receipt-line-{{ tile.id }}"
                     >
                         <div class="flex-1"><div class="lr-row-strong text-sm">{{ tile.name }}</div></div>
                         <span class="lr-stepper">
-                            <button type="button" @click="decrement('{{ tile.id }}')"><span class="sr-only">Decrease {{ tile.name }} quantity</span>{{ ui.icon('chevron', 12) }}</button>
-                            <span class="q lr-num" x-text="quantityFor('{{ tile.id }}')">{{ initialQuantities[tile.id]|default(0) }}</span>
-                            <button type="button" @click="increment('{{ tile.id }}')"><span class="sr-only">Increase {{ tile.name }} quantity</span>{{ ui.icon('chevronUp', 12) }}</button>
+                            <button type="button" @click="decrement({{ tile.id|json_encode }})"><span class="sr-only">Decrease {{ tile.name }} quantity</span>{{ ui.icon('chevron', 12) }}</button>
+                            <span class="q lr-num" x-text="quantityFor({{ tile.id|json_encode }})">{{ seededQty }}</span>
+                            <button type="button" @click="increment({{ tile.id|json_encode }})"><span class="sr-only">Increase {{ tile.name }} quantity</span>{{ ui.icon('chevronUp', 12) }}</button>
                         </span>
                         <div class="min-w-14 text-right">
-                            <div class="lr-num font-bold" x-text="formatMoney(lineTotalCents('{{ tile.id }}'))">{{ tile.price }}</div>
+                            <div class="lr-num font-bold" x-text="formatMoney(lineTotalCents({{ tile.id|json_encode }}))">${{ ((seededQty * tile.unitPriceCents) / 100)|number_format(2) }}</div>
                         </div>
                     </div>
                 {% endfor %}
@@ -130,7 +133,7 @@
             </div>
 
             <div class="lr-receipt-footer">
-                <div class="lr-totals">
+                <div class="lr-totals" aria-live="polite" aria-atomic="true">
                     <div class="row"><span class="lr-muted">Subtotal</span><span class="lr-num" x-text="formatMoney(subtotalCents)">{{ quick.subtotal }}</span></div>
                     <div class="row"><span class="lr-muted">{{ quick.taxLabel }}</span><span class="lr-num" x-text="formatMoney(taxCents)">{{ quick.tax }}</span></div>
                     <div class="row total"><span>Total</span><span class="lr-num" x-text="formatMoney(totalCents)">{{ quick.total }}</span></div>
@@ -140,9 +143,10 @@
                         <button
                             type="button"
                             class="lr-chip flex-1 justify-center"
-                            :class="selectedTenderId === '{{ tender.id }}' ? 'is-active' : ''"
-                            :aria-pressed="(selectedTenderId === '{{ tender.id }}').toString()"
-                            @click="selectTender('{{ tender.id }}')"
+                            :class="{ 'is-active': selectedTenderId === {{ tender.id|json_encode }} }"
+                            aria-pressed="false"
+                            :aria-pressed="(selectedTenderId === {{ tender.id|json_encode }}).toString()"
+                            @click="selectTender({{ tender.id|json_encode }})"
                             data-testid="quick-sale-tender-{{ tender.id }}"
                         >{{ ui.icon(tender.icon, 15) }} {{ tender.label }}</button>
                     {% endfor %}
@@ -165,11 +169,11 @@
         // new tile" and "step an existing line" share one code path. Guarded
         // like memberLookupHost() so re-rendering this block twice is inert.
         if (typeof window.quickSale !== 'function') {
-            window.quickSale = function (tiles, initialQuantities, tenders, taxRate) {
+            window.quickSale = function (tiles, initialQuantities, tenders, taxRateBasisPoints) {
                 return {
                     tiles: tiles,
                     tenders: tenders,
-                    taxRate: taxRate,
+                    taxRateBasisPoints: taxRateBasisPoints,
                     quantities: Object.assign({}, initialQuantities),
                     activeCategory: 'All',
                     search: '',
@@ -179,10 +183,14 @@
                     quantityFor(tileId) {
                         return this.quantities[tileId] || 0;
                     },
-                    isVisible(category, name) {
-                        var matchesCategory = this.activeCategory === 'All' || this.activeCategory === category;
+                    isVisible(tileId) {
+                        var tile = this.tileById(tileId);
+                        if (!tile) {
+                            return false;
+                        }
+                        var matchesCategory = this.activeCategory === 'All' || this.activeCategory === tile.category;
                         var query = this.search.trim().toLowerCase();
-                        var matchesSearch = query === '' || name.toLowerCase().includes(query);
+                        var matchesSearch = query === '' || tile.name.toLowerCase().includes(query);
                         return matchesCategory && matchesSearch;
                     },
                     addTile(tileId) {
@@ -214,7 +222,7 @@
                         return this.tiles.reduce(function (sum, tile) { return sum + self.lineTotalCents(tile.id); }, 0);
                     },
                     get taxCents() {
-                        return Math.round(this.subtotalCents * this.taxRate);
+                        return Math.round((this.subtotalCents * this.taxRateBasisPoints) / 10000);
                     },
                     get totalCents() {
                         return this.subtotalCents + this.taxCents;

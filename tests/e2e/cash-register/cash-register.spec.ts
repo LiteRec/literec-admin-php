@@ -71,14 +71,16 @@ test.describe('cash register — quick sale', () => {
   });
 
   test('renders the item search, category pills, and quick-sale tiles', async ({ page }) => {
+    const categoryPills = page.getByRole('group', { name: 'Filter by category' });
+
     await expect(page.getByLabel('Scan or search an item')).toBeVisible();
     await expect(page.getByTestId('quick-sale-payer')).toHaveText(/Walk-in/);
-    await expect(page.getByRole('button', { name: 'Day Passes' })).toBeVisible();
+    await expect(categoryPills.getByRole('button', { name: 'Day Passes', exact: true })).toBeVisible();
     await expect(page.getByTestId('quick-tile')).not.toHaveCount(0);
   });
 
   test('renders the seeded receipt and charge action', async ({ page }) => {
-    await expect(page.getByText('Receipt')).toBeVisible();
+    await expect(page.getByRole('complementary', { name: 'Receipt' })).toBeVisible();
     await expect(page.getByRole('button', { name: /^Charge/ })).toBeVisible();
     await expect(page.getByTestId('quick-sale-charge')).toHaveText('Charge $25.68');
   });
@@ -111,13 +113,13 @@ test.describe('cash register — quick sale', () => {
     await line.getByRole('button', { name: /Increase/ }).click();
 
     await expect(line.locator('.q')).toHaveText('3');
-    await expect(total).toHaveText('$34.28');
+    await expect(total).toHaveText('$34.24');
 
     await line.getByRole('button', { name: /Decrease/ }).click();
     await line.getByRole('button', { name: /Decrease/ }).click();
 
     await expect(line.locator('.q')).toHaveText('1');
-    await expect(total).toHaveText('$17.28');
+    await expect(total).toHaveText('$17.12');
   });
 
   test('Clear empties the receipt and shows the empty state', async ({ page }) => {
@@ -154,7 +156,10 @@ test.describe('cash register — quick sale', () => {
 
     await expect(guestFeeTile).toBeVisible();
 
-    await page.getByRole('button', { name: 'Day Passes' }).click();
+    await page
+      .getByRole('group', { name: 'Filter by category' })
+      .getByRole('button', { name: 'Day Passes', exact: true })
+      .click();
 
     await expect(guestFeeTile).toBeHidden();
     await expect(page.getByTestId('quick-tile').filter({ hasText: 'Adult Day Pass' })).toBeVisible();
