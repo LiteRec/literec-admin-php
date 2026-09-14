@@ -1,103 +1,161 @@
-{# Filter form for the View Members list. HTMX submits any field change to
+{# Filter form for the Users list (LRA-192). HTMX submits any field change to
    the partial endpoint and swaps the result into #members-table; the form's
-   submit button is sr-only so keyboard users keep a fallback if JS is off. #}
+   submit button is sr-only so keyboard users keep a fallback if JS is off.
+
+   Expects:
+     - counts: App\Households\Application\Query\Port\MemberSegmentCounts #}
+{% import 'components/_icon.html.twig' as ui %}
 {% set q = app.request.query %}
-<form
-    hx-get="{{ path('households_members_table') }}"
-    hx-target="#members-table"
-    hx-swap="innerHTML"
-    hx-push-url="true"
-    hx-trigger="input changed delay:500ms, change"
-    aria-label="Filter members"
-    class="rounded-card border border-litrec-border bg-litrec-surface p-4 shadow-card"
+<div
+    x-data="{ open: window.location.hash === '#more-filters' }"
+    x-init="$watch('open', function (value) {
+        if (value) {
+            window.location.hash = 'more-filters';
+        } else if (window.location.hash === '#more-filters') {
+            history.replaceState(null, '', window.location.pathname + window.location.search);
+        }
+    })"
 >
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <div>
-            <label for="filter-memberCode" class="block text-sm font-medium text-litrec-text">Member code</label>
-            <input
-                type="text"
-                id="filter-memberCode"
-                name="memberCode"
-                value="{{ q.get('memberCode', '') }}"
-                autocomplete="off"
-                class="mt-1 block w-full rounded-md border border-litrec-border bg-litrec-surface px-3 py-2 text-litrec-text focus:border-litrec-primary focus:outline-none focus:ring-1 focus:ring-litrec-primary"
-            >
-        </div>
-
-        <div>
-            <label for="filter-lastName" class="block text-sm font-medium text-litrec-text">Last name</label>
-            <input
-                type="text"
-                id="filter-lastName"
-                name="lastName"
-                value="{{ q.get('lastName', '') }}"
-                autocomplete="off"
-                class="mt-1 block w-full rounded-md border border-litrec-border bg-litrec-surface px-3 py-2 text-litrec-text focus:border-litrec-primary focus:outline-none focus:ring-1 focus:ring-litrec-primary"
-            >
-        </div>
-
-        <div>
-            <label for="filter-firstName" class="block text-sm font-medium text-litrec-text">First name</label>
-            <input
-                type="text"
-                id="filter-firstName"
-                name="firstName"
-                value="{{ q.get('firstName', '') }}"
-                autocomplete="off"
-                class="mt-1 block w-full rounded-md border border-litrec-border bg-litrec-surface px-3 py-2 text-litrec-text focus:border-litrec-primary focus:outline-none focus:ring-1 focus:ring-litrec-primary"
-            >
-        </div>
-
-        <div>
-            <label for="filter-phone" class="block text-sm font-medium text-litrec-text">Phone</label>
-            <input
-                type="text"
-                id="filter-phone"
-                name="phone"
-                value="{{ q.get('phone', '') }}"
-                autocomplete="off"
-                class="mt-1 block w-full rounded-md border border-litrec-border bg-litrec-surface px-3 py-2 text-litrec-text focus:border-litrec-primary focus:outline-none focus:ring-1 focus:ring-litrec-primary"
-            >
-        </div>
-
-        <div>
-            <label for="filter-email" class="block text-sm font-medium text-litrec-text">Email</label>
-            <input
-                type="email"
-                id="filter-email"
-                name="email"
-                value="{{ q.get('email', '') }}"
-                autocomplete="off"
-                class="mt-1 block w-full rounded-md border border-litrec-border bg-litrec-surface px-3 py-2 text-litrec-text focus:border-litrec-primary focus:outline-none focus:ring-1 focus:ring-litrec-primary"
-            >
-        </div>
-
-        <div class="flex flex-col justify-end gap-2">
-            <label class="inline-flex items-center gap-2 text-sm text-litrec-text">
-                <input
-                    type="checkbox"
-                    id="filter-primaryOnly"
-                    name="primaryOnly"
-                    value="1"
-                    {% if q.get('primaryOnly') in ['1', 'true', 'on', 'yes', true] %}checked{% endif %}
-                    class="rounded border-litrec-border text-litrec-primary focus:ring-litrec-primary"
-                >
-                Primary members only
+    <form
+        hx-get="{{ path('households_members_table') }}"
+        hx-target="#members-table"
+        hx-swap="innerHTML"
+        hx-push-url="true"
+        hx-trigger="input changed delay:500ms, change"
+        aria-label="Filter users"
+        class="lr-card lr-card-body"
+    >
+        <div class="flex flex-wrap items-center gap-3">
+            <label for="filter-q" class="lr-field w-full sm:w-[420px]">
+                <span class="sr-only">Search users</span>
+                <span class="lr-input">
+                    <span class="ico">{{ ui.icon('search', 15) }}</span>
+                    <input
+                        type="text"
+                        id="filter-q"
+                        name="q"
+                        value="{{ q.get('q', '') }}"
+                        autocomplete="off"
+                        placeholder="Search by name, code, household, phone…"
+                    >
+                </span>
             </label>
-            <label class="inline-flex items-center gap-2 text-sm text-litrec-text">
-                <input
-                    type="checkbox"
-                    id="filter-includeDeleted"
-                    name="includeDeleted"
-                    value="1"
-                    {% if q.get('includeDeleted') in ['1', 'true', 'on', 'yes', true] %}checked{% endif %}
-                    class="rounded border-litrec-border text-litrec-primary focus:ring-litrec-primary"
-                >
-                Include deactivated
-            </label>
-        </div>
-    </div>
 
-    {# Keyboard-accessible fallback; HTMX fires on change so this is hidden. #}
-    <button type="submit" class="sr-only">Apply filters</button>
-</form>
+            {% include 'households/list/_segment_pills.html.twig' with {
+                counts: counts,
+                currentSegment: criteria.segment,
+            } %}
+
+            <button
+                type="button"
+                @click="open = !open"
+                :aria-expanded="open ? 'true' : 'false'"
+                aria-controls="more-filters-panel"
+                data-testid="more-filters-toggle"
+                class="lr-btn lr-btn-secondary"
+            >
+                More filters
+            </button>
+        </div>
+
+        <div
+            id="more-filters-panel"
+            x-show="open"
+            x-cloak
+            class="mt-4 grid grid-cols-1 gap-4 border-t border-litrec-border pt-4 sm:grid-cols-2 lg:grid-cols-3"
+        >
+            <label for="filter-memberCode" class="lr-field">
+                <span class="lr-label">Member code</span>
+                <span class="lr-input">
+                    <input
+                        type="text"
+                        id="filter-memberCode"
+                        name="memberCode"
+                        value="{{ q.get('memberCode', '') }}"
+                        autocomplete="off"
+                    >
+                </span>
+            </label>
+
+            <label for="filter-lastName" class="lr-field">
+                <span class="lr-label">Last name</span>
+                <span class="lr-input">
+                    <input
+                        type="text"
+                        id="filter-lastName"
+                        name="lastName"
+                        value="{{ q.get('lastName', '') }}"
+                        autocomplete="off"
+                    >
+                </span>
+            </label>
+
+            <label for="filter-firstName" class="lr-field">
+                <span class="lr-label">First name</span>
+                <span class="lr-input">
+                    <input
+                        type="text"
+                        id="filter-firstName"
+                        name="firstName"
+                        value="{{ q.get('firstName', '') }}"
+                        autocomplete="off"
+                    >
+                </span>
+            </label>
+
+            <label for="filter-phone" class="lr-field">
+                <span class="lr-label">Phone</span>
+                <span class="lr-input">
+                    <input
+                        type="text"
+                        id="filter-phone"
+                        name="phone"
+                        value="{{ q.get('phone', '') }}"
+                        autocomplete="off"
+                    >
+                </span>
+            </label>
+
+            <label for="filter-email" class="lr-field">
+                <span class="lr-label">Email</span>
+                <span class="lr-input">
+                    <input
+                        type="email"
+                        id="filter-email"
+                        name="email"
+                        value="{{ q.get('email', '') }}"
+                        autocomplete="off"
+                    >
+                </span>
+            </label>
+
+            <div class="flex flex-col justify-end gap-2">
+                <label class="lr-check">
+                    <input
+                        type="checkbox"
+                        id="filter-primaryOnly"
+                        name="primaryOnly"
+                        value="1"
+                        {% if q.get('primaryOnly') in ['1', 'true', 'on', 'yes', true] %}checked{% endif %}
+                    >
+                    <span class="box">{{ ui.icon('check', 11, 3) }}</span>
+                    Primary members only
+                </label>
+                <label class="lr-check">
+                    <input
+                        type="checkbox"
+                        id="filter-includeDeleted"
+                        name="includeDeleted"
+                        value="1"
+                        {% if q.get('includeDeleted') in ['1', 'true', 'on', 'yes', true] %}checked{% endif %}
+                    >
+                    <span class="box">{{ ui.icon('check', 11, 3) }}</span>
+                    Include deactivated
+                </label>
+            </div>
+        </div>
+
+        {# Keyboard-accessible fallback; HTMX fires on change so this is hidden. #}
+        <button type="submit" class="sr-only">Apply filters</button>
+    </form>
+</div>

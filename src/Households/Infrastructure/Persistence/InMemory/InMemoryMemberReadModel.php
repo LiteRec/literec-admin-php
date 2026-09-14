@@ -11,6 +11,8 @@ use App\Households\Application\Query\Port\MemberListItem;
 use App\Households\Application\Query\Port\MemberProfileDto;
 use App\Households\Application\Query\Port\MemberReadModel;
 use App\Households\Application\Query\Port\MemberResidencyDto;
+use App\Households\Application\Query\Port\MemberSegmentCounts;
+use App\Households\Application\Query\Port\MembersSegment;
 use App\Households\Application\Query\Port\PageOfMembers;
 use App\Households\Application\Query\Port\SearchMembersCriteria;
 use App\Households\Domain\Exception\MemberNotFound;
@@ -18,6 +20,7 @@ use App\Households\Domain\Household;
 use App\Households\Domain\HouseholdMember;
 use App\Households\Domain\ValueObject\HouseholdId;
 use App\Households\Domain\ValueObject\MemberId;
+use App\Households\Domain\ValueObject\ResidencyStatus;
 
 /**
  * In-memory adapter for the {@see MemberReadModel} port. Walks aggregate
@@ -47,7 +50,7 @@ final class InMemoryMemberReadModel implements MemberReadModel
         $rows = [];
         foreach ($this->households as $household) {
             foreach ($household->members() as $member) {
-                if (!$this->matches($member, $criteria)) {
+                if (!$this->matches($member, $household, $criteria)) {
                     continue;
                 }
                 $rows[] = ['member' => $member, 'household' => $household];
@@ -85,6 +88,36 @@ final class InMemoryMemberReadModel implements MemberReadModel
             $criteria->pageSize,
             $total,
         );
+    }
+
+    public function segmentCounts(?string $q): MemberSegmentCounts
+    {
+        $all = 0;
+        $residents = 0;
+        $nonResidents = 0;
+        $inactive = 0;
+
+        foreach ($this->households as $household) {
+            foreach ($household->members() as $member) {
+                if ($q !== null && !$this->matchesQuery($member, $household, $q)) {
+                    continue;
+                }
+
+                if (!$member->isActive()) {
+                    $inactive++;
+                    continue;
+                }
+
+                $all++;
+                if ($member->residencyStatus() === ResidencyStatus::Resident) {
+                    $residents++;
+                } elseif ($member->residencyStatus() === ResidencyStatus::NonResident) {
+                    $nonResidents++;
+                }
+            }
+        }
+
+        return new MemberSegmentCounts($all, $residents, $nonResidents, $inactive);
     }
 
     public function memberDetail(HouseholdId $householdId, MemberId $memberId): MemberDetail
@@ -148,19 +181,45 @@ final class InMemoryMemberReadModel implements MemberReadModel
         return $items;
     }
 
-    private function matches(HouseholdMember $member, SearchMembersCriteria $c): bool
+    private function matches(HouseholdMember $member, Household $household, SearchMembersCriteria $c): bool
     {
+        $activeMatches = $c->segment === MembersSegment::Inactive
+            ? !$member->isActive()
+            : ($c->includeDeleted || $member->isActive());
+
+        $segmentMatches = match ($c->segment) {
+            MembersSegment::Residents => $member->residencyStatus() === ResidencyStatus::Resident,
+            MembersSegment::NonResidents => $member->residencyStatus() === ResidencyStatus::NonResident,
+            default => true,
+        };
+
         // Each criterion is satisfied when it is unset (null/false) or the
         // member matches it. receipt, orgName, gateway, includeMerged and
         // recentOnly have no backing data on the in-memory aggregate yet
         // and are intentionally ignored.
-        return ($c->includeDeleted || $member->isActive())
+        return $activeMatches
+            && $segmentMatches
+            && ($c->q === null || $this->matchesQuery($member, $household, $c->q))
             && (!$c->primaryOnly || $member->isPrimary())
             && ($c->memberCode === null || $member->code()->value === $c->memberCode)
             && ($c->lastName === null || stripos($member->name()->lastName, $c->lastName) !== false)
             && ($c->firstName === null || stripos($member->name()->firstName, $c->firstName) !== false)
             && ($c->email === null || $this->valueContains($member->email()?->value, $c->email))
             && ($c->phone === null || $this->valueContains($member->phone()?->value, $c->phone));
+    }
+
+    /**
+     * The Users list free-text search (LRA-192): matches last name, first
+     * name, member code, household name, or phone. Deliberately excludes
+     * email — the detailed "More filters" field covers that.
+     */
+    private function matchesQuery(HouseholdMember $member, Household $household, string $q): bool
+    {
+        return $this->valueContains($member->name()->lastName, $q)
+            || $this->valueContains($member->name()->firstName, $q)
+            || $this->valueContains($member->code()->value, $q)
+            || $this->valueContains($household->name()->value, $q)
+            || $this->valueContains($member->phone()?->value, $q);
     }
 
     /**
@@ -177,8 +236,10 @@ final class InMemoryMemberReadModel implements MemberReadModel
         return new MemberListItem(
             $member->id()->value,
             $household->id()->value,
+            $household->name()->value,
             $member->code()->value,
             $member->name()->fullName(),
+            $member->email()?->value,
             $member->dateOfBirth()->value->format('Y-m-d'),
             $member->phone()?->value,
             $this->shortAddress($household),

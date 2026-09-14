@@ -22,6 +22,12 @@ use InvalidArgumentException;
  *   - recentOnly    — household_members has no modified_at timestamp yet.
  * Accepting these now means the call sites in LRA-39 / LRA-46 do not have
  * to be re-shaped when the backing data lands.
+ *
+ * `q` and `segment` (LRA-192) are the Users list's quick-filter pair: `q`
+ * is a single free-text term matched (OR) against last name, first name,
+ * member code, household name, and phone, while `segment` narrows by
+ * residency/active state. Both combine with the detailed fields above
+ * (AND) rather than replacing them.
  */
 final readonly class SearchMembersCriteria
 {
@@ -37,6 +43,8 @@ final readonly class SearchMembersCriteria
     public ?string $orgName;
     public ?string $email;
     public ?string $gateway;
+    public ?string $q;
+    public MembersSegment $segment;
     public bool $primaryOnly;
     public bool $includeMerged;
     public bool $includeDeleted;
@@ -53,6 +61,8 @@ final readonly class SearchMembersCriteria
         ?string $orgName = null,
         ?string $email = null,
         ?string $gateway = null,
+        ?string $q = null,
+        MembersSegment $segment = MembersSegment::All,
         bool $primaryOnly = false,
         bool $includeMerged = false,
         bool $includeDeleted = false,
@@ -84,6 +94,8 @@ final readonly class SearchMembersCriteria
         $this->orgName       = self::nullIfBlank($orgName);
         $this->email         = self::nullIfBlank($email);
         $this->gateway       = self::nullIfBlank($gateway);
+        $this->q             = self::nullIfBlank($q);
+        $this->segment       = $segment;
         $this->primaryOnly   = $primaryOnly;
         $this->includeMerged = $includeMerged;
         $this->includeDeleted = $includeDeleted;

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Support\Trait;
 
 use App\Households\Application\Query\Port\MemberReadModel;
+use App\Households\Application\Query\Port\MembersSegment;
 use App\Households\Application\Query\Port\SearchMembersCriteria;
 use App\Households\Domain\Exception\MemberNotFound;
 use App\Households\Domain\Household;
@@ -20,6 +21,8 @@ use App\Households\Domain\ValueObject\PersonName;
 use App\Shared\Domain\ValueObject\PhoneNumber;
 use App\Households\Domain\ValueObject\ResidencyStatus;
 use DateTimeImmutable;
+use Generator;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Component\Clock\MockClock;
@@ -191,6 +194,129 @@ trait MemberReadModelContractCases
         // Page 2 with pageSize 2 -> items 3-4.
         $codes = array_map(static fn($item): string => $item->memberCode, $page->items);
         self::assertSame([self::A_PRIMARY_CODE, self::B_PRIMARY_CODE], $codes);
+    }
+
+    /**
+     * @return Generator<string, array{q: string, expectedCodes: list<string>}>
+     */
+    public static function qMatchCases(): Generator
+    {
+        yield 'matches last name' => ['q' => 'brown', 'expectedCodes' => [self::A_SECOND_CODE]];
+        yield 'matches first name' => ['q' => 'diana', 'expectedCodes' => [self::B_SECOND_CODE]];
+        yield 'matches member code' => ['q' => self::A_THIRD_CODE, 'expectedCodes' => [self::A_THIRD_CODE]];
+        // Bob's phone is '5550002'; a shorter '0002' substring would also
+        // accidentally match member codes M000020/M000021 (Household B).
+        yield 'matches phone' => ['q' => '5550002', 'expectedCodes' => [self::A_SECOND_CODE]];
+        yield 'matches household name' => [
+            'q' => 'lopez',
+            'expectedCodes' => [self::B_PRIMARY_CODE, self::B_SECOND_CODE],
+        ];
+    }
+
+    /**
+     * @param list<string> $expectedCodes
+     */
+    #[Test]
+    #[DataProvider('qMatchCases')]
+    #[TestDox('search(): q matches last/first name, member code, phone, or household name (OR, case-insensitive).')]
+    public function search_with_q_matches_across_multiple_fields(string $q, array $expectedCodes): void
+    {
+        $this->seedHouseholds([
+            $this->buildHouseholdA(),
+            $this->buildHouseholdB(),
+        ]);
+
+        $page = $this->readModel()->search(new SearchMembersCriteria(q: $q));
+
+        $codes = array_map(static fn($item): string => $item->memberCode, $page->items);
+        sort($codes);
+        sort($expectedCodes);
+        self::assertSame($expectedCodes, $codes);
+    }
+
+    #[Test]
+    #[TestDox('search(): q does not match email — the detailed email filter covers that.')]
+    public function search_with_q_does_not_match_email(): void
+    {
+        $this->seedHouseholds([$this->buildHouseholdA()]);
+
+        $page = $this->readModel()->search(new SearchMembersCriteria(q: 'alice@example.com'));
+
+        self::assertSame(0, $page->totalItems);
+    }
+
+    #[Test]
+    #[TestDox('search(): segment=Residents returns only active members with Resident residency.')]
+    public function search_with_segment_residents_returns_only_residents(): void
+    {
+        $this->seedHouseholds([$this->buildHouseholdA(), $this->buildHouseholdB()]);
+
+        $page = $this->readModel()->search(new SearchMembersCriteria(segment: MembersSegment::Residents));
+
+        $codes = array_map(static fn($item): string => $item->memberCode, $page->items);
+        sort($codes);
+        self::assertSame([self::A_PRIMARY_CODE, self::A_THIRD_CODE], $codes);
+    }
+
+    #[Test]
+    #[TestDox('search(): segment=NonResidents returns only active members with NonResident residency.')]
+    public function search_with_segment_non_residents_returns_only_non_residents(): void
+    {
+        $this->seedHouseholds([$this->buildHouseholdA(), $this->buildHouseholdB()]);
+
+        $page = $this->readModel()->search(new SearchMembersCriteria(segment: MembersSegment::NonResidents));
+
+        self::assertSame(
+            [self::A_SECOND_CODE],
+            array_map(static fn($item): string => $item->memberCode, $page->items),
+        );
+    }
+
+    #[Test]
+    #[TestDox('search(): segment=Inactive returns deactivated members even though includeDeleted defaults to false.')]
+    public function search_with_segment_inactive_returns_deactivated_members(): void
+    {
+        $household = $this->buildHouseholdA();
+        $household->deactivateMember(MemberId::fromString(self::A_THIRD_ID), 'left the household', $this->clock());
+        $this->seedHouseholds([$household]);
+
+        $page = $this->readModel()->search(new SearchMembersCriteria(segment: MembersSegment::Inactive));
+
+        self::assertSame(
+            [self::A_THIRD_CODE],
+            array_map(static fn($item): string => $item->memberCode, $page->items),
+        );
+    }
+
+    #[Test]
+    #[TestDox('segmentCounts(): counts active/resident/non-resident/inactive members with no q filter.')]
+    public function segment_counts_reflects_current_state(): void
+    {
+        $household = $this->buildHouseholdA();
+        $household->deactivateMember(MemberId::fromString(self::A_THIRD_ID), 'left the household', $this->clock());
+        $this->seedHouseholds([$household, $this->buildHouseholdB()]);
+
+        $counts = $this->readModel()->segmentCounts(null);
+
+        // Active: Alice (Resident), Bob (NonResident), Carl (Member), Diana (Member). Eli is deactivated.
+        self::assertSame(4, $counts->all);
+        self::assertSame(1, $counts->residents);
+        self::assertSame(1, $counts->nonResidents);
+        self::assertSame(1, $counts->inactive);
+    }
+
+    #[Test]
+    #[TestDox('segmentCounts(): narrows every segment to members matching q first.')]
+    public function segment_counts_narrows_by_q(): void
+    {
+        $this->seedHouseholds([$this->buildHouseholdA(), $this->buildHouseholdB()]);
+
+        $counts = $this->readModel()->segmentCounts('brown');
+
+        self::assertSame(1, $counts->all);
+        self::assertSame(0, $counts->residents);
+        self::assertSame(1, $counts->nonResidents);
+        self::assertSame(0, $counts->inactive);
     }
 
     #[Test]

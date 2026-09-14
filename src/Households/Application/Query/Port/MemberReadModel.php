@@ -22,6 +22,13 @@ interface MemberReadModel
     public function search(SearchMembersCriteria $criteria): PageOfMembers;
 
     /**
+     * Counts active members per {@see MembersSegment}, scoped only to the
+     * free-text `q` term (the detailed "More filters" fields do not apply)
+     * so the Users list filter pills can show live counts (LRA-192).
+     */
+    public function segmentCounts(?string $q): MemberSegmentCounts;
+
+    /**
      * @throws MemberNotFound when the household contains no member with the
      *                        supplied id (either because the household does
      *                        not exist or the member does not belong to it).

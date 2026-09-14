@@ -11,11 +11,14 @@ use App\Households\Application\Query\Port\MemberListItem;
 use App\Households\Application\Query\Port\MemberProfileDto;
 use App\Households\Application\Query\Port\MemberReadModel;
 use App\Households\Application\Query\Port\MemberResidencyDto;
+use App\Households\Application\Query\Port\MemberSegmentCounts;
+use App\Households\Application\Query\Port\MembersSegment;
 use App\Households\Application\Query\Port\PageOfMembers;
 use App\Households\Application\Query\Port\SearchMembersCriteria;
 use App\Households\Domain\Exception\MemberNotFound;
 use App\Households\Domain\ValueObject\HouseholdId;
 use App\Households\Domain\ValueObject\MemberId;
+use App\Households\Domain\ValueObject\ResidencyStatus;
 use App\Shared\Infrastructure\Doctrine\Read\RowFieldExtraction;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
@@ -47,6 +50,8 @@ final class DoctrineMemberReadModel implements MemberReadModel
 
     private const string COL_MEMBER_CORE = 'm.id AS member_id, m.household_id, m.code, m.first_name, m.middle_name, ';
 
+    private const string COL_LIST_ITEM_EXTRA = 'm.email, h.name AS household_name, ';
+
     private const string FROM_MEMBERS = 'FROM household_members m ';
 
     public function __construct(private readonly Connection $connection)
@@ -68,6 +73,7 @@ final class DoctrineMemberReadModel implements MemberReadModel
         $listSql = sprintf(
             self::SQL_SELECT
             . self::COL_MEMBER_CORE
+            . self::COL_LIST_ITEM_EXTRA
             . 'm.last_name, m.suffix, m.date_of_birth, m.phone, m.residency_status, '
             . 'm.is_primary, m.is_active, '
             . 'h.street, h.city, h.state '
@@ -173,6 +179,7 @@ final class DoctrineMemberReadModel implements MemberReadModel
     {
         $sql = self::SQL_SELECT
             . self::COL_MEMBER_CORE
+            . self::COL_LIST_ITEM_EXTRA
             . 'm.last_name, m.suffix, m.date_of_birth, m.phone, m.residency_status, '
             . 'm.is_primary, m.is_active, '
             . 'h.street, h.city, h.state '
@@ -208,10 +215,27 @@ final class DoctrineMemberReadModel implements MemberReadModel
         /** @var array<string, ArrayParameterType|ParameterType|Type|string> $types */
         $types = [];
 
-        if (!$c->includeDeleted) {
+        if ($c->segment === MembersSegment::Inactive) {
+            $clauses[] = 'm.is_active = :is_active';
+            $params['is_active'] = false;
+            $types['is_active'] = ParameterType::BOOLEAN;
+        } elseif (!$c->includeDeleted) {
             $clauses[] = 'm.is_active = :is_active';
             $params['is_active'] = true;
             $types['is_active'] = ParameterType::BOOLEAN;
+        }
+
+        if ($c->segment === MembersSegment::Residents) {
+            $clauses[] = 'm.residency_status = :segment_residency';
+            $params['segment_residency'] = ResidencyStatus::Resident->value;
+        } elseif ($c->segment === MembersSegment::NonResidents) {
+            $clauses[] = 'm.residency_status = :segment_residency';
+            $params['segment_residency'] = ResidencyStatus::NonResident->value;
+        }
+
+        if ($c->q !== null) {
+            $clauses[] = $this->qClause('q');
+            $params['q'] = self::likeTerm($c->q);
         }
 
         if ($c->primaryOnly) {
@@ -254,6 +278,65 @@ final class DoctrineMemberReadModel implements MemberReadModel
     }
 
     /**
+     * The Users list free-text search (LRA-192): matches last name, first
+     * name, member code, household name, or phone. Deliberately excludes
+     * email — the detailed "More filters" field covers that.
+     */
+    private function qClause(string $paramName): string
+    {
+        return sprintf(
+            '(LOWER(m.last_name) LIKE :%1$s OR LOWER(m.first_name) LIKE :%1$s '
+            . 'OR LOWER(m.code) LIKE :%1$s OR LOWER(h.name) LIKE :%1$s '
+            . 'OR LOWER(COALESCE(m.phone, \'\')) LIKE :%1$s)',
+            $paramName,
+        );
+    }
+
+    private static function likeTerm(string $value): string
+    {
+        return '%' . strtolower($value) . '%';
+    }
+
+    public function segmentCounts(?string $q): MemberSegmentCounts
+    {
+        $qClause = '';
+        $params = [];
+        if ($q !== null) {
+            $qClause = ' AND ' . $this->qClause('q');
+            $params['q'] = self::likeTerm($q);
+        }
+
+        $sql = sprintf(
+            'SELECT '
+            . 'SUM(CASE WHEN m.is_active THEN 1 ELSE 0 END) AS all_count, '
+            . 'SUM(CASE WHEN m.is_active AND m.residency_status = :resident '
+            . 'THEN 1 ELSE 0 END) AS residents_count, '
+            . 'SUM(CASE WHEN m.is_active AND m.residency_status = :non_resident '
+            . 'THEN 1 ELSE 0 END) AS non_residents_count, '
+            . 'SUM(CASE WHEN NOT m.is_active THEN 1 ELSE 0 END) AS inactive_count '
+            . 'FROM household_members m INNER JOIN households h ON h.id = m.household_id '
+            . 'WHERE 1 = 1%s',
+            $qClause,
+        );
+
+        $params['resident'] = ResidencyStatus::Resident->value;
+        $params['non_resident'] = ResidencyStatus::NonResident->value;
+
+        $row = $this->connection->fetchAssociative($sql, $params);
+
+        if ($row === false) {
+            return new MemberSegmentCounts(0, 0, 0, 0);
+        }
+
+        return new MemberSegmentCounts(
+            $this->rowInt($row, 'all_count'),
+            $this->rowInt($row, 'residents_count'),
+            $this->rowInt($row, 'non_residents_count'),
+            $this->rowInt($row, 'inactive_count'),
+        );
+    }
+
+    /**
      * @param array<string, mixed> $row
      */
     private function rowToListItem(array $row): MemberListItem
@@ -268,6 +351,7 @@ final class DoctrineMemberReadModel implements MemberReadModel
         return new MemberListItem(
             $this->rowString($row, 'member_id'),
             $this->rowString($row, 'household_id'),
+            $this->rowString($row, 'household_name'),
             $this->rowString($row, 'code'),
             $this->joinName(
                 $this->rowString($row, 'first_name'),
@@ -275,6 +359,7 @@ final class DoctrineMemberReadModel implements MemberReadModel
                 $this->rowString($row, 'last_name'),
                 $this->rowNullableString($row, 'suffix'),
             ),
+            $this->rowNullableString($row, 'email'),
             $this->normalizeDate($row['date_of_birth'] ?? null),
             $this->rowNullableString($row, 'phone'),
             $addressShort,
