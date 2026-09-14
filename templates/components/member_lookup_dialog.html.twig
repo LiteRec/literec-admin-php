@@ -1,9 +1,11 @@
 {# Reusable Member Lookup dialog (LRA-46).
 
    Embeds the shared modal shell (`components/_modal.html.twig`) and fills its
-   body with a filter form + an HTMX-swappable results region. Other epics
-   (Memberships, Rentals, Transactions) include this template once on any
-   page that needs to pick a household member, then invoke it programmatically:
+   body with a filter form + an HTMX-swappable results region. app.html.twig
+   embeds this template once for every page (LRA-187); pages must NOT include
+   it again — a second copy produces duplicate `#member-lookup-host` islands
+   that both react to `member-lookup-open` and duplicate ids. Callers just
+   invoke it programmatically from any trigger:
 
        openMemberLookup({
            onSelected: ({ memberId, householdId, fullName, code }) => { ... }
@@ -143,7 +145,17 @@
                 visible: false,
                 _activeListener: null,
                 open() {
-                    this.visible = true;
+                    // Deferred a macrotask: callers invoke this from a
+                    // trigger button's own click handler, and the shared
+                    // modal shell's dialog container closes on
+                    // @click.outside. Setting `visible` synchronously would
+                    // mount the modal (and attach its outside-click
+                    // listener) while that same originating click event is
+                    // still bubbling to `document`, so the listener catches
+                    // its own opening click and immediately dismisses the
+                    // dialog. Waiting for the next macrotask lets the click
+                    // finish dispatching first.
+                    setTimeout(() => { this.visible = true; }, 0);
                 },
                 init() {
                     const self = this;

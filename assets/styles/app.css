@@ -606,6 +606,8 @@
     }
     .lr-iconbtn:hover { background: var(--lr-bg-muted); color: var(--lr-text); }
     .lr-iconbtn.danger:hover { background: var(--lr-danger-bg); color: var(--lr-danger-fg); }
+    .lr-iconbtn:disabled { opacity: 0.45; cursor: default; }
+    .lr-iconbtn:disabled:hover { background: none; color: var(--lr-text-muted); }
 
     /* keyboard key. --lr-neutral-100 has no dark override, so it stays a
        light fill in both themes; --lr-neutral-700 (not --lr-text-muted,
@@ -866,11 +868,13 @@
     /* --lr-accent-100 has no dark override, so it stays a light fill in both
        themes; pair it with --lr-accent-900 (not --lr-text, which flips
        near-white in dark) to keep the hover legible in both themes
-       (same pitfall as .lr-tab.is-active, LRA-185 review). */
+       (same pitfall as .lr-tab.is-active, LRA-185 review). The keyboard
+       focus ring comes from the global .lr-screen a:focus-visible rule —
+       the accent-100 fill is only 1.06:1 against the surface, so it could
+       never serve as the focus indicator on its own. */
     .lr-navdrop-link:hover, .lr-navdrop-link:focus {
         background: var(--lr-accent-100);
         color: var(--lr-accent-900);
-        outline: none;
     }
     .lr-mobile-panel {
         background: var(--lr-surface);

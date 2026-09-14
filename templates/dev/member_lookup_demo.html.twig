@@ -1,9 +1,11 @@
 {% extends 'app.html.twig' %}
 
 {# Dev-only smoke surface for the reusable Member Lookup dialog (LRA-46).
-   Mirrors the eventual integration pattern: any page that wants to pick a
-   member embeds `components/member_lookup_dialog.html.twig` once, then
-   invokes `openMemberLookup({ onSelected })` from a trigger button. #}
+   app.html.twig embeds `components/member_lookup_dialog.html.twig` once for
+   every page (LRA-187) — this page must NOT include it again, or the two
+   `#member-lookup-host` islands both react to `member-lookup-open` and
+   produce duplicate ids. Just invoke `openMemberLookup({ onSelected })`
+   from a trigger button. #}
 
 {% block page_title %}Member Lookup Demo (dev only){% endblock %}
 
@@ -42,10 +44,4 @@
             ><em class="text-litrec-text-muted">No selection yet.</em></pre>
         </section>
     </div>
-
-    {# Embed the dialog markup once on the page. The shared Alpine host
-       controls visibility via window-level events, so the embed location
-       does not matter functionally — placing it at the bottom keeps the
-       rendered DOM order tidy. #}
-    {% include 'components/member_lookup_dialog.html.twig' %}
 {% endblock %}

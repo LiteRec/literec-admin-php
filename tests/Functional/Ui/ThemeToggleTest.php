@@ -53,10 +53,12 @@ final class ThemeToggleTest extends WebTestCase
         $client->request('GET', '/dashboard');
 
         self::assertResponseIsSuccessful();
-        // A real <button> in the header (keyboard-operable) with an accessible
-        // name and the JS hook that drives the toggle.
-        self::assertSelectorExists('header button[data-testid="theme-toggle"]');
-        self::assertSelectorExists('header button[data-testid="theme-toggle"][aria-label="Toggle dark theme"]');
+        // A real <button> in the header (keyboard-operable). No aria-label:
+        // the visible "Dark mode" / "Light mode" text is the accessible name
+        // (WCAG 2.5.3 Label in Name), with role=menuitemcheckbox + aria-checked
+        // conveying the toggle state.
+        self::assertSelectorExists('header button[data-testid="theme-toggle"][role="menuitemcheckbox"]');
+        self::assertSelectorTextContains('header button[data-testid="theme-toggle"]', 'Dark mode');
 
         // The Alpine @click hook drives persistence. Assert it on the raw
         // response: Symfony's HTML5 crawler drops @-prefixed attributes, so it

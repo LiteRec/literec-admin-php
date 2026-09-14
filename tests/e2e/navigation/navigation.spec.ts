@@ -1,6 +1,7 @@
 import type { Page } from '@playwright/test';
 import { test, expect } from '../support/fixtures';
 import { MEMBER_STATE } from '../support/auth';
+import { ANCHORS } from '../support/anchors';
 
 /**
  * S2 (LRA-164): main navigation and app shell. Asserts the seven top-level
@@ -63,6 +64,19 @@ test.describe('main navigation', () => {
 
     await expect(page).toHaveURL('/admin/inventory');
   });
+
+  test('a keyboard activation can close the dropdown it opened', async ({ page }) => {
+    await page.goto('/dashboard');
+    const nav = mainNav(page);
+    const toggle = nav.getByRole('button', { name: 'Toggle Cash Register menu' });
+
+    await toggle.focus();
+    await page.keyboard.press('Enter');
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+
+    await page.keyboard.press('Enter');
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  });
 });
 
 test.describe('app shell', () => {
@@ -72,6 +86,19 @@ test.describe('app shell', () => {
     await page.getByRole('button', { name: /account menu/i }).click();
 
     await expect(page.getByRole('menuitem', { name: /sign out/i })).toBeVisible();
+  });
+
+  test('search finds a member and navigates to their detail page', async ({ page }) => {
+    await page.goto('/dashboard');
+
+    await page.getByTestId('open-search').click();
+    await page.getByTestId('member-lookup-input-lastName').fill(ANCHORS.members.alice.lastName);
+    await page
+      .locator('[data-testid^="member-lookup-row-"]', { hasText: ANCHORS.members.alice.name })
+      .click();
+
+    await expect(page).toHaveURL(/\/admin\/users\/[^/]+\/[^/]+$/);
+    await expect(page.getByTestId('member-header')).toBeVisible();
   });
 });
 

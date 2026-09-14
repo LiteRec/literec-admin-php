@@ -51,5 +51,10 @@ final class MemberLookupDemoControllerTest extends WebTestCase
         $body = (string) $client->getResponse()->getContent();
         self::assertStringContainsString('member-lookup-host', $body);
         self::assertStringContainsString('openMemberLookup', $body);
+
+        // app.html.twig embeds the dialog once for every page (LRA-187); this
+        // page must not include it a second time, or two hosts both react to
+        // member-lookup-open and produce duplicate ids.
+        self::assertSelectorCount(1, '#member-lookup-host');
     }
 }

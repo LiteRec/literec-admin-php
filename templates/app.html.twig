@@ -29,25 +29,32 @@
                     </span>
 
                     {# Search opens the existing member lookup dialog (LRA-46) as
-                       a first step toward a global search surface. #}
+                       a first step toward a global search surface; selecting a
+                       row navigates straight to that member's detail page. #}
                     <button
                         type="button"
                         class="lr-iconbtn"
                         data-testid="open-search"
                         aria-label="Search members"
-                        onclick="window.openMemberLookup && window.openMemberLookup()"
+                        onclick="window.openMemberLookup && window.openMemberLookup({
+                            onSelected: function (member) { window.location.assign(member.detailUrl); }
+                        })"
                     >
                         {{ icon.icon('search', 17) }}
                     </button>
 
-                    {# Presentation-only placeholder: no notification source
-                       exists yet, so there is nothing to badge. Add the accent
-                       dot here once a real unread count backs this button. #}
+                    {# Presentation-only placeholder, disabled until a real
+                       unread source backs it: no notification data exists
+                       yet, so an enabled, announced control with no effect
+                       would be a dead tab stop. Remove `disabled` and add the
+                       accent dot once wired. #}
                     <button
                         type="button"
                         class="lr-iconbtn"
                         data-testid="notifications"
                         aria-label="Notifications"
+                        disabled
+                        aria-disabled="true"
                     >
                         {{ icon.icon('bell', 17) }}
                     </button>
@@ -96,7 +103,6 @@
                                             document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
                                             try { localStorage.setItem('lr-theme', dark ? 'dark' : 'light'); } catch (e) {}"
                                     :aria-checked="dark ? 'true' : 'false'"
-                                    aria-label="Toggle dark theme"
                                 >
                                     <span x-show="!dark" class="inline-flex items-center gap-2">{{ icon.icon('moon', 15) }}Dark mode</span>
                                     <span x-show="dark" x-cloak class="inline-flex items-center gap-2">{{ icon.icon('sun', 15) }}Light mode</span>

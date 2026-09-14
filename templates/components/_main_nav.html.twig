@@ -55,14 +55,18 @@
                 </a>
 
                 {% if item.hasChildren() %}
-                    {# A real click always lands on this button by way of a
+                    {# A pointer click always lands on this button by way of a
                        mouseenter first, which the @mouseenter above already
-                       opened; toggling here would immediately re-close it.
-                       Escape, click-outside and the mouseleave delay are the
-                       close paths, so the click handler only opens. #}
+                       opened; unconditionally toggling here would immediately
+                       re-close it. A keyboard activation (Enter/Space) has no
+                       preceding mouseenter and carries event.detail === 0, so
+                       only that case toggles closed — keeping Enter able to
+                       close the menu it opened, while pointer clicks just
+                       confirm the hover-open state. Escape, click-outside and
+                       the mouseleave delay are the other close paths. #}
                     <button
                         type="button"
-                        @click="openIndex = {{ index }}"
+                        @click="openIndex = ($event.detail === 0 && openIndex === {{ index }}) ? null : {{ index }}"
                         @keydown.arrow-down.prevent="openIndex = {{ index }}; $nextTick(() => $el.closest('li').querySelector('[role=menu] a')?.focus())"
                         aria-haspopup="true"
                         :aria-expanded="openIndex === {{ index }} ? 'true' : 'false'"

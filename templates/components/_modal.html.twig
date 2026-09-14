@@ -26,6 +26,13 @@
     x-data="{ open: true, dismiss() { this.open = false; this.$root.remove(); } }"
     x-show="open"
     x-cloak
+    {# An htmx-driven caller swaps this markup in via its own request/response
+       cycle, which htmx already auto-processes. A caller that instead
+       toggles this into the DOM via an Alpine x-if (member_lookup_dialog)
+       bypasses that swap entirely, so its hx-* attributes are never wired —
+       htmx.process() here covers that case and is a harmless no-op for the
+       already-processed swap case. #}
+    x-init="window.htmx && window.htmx.process($el)"
     @keydown.escape.window="dismiss()"
     role="dialog"
     aria-modal="true"

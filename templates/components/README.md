@@ -120,7 +120,10 @@ shell, a five-field filter form (`code`, `lastName`, `firstName`, `phone`,
 `GET /admin/users/_lookup` (route name: `member_lookup_search`).
 
 - **Import path:** `components/member_lookup_dialog.html.twig`
-- **Props:** none — embed the template once on any page that needs the dialog.
+- **Props:** none — `app.html.twig` embeds the template once for every page
+  (LRA-187). Do not include it again from a page template: a second copy
+  produces duplicate `#member-lookup-host` islands that both react to
+  `member-lookup-open` and duplicate ids.
 - **Results partial:** `components/member_lookup_dialog/_results.html.twig`
   (rendered by `MemberLookupController` into `#member-lookup-results`).
 
@@ -135,17 +138,14 @@ when a row is clicked, then closes itself. The `detail` shape is:
     householdId: '019571bf-…',  // UUID v7 of the owning household
     fullName: 'Alice Smith',    // display name from the read model
     code: 'M000010',            // member code
+    detailUrl: '/admin/users/019571bf-…/019571bf-…', // member_detail route
 }
 ```
 
 ### Usage
 
-Embed the dialog once on the page, then call the JS hook from any trigger:
-
-```twig
-{# In your page template, after page_body content: #}
-{% include 'components/member_lookup_dialog.html.twig' %}
-```
+The dialog is already embedded once by `app.html.twig`; just call the JS hook
+from any trigger:
 
 ```html
 <button
