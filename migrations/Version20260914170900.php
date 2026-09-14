@@ -31,8 +31,12 @@ final class Version20260914170900 extends AbstractMigration
             'ALTER TABLE household_members '
             . 'ADD COLUMN nickname VARCHAR(128) DEFAULT NULL, '
             . 'ADD COLUMN salutation VARCHAR(8) DEFAULT NULL, '
-            . 'ADD COLUMN height_inches SMALLINT DEFAULT NULL, '
-            . 'ADD COLUMN weight_pounds SMALLINT DEFAULT NULL',
+            . 'ADD COLUMN height_inches SMALLINT DEFAULT NULL '
+            . 'CONSTRAINT CHK_household_members_height_inches '
+            . 'CHECK (height_inches IS NULL OR height_inches BETWEEN 1 AND 107), '
+            . 'ADD COLUMN weight_pounds SMALLINT DEFAULT NULL '
+            . 'CONSTRAINT CHK_household_members_weight_pounds '
+            . 'CHECK (weight_pounds IS NULL OR weight_pounds BETWEEN 1 AND 1500)',
         );
     }
 

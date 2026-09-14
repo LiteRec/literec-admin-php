@@ -233,7 +233,16 @@ final class Household
         $this->recordThat(new MemberRemovedFromHousehold($this->id, $memberId, $clock->now()));
     }
 
-    public function updateMemberProfile(
+    /**
+     * 8 parameters: identity (memberId, name, dateOfBirth, gender), the
+     * clock, and the three independently-optional LRA-205 measurement
+     * fields (salutation, height, weight). Each is a distinct, unrelated
+     * attribute — bundling them into a parameter object would be a
+     * meaningless grouping rather than a domain concept, and this mirrors
+     * {@see self::register()}'s existing wide constructor for the same
+     * reason.
+     */
+    public function updateMemberProfile( // NOSONAR php:S107 — see docblock
         MemberId $memberId,
         PersonName $name,
         DateOfBirth $dateOfBirth,

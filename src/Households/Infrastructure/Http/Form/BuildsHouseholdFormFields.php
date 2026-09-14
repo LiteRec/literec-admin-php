@@ -25,6 +25,9 @@ use Symfony\Component\Form\FormBuilderInterface;
  */
 trait BuildsHouseholdFormFields
 {
+    /** Reused literal (SonarCloud php:S1192). */
+    private const string PLACEHOLDER_SELECT = 'Select…';
+
     /**
      * @template T
      *
@@ -43,7 +46,7 @@ trait BuildsHouseholdFormFields
         $builder->add('residencyStatusCode', ChoiceType::class, [
             'label' => 'Residency status',
             'choices' => self::residencyChoices(),
-            'placeholder' => 'Select…',
+            'placeholder' => self::PLACEHOLDER_SELECT,
             'required' => true,
         ]);
         $builder->add('memberCode', TextType::class, [
@@ -136,7 +139,7 @@ trait BuildsHouseholdFormFields
         $builder->add('genderCode', ChoiceType::class, [
             'label' => 'Gender',
             'choices' => self::genderChoices(),
-            'placeholder' => 'Select…',
+            'placeholder' => self::PLACEHOLDER_SELECT,
             'required' => true,
         ]);
     }
@@ -181,7 +184,7 @@ trait BuildsHouseholdFormFields
         $builder->add('salutationCode', ChoiceType::class, [
             'label' => 'Salutation',
             'choices' => self::salutationChoices(),
-            'placeholder' => 'Select…',
+            'placeholder' => self::PLACEHOLDER_SELECT,
             'required' => false,
             'attr' => ['autocomplete' => 'honorific-prefix'],
         ]);
