@@ -1242,17 +1242,21 @@
 }
 
 /* ======================================================================
-   Cash Register Quick sale: the touch-tile item picker grid and the qty
-   stepper. Token-driven; tiles meet the design's touch-target minimum.
+   Cash Register Quick sale: the touch-tile item picker grid, the tinted icon
+   circles, the qty badge/stepper, the shared filter-pill selected state, the
+   sand receipt footer, and the empty-receipt placeholder (LRA-191). Token-
+   driven; tiles meet the design's touch-target minimum.
    ====================================================================== */
 @layer components {
     .lr-tilegrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; }
     .lr-tile {
+        position: relative;
         border: 1px solid var(--lr-border);
         border-radius: var(--radius-card);
         background: var(--lr-surface);
+        box-shadow: var(--shadow-card);
         padding: 0.9rem;
-        min-height: 104px;
+        min-height: 132px;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
@@ -1261,17 +1265,28 @@
            left to change instantly so a theme switch can't strand them. */
         transition: transform 0.06s;
     }
-    .lr-tile:hover { border-color: var(--lr-primary); box-shadow: var(--shadow-card); }
-    .lr-tile:active { transform: translateY(1px); }
+    /* Hover/active tint via color-mix() toward transparent (the same idiom as
+       .lr-screen ::selection above) rather than a solid fixed-ramp fill: the
+       accent blends into whatever --lr-surface currently is, so it reads as a
+       light warm tint in light mode and stays dark in dark mode — pairing a
+       solid ramp-100/200 fill here would light up under the adaptive
+       --lr-text color dark mode uses (near-white), crushing contrast. */
+    .lr-tile:hover { background: color-mix(in srgb, var(--lr-accent-500) 10%, transparent); box-shadow: var(--shadow-md); }
+    .lr-tile:active { background: color-mix(in srgb, var(--lr-accent-500) 18%, transparent); transform: translateY(1px); }
     .lr-tile .tico {
         width: 34px;
         height: 34px;
         border-radius: var(--radius-card-sm);
-        background: var(--lr-bg-muted);
-        color: var(--lr-primary);
         display: grid;
         place-items: center;
     }
+    /* Icon-circle tints reuse the same ramp-100/ramp-800 pairing already
+       proven AA-safe in both themes for .lr-badge (LRA-185) — the ramps have
+       no dark override, so a fixed dark step on a fixed light step never
+       drops contrast when the theme flips. */
+    .lr-tile .tico.tico-accent { background: var(--lr-accent-100); color: var(--lr-accent-800); }
+    .lr-tile .tico.tico-sage { background: var(--lr-sage-100); color: var(--lr-sage-800); }
+    .lr-tile .tico.tico-neutral { background: var(--lr-neutral-200); color: var(--lr-neutral-800); }
     .lr-tile .tcat {
         font-size: 0.625rem;
         text-transform: uppercase;
@@ -1282,24 +1297,81 @@
     .lr-tile .tname { font-weight: 700; font-size: 0.875rem; line-height: 1.25; }
     .lr-tile .tprice { font-family: var(--font-heading); font-synthesis-weight: none; font-weight: 800; font-size: 1.05rem; }
 
+    /* Quantity badge — an accent pill pinned to the tile's top-right corner,
+       shown once the Alpine sale state has at least one unit of that tile. */
+    .lr-tile .tile-qty-badge {
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        min-width: 26px;
+        height: 26px;
+        padding: 0 6px;
+        border-radius: var(--radius-pill);
+        background: var(--lr-primary);
+        color: var(--lr-on-primary);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        font-weight: 800;
+        box-shadow: var(--shadow-card);
+    }
+
+    /* Quantity stepper — a sand pill housing two circular buttons. Every
+       colour here is a fixed ramp step (never --lr-text/--lr-surface, which
+       flip per theme): a step riding on another step stays legible in both
+       themes the same way .tico above does. */
     .lr-stepper {
         display: inline-flex;
         align-items: center;
-        border: 1px solid var(--lr-border);
+        gap: 0.25rem;
+        background: var(--lr-neutral-200);
         border-radius: var(--radius-pill);
-        overflow: hidden;
+        padding: 3px;
     }
     .lr-stepper button {
         border: 0;
-        background: var(--lr-surface);
-        color: var(--lr-text);
-        width: 26px;
-        height: 26px;
+        border-radius: 50%;
+        background: var(--lr-neutral-100);
+        color: var(--lr-neutral-900);
+        width: 34px;
+        height: 34px;
         display: grid;
         place-items: center;
     }
-    .lr-stepper button:hover { background: var(--lr-bg-muted); }
-    .lr-stepper .q { min-width: 24px; text-align: center; font-weight: 700; font-size: 0.8125rem; }
+    .lr-stepper button:hover { background: var(--lr-primary); color: var(--lr-on-primary); }
+    .lr-stepper .q { min-width: 28px; text-align: center; font-weight: 800; font-size: 0.9375rem; color: var(--lr-neutral-900); }
+
+    /* Shared filter-pill selected state for category pills and tender tiles:
+       ink (a fixed dark ramp step) on cream (a fixed light ramp step), the
+       same theme-proof pairing as .lr-tab.is-active / .lr-seg a.is-active. */
+    .lr-chip.is-active { background: var(--lr-neutral-200); color: var(--lr-neutral-900); border-color: transparent; }
+
+    /* Sand footer band for the receipt rail's totals/tender/charge group.
+       --lr-surface-2 and the inherited text colour are both properly
+       theme-derived semantic tokens (LRA-195) — the same pairing
+       .lr-card-context already relies on — so, unlike .tico/.lr-stepper
+       above, this one leans on the adaptive tokens rather than fixed ramp
+       steps and needs no colour override of its own. */
+    .lr-receipt-footer {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        background: var(--lr-surface-2);
+        border-top: 1px solid var(--lr-border);
+        padding: var(--pad-card);
+    }
+    .lr-receipt-footer .lr-totals .row.total { font-size: 2rem; }
+
+    .lr-empty-receipt {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 2rem 1rem;
+        text-align: center;
+        color: var(--lr-text-muted);
+    }
 }
 
 /* Hide x-cloak elements until Alpine.js has initialised. */
