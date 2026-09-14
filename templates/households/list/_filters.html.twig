@@ -6,8 +6,14 @@
      - counts: App\Households\Application\Query\Port\MemberSegmentCounts #}
 {% import 'components/_icon.html.twig' as ui %}
 {% set q = app.request.query %}
+{# Open the disclosure on first paint whenever a detailed filter is already
+   active — e.g. the "Households" page action links to ?primaryOnly=1 — so
+   the operator can see (and clear) the field narrowing the list instead of
+   finding a shorter table with no visible cause (LRA-192 review). #}
+{% set detailedFilterFields = ['memberCode', 'lastName', 'firstName', 'phone', 'email', 'primaryOnly', 'includeDeleted'] %}
+{% set hasDetailedFilter = detailedFilterFields|filter(name => q.get(name, '') != '')|length > 0 %}
 <div
-    x-data="{ open: window.location.hash === '#more-filters' }"
+    x-data="{ open: {{ hasDetailedFilter ? 'true' : 'false' }} || window.location.hash === '#more-filters' }"
     x-init="$watch('open', function (value) {
         if (value) {
             window.location.hash = 'more-filters';
@@ -22,6 +28,7 @@
         hx-swap="innerHTML"
         hx-push-url="true"
         hx-trigger="input changed delay:500ms, change"
+        hx-sync="this:replace"
         aria-label="Filter users"
         class="lr-card lr-card-body"
     >

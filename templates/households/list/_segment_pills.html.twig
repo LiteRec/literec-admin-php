@@ -11,7 +11,6 @@
      - oob: bool  Renders as an hx-swap-oob update (used when the table
             partial refreshes the pill counts after an HTMX swap). #}
 {% set oob = oob|default(false) %}
-{% set segmentQuery = app.request.query.all|merge({ page: 1 }) %}
 <div
     id="segment-pills"
     {% if oob %}hx-swap-oob="true"{% endif %}
@@ -31,12 +30,20 @@
         'inactive': 'Inactive',
     } %}
         {% set isActive = currentSegment.value == segment %}
+        {# hx-get targets the bare route (no baked-in query snapshot) and
+           hx-include pulls the *live* form fields (q, More filters) at click
+           time, not whatever app.request.query.all held at the last render —
+           a stale snapshot could otherwise silently drop text the operator
+           had already typed (LRA-192 review). hx-vals overrides the form's
+           own hidden `segment` input and resets to page 1. #}
         <button
             type="button"
-            hx-get="{{ path('households_members_table', segmentQuery|merge({ segment: segment })) }}"
+            hx-get="{{ path('households_members_table') }}"
+            hx-include="closest form"
+            hx-vals='{{ { segment: segment, page: 1 }|json_encode|e('html_attr') }}'
             hx-target="#members-table"
             hx-swap="innerHTML"
-            hx-push-url="{{ path('users_index', segmentQuery|merge({ segment: segment })) }}"
+            hx-push-url="true"
             aria-pressed="{{ isActive ? 'true' : 'false' }}"
             data-testid="segment-pill-{{ segment }}"
             class="{{ isActive ? 'is-active' : '' }}"

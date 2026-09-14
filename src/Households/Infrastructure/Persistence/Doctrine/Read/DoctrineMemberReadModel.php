@@ -292,9 +292,17 @@ final class DoctrineMemberReadModel implements MemberReadModel
         );
     }
 
+    /**
+     * Escapes LIKE metacharacters (`%`, `_`, and a literal backslash) in
+     * user-supplied search text before wrapping it in wildcards, so a term
+     * like `_` or `%` cannot widen the match to "everything" — Postgres'
+     * default LIKE ESCAPE character is backslash, so no ESCAPE clause is
+     * needed. Uses mb_strtolower() (not strtolower(), which is byte-wise)
+     * so non-ASCII case folding (e.g. "Ü" vs "ü") matches Postgres LOWER().
+     */
     private static function likeTerm(string $value): string
     {
-        return '%' . strtolower($value) . '%';
+        return '%' . addcslashes(mb_strtolower($value), '\\%_') . '%';
     }
 
     public function segmentCounts(?string $q): MemberSegmentCounts
