@@ -15,6 +15,23 @@ so callers pass parameters explicitly — no globals, no implicit context.
 | `_breadcrumbs.html.twig` | `array trail` of `{ label, route }` items | `{% include 'components/_breadcrumbs.html.twig' with { trail: [{label:'Dashboard',route:'app_dashboard'},{label:'Reports'}] } only %}` |
 | `_icon.html.twig` | `icon(string name, int size = 16, number stroke = 2.75, string class = '')` _(Twig macro — imported, not included)_ | `{% import 'components/_icon.html.twig' as icon %}` then `{{ icon.icon('leaf', 18) }}` |
 | `_register_mode_toggle.html.twig` | `string active` ∈ `full \| quick` | `{% include 'components/_register_mode_toggle.html.twig' with { active: 'full' } only %}` |
+| `_form_error_summary.html.twig` | `form` (Symfony form view), `?string testid` (defaults to `'form-error'`) | `{% include 'components/_form_error_summary.html.twig' with { form: form } only %}` |
+| `_modal.html.twig` | `?string id` (defaults to `'modal'`), `string title`, `string body` _(pre-rendered HTML, rendered raw)_, `?string headingId` (defaults to `'{id}-title'`) | `{% include 'components/_modal.html.twig' with { id: 'confirm-modal', title: 'Confirm', body: bodyHtml } only %}` |
+| `_table_footer.html.twig` | `string ariaLabel`, `string statusTestid`, `int pageNumber`, `int totalPages`, `?string statusLabel`, `string prevTestid`, `string nextTestid`, `?string prevHref`, `?string nextHref`, `?string prevHxGet`, `?string nextHxGet`, `string hxTarget` | `{% include 'components/_table_footer.html.twig' with { ariaLabel: 'Inventory pagination', statusTestid: 'inventory-pagination-status', pageNumber: 1, totalPages: 3, prevTestid: 'inventory-prev', nextTestid: 'inventory-next', prevHref: null, nextHref: nextUrl, nextHxGet: nextUrl, hxTarget: '#inventory-list' } only %}` |
+
+## Design system
+
+The visual language behind these components is the **Organic** design
+system: a warm terracotta/sage palette over a sand-neutral ramp, Caprasimo
+display headings paired with Figtree body text, and a soft, rounded
+component layer (see `assets/styles/app.css` for the full token reference).
+Every `lr-*` component below and every Twig partial above renders per the
+Organic tokens, in both the light and dark theme.
+
+To see every restyled component side by side (light and dark, via the
+header's theme toggle), run the app in the `dev` or `test` environment and
+visit **`/_dev/components`** (`App\Controller\DevComponentsController`) — it
+is not registered in production.
 
 ## Page header subtitle & breadcrumbs
 
@@ -81,8 +98,8 @@ recolor automatically with the active theme.
 - **Badges:** prefer the `_badge.html.twig` partial; the underlying classes are
   `lr-badge` + a variant (`success`, `warning`, `danger`, `info`, `neutral`)
   plus the optional `outline` modifier.
-- **Chips:** `lr-chip`. **Tabs:** `lr-tabs` + `lr-tab` (`is-active`), styled as
-  a pill group like `lr-seg`.
+- **Chips:** `lr-chip` (`is-selected` modifier for pill/tender-tile pickers).
+  **Tabs:** `lr-tabs` + `lr-tab` (`is-active`), styled as a pill group like `lr-seg`.
 - **Icon button:** `lr-iconbtn` (`danger` variant), a circle. **Kbd:** `lr-kbd`.
 - **Text helpers:** `lr-muted`, `lr-link`, `lr-num` (tabular figures),
   `lr-row-strong`, `lr-section-label`.
@@ -95,12 +112,16 @@ recolor automatically with the active theme.
 - **Tables:** `lr-table` (uppercase header cells, density-token row padding,
   hover row, no border on the last row).
 - **Lists:** `lr-list` + `lr-list-row` (divider list).
-- **Dashboard:** `lr-kpi-flat` (flat card + `lr-kpi-flat-icon` tinted circle, `-label`, `-value`, `-delta`/`-delta-pill`), `lr-dot` (status dot), `lr-datebadge` (circular date badge, `.d`/`.m`), `lr-avatar-sm` (30px sage initials circle).
+- **Dashboard:** `lr-kpi-flat` (flat card + `lr-kpi-flat-icon` tinted circle, `-label`, `-value`, `-delta`/`-delta-pill`), `lr-dot` (status dot), `lr-datebadge` (circular date badge, `.d`/`.m`), `lr-avatar-sm` (30px sage initials circle, table rows).
+- **App shell chrome:** `lr-avatar` (header-size sage initials circle), `lr-brand` + `lr-brand-mark`/`lr-brand-name`, `lr-header`/`lr-header-in`/`lr-header-right`, `lr-navpill` (+ `-chevron`/`-label`) and `lr-navdrop` (+ `-link`), `lr-facility-pill` (+ `-chevron`), `lr-mobile-panel`, `lr-crumbs`, `lr-pagehead`/`lr-pagetitle`/`lr-pagesub` — internal to `app.html.twig`/`_main_nav.html.twig`; feature templates should not need to reach for these directly.
 - **Cash Register:** `lr-seg` (Full/Quick segmented toggle), `lr-totals`
-  (`.row`/`.row.total`), `lr-pillradio` + `lr-pillradio-row` (Participant pill
-  radio rows), `lr-programrow` (`is-selected`) (program search result rows),
-  `lr-kindicon` (`info`/`success`/`warning`/`neutral`, matching `_badge`'s
-  variants — sale line-item kind icon).
+  (`.row`/`.row.total`), `lr-pillradio` + `lr-pillradio-row` + `lr-pillradio-check`
+  (Participant pill radio rows), `lr-programrow` + `lr-programrow-check`
+  (`is-selected`) (program search result rows), `lr-kindicon`
+  (`info`/`success`/`warning`/`neutral`, matching `_badge`'s variants — sale
+  line-item kind icon), `lr-tilegrid` + `lr-tile` (Quick Sale category grid),
+  `lr-stepper` (quantity +/- control), `lr-empty-receipt` and
+  `lr-receipt-footer` (Quick Sale receipt panel states).
 
 Do not transition `var()`-backed color/background/border on these classes — a
 theme switch would strand the old value (see the note in `app.css`).

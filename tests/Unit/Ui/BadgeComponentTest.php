@@ -13,7 +13,7 @@ use Twig\Environment;
 use Twig\Loader\FilesystemLoader;
 
 /**
- * Pins the shared Eagleton badge: _badge.html.twig renders a single lr-badge
+ * Pins the shared badge component: _badge.html.twig renders a single lr-badge
  * implementation with a sanitised variant, and _status_badge.html.twig maps a
  * TransactionStatus value onto that same partial — so there is exactly one
  * badge implementation, not two.

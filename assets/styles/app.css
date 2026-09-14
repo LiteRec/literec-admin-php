@@ -295,7 +295,7 @@
     /* Dark mode's --lr-primary is already light enough to read as text. */
     --lr-primary-text: var(--lr-primary);
     /* The Organic system has no distinct secondary hue in either theme; alias
-       to primary so no Eagleton gold survives in dark mode either. */
+       to primary so no legacy gold survives in dark mode either. */
     --lr-secondary: var(--lr-primary);
     --lr-secondary-strong: var(--lr-primary-strong);
     --lr-on-secondary: var(--lr-on-primary);
@@ -308,14 +308,14 @@
     --lr-on-danger: #450a0a;
     --lr-link: var(--lr-primary);
     /* Terracotta ramp, 900 step — a deep brand-colored strip rather than the
-       near-black Eagleton value, in case a future sidebar layout consumes
+       near-black legacy value, in case a future sidebar layout consumes
        this token; 12.08:1 against --lr-sidebar-text. */
     --lr-sidebar-bg: var(--lr-accent-900);
     --lr-sidebar-text: var(--lr-neutral-100);
 
     /* .lr-dot status-dot colors — reuse the same tuned brand steps as
        --lr-primary / --lr-accent so the dashboard's succeeded/pending dots
-       stay warm instead of Eagleton blue/gold. */
+       stay warm instead of the legacy blue/gold. */
     --lr-success: var(--lr-accent);
     --lr-warning: var(--lr-primary);
     /* Already a lightened, warm-enough red for dark (7.64:1 as the
@@ -353,7 +353,7 @@
     /* Hairline edge (a translucent light line, since dark surfaces have no
        natural rim highlight) plus a flat 40% black blur for ambient
        darkness, replacing the plain black drop-shadows carried over from
-       Eagleton. Blur/offset distances keep the light theme's card < md < pop
+       the legacy theme. Blur/offset distances keep the light theme's card < md < pop
        elevation progression. */
     --lr-shadow-card: 0 0 0 1px color-mix(in srgb, var(--lr-neutral-100) 8%, transparent), 0 1px 3px rgb(0 0 0 / 0.4);
     --lr-shadow-md: 0 0 0 1px color-mix(in srgb, var(--lr-neutral-100) 8%, transparent), 0 4px 12px rgb(0 0 0 / 0.4);
@@ -585,7 +585,7 @@
     .lr-btn-primary:hover { background: var(--lr-primary-strong); }
     .lr-btn-primary:active { background: var(--lr-primary-active); }
     /* Outlined divider-border variant — replaces the old gold fill so no
-       Eagleton secondary color survives in this button (LRA-185). */
+       legacy secondary color survives in this button (LRA-185). */
     .lr-btn-secondary { background: transparent; border-color: var(--lr-border); color: var(--lr-text); }
     .lr-btn-secondary:hover { background: var(--lr-bg-muted); }
     .lr-btn-danger { background: var(--lr-danger); color: var(--lr-on-danger); }

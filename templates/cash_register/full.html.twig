@@ -25,7 +25,11 @@
     {% set kind_icons = { 'program': 'calendar', 'membership': 'card', 'item': 'tag', 'rental': 'key' } %}
     {% set kind_variants = { 'program': 'info', 'membership': 'success', 'item': 'neutral', 'rental': 'warning' } %}
     {% set selectedProgram = register.selectedProgram %}
-    <div class="grid grid-cols-1 items-start gap-6 lg:grid-cols-[340px_minmax(0,1fr)_400px]">
+    {# The 340px/400px side rails plus gaps leave the middle catalog column
+       under 240px at the lg breakpoint (1024px), wrapping every card's text
+       word-by-word — xl (1280px) is the narrowest width that gives it
+       reasonable room; below that the three panes stack. #}
+    <div class="grid grid-cols-1 items-start gap-6 xl:grid-cols-[340px_minmax(0,1fr)_400px]">
 
         {# ---- Payer + Participant ---- #}
         <div class="flex flex-col gap-5">
