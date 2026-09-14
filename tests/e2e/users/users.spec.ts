@@ -139,3 +139,17 @@ test.describe('create and edit', () => {
     await expect(page.getByTestId('member-header')).toContainText(`Sibling ${lastName}`);
   });
 });
+
+test.describe('member lookup results', () => {
+  // LRA-194: the avatar-initial span must be aria-hidden so it does not leak
+  // into the result row's accessible name — the name must start with the
+  // member's full name, not the initial. Hitting the results fragment
+  // endpoint directly (what the dialog's HTMX search swaps in) lets the
+  // browser compute the real accessible name without driving the dialog's
+  // open/close chrome.
+  test('a result row exposes an accessible name starting with the member\'s full name', async ({ page }) => {
+    await page.goto(`/admin/users/_lookup?lastName=${ALICE.lastName}`);
+
+    await expect(page.getByRole('button', { name: new RegExp(`^${ALICE.name}`) })).toBeVisible();
+  });
+});

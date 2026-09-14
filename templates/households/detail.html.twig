@@ -21,6 +21,8 @@
 #}
 {% extends 'app.html.twig' %}
 
+{% import 'households/_residency.html.twig' as residency %}
+
 {% block page_title %}{{ detail.profile.fullName }}{% endblock %}
 
 {% block breadcrumbs %}
@@ -35,12 +37,6 @@
 {% endblock %}
 
 {% block page_body %}
-    {% set residencyLabelMap = {
-        'RESIDENT': 'Resident',
-        'NON_RESIDENT': 'Non-resident',
-        'MEMBER': 'Member',
-        'STAFF': 'Staff',
-    } %}
     <header
         data-testid="member-header"
         class="mb-6 flex flex-wrap items-center justify-between gap-x-4 gap-y-3 border-b border-litrec-border pb-4"
@@ -67,7 +63,7 @@
                 {% include 'components/_badge.html.twig' with { label: 'Secondary', variant: 'neutral', testid: 'badge-secondary' } only %}
             {% endif %}
             {% include 'components/_badge.html.twig' with {
-                label: residencyLabelMap[detail.residency.status]|default(detail.residency.status),
+                label: residency.label(detail.residency.status),
                 variant: 'neutral',
                 outline: true,
                 testid: 'badge-residency',

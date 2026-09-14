@@ -21,6 +21,22 @@ test.describe('authentication', () => {
     await expect(page.getByRole('button', { name: /login/i })).toBeVisible();
   });
 
+  test('tabbing to the username field shows a visible focus indicator (LRA-194, WCAG 2.4.7)', async ({ page }) => {
+    await page.goto('/login');
+
+    // The username field carries `autofocus`, so it is already focused on
+    // load — blur it first to observe the true unfocused state before
+    // asserting what keyboard focus adds.
+    const wrapper = page.locator('.lr-input:has(#username)');
+    await page.locator('#username').blur();
+    const boxShadowBeforeFocus = await wrapper.evaluate((el) => getComputedStyle(el).boxShadow);
+    await page.locator('#username').focus();
+    const boxShadowAfterFocus = await wrapper.evaluate((el) => getComputedStyle(el).boxShadow);
+
+    expect(boxShadowAfterFocus).not.toBe(boxShadowBeforeFocus);
+    expect(boxShadowAfterFocus).not.toBe('none');
+  });
+
   test('admin signs in and lands on the dashboard', async ({ page }) => {
     await login(page, CREDENTIALS.admin.username, CREDENTIALS.admin.password);
 

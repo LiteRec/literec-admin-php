@@ -8,13 +8,7 @@
    Expects:
      - detail: App\Households\Application\Query\Port\MemberDetail
 #}
-{% set statusLabelMap = {
-    'RESIDENT': 'Resident',
-    'NON_RESIDENT': 'Non-resident',
-    'MEMBER': 'Member',
-    'STAFF': 'Staff',
-} %}
-{% set statusLabel = statusLabelMap[detail.residency.status] ?? detail.residency.status %}
+{% import 'households/_residency.html.twig' as residency %}
 <div id="residency-sub-card-body" data-testid="residency-sub-card-body" class="rounded-card-sm border border-litrec-border bg-litrec-surface p-4">
     <div class="mb-3 flex items-center justify-between">
         <h3 class="text-xs font-semibold uppercase tracking-wide text-litrec-text-muted">Residency</h3>
@@ -32,7 +26,7 @@
 
     <div class="flex flex-col gap-2">
         {% include 'components/_badge.html.twig' with {
-            label: statusLabel,
+            label: residency.label(detail.residency.status),
             variant: 'info',
             testid: 'residency-status-badge',
             class: 'w-fit',
