@@ -35,7 +35,8 @@ const AUTHENTICATED_PAGES = [
   { name: 'users directory', url: '/admin/users' },
   { name: 'inventory list', url: '/admin/inventory' },
   { name: 'inventory reports', url: '/admin/inventory/reports' },
-  { name: 'cash register', url: '/cash-register' },
+  { name: 'cash register — full', url: '/cash-register' },
+  { name: 'cash register — quick', url: '/cash-register/quick' },
   // LRA-194: coming-soon placeholder stub, restyled onto Organic.
   { name: 'placeholder page', url: '/cash-register/pos-transactions' },
 ];
@@ -50,6 +51,33 @@ test.describe('accessibility smoke @a11y', () => {
   }
 
   test('member detail has no new serious or critical axe violations', async ({ page }) => {
+    await page.goto('/admin/users');
+    await page.locator('#filter-email').fill(ANCHORS.members.alice.email);
+    await page.getByRole('link', { name: ANCHORS.members.alice.name }).click();
+    await expect(page.getByTestId('member-header')).toBeVisible();
+
+    expect(await newSeriousViolations(page)).toEqual([]);
+  });
+});
+
+test.describe('accessibility smoke — dark theme @a11y', () => {
+  // LRA-195: Organic dark theme tokens. emulateMedia exercises the same
+  // pre-paint bootstrap (base.html.twig reads prefers-color-scheme when no
+  // stored choice exists) as an OS-level dark preference, rather than the
+  // header toggle, so the same helper also covers the anonymous login page
+  // below, which has no toggle control.
+  for (const target of AUTHENTICATED_PAGES) {
+    test(`${target.name} has no new serious or critical axe violations in the dark theme`, async ({ page }) => {
+      await page.emulateMedia({ colorScheme: 'dark' });
+      await page.goto(target.url);
+      await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+
+      expect(await newSeriousViolations(page)).toEqual([]);
+    });
+  }
+
+  test('member detail has no new serious or critical axe violations in the dark theme', async ({ page }) => {
+    await page.emulateMedia({ colorScheme: 'dark' });
     await page.goto('/admin/users');
     await page.locator('#filter-email').fill(ANCHORS.members.alice.email);
     await page.getByRole('link', { name: ANCHORS.members.alice.name }).click();
@@ -84,6 +112,14 @@ test.describe('accessibility smoke — anonymous @a11y', () => {
 
   test('login page has no new serious or critical axe violations', async ({ page }) => {
     await page.goto('/login');
+
+    expect(await newSeriousViolations(page)).toEqual([]);
+  });
+
+  test('login page has no new serious or critical axe violations in the dark theme', async ({ page }) => {
+    await page.emulateMedia({ colorScheme: 'dark' });
+    await page.goto('/login');
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
 
     expect(await newSeriousViolations(page)).toEqual([]);
   });
