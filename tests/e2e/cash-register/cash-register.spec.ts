@@ -1,12 +1,15 @@
 import { test, expect } from '../support/fixtures';
+import { ANCHORS } from '../support/anchors';
 
 /**
  * S4 (LRA-166): Cash Register mock-data smoke. Both screens render from
- * MockCashRegisterData; LRA-190 rebuilds the Full register onto artboard 1b
+ * MockCashRegisterData. LRA-190 rebuilds the Full register onto artboard 1b
  * (payer/participant sand cards, pill tabs, program results with add-on
- * toggles, Sale rail). Every control is a non-functional placeholder except
- * the add-on toggles, which recompute the displayed "Add to sale" total
- * client-side — no backend mutation happens on either screen.
+ * toggles, Sale rail); its add-on toggles recompute the displayed "Add to
+ * sale" total client-side. LRA-191 rebuilds the Quick sale screen onto
+ * artboard 1c with the same kind of Alpine-driven interactivity (tapping a
+ * tile, stepping a line, clearing the receipt, tender selection). Neither
+ * screen mutates anything server-side.
  */
 test.describe('cash register — full sale', () => {
   test.beforeEach(async ({ page }) => {
@@ -67,13 +70,103 @@ test.describe('cash register — quick sale', () => {
     await page.goto('/cash-register/quick');
   });
 
-  test('renders the item search and quick-sale tiles', async ({ page }) => {
-    await expect(page.getByLabel('Scan barcode or search items')).toBeVisible();
+  test('renders the item search, category pills, and quick-sale tiles', async ({ page }) => {
+    await expect(page.getByLabel('Scan or search an item')).toBeVisible();
+    await expect(page.getByTestId('quick-sale-payer')).toHaveText(/Walk-in/);
+    await expect(page.getByRole('button', { name: 'Day Passes' })).toBeVisible();
     await expect(page.getByTestId('quick-tile')).not.toHaveCount(0);
   });
 
-  test('renders the current sale rail and charge action', async ({ page }) => {
-    await expect(page.getByText('Current Sale')).toBeVisible();
+  test('renders the seeded receipt and charge action', async ({ page }) => {
+    await expect(page.getByText('Receipt')).toBeVisible();
     await expect(page.getByRole('button', { name: /^Charge/ })).toBeVisible();
+    await expect(page.getByTestId('quick-sale-charge')).toHaveText('Charge $25.68');
+  });
+
+  test('tapping a new tile adds a receipt line and shows its quantity badge', async ({ page }) => {
+    const tile = page.getByTestId('quick-tile').filter({ hasText: 'Guest Fee' });
+    const line = page.getByTestId('receipt-line-guest-fee');
+
+    await expect(line).toBeHidden();
+
+    await tile.click();
+
+    await expect(line).toBeVisible();
+    await expect(line.locator('.q')).toHaveText('1');
+    await expect(tile.locator('.tile-qty-badge')).toHaveText('1');
+
+    await tile.click();
+
+    await expect(line.locator('.q')).toHaveText('2');
+    await expect(tile.locator('.tile-qty-badge')).toHaveText('2');
+  });
+
+  test('the stepper updates the quantity and the totals', async ({ page }) => {
+    const line = page.getByTestId('receipt-line-adult-day-pass');
+    const total = page.locator('.lr-totals .row.total .lr-num');
+
+    await expect(line.locator('.q')).toHaveText('2');
+    await expect(total).toHaveText('$25.68');
+
+    await line.getByRole('button', { name: /Increase/ }).click();
+
+    await expect(line.locator('.q')).toHaveText('3');
+    await expect(total).toHaveText('$34.28');
+
+    await line.getByRole('button', { name: /Decrease/ }).click();
+    await line.getByRole('button', { name: /Decrease/ }).click();
+
+    await expect(line.locator('.q')).toHaveText('1');
+    await expect(total).toHaveText('$17.28');
+  });
+
+  test('Clear empties the receipt and shows the empty state', async ({ page }) => {
+    await page.getByTestId('quick-sale-clear').click();
+
+    await expect(page.getByTestId('quick-sale-empty')).toBeVisible();
+    await expect(page.getByText('No items yet')).toBeVisible();
+    await expect(page.locator('.lr-totals .row.total .lr-num')).toHaveText('$0.00');
+    await expect(page.getByTestId('quick-sale-charge')).toHaveText('Charge $0.00');
+  });
+
+  test('tender tiles are radio-like, aria-pressed, and keyboard operable', async ({ page }) => {
+    const cash = page.getByTestId('quick-sale-tender-cash');
+    const card = page.getByTestId('quick-sale-tender-card');
+
+    await expect(cash).toHaveAttribute('aria-pressed', 'false');
+    await expect(card).toHaveAttribute('aria-pressed', 'false');
+
+    await cash.focus();
+    await page.keyboard.press('Enter');
+
+    await expect(cash).toHaveAttribute('aria-pressed', 'true');
+    await expect(card).toHaveAttribute('aria-pressed', 'false');
+
+    await card.focus();
+    await page.keyboard.press(' ');
+
+    await expect(cash).toHaveAttribute('aria-pressed', 'false');
+    await expect(card).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  test('category pills filter the tile grid', async ({ page }) => {
+    const guestFeeTile = page.getByTestId('quick-tile').filter({ hasText: 'Guest Fee' });
+
+    await expect(guestFeeTile).toBeVisible();
+
+    await page.getByRole('button', { name: 'Day Passes' }).click();
+
+    await expect(guestFeeTile).toBeHidden();
+    await expect(page.getByTestId('quick-tile').filter({ hasText: 'Adult Day Pass' })).toBeVisible();
+  });
+
+  test('the Walk-in pill opens member lookup and shows the selected member', async ({ page }) => {
+    await page.getByTestId('quick-sale-payer').click();
+    await page.getByTestId('member-lookup-input-lastName').fill(ANCHORS.members.alice.lastName);
+    await page
+      .locator('[data-testid^="member-lookup-row-"]', { hasText: ANCHORS.members.alice.name })
+      .click();
+
+    await expect(page.getByTestId('quick-sale-payer')).toHaveText(ANCHORS.members.alice.name);
   });
 });

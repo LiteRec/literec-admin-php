@@ -49,6 +49,7 @@ const AUTHENTICATED_PAGES = [
   { name: 'inventory list', url: '/admin/inventory' },
   { name: 'inventory reports', url: '/admin/inventory/reports' },
   { name: 'cash register — full', url: '/cash-register' },
+  // LRA-191: Alpine-driven tile grid, receipt rail, and tender tiles.
   { name: 'cash register — quick', url: '/cash-register/quick' },
   // LRA-194: coming-soon placeholder stub, restyled onto Organic.
   { name: 'placeholder page', url: '/cash-register/pos-transactions' },

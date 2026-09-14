@@ -16,29 +16,69 @@
 {% endblock %}
 
 {% block page_body %}
-    {# Two-column touch layout: item picker · sticky sale rail. Stubbed sample
-       data (quick.*); every control is a non-functional placeholder. #}
-    <div class="grid grid-cols-1 items-start gap-5 lg:grid-cols-[1fr_360px]">
+    {# Touch layout: item picker · full-height receipt rail (LRA-191). The sale
+       itself is Alpine state, entirely client-side — tapping a tile, the
+       stepper, category/search filtering, tender selection and Clear all
+       mirror the design's interactivity with no backend mutation. Every
+       control below also carries its non-JS fallback content (the seeded
+       quantities/totals from MockCashRegisterData, rendered by Twig) so the
+       screen still shows the right numbers before Alpine hydrates and so the
+       functional test — which never runs JS — can assert on them directly. #}
+    {% set initialQuantities = {} %}
+    {% for line in quick.sale %}
+        {% set initialQuantities = initialQuantities|merge({ (line.tileId): line.quantity }) %}
+    {% endfor %}
+
+    <div
+        class="grid grid-cols-1 items-stretch gap-5 lg:min-h-[760px] lg:grid-cols-[minmax(0,1fr)_420px]"
+        x-data="quickSale(
+            {{ quick.tiles|json_encode }},
+            {{ initialQuantities|json_encode }},
+            {{ quick.tenders|json_encode }},
+            {{ quick.taxRate }}
+        )"
+    >
 
         {# ---- item picker ---- #}
         <div class="lr-card">
-            <div class="border-b border-litrec-border px-[var(--pad-row-x)] py-3">
-                <label class="lr-input is-focus">
+            <div class="flex flex-wrap items-center gap-3 border-b border-litrec-border px-[var(--pad-row-x)] py-3">
+                <label class="lr-input is-focus flex-1">
                     {{ ui.icon('search', 15, 2.75, 'ico') }}
-                    <input type="text" placeholder="Scan barcode or search items…" aria-label="Scan barcode or search items">
-                    <span class="lr-kbd">F2</span>
+                    <input type="text" placeholder="Scan or search an item…" aria-label="Scan or search an item" x-model="search">
                 </label>
+                <button type="button" class="lr-chip" data-testid="quick-sale-payer" @click="openPayerLookup()">
+                    {{ ui.icon('user', 13) }} <span x-text="payerName">Walk-in</span>
+                </button>
             </div>
-            <div class="flex flex-wrap gap-2 border-b border-litrec-border px-[var(--pad-row-x)] py-3">
+            <div class="flex flex-wrap gap-2 border-b border-litrec-border px-[var(--pad-row-x)] py-3" role="group" aria-label="Filter by category">
                 {% for category in quick.categories %}
-                    <button type="button" class="lr-chip{% if loop.first %} border-litrec-primary bg-litrec-primary text-litrec-on-primary{% endif %}"{% if loop.first %} aria-pressed="true"{% else %} aria-pressed="false"{% endif %}>{{ category }}</button>
+                    <button
+                        type="button"
+                        class="lr-chip"
+                        :class="activeCategory === '{{ category }}' ? 'is-active' : ''"
+                        :aria-pressed="(activeCategory === '{{ category }}').toString()"
+                        @click="activeCategory = '{{ category }}'"
+                        data-testid="quick-sale-category-{{ loop.index0 }}"
+                    >{{ category }}</button>
                 {% endfor %}
             </div>
             <div class="lr-card-body">
                 <div class="lr-tilegrid">
                     {% for tile in quick.tiles %}
-                        <button type="button" class="lr-tile" data-testid="quick-tile">
-                            <span class="tico">{{ ui.icon(tile.icon, 18) }}</span>
+                        <button
+                            type="button"
+                            class="lr-tile"
+                            data-testid="quick-tile"
+                            x-show="isVisible('{{ tile.category }}', '{{ tile.name|lower }}')"
+                            @click="addTile('{{ tile.id }}')"
+                        >
+                            <span
+                                class="tile-qty-badge lr-num"
+                                x-show="quantityFor('{{ tile.id }}') > 0"
+                                x-cloak
+                                x-text="quantityFor('{{ tile.id }}')"
+                            >{{ initialQuantities[tile.id]|default(0) }}</span>
+                            <span class="tico tico-{{ tile.tint.value }}">{{ ui.icon(tile.icon, 18) }}</span>
                             <div>
                                 <div class="tcat">{{ tile.category }}</div>
                                 <div class="tname">{{ tile.name }}</div>
@@ -50,38 +90,151 @@
             </div>
         </div>
 
-        {# ---- sale rail (sticky) ---- #}
-        <div class="lr-card sticky top-4 overflow-hidden">
-            <div class="lr-card-head border-litrec-primary bg-litrec-primary text-litrec-on-primary">
-                <span class="lr-card-title inline-flex items-center gap-2 text-litrec-on-primary">{{ ui.icon('cart', 16) }} Current Sale</span>
-                <span class="text-xs opacity-90">{{ quick.sale|length }} items</span>
+        {# ---- receipt rail (full height, sticky) ---- #}
+        <aside class="lr-card shadow-md sticky top-0 flex flex-col overflow-hidden" aria-label="Receipt">
+            <div class="lr-card-head">
+                <span class="lr-card-title inline-flex items-center gap-2">{{ ui.icon('cart', 16) }} Receipt</span>
+                <div class="flex items-center gap-3">
+                    <span class="lr-muted text-xs" x-text="itemCount + ' items'">{{ quick.sale|length }} items</span>
+                    <button type="button" class="lr-btn lr-btn-ghost" data-testid="quick-sale-clear" @click="clear()">
+                        {{ ui.icon('trash', 14) }} Clear
+                    </button>
+                </div>
             </div>
-            <div class="lr-list">
-                {% for line in quick.sale %}
-                    <div class="lr-list-row">
-                        <div class="flex-1"><div class="lr-row-strong text-sm">{{ line.name }}</div></div>
+
+            <div class="lr-list flex-1 overflow-y-auto">
+                {% for tile in quick.tiles %}
+                    <div
+                        class="lr-list-row"
+                        x-show="quantityFor('{{ tile.id }}') > 0"
+                        x-cloak
+                        data-testid="receipt-line-{{ tile.id }}"
+                    >
+                        <div class="flex-1"><div class="lr-row-strong text-sm">{{ tile.name }}</div></div>
                         <span class="lr-stepper">
-                            <button type="button"><span class="sr-only">Decrease {{ line.name }} quantity</span>{{ ui.icon('chevron', 12) }}</button>
-                            <span class="q lr-num">{{ line.quantity }}</span>
-                            <button type="button"><span class="sr-only">Increase {{ line.name }} quantity</span>{{ ui.icon('chevronUp', 12) }}</button>
+                            <button type="button" @click="decrement('{{ tile.id }}')"><span class="sr-only">Decrease {{ tile.name }} quantity</span>{{ ui.icon('chevron', 12) }}</button>
+                            <span class="q lr-num" x-text="quantityFor('{{ tile.id }}')">{{ initialQuantities[tile.id]|default(0) }}</span>
+                            <button type="button" @click="increment('{{ tile.id }}')"><span class="sr-only">Increase {{ tile.name }} quantity</span>{{ ui.icon('chevronUp', 12) }}</button>
                         </span>
-                        <div class="min-w-14 text-right"><div class="lr-num font-bold">{{ line.price }}</div></div>
+                        <div class="min-w-14 text-right">
+                            <div class="lr-num font-bold" x-text="formatMoney(lineTotalCents('{{ tile.id }}'))">{{ tile.price }}</div>
+                        </div>
                     </div>
                 {% endfor %}
+
+                <div class="lr-empty-receipt" x-show="itemCount === 0" x-cloak data-testid="quick-sale-empty">
+                    {{ ui.icon('cart', 22) }}
+                    <p class="font-semibold">No items yet</p>
+                    <p class="lr-muted text-xs">Tap a tile to add it to the receipt.</p>
+                </div>
             </div>
-            <div class="flex flex-col gap-4 border-t border-litrec-border p-[var(--pad-card)]">
+
+            <div class="lr-receipt-footer">
                 <div class="lr-totals">
-                    <div class="row"><span class="lr-muted">Subtotal</span><span class="lr-num">{{ quick.subtotal }}</span></div>
-                    <div class="row"><span class="lr-muted">{{ quick.taxLabel }}</span><span class="lr-num">{{ quick.tax }}</span></div>
-                    <div class="row total"><span>Total</span><span class="lr-num">{{ quick.total }}</span></div>
+                    <div class="row"><span class="lr-muted">Subtotal</span><span class="lr-num" x-text="formatMoney(subtotalCents)">{{ quick.subtotal }}</span></div>
+                    <div class="row"><span class="lr-muted">{{ quick.taxLabel }}</span><span class="lr-num" x-text="formatMoney(taxCents)">{{ quick.tax }}</span></div>
+                    <div class="row total"><span>Total</span><span class="lr-num" x-text="formatMoney(totalCents)">{{ quick.total }}</span></div>
                 </div>
-                <div class="flex gap-2">
-                    <button type="button" class="lr-btn lr-btn-ghost flex-1 justify-center">{{ ui.icon('money', 15) }} Cash</button>
-                    <button type="button" class="lr-btn lr-btn-ghost flex-1 justify-center">{{ ui.icon('tag', 15) }} Card</button>
+                <div class="flex gap-2" role="group" aria-label="Tender">
+                    {% for tender in quick.tenders %}
+                        <button
+                            type="button"
+                            class="lr-chip flex-1 justify-center"
+                            :class="selectedTenderId === '{{ tender.id }}' ? 'is-active' : ''"
+                            :aria-pressed="(selectedTenderId === '{{ tender.id }}').toString()"
+                            @click="selectTender('{{ tender.id }}')"
+                            data-testid="quick-sale-tender-{{ tender.id }}"
+                        >{{ ui.icon(tender.icon, 15) }} {{ tender.label }}</button>
+                    {% endfor %}
                 </div>
-                <button type="button" class="lr-btn lr-btn-secondary lr-btn-block lr-btn-lg font-extrabold">Charge {{ quick.total }}</button>
-                <button type="button" class="lr-btn lr-btn-block bg-transparent text-danger">{{ ui.icon('trash', 15) }} Clear sale</button>
+                <button
+                    type="button"
+                    class="lr-btn lr-btn-secondary lr-btn-block lr-btn-lg font-extrabold"
+                    data-testid="quick-sale-charge"
+                    x-text="'Charge ' + formatMoney(totalCents)"
+                >Charge {{ quick.total }}</button>
             </div>
-        </div>
+        </aside>
     </div>
+
+    <script>
+        // quickSale: Alpine component backing the Quick sale screen. Keeps the
+        // sale as a plain { tileId: quantity } map (never deleted, only zeroed)
+        // so every possible line is a fixed DOM row toggled by x-show rather
+        // than an array Alpine has to diff — simplest way to let both "tap a
+        // new tile" and "step an existing line" share one code path. Guarded
+        // like memberLookupHost() so re-rendering this block twice is inert.
+        if (typeof window.quickSale !== 'function') {
+            window.quickSale = function (tiles, initialQuantities, tenders, taxRate) {
+                return {
+                    tiles: tiles,
+                    tenders: tenders,
+                    taxRate: taxRate,
+                    quantities: Object.assign({}, initialQuantities),
+                    activeCategory: 'All',
+                    search: '',
+                    payerName: 'Walk-in',
+                    selectedTenderId: null,
+
+                    quantityFor(tileId) {
+                        return this.quantities[tileId] || 0;
+                    },
+                    isVisible(category, name) {
+                        var matchesCategory = this.activeCategory === 'All' || this.activeCategory === category;
+                        var query = this.search.trim().toLowerCase();
+                        var matchesSearch = query === '' || name.toLowerCase().includes(query);
+                        return matchesCategory && matchesSearch;
+                    },
+                    addTile(tileId) {
+                        this.quantities[tileId] = this.quantityFor(tileId) + 1;
+                    },
+                    increment(tileId) {
+                        this.quantities[tileId] = this.quantityFor(tileId) + 1;
+                    },
+                    decrement(tileId) {
+                        var next = this.quantityFor(tileId) - 1;
+                        this.quantities[tileId] = next > 0 ? next : 0;
+                    },
+                    clear() {
+                        this.quantities = {};
+                    },
+                    tileById(tileId) {
+                        return this.tiles.find(function (tile) { return tile.id === tileId; });
+                    },
+                    lineTotalCents(tileId) {
+                        var tile = this.tileById(tileId);
+                        return tile ? this.quantityFor(tileId) * tile.unitPriceCents : 0;
+                    },
+                    get itemCount() {
+                        var self = this;
+                        return Object.keys(this.quantities).filter(function (id) { return self.quantities[id] > 0; }).length;
+                    },
+                    get subtotalCents() {
+                        var self = this;
+                        return this.tiles.reduce(function (sum, tile) { return sum + self.lineTotalCents(tile.id); }, 0);
+                    },
+                    get taxCents() {
+                        return Math.round(this.subtotalCents * this.taxRate);
+                    },
+                    get totalCents() {
+                        return this.subtotalCents + this.taxCents;
+                    },
+                    formatMoney(cents) {
+                        return '$' + (cents / 100).toFixed(2);
+                    },
+                    selectTender(tenderId) {
+                        this.selectedTenderId = tenderId;
+                    },
+                    selectPayer(payload) {
+                        this.payerName = (payload && payload.fullName) ? payload.fullName : 'Walk-in';
+                    },
+                    openPayerLookup() {
+                        if (typeof window.openMemberLookup === 'function') {
+                            window.openMemberLookup({ onSelected: this.selectPayer.bind(this) });
+                        }
+                    },
+                };
+            };
+        }
+    </script>
 {% endblock %}

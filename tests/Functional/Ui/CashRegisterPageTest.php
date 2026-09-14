@@ -69,14 +69,24 @@ final class CashRegisterPageTest extends WebTestCase
         self::assertSelectorTextContains('main h1', 'Cash Register');
         self::assertSelectorTextContains('.lr-seg a[aria-current="page"]', 'Quick sale');
 
-        // Item picker: a touch-tile grid of items.
+        // Item picker: scan/search field, Walk-in payer pill, category pills,
+        // and a touch-tile grid of items.
+        self::assertSelectorExists('input[aria-label="Scan or search an item"]');
+        self::assertSelectorTextContains('[data-testid="quick-sale-payer"]', 'Walk-in');
+        self::assertSelectorTextContains('main', 'Day Passes');
         self::assertGreaterThanOrEqual(8, $crawler->filter('.lr-tilegrid button.lr-tile')->count());
         self::assertSelectorTextContains('main', 'Adult Day Pass');
 
-        // Sale rail: current sale with steppers, totals, and a charge action.
-        self::assertSelectorTextContains('.lr-card-head', 'Current Sale');
+        // Receipt rail: line rows with steppers, totals, tender tiles, and a
+        // charge action. The rendered totals are the QuickSaleData fallback —
+        // the same numbers quickSale()'s initial Alpine state computes.
+        self::assertSelectorTextContains('.lr-card-head', 'Receipt');
+        self::assertSelectorExists('[data-testid="quick-sale-clear"]');
         self::assertSelectorExists('.lr-stepper');
         self::assertSelectorTextContains('.lr-totals .row.total', '$25.68');
+        self::assertSelectorTextContains('[data-testid="quick-sale-tender-cash"]', 'Cash');
+        self::assertSelectorTextContains('[data-testid="quick-sale-tender-card"]', 'Card');
+        self::assertSelectorTextContains('[data-testid="quick-sale-tender-gift-card"]', 'Gift card');
         self::assertSelectorTextContains('main', 'Charge $25.68');
     }
 }
