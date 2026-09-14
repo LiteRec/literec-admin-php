@@ -22,9 +22,17 @@ const BASELINE_RULES = [
   'color-contrast',
   'scrollable-region-focusable',
 ];
+// LRA-195: every dark-theme --lr-* pairing was re-derived and verified to
+// clear AA (see the ratios documented inline in app.css), so the dark-theme
+// passes below run color-contrast un-baselined instead of inheriting the
+// light theme's baseline — otherwise a dark-mode contrast regression (e.g.
+// --lr-text-muted reverting to the failing --lr-neutral-400 step) would stay
+// green here. The light theme keeps color-contrast baselined until its own
+// known --lr-primary defect is fixed separately.
+const DARK_BASELINE_RULES = BASELINE_RULES.filter((rule) => rule !== 'color-contrast');
 
-async function newSeriousViolations(page: Page): Promise<string[]> {
-  const results = await new AxeBuilder({ page }).disableRules(BASELINE_RULES).analyze();
+async function newSeriousViolations(page: Page, baseline = BASELINE_RULES): Promise<string[]> {
+  const results = await new AxeBuilder({ page }).disableRules(baseline).analyze();
   return results.violations
     .filter((violation) => SERIOUS_IMPACTS.includes(violation.impact ?? ''))
     .map((violation) => violation.id);
@@ -72,7 +80,7 @@ test.describe('accessibility smoke — dark theme @a11y', () => {
       await page.goto(target.url);
       await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
 
-      expect(await newSeriousViolations(page)).toEqual([]);
+      expect(await newSeriousViolations(page, DARK_BASELINE_RULES)).toEqual([]);
     });
   }
 
@@ -82,8 +90,9 @@ test.describe('accessibility smoke — dark theme @a11y', () => {
     await page.locator('#filter-email').fill(ANCHORS.members.alice.email);
     await page.getByRole('link', { name: ANCHORS.members.alice.name }).click();
     await expect(page.getByTestId('member-header')).toBeVisible();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
 
-    expect(await newSeriousViolations(page)).toEqual([]);
+    expect(await newSeriousViolations(page, DARK_BASELINE_RULES)).toEqual([]);
   });
 });
 
@@ -121,6 +130,6 @@ test.describe('accessibility smoke — anonymous @a11y', () => {
     await page.goto('/login');
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
 
-    expect(await newSeriousViolations(page)).toEqual([]);
+    expect(await newSeriousViolations(page, DARK_BASELINE_RULES)).toEqual([]);
   });
 });
