@@ -113,6 +113,23 @@ final class SearchMembersControllerTest extends WebTestCase
     }
 
     #[Test]
+    #[TestDox('GET /admin/users/_table carries an HX-Push-Url header pointing at the full page, not the partial.')]
+    public function table_response_carries_hx_push_url_to_the_full_page(): void
+    {
+        $client = static::createClient();
+        $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
+        $this->seedTwoHouseholds();
+
+        $client->request('GET', '/admin/users/_table?q=Brown&segment=nonResidents');
+
+        self::assertResponseIsSuccessful();
+        self::assertSame(
+            '/admin/users?q=Brown&segment=nonResidents',
+            $client->getResponse()->headers->get('HX-Push-Url'),
+        );
+    }
+
+    #[Test]
     #[TestDox('Pagination footer advances from page 1 to page 2 when there are more rows than pageSize.')]
     public function pagination_advances_to_page_two(): void
     {
@@ -122,11 +139,11 @@ final class SearchMembersControllerTest extends WebTestCase
 
         $client->request('GET', '/admin/users?pageSize=20');
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('[data-testid="pagination-status"]', 'Page 1 of 2');
+        self::assertSelectorTextContains('[data-testid="pagination-status"]', 'Showing 1–20 of 25 users');
 
         $client->request('GET', '/admin/users?pageSize=20&page=2');
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('[data-testid="pagination-status"]', 'Page 2 of 2');
+        self::assertSelectorTextContains('[data-testid="pagination-status"]', 'Showing 21–25 of 25 users');
 
         // 5 rows on the second page (25 total, pageSize 20).
         $crawler = $client->getCrawler();

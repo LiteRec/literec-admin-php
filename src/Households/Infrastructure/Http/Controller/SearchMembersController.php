@@ -79,11 +79,23 @@ final class SearchMembersController extends AbstractController
         $page = $this->runQuery($criteria);
         $counts = $this->runCountQuery($criteria->q);
 
-        return $this->render('households/list/_table.html.twig', [
+        $response = $this->render('households/list/_table.html.twig', [
             'page' => $page,
             'criteria' => $criteria,
             'counts' => $counts,
         ]);
+
+        // htmx's hx-push-url="true" (filter form, pagination links, segment
+        // pills) pushes the URL of THIS request by default — the partial's
+        // own /admin/users/_table path, not the full page route. Overriding
+        // it with the response header points browser history at the page
+        // that actually renders when reloaded (LRA-192 review).
+        $response->headers->set(
+            'HX-Push-Url',
+            $this->generateUrl('users_index', $request->query->all()),
+        );
+
+        return $response;
     }
 
     /**

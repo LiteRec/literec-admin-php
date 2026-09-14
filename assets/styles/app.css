@@ -1124,7 +1124,12 @@
         padding: 3px;
         gap: 2px;
     }
-    .lr-seg a {
+    /* Element-agnostic (LRA-192): the Cash Register mode toggle uses <a>
+       (real route navigation), the Users list segment pills use <button>
+       (same-page filtering, so aria-pressed is valid ARIA) — both need the
+       same pill chrome. */
+    .lr-seg a,
+    .lr-seg button {
         border: 0;
         background: transparent;
         color: var(--lr-text-muted);
@@ -1138,10 +1143,12 @@
         align-items: center;
         gap: 0.4rem;
     }
-    .lr-seg a:hover { color: var(--lr-text); }
+    .lr-seg a:hover,
+    .lr-seg button:hover { color: var(--lr-text); }
     /* See the matching note on .lr-tab.is-active: --lr-sage-900 keeps this
        readable in both themes since the sage-200 fill has no dark override. */
-    .lr-seg a.is-active { background: var(--lr-sage-200); color: var(--lr-sage-900); }
+    .lr-seg a.is-active,
+    .lr-seg button.is-active { background: var(--lr-sage-200); color: var(--lr-sage-900); }
 
     .lr-totals { display: flex; flex-direction: column; gap: 0.4rem; }
     .lr-totals .row { display: flex; align-items: center; justify-content: space-between; font-size: 0.875rem; }

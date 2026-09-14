@@ -246,6 +246,43 @@ trait MemberReadModelContractCases
     }
 
     #[Test]
+    #[TestDox('search(): q treats "_" as a literal character, not a LIKE wildcard matching everything.')]
+    public function search_with_q_underscore_does_not_match_every_row(): void
+    {
+        $this->seedHouseholds([$this->buildHouseholdA(), $this->buildHouseholdB()]);
+
+        $page = $this->readModel()->search(new SearchMembersCriteria(q: '_'));
+
+        self::assertSame(0, $page->totalItems);
+    }
+
+    #[Test]
+    #[TestDox('search(): q matches non-ASCII names case-insensitively regardless of accent casing.')]
+    public function search_with_q_matches_non_ascii_case_insensitively(): void
+    {
+        $household = Household::register(
+            HouseholdId::fromString('019571bf-5d51-7000-b500-0000000000cd'),
+            HouseholdName::of('Muller Household'),
+            Address::of('1 Elm St', null, 'Berlin', 'BE', '10115', 'DE'),
+            MemberId::fromString('019571bf-5d51-7000-b500-0000000000ce'),
+            MemberCode::of('M000090'),
+            PersonName::of('Uwe', 'Müller'),
+            DateOfBirth::of(new DateTimeImmutable('1980-04-04'), $this->clock()),
+            Gender::Male,
+            EmailAddress::of('uwe@example.com'),
+            null,
+            ResidencyStatus::Resident,
+            $this->clock(),
+        );
+        $this->seedHouseholds([$household]);
+
+        $page = $this->readModel()->search(new SearchMembersCriteria(q: 'MÜLLER'));
+
+        self::assertSame(1, $page->totalItems);
+        self::assertSame('M000090', $page->items[0]->memberCode);
+    }
+
+    #[Test]
     #[TestDox('search(): segment=Residents returns only active members with Resident residency.')]
     public function search_with_segment_residents_returns_only_residents(): void
     {

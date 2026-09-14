@@ -224,11 +224,14 @@ final class InMemoryMemberReadModel implements MemberReadModel
 
     /**
      * Case-insensitive substring match that treats a missing (null) value
-     * as a non-match.
+     * as a non-match. Uses mb_stripos() (not stripos(), which is byte-wise
+     * and misfolds non-ASCII case pairs like "Ü"/"ü") so this stays
+     * consistent with the Doctrine adapter's Postgres LOWER() comparison
+     * (LRA-192 review).
      */
     private function valueContains(?string $haystack, string $needle): bool
     {
-        return $haystack !== null && stripos($haystack, $needle) !== false;
+        return $haystack !== null && mb_stripos($haystack, $needle) !== false;
     }
 
     private function toListItem(HouseholdMember $member, Household $household): MemberListItem

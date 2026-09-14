@@ -73,11 +73,34 @@ test.describe('directory', () => {
     const inactivePill = page.getByTestId('segment-pill-inactive');
     await expect(inactivePill).toBeVisible();
     await expect(inactivePill).toHaveAttribute('aria-pressed', 'false');
+    // Visual regression for the .lr-seg button variant (LRA-192 review): a
+    // pressed pill must actually paint the sage-200 fill, not just carry
+    // aria-pressed with no visible effect.
+    await expect(inactivePill).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
 
     await inactivePill.click();
 
     await expect(inactivePill).toHaveAttribute('aria-pressed', 'true');
     await expect(page).toHaveURL(/segment=inactive/);
+  });
+
+  test('a pill click carries the live search text instead of a stale snapshot', async ({ page }) => {
+    await page.goto('/admin/users');
+
+    // Type into q and click a pill immediately, without waiting for the
+    // debounced request to land — the pill must still send the just-typed
+    // q alongside its own segment (LRA-192 review: hx-include/hx-vals).
+    await page.locator('#filter-q').fill(FRANK.lastName);
+    await page.getByTestId('segment-pill-residents').click();
+
+    await expect(page).toHaveURL(new RegExp(`q=${FRANK.lastName}.*segment=residents|segment=residents.*q=${FRANK.lastName}`));
+  });
+
+  test('the Households action opens the list with More filters already expanded', async ({ page }) => {
+    await page.goto('/admin/users?primaryOnly=1');
+
+    await expect(page.locator('#more-filters-panel')).toBeVisible();
+    await expect(page.locator('#filter-primaryOnly')).toBeChecked();
   });
 
   test('member lookup validates input at the boundary and returns matches', async ({ request }) => {

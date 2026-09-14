@@ -109,26 +109,29 @@
                                 @keydown.escape.window="open = false"
                                 @click.outside="open = false"
                             >
+                                {# A disclosure, not an ARIA menu: role="menu"/"menuitem" would promise
+                                   arrow-key navigation and focus-on-open that this popover does not
+                                   implement (LRA-192 review). aria-expanded + aria-controls describe
+                                   what it actually is; x-trap keeps Tab contained while it is open. #}
                                 <button
                                     type="button"
                                     class="lr-btn lr-btn-ghost lr-btn-icon"
                                     @click="open = !open"
-                                    aria-haspopup="true"
                                     :aria-expanded="open ? 'true' : 'false'"
+                                    aria-controls="member-row-actions-{{ item.memberId }}"
                                     aria-label="More actions for {{ item.fullName }}"
                                     data-testid="member-row-menu-{{ item.memberId }}"
                                 >
                                     {{ ui.icon('more', 16) }}
                                 </button>
                                 <div
+                                    id="member-row-actions-{{ item.memberId }}"
                                     x-show="open"
                                     x-cloak
-                                    role="menu"
-                                    aria-label="Actions for {{ item.fullName }}"
+                                    x-trap.noreturn="open"
                                     class="absolute right-0 top-full z-10 mt-1 min-w-[9rem] rounded-card border border-litrec-border bg-litrec-surface py-1 text-left shadow-pop"
                                 >
                                     <a
-                                        role="menuitem"
                                         href="{{ rowHref }}"
                                         class="lr-btn lr-btn-ghost lr-btn-block"
                                         data-testid="member-row-view-{{ item.memberId }}"
@@ -139,10 +142,10 @@
                                        or messaging flow exists) — rendered disabled rather than as
                                        dead-end tab stops, matching the header Notifications button
                                        (templates/app.html.twig). #}
-                                    <button type="button" role="menuitem" class="lr-btn lr-btn-ghost lr-btn-block" disabled aria-disabled="true">
+                                    <button type="button" class="lr-btn lr-btn-ghost lr-btn-block" disabled aria-disabled="true">
                                         Sell
                                     </button>
-                                    <button type="button" role="menuitem" class="lr-btn lr-btn-ghost lr-btn-block" disabled aria-disabled="true">
+                                    <button type="button" class="lr-btn lr-btn-ghost lr-btn-block" disabled aria-disabled="true">
                                         Message
                                     </button>
                                 </div>
