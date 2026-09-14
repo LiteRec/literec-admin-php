@@ -22,6 +22,7 @@
            uses the role=button + tabindex + keydown pattern. Web:S6819 is
            suppressed for this file in sonar-project.properties with the rationale. #}
         <tr
+            id="household-member-row-{{ m.memberId }}"
             data-testid="household-member-row-{{ m.memberId }}"
             {% if isActiveMember %}
                 aria-current="true"

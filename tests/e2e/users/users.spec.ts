@@ -207,6 +207,14 @@ test.describe('member detail', () => {
     await expect(frankRow).not.toHaveAttribute('aria-current', 'true');
     await expect(page.getByTestId('profile-first-name')).toContainText('Gail');
     await expect(page.getByTestId('profile-last-name')).toContainText('Miller');
+
+    // Keyboard activation must restore focus to the switched-to row after the
+    // roster's OOB swap, not drop it to <body> (LRA-203 review follow-up).
+    await frankRow.focus();
+    await frankRow.press('Enter');
+
+    await expect(page.getByTestId('member-header')).toContainText(FRANK.name);
+    await expect(frankRow).toBeFocused();
   });
 });
 
