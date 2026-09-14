@@ -3,9 +3,12 @@
    list, Purchase Orders list, and Stock Movement History pages.
 
    @param string  ariaLabel     nav aria-label (e.g. "Inventory pagination").
-   @param string  statusTestid  data-testid for the "Page X of Y" status span.
+   @param string  statusTestid  data-testid for the status span.
    @param int     pageNumber    Current 1-based page number.
    @param int     totalPages    Total page count.
+   @param ?string statusLabel   Pre-rendered status text, e.g. "Showing 1–20
+                                 of 42 users" (LRA-192). Defaults to
+                                 "Page X of Y" when omitted.
    @param string  prevTestid    data-testid for the Previous control.
    @param string  nextTestid    data-testid for the Next control.
    @param ?string prevHref      Previous page href, or null when disabled.
@@ -13,12 +16,13 @@
    @param ?string prevHxGet     Previous page hx-get target, or null when disabled.
    @param ?string nextHxGet     Next page hx-get target, or null when disabled.
    @param string  hxTarget      Shared hx-target selector for both controls. #}
+{% set statusLabel = statusLabel|default('Page ' ~ pageNumber ~ ' of ' ~ totalPages) %}
 <nav
     aria-label="{{ ariaLabel }}"
     class="mt-4 flex items-center justify-between text-sm text-litrec-text-muted"
 >
     <span data-testid="{{ statusTestid }}">
-        Page {{ pageNumber }} of {{ totalPages }}
+        {{ statusLabel }}
     </span>
 
     <div class="flex items-center gap-2">

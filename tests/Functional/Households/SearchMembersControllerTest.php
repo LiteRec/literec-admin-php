@@ -143,7 +143,62 @@ final class SearchMembersControllerTest extends WebTestCase
         $client->request('GET', self::ROUTE_MEMBERS);
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('main', 'No members match your filters.');
+        self::assertSelectorTextContains('main', 'No users match your filters.');
+    }
+
+    #[Test]
+    #[TestDox('A q search with no matches shows the query-specific empty state message.')]
+    public function empty_state_echoes_the_search_query(): void
+    {
+        $client = static::createClient();
+        $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
+        $this->seedTwoHouseholds();
+
+        $client->request('GET', self::ROUTE_MEMBERS . '?q=nobody-matches-this');
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('main', 'No users match “nobody-matches-this”.');
+    }
+
+    #[Test]
+    #[TestDox('GET /admin/users/_table?q=Brown returns a partial containing only q-matching rows.')]
+    public function filter_by_q_narrows_results_via_partial(): void
+    {
+        $client = static::createClient();
+        $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
+        $this->seedTwoHouseholds();
+
+        // "Brown" is Bob's last name and appears in no household name (both
+        // households here are named after a "Smith" primary member), so it
+        // cleanly isolates a q match on last name from the household-name arm.
+        $client->request('GET', '/admin/users/_table?q=Brown');
+
+        self::assertResponseIsSuccessful();
+        $body = (string) $client->getResponse()->getContent();
+
+        self::assertStringContainsString('member-row-' . self::A_SECOND_ID, $body);
+        self::assertStringNotContainsString('member-row-' . self::A_PRIMARY_ID, $body);
+        self::assertStringNotContainsString('member-row-' . self::B_PRIMARY_ID, $body);
+    }
+
+    #[Test]
+    #[TestDox('GET /admin/users?segment=inactive returns only deactivated members.')]
+    public function filter_by_segment_inactive_returns_deactivated_members(): void
+    {
+        $client = static::createClient();
+        $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
+        $repo = static::getContainer()->get(Households::class);
+        self::assertInstanceOf(Households::class, $repo);
+        $household = $this->buildHouseholdA();
+        $household->deactivateMember(MemberId::fromString(self::A_SECOND_ID), 'left the household', $this->clock);
+        $repo->save($household);
+
+        $client->request('GET', self::ROUTE_MEMBERS . '?segment=inactive');
+
+        self::assertResponseIsSuccessful();
+        $body = (string) $client->getResponse()->getContent();
+        self::assertStringContainsString('member-row-' . self::A_SECOND_ID, $body);
+        self::assertStringNotContainsString('member-row-' . self::A_PRIMARY_ID, $body);
     }
 
     #[Test]

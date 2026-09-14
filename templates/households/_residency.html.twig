@@ -14,3 +14,18 @@
     } -%}
     {{- labels[status]|default(status) -}}
 {% endmacro %}
+
+{# Badge variant per status (LRA-192 Users list residency tag). Resident and
+   Non-resident get distinct success/neutral treatments per the artboard;
+   Member/Staff fall back to the single 'info' variant already used by the
+   Residency sub-card (_residency_sub_card_read.html.twig) so this stays
+   consistent with existing precedent rather than inventing new colors. #}
+{% macro variant(status) %}
+    {%- set variants = {
+        'RESIDENT': 'success',
+        'NON_RESIDENT': 'neutral',
+        'MEMBER': 'info',
+        'STAFF': 'info',
+    } -%}
+    {{- variants[status]|default('neutral') -}}
+{% endmacro %}

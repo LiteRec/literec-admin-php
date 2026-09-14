@@ -1,0 +1,47 @@
+{# Count-bearing filter pills for the Users list (LRA-192). Each pill is a
+   button (not a link) so aria-pressed is valid ARIA — mirroring the
+   Purchase Orders / Cash Register quick-sale chip pattern
+   (templates/cash_register/quick.html.twig) rather than the navigational
+   aria-current links used by _register_mode_toggle.html.twig, since these
+   segments filter the current page rather than navigate to a different one.
+
+   Expects:
+     - counts:         App\Households\Application\Query\Port\MemberSegmentCounts
+     - currentSegment: App\Households\Application\Query\Port\MembersSegment
+     - oob: bool  Renders as an hx-swap-oob update (used when the table
+            partial refreshes the pill counts after an HTMX swap). #}
+{% set oob = oob|default(false) %}
+{% set segmentQuery = app.request.query.all|merge({ page: 1 }) %}
+<div
+    id="segment-pills"
+    {% if oob %}hx-swap-oob="true"{% endif %}
+    class="lr-seg"
+    role="group"
+    aria-label="Filter users by segment"
+>
+    {# Lives inside this OOB-swapped container (rather than as a sibling
+       hidden input in _filters.html.twig) so a pill click keeps the form's
+       own next hx-get (search-field typing, More filters fields) in sync
+       with the active segment without a full filters-form re-render. #}
+    <input type="hidden" name="segment" value="{{ currentSegment.value }}">
+    {% for segment, label in {
+        'all': 'All',
+        'residents': 'Residents',
+        'nonResidents': 'Non-residents',
+        'inactive': 'Inactive',
+    } %}
+        {% set isActive = currentSegment.value == segment %}
+        <button
+            type="button"
+            hx-get="{{ path('households_members_table', segmentQuery|merge({ segment: segment })) }}"
+            hx-target="#members-table"
+            hx-swap="innerHTML"
+            hx-push-url="{{ path('users_index', segmentQuery|merge({ segment: segment })) }}"
+            aria-pressed="{{ isActive ? 'true' : 'false' }}"
+            data-testid="segment-pill-{{ segment }}"
+            class="{{ isActive ? 'is-active' : '' }}"
+        >
+            {{ label }} <span class="lr-badge neutral">{{ attribute(counts, segment) }}</span>
+        </button>
+    {% endfor %}
+</div>

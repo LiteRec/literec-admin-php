@@ -41,22 +41,43 @@ async function createHousehold(page: Page, firstName: string, lastName: string):
 }
 
 test.describe('directory', () => {
-  test('finds a seeded member via the filter table', async ({ page }) => {
+  test('finds a seeded member via the primary search field', async ({ page }) => {
     await page.goto('/admin/users');
     await expect(page.getByTestId('members-table')).toBeVisible();
 
-    await page.locator('#filter-email').fill(ALICE.email);
-
-    await expect(page.getByRole('link', { name: ALICE.name })).toBeVisible();
-  });
-
-  test('filters the directory by last name', async ({ page }) => {
-    await page.goto('/admin/users');
-
-    await page.locator('#filter-lastName').fill(FRANK.lastName);
+    await page.locator('#filter-q').fill(FRANK.lastName);
 
     await expect(page.getByRole('link', { name: FRANK.name })).toBeVisible();
+  });
+
+  test('More filters reveals the detailed fields and combines with q (AND)', async ({ page }) => {
+    await page.goto('/admin/users');
+
+    await page.getByTestId('more-filters-toggle').click();
+    await expect(page.locator('#filter-email')).toBeVisible();
+
+    // Email uniquely isolates Alice, whose common last name ("Smith") would
+    // otherwise collide with the bulk faker households on q alone.
+    await page.locator('#filter-email').fill(ALICE.email);
+    await expect(page.getByRole('link', { name: ALICE.name })).toBeVisible();
+
+    // Narrowing further with q for a different member yields no rows —
+    // proves the two mechanisms combine with AND, not OR.
+    await page.locator('#filter-q').fill(FRANK.lastName);
     await expect(page.getByRole('link', { name: ALICE.name })).toHaveCount(0);
+  });
+
+  test('segment pills show counts and filter the table, updating the URL', async ({ page }) => {
+    await page.goto('/admin/users');
+
+    const inactivePill = page.getByTestId('segment-pill-inactive');
+    await expect(inactivePill).toBeVisible();
+    await expect(inactivePill).toHaveAttribute('aria-pressed', 'false');
+
+    await inactivePill.click();
+
+    await expect(inactivePill).toHaveAttribute('aria-pressed', 'true');
+    await expect(page).toHaveURL(/segment=inactive/);
   });
 
   test('member lookup validates input at the boundary and returns matches', async ({ request }) => {

@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Households\Infrastructure\Http\Controller;
 
+use App\Households\Application\Query\CountMemberSegments;
+use App\Households\Application\Query\Port\MemberSegmentCounts;
+use App\Households\Application\Query\Port\MembersSegment;
 use App\Households\Application\Query\Port\PageOfMembers;
 use App\Households\Application\Query\Port\SearchMembersCriteria;
 use App\Households\Application\Query\SearchMembers;
@@ -53,10 +56,12 @@ final class SearchMembersController extends AbstractController
 
         /** @var PageOfMembers $page */
         $page = $this->runQuery($criteria);
+        $counts = $this->runCountQuery($criteria->q);
 
         return $this->render('households/list.html.twig', [
             'page' => $page,
             'criteria' => $criteria,
+            'counts' => $counts,
             'exportDuplicatesEnabled' => $this->exportDuplicatesEnabled,
         ]);
     }
@@ -72,10 +77,12 @@ final class SearchMembersController extends AbstractController
 
         /** @var PageOfMembers $page */
         $page = $this->runQuery($criteria);
+        $counts = $this->runCountQuery($criteria->q);
 
         return $this->render('households/list/_table.html.twig', [
             'page' => $page,
             'criteria' => $criteria,
+            'counts' => $counts,
         ]);
     }
 
@@ -101,6 +108,27 @@ final class SearchMembersController extends AbstractController
         return $result;
     }
 
+    /**
+     * Runs the CountMemberSegments query through the query bus. Kept
+     * alongside {@see self::runQuery()} because both actions (index, table)
+     * need the same pair of dispatches for the Users list filter pills
+     * (LRA-192).
+     */
+    private function runCountQuery(?string $q): MemberSegmentCounts
+    {
+        $result = $this->dispatchQuery(new CountMemberSegments($q));
+
+        if (!$result instanceof MemberSegmentCounts) {
+            throw new \LogicException(sprintf(
+                'CountMemberSegments handler returned %s, expected %s.',
+                get_debug_type($result),
+                MemberSegmentCounts::class,
+            ));
+        }
+
+        return $result;
+    }
+
     private function buildCriteria(Request $request): SearchMembersCriteria
     {
         $query = $request->query;
@@ -111,6 +139,8 @@ final class SearchMembersController extends AbstractController
             firstName: self::stringOrNull($query->get('firstName')),
             phone: self::stringOrNull($query->get('phone')),
             email: self::stringOrNull($query->get('email')),
+            q: self::stringOrNull($query->get('q')),
+            segment: MembersSegment::fromRequestValue(self::stringOrNull($query->get('segment'))),
             primaryOnly: self::boolish($query->get('primaryOnly')),
             includeDeleted: self::boolish($query->get('includeDeleted')),
             page: max(1, $query->getInt('page', 1)),
