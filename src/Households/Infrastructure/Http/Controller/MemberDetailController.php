@@ -14,9 +14,11 @@ use App\Households\Application\Query\Port\MemberDetail;
 use App\Households\Domain\Exception\HouseholdNotFound;
 use App\Households\Domain\Exception\InvalidAddress;
 use App\Households\Domain\Exception\InvalidDateOfBirth;
+use App\Households\Domain\Exception\InvalidHeight;
 use App\Households\Domain\Exception\InvalidHouseholdId;
 use App\Households\Domain\Exception\InvalidMemberId;
 use App\Households\Domain\Exception\InvalidPersonName;
+use App\Households\Domain\Exception\InvalidWeight;
 use App\Households\Domain\Exception\MemberNotFound;
 use App\Households\Domain\ValueObject\HouseholdId as HouseholdIdVo;
 use App\Households\Domain\ValueObject\MemberId as MemberIdVo;
@@ -266,6 +268,10 @@ final class MemberDetailController extends AbstractController
                     suffix: $input->suffix,
                     dobIso: (string) $input->dobIso,
                     genderCode: (string) $input->genderCode,
+                    nickname: $input->nickname,
+                    salutationCode: $input->salutationCode,
+                    heightInches: $input->heightInches,
+                    weightPounds: $input->weightPounds,
                 ));
 
                 // Re-load the projection so the swapped read partial reflects
@@ -287,6 +293,10 @@ final class MemberDetailController extends AbstractController
                 } else {
                     $form->addError(new FormError($exception->getMessage()));
                 }
+            } catch (InvalidHeight $exception) {
+                $form->get('heightInches')->addError(new FormError($exception->getMessage()));
+            } catch (InvalidWeight $exception) {
+                $form->get('weightPounds')->addError(new FormError($exception->getMessage()));
             } catch (SharedDomainException $exception) {
                 $form->addError(new FormError($exception->getMessage()));
             }
@@ -797,6 +807,10 @@ final class MemberDetailController extends AbstractController
         $input->suffix = $detail->profile->suffix;
         $input->dobIso = $detail->profile->dobIso;
         $input->genderCode = $detail->profile->genderCode;
+        $input->nickname = $detail->profile->nickname;
+        $input->salutationCode = $detail->profile->salutationCode;
+        $input->heightInches = $detail->profile->heightInches;
+        $input->weightPounds = $detail->profile->weightPounds;
 
         return $input;
     }

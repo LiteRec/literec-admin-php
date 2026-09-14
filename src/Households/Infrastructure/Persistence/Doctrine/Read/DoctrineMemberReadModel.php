@@ -108,7 +108,8 @@ final class DoctrineMemberReadModel implements MemberReadModel
     {
         $sql = self::SQL_SELECT
             . self::COL_MEMBER_CORE
-            . 'm.last_name, m.suffix, m.date_of_birth, m.gender, m.email, m.phone, '
+            . 'm.last_name, m.suffix, m.nickname, m.date_of_birth, m.gender, m.email, m.phone, '
+            . 'm.salutation, m.height_inches, m.weight_pounds, '
             . 'm.residency_status, m.is_primary, m.is_active, '
             . 'm.deactivated_reason, m.deactivated_at, '
             . 'h.name AS household_name, '
@@ -399,6 +400,10 @@ final class DoctrineMemberReadModel implements MemberReadModel
             $this->rowString($row, 'gender'),
             $this->rowNullableString($row, 'email'),
             $this->rowNullableString($row, 'phone'),
+            $this->rowNullableString($row, 'nickname'),
+            $this->rowNullableString($row, 'salutation'),
+            $this->rowNullableInt($row, 'height_inches'),
+            $this->rowNullableInt($row, 'weight_pounds'),
             $this->rowBool($row, 'is_primary'),
             $this->rowBool($row, 'is_active'),
             $this->rowNullableString($row, 'deactivated_reason'),

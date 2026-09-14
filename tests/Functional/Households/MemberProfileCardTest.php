@@ -76,6 +76,114 @@ final class MemberProfileCardTest extends WebTestCase
     }
 
     #[Test]
+    #[TestDox('POST with height, weight, salutation, and nickname persists and renders them in read mode.')]
+    public function post_profile_with_measurement_fields_persists_and_renders(): void
+    {
+        $client = static::createClient();
+        $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
+        $this->seedHouseholdA();
+
+        $this->postProfileUpdate($client, self::HOUSEHOLD_A, self::A_PRIMARY_ID, [
+            'firstName' => 'Alice',
+            'middleName' => '',
+            'lastName' => 'Smith',
+            'suffix' => '',
+            'nickname' => 'Al',
+            'dobIso' => self::DOB,
+            'genderCode' => 'F',
+            'salutationCode' => 'MS',
+            'heightInches' => '65',
+            'weightPounds' => '140',
+        ]);
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('[data-testid="profile-salutation"]', 'Ms.');
+        self::assertSelectorTextContains('[data-testid="profile-nickname"]', 'Al');
+        self::assertSelectorTextContains('[data-testid="profile-height"]', '5 ft 5 in');
+        self::assertSelectorTextContains('[data-testid="profile-weight"]', '140 lbs');
+
+        $repo = static::getContainer()->get(Households::class);
+        self::assertInstanceOf(Households::class, $repo);
+        $household = $repo->findById(HouseholdId::fromString(self::HOUSEHOLD_A));
+        $member = $this->firstMember($household);
+        self::assertSame('Al', $member->name()->nickname);
+        self::assertNotNull($member->height());
+        self::assertSame(65, $member->height()->inches);
+        self::assertNotNull($member->weight());
+        self::assertSame(140, $member->weight()->pounds);
+    }
+
+    #[Test]
+    #[TestDox('POST clearing height, weight, salutation, and nickname removes the stored values.')]
+    public function post_profile_clearing_measurement_fields_removes_stored_values(): void
+    {
+        $client = static::createClient();
+        $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
+        $this->seedHouseholdA();
+
+        $this->postProfileUpdate($client, self::HOUSEHOLD_A, self::A_PRIMARY_ID, [
+            'firstName' => 'Alice',
+            'middleName' => '',
+            'lastName' => 'Smith',
+            'suffix' => '',
+            'nickname' => 'Al',
+            'dobIso' => self::DOB,
+            'genderCode' => 'F',
+            'salutationCode' => 'MS',
+            'heightInches' => '65',
+            'weightPounds' => '140',
+        ]);
+
+        $this->postProfileUpdate($client, self::HOUSEHOLD_A, self::A_PRIMARY_ID, [
+            'firstName' => 'Alice',
+            'middleName' => '',
+            'lastName' => 'Smith',
+            'suffix' => '',
+            'nickname' => '',
+            'dobIso' => self::DOB,
+            'genderCode' => 'F',
+            'salutationCode' => '',
+            'heightInches' => '',
+            'weightPounds' => '',
+        ]);
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('[data-testid="profile-salutation"]', '—');
+        self::assertSelectorTextContains('[data-testid="profile-nickname"]', '—');
+        self::assertSelectorTextContains('[data-testid="profile-height"]', '—');
+        self::assertSelectorTextContains('[data-testid="profile-weight"]', '—');
+    }
+
+    #[Test]
+    #[TestDox('POST with a negative height re-renders the edit partial at 422 with an inline field error.')]
+    public function post_profile_with_negative_height_re_renders_edit_with_inline_error(): void
+    {
+        $client = static::createClient();
+        $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
+        $this->seedHouseholdA();
+
+        $this->postProfileUpdate($client, self::HOUSEHOLD_A, self::A_PRIMARY_ID, [
+            'firstName' => 'Alice',
+            'middleName' => '',
+            'lastName' => 'Smith',
+            'suffix' => '',
+            'dobIso' => self::DOB,
+            'genderCode' => 'F',
+            'heightInches' => '-5',
+        ]);
+
+        self::assertResponseStatusCodeSame(422);
+        $body = (string) $client->getResponse()->getContent();
+        self::assertStringContainsString('greater than zero', $body);
+
+        $repo = static::getContainer()->get(Households::class);
+        self::assertInstanceOf(Households::class, $repo);
+        $household = $repo->findById(HouseholdId::fromString(self::HOUSEHOLD_A));
+        $member = $this->firstMember($household);
+        self::assertNull($member->height());
+    }
+
+    #[Test]
     #[TestDox('GET /profile/edit returns the edit partial pre-populated with the current values.')]
     public function get_profile_edit_returns_edit_partial_pre_populated(): void
     {

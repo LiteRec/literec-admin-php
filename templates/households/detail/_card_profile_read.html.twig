@@ -11,6 +11,8 @@
 #}
 {% set genderLabelMap = { 'F': 'Female', 'M': 'Male', 'O': 'Other', 'U': 'Unspecified' } %}
 {% set genderLabel = genderLabelMap[detail.profile.genderCode] ?? detail.profile.genderCode %}
+{% set salutationLabelMap = { 'MR': 'Mr.', 'MRS': 'Mrs.', 'MS': 'Ms.', 'MX': 'Mx.', 'DR': 'Dr.', 'REV': 'Rev.' } %}
+{% set salutationLabel = detail.profile.salutationCode is not null ? (salutationLabelMap[detail.profile.salutationCode] ?? detail.profile.salutationCode) : null %}
 <div id="card-profile-body" data-testid="card-profile-body" class="border-t border-litrec-border px-5 py-4">
     <div class="mb-3 flex items-center justify-end">
         <button
@@ -26,6 +28,10 @@
     </div>
 
     <dl class="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+        <div>
+            <dt class="text-xs font-semibold uppercase tracking-wide text-litrec-text-muted">Salutation</dt>
+            <dd data-testid="profile-salutation" class="mt-1 text-litrec-text">{{ salutationLabel ?? '—' }}</dd>
+        </div>
         <div>
             <dt class="text-xs font-semibold uppercase tracking-wide text-litrec-text-muted">First name</dt>
             <dd data-testid="profile-first-name" class="mt-1 text-litrec-text">{{ detail.profile.firstName }}</dd>
@@ -43,6 +49,10 @@
             <dd data-testid="profile-suffix" class="mt-1 text-litrec-text">{{ detail.profile.suffix ?? '—' }}</dd>
         </div>
         <div>
+            <dt class="text-xs font-semibold uppercase tracking-wide text-litrec-text-muted">Goes by</dt>
+            <dd data-testid="profile-nickname" class="mt-1 text-litrec-text">{{ detail.profile.nickname ?? '—' }}</dd>
+        </div>
+        <div>
             <dt class="text-xs font-semibold uppercase tracking-wide text-litrec-text-muted">Date of birth</dt>
             {# dobIso is already a yyyy-MM-dd string from the read model. Echo
                it as-is to avoid UTC date-shift bugs in the browser locale. #}
@@ -51,6 +61,20 @@
         <div>
             <dt class="text-xs font-semibold uppercase tracking-wide text-litrec-text-muted">Gender</dt>
             <dd data-testid="profile-gender" class="mt-1 text-litrec-text">{{ genderLabel }}</dd>
+        </div>
+        <div>
+            <dt class="text-xs font-semibold uppercase tracking-wide text-litrec-text-muted">Height</dt>
+            <dd data-testid="profile-height" class="mt-1 text-litrec-text">
+                {% if detail.profile.heightInches is not null %}
+                    {{ (detail.profile.heightInches // 12) }} ft {{ (detail.profile.heightInches % 12) }} in
+                {% else %}
+                    —
+                {% endif %}
+            </dd>
+        </div>
+        <div>
+            <dt class="text-xs font-semibold uppercase tracking-wide text-litrec-text-muted">Weight</dt>
+            <dd data-testid="profile-weight" class="mt-1 text-litrec-text">{{ detail.profile.weightPounds is not null ? detail.profile.weightPounds ~ ' lbs' : '—' }}</dd>
         </div>
         <div>
             <dt class="text-xs font-semibold uppercase tracking-wide text-litrec-text-muted">Primary</dt>

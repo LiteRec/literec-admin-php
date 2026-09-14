@@ -13,6 +13,7 @@ use App\Households\Domain\ValueObject\Address;
 use App\Households\Domain\ValueObject\DateOfBirth;
 use App\Shared\Domain\ValueObject\EmailAddress;
 use App\Households\Domain\ValueObject\Gender;
+use App\Households\Domain\ValueObject\Height;
 use App\Households\Domain\ValueObject\HouseholdId;
 use App\Households\Domain\ValueObject\HouseholdName;
 use App\Households\Domain\ValueObject\MemberCode;
@@ -20,6 +21,8 @@ use App\Households\Domain\ValueObject\MemberId;
 use App\Households\Domain\ValueObject\PersonName;
 use App\Shared\Domain\ValueObject\PhoneNumber;
 use App\Households\Domain\ValueObject\ResidencyStatus;
+use App\Households\Domain\ValueObject\Salutation;
+use App\Households\Domain\ValueObject\Weight;
 use DateTimeImmutable;
 use Generator;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -385,6 +388,10 @@ trait MemberReadModelContractCases
         self::assertSame('F', $detail->profile->genderCode);
         self::assertSame('alice@example.com', $detail->profile->email);
         self::assertNull($detail->profile->phone);
+        self::assertNull($detail->profile->nickname);
+        self::assertNull($detail->profile->salutationCode);
+        self::assertNull($detail->profile->heightInches);
+        self::assertNull($detail->profile->weightPounds);
         self::assertTrue($detail->profile->isPrimary);
         self::assertTrue($detail->profile->isActive);
 
@@ -455,6 +462,40 @@ trait MemberReadModelContractCases
         }
         self::assertNotNull($deactivated, 'Deactivated member should still appear in the household roster.');
         self::assertFalse($deactivated->isActive);
+    }
+
+    #[Test]
+    #[TestDox('memberDetail(): projects nickname, salutation, height, and weight when populated.')]
+    public function member_detail_projects_measurement_fields_when_populated(): void
+    {
+        $household = Household::register(
+            HouseholdId::fromString(self::HOUSEHOLD_A),
+            HouseholdName::of('Smith Family'),
+            Address::of('100 Main St', 'Apt 2B', 'Seattle', 'WA', '98101', 'US'),
+            MemberId::fromString(self::A_PRIMARY_ID),
+            MemberCode::of(self::A_PRIMARY_CODE),
+            PersonName::of('Alice', 'Smith', nickname: 'Al'),
+            DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock()),
+            Gender::Female,
+            EmailAddress::of('alice@example.com'),
+            null,
+            ResidencyStatus::Resident,
+            $this->clock(),
+            Salutation::Ms,
+            Height::ofInches(65),
+            Weight::ofPounds(140),
+        );
+        $this->seedHouseholds([$household]);
+
+        $detail = $this->readModel()->memberDetail(
+            HouseholdId::fromString(self::HOUSEHOLD_A),
+            MemberId::fromString(self::A_PRIMARY_ID),
+        );
+
+        self::assertSame('Al', $detail->profile->nickname);
+        self::assertSame('MS', $detail->profile->salutationCode);
+        self::assertSame(65, $detail->profile->heightInches);
+        self::assertSame(140, $detail->profile->weightPounds);
     }
 
     #[Test]

@@ -22,6 +22,8 @@ doctrine:
             households_email_address: App\Households\Infrastructure\Persistence\Doctrine\Type\EmailAddressType
             households_phone_number: App\Households\Infrastructure\Persistence\Doctrine\Type\PhoneNumberType
             households_date_of_birth: App\Households\Infrastructure\Persistence\Doctrine\Type\DateOfBirthType
+            households_height: App\Households\Infrastructure\Persistence\Doctrine\Type\HeightType
+            households_weight: App\Households\Infrastructure\Persistence\Doctrine\Type\WeightType
             # Custom DBAL types for the Catalog bounded-context value objects.
             catalog_listing_id: App\Catalog\Infrastructure\Persistence\Doctrine\Type\ListingIdType
             catalog_listing_code: App\Catalog\Infrastructure\Persistence\Doctrine\Type\ListingCodeType

@@ -40,6 +40,9 @@
         </field>
         <field name="email"             type="households_email_address"   nullable="true"/>
         <field name="phone"             type="households_phone_number"    nullable="true"/>
+        <field name="salutation"        type="string"                     nullable="true"  length="8" enum-type="App\Households\Domain\ValueObject\Salutation"/>
+        <field name="height"            type="households_height"          nullable="true"  column="height_inches"/>
+        <field name="weight"            type="households_weight"          nullable="true"  column="weight_pounds"/>
         <field name="residencyStatus"   type="string"                     nullable="false" length="32" column="residency_status" enum-type="App\Households\Domain\ValueObject\ResidencyStatus"/>
         <field name="isPrimary"         type="boolean"                    nullable="false" column="is_primary">
             <options>

@@ -60,6 +60,20 @@ trait RowFieldExtraction
     /**
      * @param array<string, mixed> $row
      */
+    private function rowNullableInt(array $row, string $key): ?int
+    {
+        $value = $row[$key] ?? null;
+
+        if ($value === null) {
+            return null;
+        }
+
+        return $this->scalarToInt($value);
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     */
     private function rowBool(array $row, string $key): bool
     {
         $value = $row[$key] ?? null;

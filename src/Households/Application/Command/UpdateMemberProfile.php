@@ -6,7 +6,7 @@ namespace App\Households\Application\Command;
 
 /**
  * Primitive-only command DTO for updating a member's profile (name, DOB,
- * gender).
+ * gender, nickname, salutation, height, weight).
  */
 final readonly class UpdateMemberProfile
 {
@@ -19,6 +19,10 @@ final readonly class UpdateMemberProfile
         public ?string $suffix,
         public string $dobIso,
         public string $genderCode,
+        public ?string $nickname = null,
+        public ?string $salutationCode = null,
+        public ?int $heightInches = null,
+        public ?int $weightPounds = null,
     ) {
     }
 }

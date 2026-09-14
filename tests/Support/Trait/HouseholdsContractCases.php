@@ -12,6 +12,7 @@ use App\Households\Domain\ValueObject\Address;
 use App\Households\Domain\ValueObject\DateOfBirth;
 use App\Shared\Domain\ValueObject\EmailAddress;
 use App\Households\Domain\ValueObject\Gender;
+use App\Households\Domain\ValueObject\Height;
 use App\Households\Domain\ValueObject\HouseholdId;
 use App\Households\Domain\ValueObject\HouseholdName;
 use App\Households\Domain\ValueObject\MemberCode;
@@ -19,6 +20,8 @@ use App\Households\Domain\ValueObject\MemberId;
 use App\Households\Domain\ValueObject\PersonName;
 use App\Shared\Domain\ValueObject\PhoneNumber;
 use App\Households\Domain\ValueObject\ResidencyStatus;
+use App\Households\Domain\ValueObject\Salutation;
+use App\Households\Domain\ValueObject\Weight;
 use DateTimeImmutable;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\TestDox;
@@ -67,11 +70,16 @@ trait HouseholdsContractCases
 
         $primary = $byId[self::PRIMARY_MEMBER_ID];
         self::assertTrue($primary->code()->equals(MemberCode::of(self::PRIMARY_MEMBER_CODE)));
-        self::assertTrue($primary->name()->equals(PersonName::of('Alice', 'Smith')));
+        self::assertTrue($primary->name()->equals(PersonName::of('Alice', 'Smith', nickname: 'Al')));
         self::assertSame(Gender::Female, $primary->gender());
         self::assertNotNull($primary->email());
         self::assertTrue($primary->email()->equals(EmailAddress::of('alice@example.com')));
         self::assertNull($primary->phone());
+        self::assertSame(Salutation::Ms, $primary->salutation());
+        self::assertNotNull($primary->height());
+        self::assertTrue($primary->height()->equals(Height::ofInches(65)));
+        self::assertNotNull($primary->weight());
+        self::assertTrue($primary->weight()->equals(Weight::ofPounds(140)));
         self::assertSame(ResidencyStatus::Resident, $primary->residencyStatus());
         self::assertTrue($primary->isPrimary());
         self::assertTrue($primary->isActive());
@@ -83,6 +91,10 @@ trait HouseholdsContractCases
         self::assertNull($second->email());
         self::assertNotNull($second->phone());
         self::assertTrue($second->phone()->equals(PhoneNumber::of('5550002')));
+        self::assertNull($second->name()->nickname);
+        self::assertNull($second->salutation());
+        self::assertNull($second->height());
+        self::assertNull($second->weight());
         self::assertSame(ResidencyStatus::NonResident, $second->residencyStatus());
         self::assertFalse($second->isPrimary());
         self::assertTrue($second->isActive());
@@ -248,13 +260,16 @@ trait HouseholdsContractCases
             $this->address(),
             MemberId::fromString(self::PRIMARY_MEMBER_ID),
             MemberCode::of(self::PRIMARY_MEMBER_CODE),
-            PersonName::of('Alice', 'Smith'),
+            PersonName::of('Alice', 'Smith', nickname: 'Al'),
             DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock()),
             Gender::Female,
             EmailAddress::of('alice@example.com'),
             null,
             ResidencyStatus::Resident,
             $this->clock(),
+            Salutation::Ms,
+            Height::ofInches(65),
+            Weight::ofPounds(140),
         );
 
         $household->addMember(

@@ -19,12 +19,15 @@ use App\Households\Domain\Exception\MemberNotFound;
 use App\Households\Domain\ValueObject\Address;
 use App\Households\Domain\ValueObject\DateOfBirth;
 use App\Households\Domain\ValueObject\Gender;
+use App\Households\Domain\ValueObject\Height;
 use App\Households\Domain\ValueObject\HouseholdId;
 use App\Households\Domain\ValueObject\HouseholdName;
 use App\Households\Domain\ValueObject\MemberCode;
 use App\Households\Domain\ValueObject\MemberId;
 use App\Households\Domain\ValueObject\PersonName;
 use App\Households\Domain\ValueObject\ResidencyStatus;
+use App\Households\Domain\ValueObject\Salutation;
+use App\Households\Domain\ValueObject\Weight;
 use App\Shared\Domain\ValueObject\EmailAddress;
 use App\Shared\Domain\ValueObject\PhoneNumber;
 use DateTimeImmutable;
@@ -85,6 +88,9 @@ final class Household
         ?PhoneNumber $primaryMemberPhone,
         ResidencyStatus $primaryMemberResidency,
         ClockInterface $clock,
+        ?Salutation $primaryMemberSalutation = null,
+        ?Height $primaryMemberHeight = null,
+        ?Weight $primaryMemberWeight = null,
     ): self {
         $household = new self();
         $household->id = $id;
@@ -104,6 +110,9 @@ final class Household
             $primaryMemberPhone,
             $primaryMemberResidency,
             true,
+            $primaryMemberSalutation,
+            $primaryMemberHeight,
+            $primaryMemberWeight,
         );
         $primary->attachToHousehold($household);
         $household->members->add($primary);
@@ -166,6 +175,9 @@ final class Household
         ResidencyStatus $residencyStatus,
         bool $isPrimary,
         ClockInterface $clock,
+        ?Salutation $salutation = null,
+        ?Height $height = null,
+        ?Weight $weight = null,
     ): void {
         foreach ($this->members as $existing) {
             if ($existing->id()->equals($memberId)) {
@@ -186,6 +198,9 @@ final class Household
             $phone,
             $residencyStatus,
             $isPrimary,
+            $salutation,
+            $height,
+            $weight,
         );
         $member->attachToHousehold($this);
         $this->members->add($member);
@@ -224,12 +239,29 @@ final class Household
         DateOfBirth $dateOfBirth,
         Gender $gender,
         ClockInterface $clock,
+        ?Salutation $salutation = null,
+        ?Height $height = null,
+        ?Weight $weight = null,
     ): void {
         $member = $this->memberById($memberId);
 
+        $heightChanged = !self::optionalEquals(
+            $member->height(),
+            $height,
+            static fn(Height $a, Height $b): bool => $a->equals($b),
+        );
+        $weightChanged = !self::optionalEquals(
+            $member->weight(),
+            $weight,
+            static fn(Weight $a, Weight $b): bool => $a->equals($b),
+        );
+
         $changed = !$member->name()->equals($name)
             || !$member->dateOfBirth()->equals($dateOfBirth)
-            || $member->gender() !== $gender;
+            || $member->gender() !== $gender
+            || $member->salutation() !== $salutation
+            || $heightChanged
+            || $weightChanged;
 
         if (!$changed) {
             return;
@@ -238,6 +270,8 @@ final class Household
         $member->rename($name);
         $member->updateDateOfBirth($dateOfBirth);
         $member->updateGender($gender);
+        $member->updateSalutation($salutation);
+        $member->updateMeasurements($height, $weight);
 
         $this->recordThat(new MemberProfileUpdated($this->id, $memberId, $clock->now()));
     }

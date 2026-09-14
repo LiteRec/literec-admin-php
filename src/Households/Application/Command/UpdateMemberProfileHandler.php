@@ -7,9 +7,12 @@ namespace App\Households\Application\Command;
 use App\Households\Domain\Households;
 use App\Households\Domain\ValueObject\DateOfBirth;
 use App\Households\Domain\ValueObject\Gender;
+use App\Households\Domain\ValueObject\Height;
 use App\Households\Domain\ValueObject\HouseholdId;
 use App\Households\Domain\ValueObject\MemberId;
 use App\Households\Domain\ValueObject\PersonName;
+use App\Households\Domain\ValueObject\Salutation;
+use App\Households\Domain\ValueObject\Weight;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -35,11 +38,15 @@ final class UpdateMemberProfileHandler
             $command->lastName,
             $command->middleName,
             $command->suffix,
+            $command->nickname,
         );
         $dob = DateOfBirth::parse($command->dobIso, $this->clock);
         $gender = Gender::from($command->genderCode);
+        $salutation = $command->salutationCode !== null ? Salutation::from($command->salutationCode) : null;
+        $height = $command->heightInches !== null ? Height::ofInches($command->heightInches) : null;
+        $weight = $command->weightPounds !== null ? Weight::ofPounds($command->weightPounds) : null;
 
-        $household->updateMemberProfile($memberId, $name, $dob, $gender, $this->clock);
+        $household->updateMemberProfile($memberId, $name, $dob, $gender, $this->clock, $salutation, $height, $weight);
         $this->households->save($household);
 
         foreach ($household->releaseEvents() as $event) {
