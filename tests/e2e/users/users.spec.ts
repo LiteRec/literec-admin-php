@@ -118,6 +118,40 @@ test.describe('directory', () => {
     await expect(trigger).toBeFocused();
   });
 
+  test('blurring the search field does not fire a second members-table request', async ({ page }) => {
+    await page.goto('/admin/users');
+    await expect(page.getByTestId('members-table')).toBeVisible();
+
+    const tableRequests: string[] = [];
+    page.on('request', (request) => {
+      if (request.url().includes('/admin/users/') && request.headers()['hx-request'] === 'true') {
+        tableRequests.push(request.url());
+      }
+    });
+
+    await page.locator('#filter-q').fill(FRANK.lastName);
+    await expect(page.getByRole('link', { name: FRANK.name })).toBeVisible();
+    expect(tableRequests).toHaveLength(1);
+
+    // Blur the text field (was: a bare `change` trigger fired a second,
+    // redundant swap here, cross-wiring the row-actions popovers below). The
+    // wait window must exceed the 500ms `input` debounce so the negative
+    // assertion cannot pass merely by racing ahead of a pending request.
+    await page.locator('#filter-q').blur();
+    const extraRequest = await page
+      .waitForRequest((request) => request.headers()['hx-request'] === 'true', { timeout: 750 })
+      .catch(() => null);
+    expect(extraRequest).toBeNull();
+    expect(tableRequests).toHaveLength(1);
+
+    // FRANK.lastName ("Miller") also matches a second seeded member
+    // (Gail Miller); before the fix, the redundant swap left every visible
+    // row's popover open instead of just the one that was clicked.
+    const trigger = page.getByRole('button', { name: `More actions for ${FRANK.name}` });
+    await trigger.click();
+    await expect(page.getByRole('link', { name: 'View' })).toHaveCount(1);
+  });
+
   test('the Households action opens the list with More filters already expanded', async ({ page }) => {
     await page.goto('/admin/users?primaryOnly=1');
 
