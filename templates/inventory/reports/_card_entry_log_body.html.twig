@@ -9,12 +9,12 @@
         <table class="lr-table" data-testid="report-entry-log-table">
             <thead>
                 <tr>
-                    <th scope="col" class="px-3 py-2">Date</th>
-                    <th scope="col" class="px-3 py-2">Code</th>
-                    <th scope="col" class="px-3 py-2">Facility</th>
-                    <th scope="col" class="px-3 py-2">Kind</th>
-                    <th scope="col" class="px-3 py-2">Reason</th>
-                    <th scope="col" class="px-3 py-2 text-right">Qty</th>
+                    <th scope="col">Date</th>
+                    <th scope="col">Code</th>
+                    <th scope="col">Facility</th>
+                    <th scope="col">Kind</th>
+                    <th scope="col">Reason</th>
+                    <th scope="col" class="text-right">Qty</th>
                 </tr>
             </thead>
             <tbody>
@@ -22,14 +22,14 @@
                     {% set kindEnum = enum('App\\Inventory\\Domain\\ValueObject\\StockMovementKind').tryFrom(row.kind) %}
                     {% set kindLabel = kindEnum is not null ? kindEnum.label : row.kind %}
                     <tr data-testid="report-entry-log-row-{{ row.movementId }}">
-                        <td class="whitespace-nowrap px-3 py-2 text-litrec-text-muted">{{ row.recordedAt|date('Y-m-d H:i') }}</td>
-                        <td class="px-3 py-2 font-mono text-xs text-litrec-text">{{ row.listingCode }}</td>
-                        <td class="px-3 py-2 text-litrec-text">{{ row.facilityCode }}</td>
-                        <td class="whitespace-nowrap px-3 py-2">
+                        <td class="whitespace-nowrap text-litrec-text-muted">{{ row.recordedAt|date('Y-m-d H:i') }}</td>
+                        <td class="font-mono text-xs text-litrec-text">{{ row.listingCode }}</td>
+                        <td class="text-litrec-text">{{ row.facilityCode }}</td>
+                        <td class="whitespace-nowrap">
                             {% include 'components/_badge.html.twig' with { label: kindLabel, variant: 'neutral' } only %}
                         </td>
-                        <td class="px-3 py-2 text-litrec-text-muted">{{ row.reason }}</td>
-                        <td class="px-3 py-2 text-right font-mono text-litrec-text">{{ row.quantity }}</td>
+                        <td class="text-litrec-text-muted">{{ row.reason }}</td>
+                        <td class="text-right font-mono text-litrec-text">{{ row.quantity }}</td>
                     </tr>
                 {% endfor %}
             </tbody>

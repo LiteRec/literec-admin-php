@@ -32,26 +32,26 @@
                     <table class="lr-table">
                         <thead>
                             <tr>
-                                <th scope="col" class="px-3 py-2">Received</th>
-                                <th scope="col" class="px-3 py-2">Age</th>
-                                <th scope="col" class="px-3 py-2 text-right">Remaining</th>
-                                <th scope="col" class="px-3 py-2 text-right">Original</th>
-                                <th scope="col" class="px-3 py-2 text-right">Cost/unit (¢)</th>
-                                <th scope="col" class="px-3 py-2">Status</th>
+                                <th scope="col">Received</th>
+                                <th scope="col">Age</th>
+                                <th scope="col" class="text-right">Remaining</th>
+                                <th scope="col" class="text-right">Original</th>
+                                <th scope="col" class="text-right">Cost/unit (¢)</th>
+                                <th scope="col">Status</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for batch in block.batches %}
                                 {% set ageDays = (date('now').timestamp - batch.receivedAt.timestamp) // 86400 %}
                                 <tr data-testid="history-batch-row-{{ batch.stockBatchId }}">
-                                    <td class="whitespace-nowrap px-3 py-2 text-litrec-text-muted">{{ batch.receivedAt|date('Y-m-d') }}</td>
-                                    <td class="whitespace-nowrap px-3 py-2 text-litrec-text-muted">
+                                    <td class="whitespace-nowrap text-litrec-text-muted">{{ batch.receivedAt|date('Y-m-d') }}</td>
+                                    <td class="whitespace-nowrap text-litrec-text-muted">
                                         {% if ageDays < 1 %}today{% elseif ageDays < 7 %}{{ ageDays }}d{% elseif ageDays < 60 %}{{ (ageDays // 7) }}w{% else %}{{ (ageDays // 30) }}mo{% endif %}
                                     </td>
-                                    <td class="whitespace-nowrap px-3 py-2 text-right font-mono text-litrec-text">{{ batch.remainingQuantityUnits }}</td>
-                                    <td class="whitespace-nowrap px-3 py-2 text-right font-mono text-litrec-text-muted">{{ batch.originalQuantityUnits }}</td>
-                                    <td class="whitespace-nowrap px-3 py-2 text-right font-mono text-litrec-text-muted">{{ batch.costPerUnitCents }}</td>
-                                    <td class="whitespace-nowrap px-3 py-2">
+                                    <td class="whitespace-nowrap text-right font-mono text-litrec-text">{{ batch.remainingQuantityUnits }}</td>
+                                    <td class="whitespace-nowrap text-right font-mono text-litrec-text-muted">{{ batch.originalQuantityUnits }}</td>
+                                    <td class="whitespace-nowrap text-right font-mono text-litrec-text-muted">{{ batch.costPerUnitCents }}</td>
+                                    <td class="whitespace-nowrap">
                                         {% if loop.first and batch.remainingQuantityUnits > 0 %}
                                             {% include 'components/_badge.html.twig' with { label: 'Next to consume', variant: 'success', testid: 'history-batch-next-to-consume' } only %}
                                         {% elseif batch.remainingQuantityUnits == 0 %}

@@ -9,21 +9,21 @@
         <table class="lr-table" data-testid="report-low-stock-table">
             <thead>
                 <tr>
-                    <th scope="col" class="px-3 py-2">Item</th>
-                    <th scope="col" class="px-3 py-2">Facility</th>
-                    <th scope="col" class="px-3 py-2 text-right">On hand</th>
-                    <th scope="col" class="px-3 py-2 text-right">Threshold</th>
-                    <th scope="col" class="px-3 py-2 text-right">Shortfall</th>
+                    <th scope="col">Item</th>
+                    <th scope="col">Facility</th>
+                    <th scope="col" class="text-right">On hand</th>
+                    <th scope="col" class="text-right">Threshold</th>
+                    <th scope="col" class="text-right">Shortfall</th>
                 </tr>
             </thead>
             <tbody>
                 {% for alert in lowStock %}
                     <tr data-testid="report-low-stock-row-{{ alert.inventoryItemId }}">
-                        <td class="px-3 py-2 font-mono text-xs text-litrec-text">{{ alert.inventoryItemId|slice(0, 8) }}</td>
-                        <td class="px-3 py-2 text-litrec-text">{{ alert.facilityCode }}</td>
-                        <td class="px-3 py-2 text-right font-mono text-litrec-text">{{ alert.currentOnHandUnits }}</td>
-                        <td class="px-3 py-2 text-right font-mono text-litrec-text-muted">{{ alert.reorderThresholdUnits }}</td>
-                        <td class="px-3 py-2 text-right font-mono text-red-700">{{ alert.shortfallUnits }}</td>
+                        <td class="font-mono text-xs text-litrec-text">{{ alert.inventoryItemId|slice(0, 8) }}</td>
+                        <td class="text-litrec-text">{{ alert.facilityCode }}</td>
+                        <td class="text-right font-mono text-litrec-text">{{ alert.currentOnHandUnits }}</td>
+                        <td class="text-right font-mono text-litrec-text-muted">{{ alert.reorderThresholdUnits }}</td>
+                        <td class="text-right font-mono text-red-700">{{ alert.shortfallUnits }}</td>
                     </tr>
                 {% endfor %}
             </tbody>
