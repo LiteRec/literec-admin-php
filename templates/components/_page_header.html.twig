@@ -3,10 +3,14 @@
 {# @param string title     Page heading rendered as an h1. #}
 {# @param ?string subtitle  Optional supporting line rendered under the title. #}
 {# @param ?string actions   Pre-rendered HTML for the right-side action slot. #}
+{# @param bool oob  Renders as an hx-swap-oob update (used by pages whose
+   member/entity switches in-page — e.g. LRA-203's household roster switch —
+   to refresh the shared header from a partial response). #}
 {% set breadcrumbs = breadcrumbs|default(null) %}
 {% set subtitle = subtitle|default(null) %}
 {% set actions = actions|default(null) %}
-<div class="lr-pagehead">
+{% set oob = oob|default(false) %}
+<div id="page-header" {% if oob %}hx-swap-oob="true"{% endif %} class="lr-pagehead">
     <div>
         {% if breadcrumbs is not null and breadcrumbs|trim is not empty %}
             {{ breadcrumbs|raw }}

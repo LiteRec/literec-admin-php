@@ -14,6 +14,7 @@ import { ANCHORS } from '../support/anchors';
 const RUN = `${Date.now()}`;
 const ALICE = ANCHORS.members.alice;
 const FRANK = ANCHORS.members.frank;
+const GAIL = ANCHORS.members.gail;
 
 async function createHousehold(page: Page, firstName: string, lastName: string): Promise<void> {
   await page.goto('/admin/users');
@@ -184,6 +185,28 @@ test.describe('member detail', () => {
     // Residency is a sub-card within the Address & Residency card; Alice is a Resident.
     await expect(page.getByTestId('residency-sub-card-body')).toBeVisible();
     await expect(page.getByTestId('residency-status-badge')).toContainText(ALICE.residency);
+  });
+
+  test('switching the active member from the household roster updates the header, page title, breadcrumb and roster highlight', async ({ page }) => {
+    await page.goto('/admin/users');
+    await page.locator('#filter-q').fill(FRANK.lastName);
+    await page.getByRole('link', { name: FRANK.name }).click();
+
+    const frankUrl = page.url();
+    const frankRow = page.locator('[data-testid^="household-member-row-"]', { hasText: FRANK.name });
+    const gailRow = page.locator('[data-testid^="household-member-row-"]', { hasText: GAIL.name });
+
+    await gailRow.click();
+
+    await expect(page).not.toHaveURL(frankUrl);
+    await expect(page.getByTestId('member-header')).toContainText(GAIL.name);
+    await expect(page).toHaveTitle(new RegExp(GAIL.name));
+    await expect(page.locator('h1.lr-pagetitle')).toContainText(GAIL.name);
+    await expect(page.locator('nav[aria-label="Breadcrumb"] [aria-current="page"]')).toContainText(GAIL.name);
+    await expect(gailRow).toHaveAttribute('aria-current', 'true');
+    await expect(frankRow).not.toHaveAttribute('aria-current', 'true');
+    await expect(page.getByTestId('profile-first-name')).toContainText('Gail');
+    await expect(page.getByTestId('profile-last-name')).toContainText('Miller');
   });
 });
 

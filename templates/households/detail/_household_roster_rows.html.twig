@@ -1,0 +1,63 @@
+{# Household card roster rows (LRA-42), extracted from _card_household.html.twig
+   so they can be re-emitted as an out-of-band swap (LRA-203) when the active
+   member changes, keeping the aria-current highlight in sync without a full
+   page reload. htmx re-processes OOB-swapped content, so the hx-get/keydown
+   behaviour on each row still works after the swap.
+
+   A <tbody> cannot stand alone in an htmx response fragment, so when `oob` is
+   set this wraps the rows in <template>…</template> (htmx strips the wrapper
+   after applying the swap) rather than emitting a bare <tbody>.
+
+   Expects:
+     - detail: App\Households\Application\Query\Port\MemberDetail
+     - oob: bool  Renders as an hx-swap-oob update.
+#}
+{% set oob = oob|default(false) %}
+{% if oob %}<template>{% endif %}
+<tbody id="household-roster-rows" {% if oob %}hx-swap-oob="true"{% endif %}>
+    {% for m in detail.householdMembers %}
+        {% set isActiveMember = m.memberId == detail.profile.memberId %}
+        {% set pushUrl = path('member_detail', { householdId: detail.household.householdId, memberId: m.memberId }) %}
+        {# Clickable member row: a table row cannot be a button element, so it
+           uses the role=button + tabindex + keydown pattern. Web:S6819 is
+           suppressed for this file in sonar-project.properties with the rationale. #}
+        <tr
+            data-testid="household-member-row-{{ m.memberId }}"
+            {% if isActiveMember %}
+                aria-current="true"
+                {# LRA-195: /10 tinted the row enough to drop the
+                   memberCode cell's text-litrec-text-muted below AA on
+                   --lr-surface-2 in both themes (4.19:1 dark, 4.48:1
+                   light); /3 keeps the highlight visible at 4.70:1 /
+                   4.80:1. #}
+                class="cursor-pointer bg-litrec-primary/3 ring-1 ring-inset ring-litrec-primary"
+            {% else %}
+                class="cursor-pointer"
+            {% endif %}
+            hx-get="{{ path('member_detail_lower_cards', { householdId: detail.household.householdId, memberId: m.memberId }) }}"
+            hx-target="#member-cards-lower"
+            hx-swap="outerHTML"
+            hx-push-url="{{ pushUrl }}"
+            hx-trigger="click, keydown[key==='Enter']"
+            role="button"
+            tabindex="0"
+            onkeydown="if (event.key === ' ') { event.preventDefault(); this.click(); }"
+        >
+            <td class="{{ not m.isActive ? 'text-litrec-text-muted line-through' : 'text-litrec-text' }}">
+                {{ m.fullName }}
+            </td>
+            <td class="whitespace-nowrap font-mono text-xs text-litrec-text-muted {{ not m.isActive ? 'line-through' : '' }}">
+                {{ m.memberCode }}
+            </td>
+            <td class="whitespace-nowrap">
+                {% if m.isPrimary %}
+                    {% include 'components/_badge.html.twig' with { label: 'Primary', variant: 'info' } only %}
+                {% endif %}
+                {% if not m.isActive %}
+                    {% include 'components/_badge.html.twig' with { label: 'Deactivated', variant: 'neutral', class: 'ml-1' } only %}
+                {% endif %}
+            </td>
+        </tr>
+    {% endfor %}
+</tbody>
+{% if oob %}</template>{% endif %}

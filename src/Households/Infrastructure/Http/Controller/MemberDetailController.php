@@ -129,12 +129,19 @@ final class MemberDetailController extends AbstractController
     }
 
     /**
-     * HTMX partial endpoint that returns only the three lower cards
-     * (Profile, Address, History) for the requested member. The Household
-     * card (LRA-42) wraps this endpoint to switch the active member
-     * without re-rendering itself; HTMX swaps `#member-cards-lower` with
-     * the response body and the client-side `hx-push-url` keeps the
-     * browser URL in sync with the new (householdId, memberId) tuple.
+     * HTMX partial endpoint that returns the three lower cards
+     * (Profile, Address, History) for the requested member, plus
+     * out-of-band copies of everything else on the page that shows the
+     * active member's identity (LRA-203): the document title, the shared
+     * page head, the member header, and the Household card's roster
+     * highlight. The Household card (LRA-42) wraps this endpoint to switch
+     * the active member without re-rendering itself; HTMX swaps
+     * `#member-cards-lower` with the response body, applies the OOB
+     * fragments to their own ids, and the client-side `hx-push-url` keeps
+     * the browser URL in sync with the new (householdId, memberId) tuple.
+     * The Profile/Address/Residency cards' Cancel buttons also call this
+     * endpoint for the currently active member; they receive the same OOB
+     * copies, which is harmless since nothing has changed.
      *
      * Uses an underscore-prefixed path segment to keep the partial route
      * out of the canonical user-facing URL space served by the main
@@ -160,6 +167,7 @@ final class MemberDetailController extends AbstractController
 
         $response = $this->render('households/detail/_lower_cards.html.twig', [
             'detail' => $detail,
+            'oob'    => true,
         ]);
         $response->headers->set(self::HEADER_HX_TRIGGER, $this->memberLoadedTrigger($detail));
 
