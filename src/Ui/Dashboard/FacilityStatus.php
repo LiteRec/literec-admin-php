@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Ui\Dashboard;
 
 /**
- * One row in the Facility Status widget: a facility, its current condition as
- * a badge, and today's visitor count. The badge variant is one of the shared
- * lr-badge variants (success | info | warning | danger | neutral); the _badge
- * partial sanitises anything else to neutral. Presentation-only sample data
+ * One row in the Facilities today widget: a facility, its current condition
+ * as a badge, and today's check-in count. The badge variant is one of the
+ * shared lr-badge variants (success | warning | danger | info | neutral);
+ * the _badge partial sanitises anything else to neutral. success/warning/
+ * neutral double as the Organic sage/accent/neutral status tones (Open =
+ * sage, Busy = accent, Maintenance = neutral). Presentation-only sample data
  * until a Facilities read model comes online.
  */
 final readonly class FacilityStatus
@@ -17,10 +19,10 @@ final readonly class FacilityStatus
         public string $name,
         public string $conditionLabel,
         public string $badgeVariant,
-        public int $visitorsToday,
+        public int $checkInsToday,
     ) {
-        if ($visitorsToday < 0) {
-            throw new \InvalidArgumentException('Visitor count cannot be negative.');
+        if ($checkInsToday < 0) {
+            throw new \InvalidArgumentException('Check-in count cannot be negative.');
         }
     }
 }

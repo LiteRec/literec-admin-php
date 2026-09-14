@@ -1,0 +1,73 @@
+{# Recent transactions table partial for the dashboard (LRA-189). Rendered
+   both as part of the full page (status: null) and by dashboard_transactions
+   on every HTMX status-pill swap, so the pill bar's active state and the
+   table body always stay in agreement.
+
+   @param list<TransactionRow> transactions Rows to render, already filtered.
+   @param ?TransactionStatus status Current filter, or null for "All".
+   @param list<TransactionStatus> statusCases Every status, for the pill bar. #}
+<div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+    <div class="lr-tabs" role="group" aria-label="Filter transactions by status">
+        <button
+            type="button"
+            class="lr-tab{{ status is null ? ' is-active' : '' }}"
+            hx-get="{{ path('dashboard_transactions') }}"
+            hx-target="#dashboard-transactions-table"
+            hx-swap="innerHTML"
+            hx-push-url="true"
+            data-testid="transactions-filter-all"
+        >All</button>
+        {% for case in statusCases %}
+            <button
+                type="button"
+                class="lr-tab{{ status == case ? ' is-active' : '' }}"
+                hx-get="{{ path('dashboard_transactions', { status: case.value }) }}"
+                hx-target="#dashboard-transactions-table"
+                hx-swap="innerHTML"
+                hx-push-url="true"
+                data-testid="transactions-filter-{{ case.value }}"
+            >{{ case.name }}</button>
+        {% endfor %}
+    </div>
+    <span class="lr-muted text-xs" data-testid="transactions-filter-label">
+        {{ status is null ? 'Today' : (status.name ~ ' · today') }}
+    </span>
+</div>
+
+{% if transactions is empty %}
+    {% include 'components/_empty_state.html.twig' with {
+        title: 'No transactions',
+        message: 'No transactions match this filter today.',
+        icon: 'tag',
+    } only %}
+{% else %}
+    <div class="overflow-x-auto">
+        <table class="lr-table" data-testid="transactions-table">
+            <thead>
+                <tr>
+                    <th scope="col">Time</th>
+                    <th scope="col">User</th>
+                    <th scope="col">Method</th>
+                    <th scope="col" class="text-right">Amount</th>
+                    <th scope="col">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tx in transactions %}
+                    <tr data-testid="transaction-row">
+                        <td class="whitespace-nowrap lr-muted text-xs">{{ tx.at|date('g:i A') }}</td>
+                        <td>
+                            <div class="flex items-center gap-2">
+                                <span class="lr-avatar-sm" aria-hidden="true">{{ tx.userName|user_initials }}</span>
+                                <span class="lr-row-strong text-sm">{{ tx.userName }}</span>
+                            </div>
+                        </td>
+                        <td class="lr-muted text-sm">{{ tx.method }}</td>
+                        <td class="text-right lr-num">{{ tx.amountFormatted }}</td>
+                        <td>{% include 'components/_status_badge.html.twig' with { status: tx.status.value } only %}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endif %}

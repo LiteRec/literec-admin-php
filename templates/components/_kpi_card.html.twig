@@ -1,18 +1,29 @@
-{# @param string icon     Curated icon name for the tile chip. #}
+{# @param string icon      Curated icon name for the tinted icon circle. #}
 {# @param string value    Pre-formatted value (e.g. "$4,182.50", "1,847"). #}
 {# @param string label    Visible KPI label (e.g. "Today's Revenue"). #}
-{# @param string gradient Trusted CSS gradient (server-side constant) for the tile background. #}
-{# @param ?string delta   Optional supporting delta, shown in a pill. #}
+{# @param string tint     One of: accent, sage — tints the icon circle. Defaults to accent. #}
+{# @param ?string deltaText Optional coloured delta figure (e.g. "+12%"). #}
+{# @param ?string deltaTone Tone for deltaText: positive | negative | neutral. Defaults to neutral. #}
+{# @param ?string note      Optional plain trailing text (e.g. "vs. yesterday", "next 7 days"). #}
 {% import 'components/_icon.html.twig' as ui %}
-{% set delta = delta|default(null) %}
-<div data-gsap="card" data-testid="kpi-card" class="lr-kpi" style="background: {{ gradient }}">
-    <div><span class="ico">{{ ui.icon(icon, 18) }}</span></div>
-    <div>
-        <div class="val lr-num" data-testid="kpi-value">{{ value }}</div>
-        <div class="lbl">{{ label }}</div>
-        {% if delta is not null and delta|trim is not empty %}
-            <div class="mt-2"><span class="delta">{{ ui.icon('arrowUp', 11) }} {{ delta }}</span></div>
-        {% endif %}
-    </div>
-    <span class="blob"></span>
+{% set deltaText = deltaText|default(null) %}
+{% set deltaTone = deltaTone|default(null) %}
+{% set note = note|default(null) %}
+{% set tint = tint in ['accent', 'sage'] ? tint : 'accent' %}
+{% set deltaTone = deltaTone in ['positive', 'negative', 'neutral'] ? deltaTone : 'neutral' %}
+<div data-gsap="card" data-testid="kpi-card" class="lr-card lr-kpi-flat">
+    <span class="lr-kpi-flat-icon tint-{{ tint }}">{{ ui.icon(icon, 18) }}</span>
+    <div class="lr-kpi-flat-label">{{ label }}</div>
+    <div class="lr-kpi-flat-value lr-num" data-testid="kpi-value">{{ value }}</div>
+    {% if (deltaText is not null and deltaText|trim is not empty) or (note is not null and note|trim is not empty) %}
+        <div class="lr-kpi-flat-delta">
+            {% if deltaText is not null and deltaText|trim is not empty %}
+                <span class="lr-kpi-flat-delta-pill tone-{{ deltaTone }}">
+                    {% if deltaTone == 'positive' %}{{ ui.icon('arrowUp', 11) }}{% endif %}
+                    {{ deltaText }}
+                </span>
+            {% endif %}
+            {% if note is not null and note|trim is not empty %}<span>{{ note }}</span>{% endif %}
+        </div>
+    {% endif %}
 </div>

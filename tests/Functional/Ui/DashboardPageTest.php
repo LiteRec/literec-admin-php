@@ -21,8 +21,8 @@ final class DashboardPageTest extends WebTestCase
     private const string TEST_USERNAME = 'dashboard_e2e';
 
     #[Test]
-    #[TestDox('Signed-in staff land on the redesigned Admin Dashboard with all Eagleton sections.')]
-    public function dashboard_renders_the_eagleton_sections(): void
+    #[TestDox('Signed-in staff land on the redesigned Admin Dashboard with all Organic sections.')]
+    public function dashboard_renders_the_organic_sections(): void
     {
         $client = static::createClient();
         $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
@@ -37,27 +37,59 @@ final class DashboardPageTest extends WebTestCase
         self::assertSelectorTextContains('.lr-pagesub', (new DateTimeImmutable())->format('l, F j, Y'));
         self::assertSelectorTextContains('.lr-pagesub', 'Main Facility');
 
-        // KPI gradient tiles: four, each a GSAP card carrying its label in .lbl.
+        // Page actions: Close-out report + New sale.
+        self::assertSelectorTextContains('main a[href$="/reports"]', 'Close-out report');
+        self::assertSelectorTextContains('main a[href="/cash-register"]', 'New sale');
+
+        // Flat KPI cards: four, each carrying its label.
         $kpiLabels = $crawler
-            ->filter('[aria-labelledby="kpi-heading"] .lr-kpi[data-gsap="card"] .lbl')
+            ->filter('[aria-labelledby="kpi-heading"] [data-testid="kpi-card"] .lr-kpi-flat-label')
             ->each(static fn ($n): string => trim($n->text()));
         self::assertSame(
             ["Today's Revenue", 'Active Memberships', 'Upcoming Reservations', 'Open Refund Requests'],
             $kpiLabels,
         );
+        self::assertSelectorNotExists('[aria-labelledby="kpi-heading"] .lr-kpi');
 
-        // Recent Activity feed carries every mock transaction row.
-        $activityRows = $crawler->filter('[aria-labelledby="activity-heading"] .lr-list-row')->count();
-        self::assertGreaterThanOrEqual(10, $activityRows);
+        // Recent transactions table carries every mock transaction row and a status filter.
+        $transactionRows = $crawler
+            ->filter('[aria-labelledby="transactions-heading"] [data-testid="transaction-row"]')
+            ->count();
+        self::assertGreaterThanOrEqual(10, $transactionRows);
+        self::assertSelectorExists('[data-testid="transactions-filter-all"].is-active');
+        self::assertSelectorTextContains('[data-testid="transactions-filter-label"]', 'Today');
 
         // Stubbed presentation sections render.
-        $eventRows = $crawler->filter('[aria-labelledby="events-heading"] .lr-list-row')->count();
+        $eventRows = $crawler->filter('[aria-labelledby="upcoming-heading"] .lr-list-row')->count();
         self::assertGreaterThanOrEqual(3, $eventRows);
-        $facilityRows = $crawler->filter('[aria-labelledby="facilities-heading"] .lr-list-row')->count();
+        $facilityRows = $crawler
+            ->filter('[aria-labelledby="facilities-heading"] [data-testid="facility-row"]')
+            ->count();
         self::assertGreaterThanOrEqual(3, $facilityRows);
 
-        // Quick Actions: the seven nav routes as dashed tiles.
-        $quickActions = $crawler->filter('[aria-labelledby="quick-actions-heading"] a.lr-quick')->count();
-        self::assertSame(7, $quickActions);
+        // Quick Actions is gone (LRA-189).
+        self::assertSelectorNotExists('[aria-labelledby="quick-actions-heading"]');
+    }
+
+    #[Test]
+    #[TestDox('The transactions HTMX partial filters by status and reports the active filter in its label.')]
+    public function transactions_partial_filters_by_status(): void
+    {
+        $client = static::createClient();
+        $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
+
+        $crawler = $client->request('GET', '/dashboard/_transactions?status=pending');
+        self::assertResponseIsSuccessful();
+
+        self::assertSelectorTextContains('[data-testid="transactions-filter-label"]', 'Pending · today');
+        self::assertSelectorExists('[data-testid="transactions-filter-pending"].is-active');
+
+        $badges = $crawler
+            ->filter('[data-testid="transaction-row"] .lr-badge')
+            ->each(static fn ($n): string => trim($n->text()));
+        self::assertNotEmpty($badges);
+        foreach ($badges as $badge) {
+            self::assertSame('Pending', $badge);
+        }
     }
 }

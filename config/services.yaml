@@ -156,6 +156,11 @@ services:
     # template that consume the port.
     App\Households\Application\Port\MemberTransactionHistory: '@App\Households\Infrastructure\Acl\Stub\StubMemberTransactionHistory'
 
+    # LRA-189: bind the dashboard greeting's CurrentStaffMember port to the
+    # Symfony Security adapter, keeping MockDashboardData decoupled from
+    # Security for unit testing.
+    App\Ui\Dashboard\CurrentStaffMember: '@App\Ui\Dashboard\SecurityCurrentStaffMember'
+
     # Inject the command bus into the SecurityUserProvider so the password
     # upgrader can dispatch a ChangeUserPassword command.
     App\Users\Infrastructure\Security\SecurityUserProvider:
