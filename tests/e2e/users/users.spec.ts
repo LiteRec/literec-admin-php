@@ -93,7 +93,29 @@ test.describe('directory', () => {
     await page.locator('#filter-q').fill(FRANK.lastName);
     await page.getByTestId('segment-pill-residents').click();
 
+    // The hidden segment field must flip synchronously on click, before any
+    // response lands — otherwise a debounced search-input request still in
+    // flight would resubmit with the pre-click segment and revert the pick
+    // (LRA-192 review).
+    await expect(page.locator('input[name="segment"]')).toHaveValue('residents');
+
     await expect(page).toHaveURL(new RegExp(`q=${FRANK.lastName}.*segment=residents|segment=residents.*q=${FRANK.lastName}`));
+  });
+
+  test('the row actions popover returns focus to its trigger on Escape', async ({ page }) => {
+    await page.goto('/admin/users');
+    await page.locator('#filter-q').fill(FRANK.lastName);
+
+    const trigger = page.getByRole('button', { name: `More actions for ${FRANK.name}` });
+    await trigger.click();
+    await expect(page.getByRole('link', { name: 'View' })).toBeVisible();
+
+    await page.keyboard.press('Escape');
+
+    // x-trap (not x-trap.noreturn) restores focus to the trigger instead of
+    // dropping it to <body> when the popover's hidden element leaves the
+    // tab order (LRA-192 review).
+    await expect(trigger).toBeFocused();
   });
 
   test('the Households action opens the list with More filters already expanded', async ({ page }) => {

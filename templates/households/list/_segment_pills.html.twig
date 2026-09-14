@@ -35,9 +35,15 @@
            time, not whatever app.request.query.all held at the last render —
            a stale snapshot could otherwise silently drop text the operator
            had already typed (LRA-192 review). hx-vals overrides the form's
-           own hidden `segment` input and resets to page 1. #}
+           own hidden `segment` input for THIS request and resets to page 1;
+           the onclick additionally writes the hidden input synchronously so
+           a later debounced search-input request (still in flight when this
+           click happens) also carries the newly-picked segment instead of
+           the pre-click value (LRA-192 review). #}
         <button
             type="button"
+            value="{{ segment }}"
+            onclick="this.form.elements.segment.value = this.value"
             hx-get="{{ path('households_members_table') }}"
             hx-include="closest form"
             hx-vals='{{ { segment: segment, page: 1 }|json_encode|e('html_attr') }}'
