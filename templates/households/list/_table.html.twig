@@ -90,10 +90,14 @@
                         <td class="whitespace-nowrap text-litrec-text-muted">—</td>
                         <td class="whitespace-nowrap">
                             <span class="inline-flex items-center gap-2 text-litrec-text">
+                                {# --lr-success / --lr-text-muted (not the sage-500/neutral-400 ramp
+                                   steps, which carry no dark-mode override) — the same dark-safe
+                                   status-dot pairing the dashboard uses (templates/dashboard/index.html.twig,
+                                   LRA-195). #}
                                 <span
                                     aria-hidden="true"
                                     class="lr-dot"
-                                    style="background: {{ item.isActive ? 'var(--lr-sage-500)' : 'var(--lr-neutral-400)' }}"
+                                    style="background: {{ item.isActive ? 'var(--lr-success)' : 'var(--lr-text-muted)' }}"
                                 ></span>
                                 {{ item.isActive ? 'Active' : 'Inactive' }}
                             </span>
