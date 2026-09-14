@@ -21,6 +21,11 @@ export const ANCHORS = {
       name: 'Frank Miller',
       lastName: 'Miller',
     },
+    // Read-only: household roster mate of `frank` (same "Miller Senior"
+    // household), used only to assert the in-page member-switch UI (LRA-203).
+    gail: {
+      name: 'Gail Miller',
+    },
   },
   inventory: {
     // A seeded facility code (stock + purchase-order flows target it).

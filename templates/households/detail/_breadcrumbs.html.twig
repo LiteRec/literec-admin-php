@@ -1,0 +1,16 @@
+{# Member detail page breadcrumb trail (LRA-203). Defined once so the full
+   page's `breadcrumbs` block and the lower-cards OOB bundle
+   (_member_context_oob.html.twig) render the same Home → Users → household
+   → member trail for whichever member is currently active.
+
+   Expects:
+     - detail: App\Households\Application\Query\Port\MemberDetail
+#}
+{% include 'components/_breadcrumbs.html.twig' with {
+    trail: [
+        { label: 'Home', route: 'app_dashboard' },
+        { label: 'Users', route: 'users_index' },
+        { label: detail.household.householdName, route: null },
+        { label: detail.profile.fullName, route: null },
+    ],
+} only %}

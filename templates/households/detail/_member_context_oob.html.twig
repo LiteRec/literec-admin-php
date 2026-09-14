@@ -1,0 +1,30 @@
+{# Out-of-band member-context bundle (LRA-203), rendered only from the
+   lower-cards endpoint (MemberDetailController::lowerCards()). The Household
+   card's roster click only swaps #member-cards-lower, so everything else on
+   the page that shows the active member's identity would otherwise keep
+   showing the previously active member. Each piece below lives outside
+   #member-cards-lower and is re-emitted here as an hx-swap-oob update so the
+   whole page reflects the newly active member:
+     - the document <title> (htmx applies a root-level <title> in a partial
+       response to document.title);
+     - the shared page head (breadcrumb trail + h1 page title);
+     - the member header (avatar, name, household, status/role/residency badges);
+     - the Household card's roster rows (aria-current highlight).
+
+   Expects:
+     - detail: App\Households\Application\Query\Port\MemberDetail
+#}
+<title>{{ detail.profile.fullName }} — LiteRecAdmin</title>
+
+{% set breadcrumbs %}
+    {% include 'households/detail/_breadcrumbs.html.twig' with { detail: detail } only %}
+{% endset %}
+{% include 'components/_page_header.html.twig' with {
+    breadcrumbs: breadcrumbs,
+    title: detail.profile.fullName,
+    oob: true,
+} only %}
+
+{% include 'households/detail/_member_header.html.twig' with { detail: detail, oob: true } only %}
+
+{% include 'households/detail/_household_roster_rows.html.twig' with { detail: detail, oob: true } only %}

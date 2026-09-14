@@ -8,9 +8,21 @@
    cards re-render against the new MemberDetail payload, while the
    Household card itself stays in the DOM.
 
+   When `oob` is set (the lowerCards() partial endpoint only), the response
+   also carries out-of-band copies of everything outside #member-cards-lower
+   that shows the active member's identity — the document title, the shared
+   page head, the member header, and the Household card's roster highlight
+   (LRA-203) — so the whole page reflects the newly active member without a
+   full reload.
+
    Expects:
      - detail: App\Households\Application\Query\Port\MemberDetail
+     - oob: bool
 #}
+{% set oob = oob|default(false) %}
+{% if oob %}
+    {% include 'households/detail/_member_context_oob.html.twig' with { detail: detail } only %}
+{% endif %}
 <div id="member-cards-lower" data-testid="member-cards-lower" class="contents">
     <section data-testid="card-profile">
         {% include 'households/detail/_card_profile.html.twig' with { detail: detail } only %}

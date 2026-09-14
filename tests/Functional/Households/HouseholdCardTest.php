@@ -113,7 +113,7 @@ final class HouseholdCardTest extends WebTestCase
     }
 
     #[Test]
-    #[TestDox('GET /admin/users/{h}/{m}/_lower-cards returns a fragment containing only the three lower cards.')]
+    #[TestDox('GET /_lower-cards returns the lower cards plus OOB member-context copies, no Household card.')]
     public function get_lower_cards_partial_returns_only_the_three_lower_cards(): void
     {
         $client = static::createClient();
@@ -136,6 +136,112 @@ final class HouseholdCardTest extends WebTestCase
         self::assertSelectorExists('[data-testid="card-address"]');
         self::assertSelectorExists('[data-testid="card-history"]');
         self::assertSelectorNotExists('[data-testid="card-household"]');
+    }
+
+    #[Test]
+    #[TestDox('The lower-cards partial carries an OOB member-header copy for the requested member.')]
+    public function lower_cards_partial_carries_oob_member_header_for_requested_member(): void
+    {
+        $client = static::createClient();
+        $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
+        $this->seedHouseholdA();
+
+        $crawler = $client->request(
+            'GET',
+            sprintf('/admin/users/%s/%s/_lower-cards', self::HOUSEHOLD_A, self::A_SECOND_ID),
+        );
+        self::assertResponseIsSuccessful();
+
+        $header = $crawler->filter('#member-header');
+        self::assertSame(1, $header->count(), 'OOB member header should be present.');
+        self::assertSame('true', $header->attr('hx-swap-oob'));
+        self::assertStringContainsString('Bob Brown', $header->text());
+        self::assertGreaterThan(0, $header->filter('[data-testid="badge-secondary"]')->count());
+        self::assertSame(0, $header->filter('[data-testid="badge-primary"]')->count());
+        self::assertStringContainsString('Non-resident', $header->filter('[data-testid="badge-residency"]')->text());
+    }
+
+    #[Test]
+    #[TestDox('The lower-cards partial carries an OOB page-head copy for the requested member.')]
+    public function lower_cards_partial_carries_oob_page_head_for_requested_member(): void
+    {
+        $client = static::createClient();
+        $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
+        $this->seedHouseholdA();
+
+        $crawler = $client->request(
+            'GET',
+            sprintf('/admin/users/%s/%s/_lower-cards', self::HOUSEHOLD_A, self::A_SECOND_ID),
+        );
+        self::assertResponseIsSuccessful();
+
+        $pageHeader = $crawler->filter('#page-header');
+        self::assertSame(1, $pageHeader->count(), 'OOB page header should be present.');
+        self::assertSame('true', $pageHeader->attr('hx-swap-oob'));
+        self::assertStringContainsString('Bob Brown', $pageHeader->filter('h1.lr-pagetitle')->text());
+        self::assertStringContainsString(
+            'Bob Brown',
+            $pageHeader->filter('nav[aria-label="Breadcrumb"] [aria-current="page"]')->text(),
+        );
+
+        $body = (string) $client->getResponse()->getContent();
+        self::assertMatchesRegularExpression('#<title>[^<]*Bob Brown[^<]*</title>#', $body);
+    }
+
+    #[Test]
+    #[TestDox('The lower-cards partial carries an OOB roster copy marking the requested member current.')]
+    public function lower_cards_partial_carries_oob_roster_with_requested_member_current(): void
+    {
+        $client = static::createClient();
+        $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
+        $this->seedHouseholdA();
+
+        $client->request(
+            'GET',
+            sprintf('/admin/users/%s/%s/_lower-cards', self::HOUSEHOLD_A, self::A_SECOND_ID),
+        );
+        self::assertResponseIsSuccessful();
+
+        $body = (string) $client->getResponse()->getContent();
+
+        self::assertMatchesRegularExpression(
+            '#<tbody id="household-roster-rows" hx-swap-oob="true">#',
+            $body,
+            'OOB roster tbody should be present.',
+        );
+
+        self::assertMatchesRegularExpression(
+            '#data-testid="household-member-row-' . preg_quote(self::A_SECOND_ID, '#') . '"\s+aria-current="true"#',
+            $body,
+            "Bob's row should carry aria-current in the OOB roster copy.",
+        );
+        foreach ([self::A_PRIMARY_ID, self::A_THIRD_ID] as $otherId) {
+            self::assertDoesNotMatchRegularExpression(
+                '#data-testid="household-member-row-' . preg_quote($otherId, '#') . '"\s+aria-current="true"#',
+                $body,
+                sprintf('Row %s should not carry aria-current in the OOB roster copy.', $otherId),
+            );
+        }
+    }
+
+    #[Test]
+    #[TestDox('A direct GET of the member detail page emits no out-of-band markup and no duplicate ids.')]
+    public function full_page_render_emits_no_out_of_band_markup(): void
+    {
+        $client = static::createClient();
+        $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
+        $this->seedHouseholdA();
+
+        $crawler = $client->request(
+            'GET',
+            sprintf(self::ROUTE_MEMBER, self::HOUSEHOLD_A, self::A_PRIMARY_ID),
+        );
+        self::assertResponseIsSuccessful();
+
+        self::assertSelectorNotExists('[hx-swap-oob]');
+        self::assertSame(1, $crawler->filter('#member-header')->count());
+        self::assertSame(1, $crawler->filter('#page-header')->count());
+        self::assertSame(1, $crawler->filter('#household-roster-rows')->count());
     }
 
     #[Test]
