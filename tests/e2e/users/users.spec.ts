@@ -232,6 +232,30 @@ test.describe('create and edit', () => {
     await page.getByTestId('profile-save').click();
     await expect(page.getByTestId('profile-first-name')).toContainText('Quincy');
 
+    // Set salutation, nickname, height, and weight (LRA-205).
+    await page.getByTestId('profile-edit').click();
+    await page.getByTestId('card-profile').getByLabel('Salutation').selectOption({ label: 'Mr.' });
+    await page.getByTestId('card-profile').getByLabel('Goes by').fill('Q');
+    await page.getByTestId('card-profile').getByLabel('Height (inches)').fill('71');
+    await page.getByTestId('card-profile').getByLabel('Weight (lbs)').fill('180');
+    await page.getByTestId('profile-save').click();
+    await expect(page.getByTestId('profile-salutation')).toContainText('Mr.');
+    await expect(page.getByTestId('profile-nickname')).toContainText('Q');
+    await expect(page.getByTestId('profile-height')).toContainText('5 ft 11 in');
+    await expect(page.getByTestId('profile-weight')).toContainText('180 lbs');
+
+    // Clear salutation, nickname, height, and weight.
+    await page.getByTestId('profile-edit').click();
+    await page.getByTestId('card-profile').getByLabel('Salutation').selectOption({ label: 'Select…' });
+    await page.getByTestId('card-profile').getByLabel('Goes by').fill('');
+    await page.getByTestId('card-profile').getByLabel('Height (inches)').fill('');
+    await page.getByTestId('card-profile').getByLabel('Weight (lbs)').fill('');
+    await page.getByTestId('profile-save').click();
+    await expect(page.getByTestId('profile-salutation')).toContainText('—');
+    await expect(page.getByTestId('profile-nickname')).toContainText('—');
+    await expect(page.getByTestId('profile-height')).toContainText('—');
+    await expect(page.getByTestId('profile-weight')).toContainText('—');
+
     // Edit contact info.
     await page.getByTestId('contact-edit').click();
     await page.getByTestId('card-profile').getByLabel('Email').fill(`quincy.${lastName}@example.com`.toLowerCase());

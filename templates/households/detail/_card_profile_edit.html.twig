@@ -23,12 +23,16 @@
         {% include 'components/_form_error_summary.html.twig' with { form: form, testid: 'profile-form-error' } only %}
 
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {{ form_row(form.salutationCode, { attr: { class: 'litrec-input' }, row_attr: { class: 'lr-field' }, label_attr: { class: 'lr-label' } }) }}
             {{ form_row(form.firstName, { attr: { class: 'litrec-input' }, row_attr: { class: 'lr-field' }, label_attr: { class: 'lr-label' } }) }}
             {{ form_row(form.middleName, { attr: { class: 'litrec-input' }, row_attr: { class: 'lr-field' }, label_attr: { class: 'lr-label' } }) }}
             {{ form_row(form.lastName, { attr: { class: 'litrec-input' }, row_attr: { class: 'lr-field' }, label_attr: { class: 'lr-label' } }) }}
             {{ form_row(form.suffix, { attr: { class: 'litrec-input' }, row_attr: { class: 'lr-field' }, label_attr: { class: 'lr-label' } }) }}
+            {{ form_row(form.nickname, { attr: { class: 'litrec-input' }, row_attr: { class: 'lr-field' }, label_attr: { class: 'lr-label' } }) }}
             {{ form_row(form.dobIso, { attr: { class: 'litrec-input' }, row_attr: { class: 'lr-field' }, label_attr: { class: 'lr-label' } }) }}
             {{ form_row(form.genderCode, { attr: { class: 'litrec-input' }, row_attr: { class: 'lr-field' }, label_attr: { class: 'lr-label' } }) }}
+            {{ form_row(form.heightInches, { attr: { class: 'litrec-input' }, row_attr: { class: 'lr-field' }, label_attr: { class: 'lr-label' } }) }}
+            {{ form_row(form.weightPounds, { attr: { class: 'litrec-input' }, row_attr: { class: 'lr-field' }, label_attr: { class: 'lr-label' } }) }}
         </div>
 
         {{ form_widget(form._token) }}

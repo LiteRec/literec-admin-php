@@ -19,6 +19,7 @@ use App\Households\Domain\ValueObject\MemberCode;
 use App\Households\Domain\ValueObject\MemberId;
 use App\Households\Domain\ValueObject\PersonName;
 use App\Households\Domain\ValueObject\ResidencyStatus;
+use App\Households\Domain\ValueObject\Salutation;
 use App\Households\Infrastructure\Persistence\InMemory\InMemoryHouseholds;
 use App\Tests\Support\Fake\RecordingMessageBus;
 use DateTimeImmutable;
@@ -86,6 +87,73 @@ final class UpdateMemberProfileHandlerTest extends TestCase
         $messages = $this->eventBus->dispatchedMessages();
         self::assertCount(1, $messages);
         self::assertInstanceOf(MemberProfileUpdated::class, $messages[0]);
+    }
+
+    #[Test]
+    #[TestDox('Maps nickname, salutation code, height, and weight to the domain value objects when provided.')]
+    public function happy_path_maps_measurement_fields_to_value_objects(): void
+    {
+        $command = new UpdateMemberProfile(
+            householdId: self::HOUSEHOLD_ID,
+            memberId: self::PRIMARY_ID,
+            firstName: 'Alice',
+            lastName: 'Smith',
+            middleName: null,
+            suffix: null,
+            dobIso: '1990-01-01',
+            genderCode: 'F',
+            nickname: 'Al',
+            salutationCode: 'MS',
+            heightInches: 65,
+            weightPounds: 140,
+        );
+
+        ($this->handler)($command);
+
+        $stored = $this->households->findById(HouseholdId::fromString(self::HOUSEHOLD_ID));
+        $member = $this->memberById($stored, self::PRIMARY_ID);
+        self::assertSame('Al', $member->name()->nickname);
+        self::assertSame(Salutation::Ms, $member->salutation());
+        self::assertSame(65, $member->height()?->inches);
+        self::assertSame(140, $member->weight()?->pounds);
+    }
+
+    #[Test]
+    #[TestDox('Blank nickname/salutation/height/weight clear previously stored values.')]
+    public function blank_measurement_fields_clear_stored_values(): void
+    {
+        ($this->handler)(new UpdateMemberProfile(
+            householdId: self::HOUSEHOLD_ID,
+            memberId: self::PRIMARY_ID,
+            firstName: 'Alice',
+            lastName: 'Smith',
+            middleName: null,
+            suffix: null,
+            dobIso: '1990-01-01',
+            genderCode: 'F',
+            nickname: 'Al',
+            salutationCode: 'MS',
+            heightInches: 65,
+            weightPounds: 140,
+        ));
+
+        ($this->handler)(new UpdateMemberProfile(
+            householdId: self::HOUSEHOLD_ID,
+            memberId: self::PRIMARY_ID,
+            firstName: 'Alice',
+            lastName: 'Smith',
+            middleName: null,
+            suffix: null,
+            dobIso: '1990-01-01',
+            genderCode: 'F',
+        ));
+
+        $stored = $this->households->findById(HouseholdId::fromString(self::HOUSEHOLD_ID));
+        $member = $this->memberById($stored, self::PRIMARY_ID);
+        self::assertNull($member->name()->nickname);
+        self::assertNull($member->salutation());
+        self::assertNull($member->height());
+        self::assertNull($member->weight());
     }
 
     #[Test]

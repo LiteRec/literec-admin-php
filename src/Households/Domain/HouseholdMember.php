@@ -7,10 +7,13 @@ namespace App\Households\Domain;
 use App\Households\Domain\ValueObject\DateOfBirth;
 use App\Households\Domain\ValueObject\Deactivation;
 use App\Households\Domain\ValueObject\Gender;
+use App\Households\Domain\ValueObject\Height;
 use App\Households\Domain\ValueObject\MemberCode;
 use App\Households\Domain\ValueObject\MemberId;
 use App\Households\Domain\ValueObject\PersonName;
 use App\Households\Domain\ValueObject\ResidencyStatus;
+use App\Households\Domain\ValueObject\Salutation;
+use App\Households\Domain\ValueObject\Weight;
 use App\Shared\Domain\ValueObject\EmailAddress;
 use App\Shared\Domain\ValueObject\PhoneNumber;
 use DateTimeImmutable;
@@ -32,6 +35,9 @@ final class HouseholdMember
     private Gender $gender;
     private ?EmailAddress $email;
     private ?PhoneNumber $phone;
+    private ?Salutation $salutation;
+    private ?Height $height;
+    private ?Weight $weight;
     private ResidencyStatus $residencyStatus;
     private bool $isPrimary;
     private bool $isActive;
@@ -65,6 +71,9 @@ final class HouseholdMember
         ?PhoneNumber $phone,
         ResidencyStatus $residencyStatus,
         bool $isPrimary,
+        ?Salutation $salutation = null,
+        ?Height $height = null,
+        ?Weight $weight = null,
     ) {
         $this->id = $id;
         $this->code = $code;
@@ -78,6 +87,9 @@ final class HouseholdMember
         $this->isActive = true;
         $this->deactivatedReason = null;
         $this->deactivatedAt = null;
+        $this->salutation = $salutation;
+        $this->height = $height;
+        $this->weight = $weight;
     }
 
     public function id(): MemberId
@@ -113,6 +125,21 @@ final class HouseholdMember
     public function phone(): ?PhoneNumber
     {
         return $this->phone;
+    }
+
+    public function salutation(): ?Salutation
+    {
+        return $this->salutation;
+    }
+
+    public function height(): ?Height
+    {
+        return $this->height;
+    }
+
+    public function weight(): ?Weight
+    {
+        return $this->weight;
     }
 
     public function residencyStatus(): ResidencyStatus
@@ -175,6 +202,23 @@ final class HouseholdMember
     {
         $this->email = $email;
         $this->phone = $phone;
+    }
+
+    /**
+     * @internal Mutation must be triggered via {@see Household} aggregate.
+     */
+    public function updateSalutation(?Salutation $salutation): void
+    {
+        $this->salutation = $salutation;
+    }
+
+    /**
+     * @internal Mutation must be triggered via {@see Household} aggregate.
+     */
+    public function updateMeasurements(?Height $height, ?Weight $weight): void
+    {
+        $this->height = $height;
+        $this->weight = $weight;
     }
 
     /**

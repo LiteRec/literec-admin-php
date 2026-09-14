@@ -29,4 +29,12 @@ final class UpdateMemberProfileInput
     public ?string $dobIso = null;
 
     public ?string $genderCode = null;
+
+    public ?string $nickname = null;
+
+    public ?string $salutationCode = null;
+
+    public ?int $heightInches = null;
+
+    public ?int $weightPounds = null;
 }

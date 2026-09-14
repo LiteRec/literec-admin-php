@@ -9,12 +9,13 @@ use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
 /**
- * Symfony Form type backing the Profile card edit form (LRA-43).
+ * Symfony Form type backing the Profile card edit form (LRA-43, LRA-205).
  *
  * Surface is the subset of member profile fields the card mutates: name
- * parts, date of birth, gender. Email and phone are owned by a separate
- * contact-update flow (see {@see \App\Households\Domain\Household::updateMemberContact()}),
- * so the Profile card edits identity data only — matching the inputs of
+ * parts, nickname, date of birth, gender, salutation, height, weight. Email
+ * and phone are owned by a separate contact-update flow (see
+ * {@see \App\Households\Domain\Household::updateMemberContact()}), so the
+ * Profile card edits identity data only — matching the inputs of
  * {@see \App\Households\Application\Command\UpdateMemberProfile}.
  *
  * @extends AbstractType<UpdateMemberProfileInput>
@@ -25,12 +26,16 @@ final class UpdateMemberProfileFormType extends AbstractType
 
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
+        $this->addSalutationField($builder);
         $this->addAutocompleteTextField($builder, 'firstName', 'First name', true, 'given-name');
         $this->addAutocompleteTextField($builder, 'middleName', 'Middle name', false, 'additional-name');
         $this->addAutocompleteTextField($builder, 'lastName', 'Last name', true, 'family-name');
         $this->addAutocompleteTextField($builder, 'suffix', 'Suffix', false, 'honorific-suffix');
+        $this->addNicknameField($builder);
         $this->addDateOfBirthField($builder);
         $this->addGenderField($builder);
+        $this->addHeightField($builder);
+        $this->addWeightField($builder);
     }
 
     public function configureOptions(OptionsResolver $resolver): void

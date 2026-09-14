@@ -21,6 +21,7 @@ use App\Households\Domain\ValueObject\Address;
 use App\Households\Domain\ValueObject\DateOfBirth;
 use App\Shared\Domain\ValueObject\EmailAddress;
 use App\Households\Domain\ValueObject\Gender;
+use App\Households\Domain\ValueObject\Height;
 use App\Households\Domain\ValueObject\HouseholdId;
 use App\Households\Domain\ValueObject\HouseholdName;
 use App\Households\Domain\ValueObject\MemberCode;
@@ -28,6 +29,8 @@ use App\Households\Domain\ValueObject\MemberId;
 use App\Households\Domain\ValueObject\PersonName;
 use App\Shared\Domain\ValueObject\PhoneNumber;
 use App\Households\Domain\ValueObject\ResidencyStatus;
+use App\Households\Domain\ValueObject\Salutation;
+use App\Households\Domain\ValueObject\Weight;
 use DateTimeImmutable;
 use PHPUnit\Framework\Attributes\Small;
 use PHPUnit\Framework\Attributes\Test;
@@ -178,6 +181,101 @@ final class HouseholdTest extends TestCase
         self::assertCount(1, $events);
         self::assertInstanceOf(MemberProfileUpdated::class, $events[0]);
         self::assertSame(self::PRIMARY_MEMBER_ID, $events[0]->memberId->value);
+    }
+
+    #[Test]
+    #[TestDox('::updateMemberProfile() records MemberProfileUpdated on a salutation/height/weight-only change.')]
+    public function update_member_profile_records_event_on_measurement_only_change(): void
+    {
+        $household = $this->register();
+        $household->releaseEvents();
+
+        $household->updateMemberProfile(
+            MemberId::fromString(self::PRIMARY_MEMBER_ID),
+            PersonName::of('Alice', 'Smith'),
+            DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
+            Gender::Female,
+            $this->clock,
+            Salutation::Ms,
+            Height::ofInches(65),
+            Weight::ofPounds(140),
+        );
+
+        $events = $household->releaseEvents();
+        self::assertCount(1, $events);
+        self::assertInstanceOf(MemberProfileUpdated::class, $events[0]);
+    }
+
+    #[Test]
+    #[TestDox('::updateMemberProfile() records MemberProfileUpdated when only the nickname changes.')]
+    public function update_member_profile_records_event_on_nickname_only_change(): void
+    {
+        $household = $this->register();
+        $household->releaseEvents();
+
+        $household->updateMemberProfile(
+            MemberId::fromString(self::PRIMARY_MEMBER_ID),
+            PersonName::of('Alice', 'Smith', nickname: 'Al'),
+            DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
+            Gender::Female,
+            $this->clock,
+        );
+
+        $events = $household->releaseEvents();
+        self::assertCount(1, $events);
+        self::assertInstanceOf(MemberProfileUpdated::class, $events[0]);
+    }
+
+    #[Test]
+    #[TestDox('::updateMemberProfile() is a no-op when salutation, height, and weight stay null-to-null.')]
+    public function update_member_profile_is_noop_when_measurements_stay_null(): void
+    {
+        $household = $this->register();
+        $household->releaseEvents();
+
+        $household->updateMemberProfile(
+            MemberId::fromString(self::PRIMARY_MEMBER_ID),
+            PersonName::of('Alice', 'Smith'),
+            DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
+            Gender::Female,
+            $this->clock,
+            null,
+            null,
+            null,
+        );
+
+        self::assertSame([], $household->releaseEvents());
+    }
+
+    #[Test]
+    #[TestDox('::updateMemberProfile() is a no-op when salutation, height, and weight are resubmitted unchanged.')]
+    public function update_member_profile_is_noop_when_measurements_unchanged(): void
+    {
+        $household = $this->register();
+        $household->updateMemberProfile(
+            MemberId::fromString(self::PRIMARY_MEMBER_ID),
+            PersonName::of('Alice', 'Smith'),
+            DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
+            Gender::Female,
+            $this->clock,
+            Salutation::Ms,
+            Height::ofInches(65),
+            Weight::ofPounds(140),
+        );
+        $household->releaseEvents();
+
+        $household->updateMemberProfile(
+            MemberId::fromString(self::PRIMARY_MEMBER_ID),
+            PersonName::of('Alice', 'Smith'),
+            DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
+            Gender::Female,
+            $this->clock,
+            Salutation::Ms,
+            Height::ofInches(65),
+            Weight::ofPounds(140),
+        );
+
+        self::assertSame([], $household->releaseEvents());
     }
 
     #[Test]
