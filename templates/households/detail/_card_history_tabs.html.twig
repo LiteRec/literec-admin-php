@@ -1,0 +1,61 @@
+{# Tab strip for the History card's six kinds (LRA-206). Styled like
+   templates/households/list/_segment_pills.html.twig (plain buttons in
+   a `.lr-seg` container) but implements the WAI-ARIA Tabs pattern
+   instead of that partial's filter-pill semantics: `role="tablist"` /
+   `role="tab"` / `aria-selected` / roving `tabindex`, with the active
+   panel tracked by the parent's Alpine `view` scope
+   (see _card_history.html.twig).
+
+   Coming-soon tabs (every kind except Transactions) additionally carry
+   an `hx-get` against the placeholder route, firing once on first click
+   so a below-the-fold card still loads its "Coming soon" panel on tab
+   activation rather than on page load. The Transactions tab has no
+   hx-get — its panel already lazy-loads on card toggle via the existing
+   #card-history-body shim.
+
+   Expects:
+     - householdId: string
+     - memberId: string
+#}
+<div
+    role="tablist"
+    aria-label="Member history"
+    class="lr-seg"
+    x-data="{
+        focusTab(offset) {
+            const tabs = Array.from($el.querySelectorAll('[role=tab]'));
+            const currentIndex = tabs.findIndex((tab) => tab === document.activeElement);
+            const nextTab = tabs[(currentIndex + offset + tabs.length) % tabs.length];
+            view = nextTab.dataset.view;
+            nextTab.focus();
+        },
+    }"
+    @keydown.right.prevent="focusTab(1)"
+    @keydown.left.prevent="focusTab(-1)"
+>
+    {% for view in enum_cases('App\\Households\\Infrastructure\\Http\\View\\MemberHistoryView') %}
+        <button
+            type="button"
+            role="tab"
+            id="history-tab-{{ view.value }}"
+            data-testid="history-tab-{{ view.value }}"
+            data-view="{{ view.value }}"
+            aria-controls="history-view-{{ view.value }}"
+            {# Static default matches Alpine's initial `view: 'transactions'`
+               state so the server-rendered HTML is correct before Alpine
+               hydrates (and is what WebTestCase's non-JS DomCrawler sees);
+               the `:`-bound siblings keep it in sync after a tab click. #}
+            aria-selected="{{ view.isComingSoon() ? 'false' : 'true' }}"
+            :aria-selected="view === '{{ view.value }}' ? 'true' : 'false'"
+            tabindex="{{ view.isComingSoon() ? -1 : 0 }}"
+            :tabindex="view === '{{ view.value }}' ? 0 : -1"
+            @click="view = '{{ view.value }}'"
+            {% if view.isComingSoon() %}
+            hx-get="{{ path('member_history_view_placeholder', { householdId: householdId, memberId: memberId, view: view.value }) }}"
+            hx-trigger="click once"
+            hx-target="#history-view-{{ view.value }}"
+            hx-swap="innerHTML"
+            {% endif %}
+        >{{ view.label }}</button>
+    {% endfor %}
+</div>

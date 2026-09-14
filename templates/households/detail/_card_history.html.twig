@@ -1,16 +1,30 @@
-{# Transaction History card (LRA-45). See _card_household.html.twig for the
-   URL-hash collapse-state contract; this partial binds the `cards.history`
-   key.
+{# History card (LRA-206, formerly the Transaction-History-only card from
+   LRA-45). See _card_household.html.twig for the URL-hash collapse-state
+   contract; this partial still binds the `cards.history` key —
+   unchanged by the LRA-206 tab strip.
 
-   The card body is lazy-loaded: nothing fetches on initial page render. The
-   first time the user expands the <details>, an HTMX `toggle` trigger
-   (scoped `once`) fires a GET against `member_history_page` and swaps the
-   shim div with the page-1 fragment. Subsequent expand/collapse cycles
-   do nothing — the rows stay in the DOM and the collapse chrome just
-   shows/hides them.
+   The card hosts one tab per App\Households\Infrastructure\Http\View\
+   MemberHistoryView case (_card_history_tabs.html.twig) and one
+   tabpanel per case below. Only the Transactions panel has a real
+   (stubbed) read model:
 
-   The "Load more" button inside the fragment owns its own append
-   lifecycle (see _card_history_rows.html.twig).
+     - Transactions keeps the LRA-45 lazy-load behaviour byte-for-byte:
+       nothing fetches on initial page render, and the first time the
+       user expands the <details>, an HTMX `toggle` trigger (scoped
+       `once`) fires a GET against `member_history_page` and swaps the
+       shim div with the page-1 fragment. The "Load more" button inside
+       the fragment owns its own append lifecycle (see
+       _card_history_rows.html.twig).
+     - Every other kind renders the shared "Coming soon" shim below,
+       which the tab button's own `hx-get` (see _card_history_tabs.html.twig)
+       replaces with _card_history_view_placeholder.html.twig on first
+       activation.
+
+   Panel visibility is driven by the nested Alpine `view` scope
+   (`x-data="{ view: 'transactions' }"`): each panel carries a
+   server-rendered `hidden` attribute for every non-Transactions kind
+   (so a no-JS/pre-hydration load doesn't flash every panel at once)
+   plus a `:hidden` binding that Alpine keeps in sync after a tab click.
 
    Expects:
      - detail: App\Households\Application\Query\Port\MemberDetail
@@ -24,23 +38,46 @@
         <summary
             class="flex cursor-pointer list-none items-center justify-between gap-2 px-5 py-3 text-sm font-semibold uppercase tracking-wide text-litrec-text-muted"
         >
-            <span>Transaction History</span>
+            <span>History</span>
             <span aria-hidden="true" class="text-xs transition-transform group-open:rotate-180">▾</span>
         </summary>
-        <div class="border-t border-litrec-border px-5 py-4">
-            <div
-                id="card-history-body"
-                data-testid="card-history-body"
-                hx-get="{{ path('member_history_page', {
-                    householdId: detail.household.householdId,
-                    memberId: detail.profile.memberId,
-                }) }}"
-                hx-trigger="toggle once from:closest details"
-                hx-swap="outerHTML"
-                hx-target="this"
-                class="text-sm text-litrec-text-muted"
-            >
-                <p data-testid="history-lazy-shim" class="italic">Transactions will load when this section is opened.</p>
+        <div class="border-t border-litrec-border px-5 py-4" x-data="{ view: 'transactions' }">
+            {% include 'households/detail/_card_history_tabs.html.twig' with {
+                householdId: detail.household.householdId,
+                memberId: detail.profile.memberId,
+            } only %}
+
+            <div class="mt-4">
+                {% for view in enum_cases('App\\Households\\Infrastructure\\Http\\View\\MemberHistoryView') %}
+                    <div
+                        id="history-view-{{ view.value }}"
+                        role="tabpanel"
+                        aria-labelledby="history-tab-{{ view.value }}"
+                        data-testid="history-view-{{ view.value }}"
+                        {% if view.isComingSoon() %}hidden{% endif %}
+                        :hidden="view !== '{{ view.value }}'"
+                    >
+                        {% if view.isComingSoon() %}
+                            <p data-testid="history-view-shim-{{ view.value }}" class="italic text-sm text-litrec-text-muted">Loads when this tab is opened.</p>
+                        {% else %}
+                            <p data-testid="history-sample-data-notice" class="mb-3 text-sm italic text-litrec-text-muted">Sample data: the Transactions area is not yet available; rows shown here are placeholders.</p>
+                            <div
+                                id="card-history-body"
+                                data-testid="card-history-body"
+                                hx-get="{{ path('member_history_page', {
+                                    householdId: detail.household.householdId,
+                                    memberId: detail.profile.memberId,
+                                }) }}"
+                                hx-trigger="toggle once from:closest details"
+                                hx-swap="outerHTML"
+                                hx-target="this"
+                                class="text-sm text-litrec-text-muted"
+                            >
+                                <p data-testid="history-lazy-shim" class="italic">Transactions will load when this section is opened.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
             </div>
         </div>
     </details>
