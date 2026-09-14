@@ -13,7 +13,7 @@
 <div
     role="alert"
     data-testid="{{ testid }}"
-    class="{{ form.vars.errors|length > 0 ? 'mb-4 rounded-md border border-danger/30 bg-danger/10 p-3 text-sm font-semibold text-danger' : 'sr-only' }}"
+    class="{{ form.vars.errors|length > 0 ? 'mb-4 rounded-card bg-danger-bg p-3 text-sm font-semibold text-danger-fg' : 'sr-only' }}"
 >
     {%- if form.vars.errors|length > 0 -%}
         {{ form_errors(form) }}

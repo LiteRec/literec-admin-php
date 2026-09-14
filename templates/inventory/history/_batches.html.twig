@@ -16,7 +16,7 @@
         } only %}
     {% else %}
         {% for block in detail.facilityStockBlocks %}
-            <div class="rounded-card border border-litrec-border bg-litrec-surface p-4 shadow-card">
+            <div class="lr-card lr-card-body">
                 <header class="mb-3 flex items-center justify-between">
                     <h3 class="text-base font-semibold text-litrec-text" data-testid="history-batch-facility-{{ block.facilityCode }}">
                         Facility {{ block.facilityCode }}
@@ -29,8 +29,8 @@
                 {% if block.batches is empty %}
                     <p class="text-sm text-litrec-text-muted">No batches at this facility.</p>
                 {% else %}
-                    <table class="min-w-full divide-y divide-litrec-border text-sm">
-                        <thead class="bg-litrec-bg-muted text-left text-xs font-semibold uppercase tracking-wider text-litrec-text-muted">
+                    <table class="lr-table">
+                        <thead>
                             <tr>
                                 <th scope="col" class="px-3 py-2">Received</th>
                                 <th scope="col" class="px-3 py-2">Age</th>
@@ -40,7 +40,7 @@
                                 <th scope="col" class="px-3 py-2">Status</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-litrec-border">
+                        <tbody>
                             {% for batch in block.batches %}
                                 {% set ageDays = (date('now').timestamp - batch.receivedAt.timestamp) // 86400 %}
                                 <tr data-testid="history-batch-row-{{ batch.stockBatchId }}">

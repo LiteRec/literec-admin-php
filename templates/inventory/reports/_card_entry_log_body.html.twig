@@ -6,8 +6,8 @@
     } only %}
 {% else %}
     <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-litrec-border text-sm" data-testid="report-entry-log-table">
-            <thead class="bg-litrec-bg-muted text-left text-xs font-semibold uppercase tracking-wider text-litrec-text-muted">
+        <table class="lr-table" data-testid="report-entry-log-table">
+            <thead>
                 <tr>
                     <th scope="col" class="px-3 py-2">Date</th>
                     <th scope="col" class="px-3 py-2">Code</th>
@@ -17,7 +17,7 @@
                     <th scope="col" class="px-3 py-2 text-right">Qty</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-litrec-border">
+            <tbody>
                 {% for row in entryLog.rows %}
                     {% set kindEnum = enum('App\\Inventory\\Domain\\ValueObject\\StockMovementKind').tryFrom(row.kind) %}
                     {% set kindLabel = kindEnum is not null ? kindEnum.label : row.kind %}
@@ -25,7 +25,9 @@
                         <td class="whitespace-nowrap px-3 py-2 text-litrec-text-muted">{{ row.recordedAt|date('Y-m-d H:i') }}</td>
                         <td class="px-3 py-2 font-mono text-xs text-litrec-text">{{ row.listingCode }}</td>
                         <td class="px-3 py-2 text-litrec-text">{{ row.facilityCode }}</td>
-                        <td class="whitespace-nowrap px-3 py-2"><span class="inline-flex items-center rounded-full bg-litrec-bg-muted px-2 py-0.5 text-xs font-semibold">{{ kindLabel }}</span></td>
+                        <td class="whitespace-nowrap px-3 py-2">
+                            {% include 'components/_badge.html.twig' with { label: kindLabel, variant: 'neutral' } only %}
+                        </td>
                         <td class="px-3 py-2 text-litrec-text-muted">{{ row.reason }}</td>
                         <td class="px-3 py-2 text-right font-mono text-litrec-text">{{ row.quantity }}</td>
                     </tr>

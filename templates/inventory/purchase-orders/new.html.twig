@@ -5,7 +5,7 @@
 {% block page_actions %}
     <a
         href="{{ path('po_index') }}"
-        class="rounded-md border border-litrec-border bg-litrec-surface px-4 py-2 text-sm font-semibold text-litrec-text hover:bg-litrec-bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
+        class="lr-btn lr-btn-secondary"
     >
         Back to list
     </a>
@@ -29,14 +29,14 @@
                 wrapper.innerHTML = html;
                 var rm = document.createElement('button');
                 rm.type = 'button';
-                rm.className = 'rounded-md border border-litrec-border bg-litrec-surface px-2 py-1 text-sm font-semibold text-litrec-text hover:bg-litrec-bg-muted';
+                rm.className = 'lr-btn lr-btn-secondary';
                 rm.textContent = 'Remove';
                 rm.addEventListener('click', function () { wrapper.remove(); });
                 wrapper.appendChild(rm);
                 container.appendChild(wrapper);
             },
         }"
-        class="rounded-card border border-litrec-border bg-litrec-surface p-6 shadow-card"
+        class="lr-card lr-card-body"
     >
         {% include 'components/_form_error_summary.html.twig' with { form: form } only %}
 
@@ -52,7 +52,7 @@
                 <div
                     role="alert"
                     data-testid="po-lines-error"
-                    class="mb-3 rounded-md border border-danger/30 bg-danger/10 p-3 text-sm font-semibold text-danger"
+                    class="mb-3 rounded-card bg-danger-bg p-3 text-sm font-semibold text-danger-fg"
                 >
                     {{ form_errors(form.lines) }}
                 </div>
@@ -70,7 +70,7 @@
                         {{ form_widget(line) }}
                         <button
                             type="button"
-                            class="rounded-md border border-litrec-border bg-litrec-surface px-2 py-1 text-sm font-semibold text-litrec-text hover:bg-litrec-bg-muted"
+                            class="lr-btn lr-btn-secondary"
                             @click="$el.closest('.po-line-row').remove()"
                         >
                             Remove
@@ -82,7 +82,7 @@
             <button
                 type="button"
                 data-testid="po-add-line"
-                class="mt-2 rounded-md border border-litrec-border bg-litrec-surface px-3 py-1 text-sm font-semibold text-litrec-text hover:bg-litrec-bg-muted"
+                class="mt-2 lr-btn lr-btn-secondary"
                 @click="addRow()"
             >
                 Add line
@@ -94,14 +94,14 @@
         <div class="mt-6 flex items-center justify-end gap-2">
             <a
                 href="{{ path('po_index') }}"
-                class="rounded-md border border-litrec-border bg-litrec-surface px-4 py-2 text-sm font-semibold text-litrec-text hover:bg-litrec-bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
+                class="lr-btn lr-btn-secondary"
             >
                 Cancel
             </a>
             <button
                 type="submit"
                 data-testid="po-create-submit"
-                class="rounded-md bg-litrec-primary px-4 py-2 text-sm font-semibold text-litrec-on-primary shadow-sm hover:bg-litrec-primary-strong focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
+                class="lr-btn lr-btn-primary"
             >
                 Create Purchase Order
             </button>
