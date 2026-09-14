@@ -656,7 +656,10 @@
         color: var(--lr-text);
         font-size: 0.875rem;
     }
-    .lr-input.is-focus { border-color: var(--lr-primary); box-shadow: 0 0 0 1px var(--lr-primary); }
+    /* :focus-within covers the common case (a bare <input> child receiving
+       keyboard focus); .is-focus stays for callers that toggle the wrapper's
+       focus look from Alpine/JS instead (e.g. a custom control inside). */
+    .lr-input.is-focus, .lr-input:focus-within { border-color: var(--lr-primary); box-shadow: 0 0 0 1px var(--lr-primary); }
     .lr-input input { border: 0; outline: 0; background: transparent; color: inherit; font: inherit; width: 100%; caret-color: var(--lr-primary); }
     .lr-input .ico { color: var(--lr-text-muted); flex: none; }
 

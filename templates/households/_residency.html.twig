@@ -1,0 +1,16 @@
+{# Shared residency status vocabulary (LRA-194).
+
+   The member header (detail.html.twig) and the Residency sub-card
+   (_residency_sub_card_read.html.twig) both render the same
+   RESIDENT/NON_RESIDENT/MEMBER/STAFF status as a human label; the sub-card
+   re-renders independently via its own HTMX swap, so the mapping is defined
+   once here rather than duplicated per template. #}
+{% macro label(status) %}
+    {%- set labels = {
+        'RESIDENT': 'Resident',
+        'NON_RESIDENT': 'Non-resident',
+        'MEMBER': 'Member',
+        'STAFF': 'Staff',
+    } -%}
+    {{- labels[status]|default(status) -}}
+{% endmacro %}
