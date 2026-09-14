@@ -21,13 +21,35 @@ test.describe('cash register — full sale', () => {
     await expect(page.getByText('Advanced Tap Dancing')).toBeVisible();
   });
 
-  test('toggling an add-on pill updates the Add to sale total', async ({ page }) => {
+  test('toggling an add-on pill updates the Add to sale total and its pressed state', async ({ page }) => {
     const addToSaleButton = page.getByRole('button', { name: /Add to sale/ });
+    const costumeChip = page.getByRole('button', { name: /Costume/ });
+    const soccerChip = page.getByRole('button', { name: /Soccer Uniform/ });
+
+    // Pre-checked in MockCashRegisterData — must be pressed before Alpine hydrates.
+    await expect(costumeChip).toHaveAttribute('aria-pressed', 'true');
+    await expect(soccerChip).toHaveAttribute('aria-pressed', 'false');
     await expect(addToSaleButton).toContainText('$193.00');
 
-    await page.getByRole('button', { name: /Soccer Uniform/ }).click();
+    await soccerChip.click();
 
+    await expect(soccerChip).toHaveAttribute('aria-pressed', 'true');
     await expect(addToSaleButton).toContainText('$201.50');
+  });
+
+  test('selecting a different participant moves the checkmark to that row', async ({ page }) => {
+    const babyPill = page.locator('.lr-pillradio', { hasText: 'Baby Bocker' });
+    const juniorPill = page.locator('.lr-pillradio', { hasText: 'Mike Bocker Jr.' });
+
+    await expect(babyPill.locator('input[type="radio"]')).toBeChecked();
+    await expect(babyPill.locator('.lr-pillradio-check')).toBeVisible();
+    await expect(juniorPill.locator('.lr-pillradio-check')).not.toBeVisible();
+
+    await juniorPill.locator('.lr-pillradio-row').click();
+
+    await expect(juniorPill.locator('input[type="radio"]')).toBeChecked();
+    await expect(juniorPill.locator('.lr-pillradio-check')).toBeVisible();
+    await expect(babyPill.locator('.lr-pillradio-check')).not.toBeVisible();
   });
 
   test('renders the sale rail with line items and totals', async ({ page }) => {

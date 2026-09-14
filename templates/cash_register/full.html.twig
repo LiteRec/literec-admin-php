@@ -64,7 +64,7 @@
                                         <span class="lr-row-strong block">{{ participant.name }}</span>
                                         <span class="lr-muted font-mono text-xs">{{ participant.memberCode }}</span>
                                     </span>
-                                    {% if participant.selected %}{{ ui.icon('check', 14, 3) }}{% endif %}
+                                    <span class="lr-pillradio-check" aria-hidden="true">{{ ui.icon('check', 14, 3) }}</span>
                                 </span>
                             </label>
                         {% endfor %}
@@ -101,7 +101,7 @@
             <div class="lr-card-body flex flex-col gap-4">
                 <label class="lr-field">
                     <span class="sr-only">Search programs, memberships, items or gift cards</span>
-                    <span class="lr-input" style="min-height: 46px;">
+                    <span class="lr-input min-h-[46px]">
                         {{ ui.icon('search', 16, 2.75, 'ico') }}
                         <input type="text" placeholder="Search programs, memberships, items…">
                     </span>
@@ -129,8 +129,9 @@
                         {% for option in register.addOnOptions %}
                             <button
                                 type="button"
-                                class="lr-chip"
-                                :class="addOns[{{ loop.index0 }}] ? 'border-litrec-primary bg-litrec-primary text-litrec-on-primary' : ''"
+                                class="lr-chip{% if option.checked %} is-selected{% endif %}"
+                                :class="{ 'is-selected': addOns[{{ loop.index0 }}] }"
+                                aria-pressed="{{ option.checked ? 'true' : 'false' }}"
                                 :aria-pressed="addOns[{{ loop.index0 }}]"
                                 @click="addOns[{{ loop.index0 }}] = !addOns[{{ loop.index0 }}]"
                             >
