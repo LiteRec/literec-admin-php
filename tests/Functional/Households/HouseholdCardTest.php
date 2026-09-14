@@ -40,6 +40,7 @@ final class HouseholdCardTest extends WebTestCase
 
     /** Reused literals (SonarCloud php:S1192). */
     private const string ROUTE_MEMBER = '/admin/users/%s/%s';
+    private const string ROUTE_LOWER_CARDS = '/admin/users/%s/%s/_lower-cards';
     private const string SEL_MEMBER_ROW = '[data-testid="household-member-row-%s"]';
 
 
@@ -52,6 +53,7 @@ final class HouseholdCardTest extends WebTestCase
     private const string A_PRIMARY_CODE = 'M000210';
     private const string A_SECOND_CODE  = 'M000211';
     private const string A_THIRD_CODE   = 'M000212';
+    private const string A_SECOND_NAME  = 'Bob Brown';
 
     private const string UNKNOWN_MEMBER_ID = '019571bf-5d53-7000-b500-0000000000fe';
 
@@ -122,7 +124,7 @@ final class HouseholdCardTest extends WebTestCase
 
         $client->request(
             'GET',
-            sprintf('/admin/users/%s/%s/_lower-cards', self::HOUSEHOLD_A, self::A_PRIMARY_ID),
+            sprintf(self::ROUTE_LOWER_CARDS, self::HOUSEHOLD_A, self::A_PRIMARY_ID),
         );
 
         self::assertResponseIsSuccessful();
@@ -148,14 +150,14 @@ final class HouseholdCardTest extends WebTestCase
 
         $crawler = $client->request(
             'GET',
-            sprintf('/admin/users/%s/%s/_lower-cards', self::HOUSEHOLD_A, self::A_SECOND_ID),
+            sprintf(self::ROUTE_LOWER_CARDS, self::HOUSEHOLD_A, self::A_SECOND_ID),
         );
         self::assertResponseIsSuccessful();
 
         $header = $crawler->filter('#member-header');
         self::assertSame(1, $header->count(), 'OOB member header should be present.');
         self::assertSame('true', $header->attr('hx-swap-oob'));
-        self::assertStringContainsString('Bob Brown', $header->text());
+        self::assertStringContainsString(self::A_SECOND_NAME, $header->text());
         self::assertGreaterThan(0, $header->filter('[data-testid="badge-secondary"]')->count());
         self::assertSame(0, $header->filter('[data-testid="badge-primary"]')->count());
         self::assertStringContainsString('Non-resident', $header->filter('[data-testid="badge-residency"]')->text());
@@ -171,21 +173,24 @@ final class HouseholdCardTest extends WebTestCase
 
         $crawler = $client->request(
             'GET',
-            sprintf('/admin/users/%s/%s/_lower-cards', self::HOUSEHOLD_A, self::A_SECOND_ID),
+            sprintf(self::ROUTE_LOWER_CARDS, self::HOUSEHOLD_A, self::A_SECOND_ID),
         );
         self::assertResponseIsSuccessful();
 
         $pageHeader = $crawler->filter('#page-header');
         self::assertSame(1, $pageHeader->count(), 'OOB page header should be present.');
         self::assertSame('true', $pageHeader->attr('hx-swap-oob'));
-        self::assertStringContainsString('Bob Brown', $pageHeader->filter('h1.lr-pagetitle')->text());
+        self::assertStringContainsString(self::A_SECOND_NAME, $pageHeader->filter('h1.lr-pagetitle')->text());
         self::assertStringContainsString(
-            'Bob Brown',
+            self::A_SECOND_NAME,
             $pageHeader->filter('nav[aria-label="Breadcrumb"] [aria-current="page"]')->text(),
         );
 
         $body = (string) $client->getResponse()->getContent();
-        self::assertMatchesRegularExpression('#<title>[^<]*Bob Brown[^<]*</title>#', $body);
+        self::assertMatchesRegularExpression(
+            sprintf('#<title>[^<]*%s[^<]*</title>#', preg_quote(self::A_SECOND_NAME, '#')),
+            $body,
+        );
     }
 
     #[Test]
@@ -198,7 +203,7 @@ final class HouseholdCardTest extends WebTestCase
 
         $client->request(
             'GET',
-            sprintf('/admin/users/%s/%s/_lower-cards', self::HOUSEHOLD_A, self::A_SECOND_ID),
+            sprintf(self::ROUTE_LOWER_CARDS, self::HOUSEHOLD_A, self::A_SECOND_ID),
         );
         self::assertResponseIsSuccessful();
 
@@ -254,7 +259,7 @@ final class HouseholdCardTest extends WebTestCase
 
         $client->request(
             'GET',
-            sprintf('/admin/users/%s/%s/_lower-cards', self::HOUSEHOLD_A, self::UNKNOWN_MEMBER_ID),
+            sprintf(self::ROUTE_LOWER_CARDS, self::HOUSEHOLD_A, self::UNKNOWN_MEMBER_ID),
         );
 
         self::assertResponseStatusCodeSame(404);
