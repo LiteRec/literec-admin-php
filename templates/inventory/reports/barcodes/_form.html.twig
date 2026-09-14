@@ -21,29 +21,31 @@
         action="{{ path('inventory_reports_barcode_form') }}"
         class="grid grid-cols-1 gap-2 sm:grid-cols-3"
     >
-        <label class="block">
+        <label class="lr-field">
             <span class="sr-only">Search by name or code</span>
-            <input
-                type="text"
-                name="search"
-                placeholder="Search by name or code"
-                value="{{ app.request.query.get('search')|default('') }}"
-                data-testid="report-barcode-search"
-                class="w-full rounded-md border border-litrec-border bg-litrec-surface px-2 py-1 text-sm text-litrec-text"
-            />
+            <span class="lr-input">
+                <input
+                    type="text"
+                    name="search"
+                    placeholder="Search by name or code"
+                    value="{{ app.request.query.get('search')|default('') }}"
+                    data-testid="report-barcode-search"
+                />
+            </span>
         </label>
-        <label class="block">
+        <label class="lr-field">
             <span class="sr-only">Facility code</span>
-            <input
-                type="text"
-                name="facilityCode"
-                placeholder="Facility code"
-                value="{{ app.request.query.get('facilityCode')|default('') }}"
-                data-testid="report-barcode-facility"
-                class="w-full rounded-md border border-litrec-border bg-litrec-surface px-2 py-1 text-sm text-litrec-text"
-            />
+            <span class="lr-input">
+                <input
+                    type="text"
+                    name="facilityCode"
+                    placeholder="Facility code"
+                    value="{{ app.request.query.get('facilityCode')|default('') }}"
+                    data-testid="report-barcode-facility"
+                />
+            </span>
         </label>
-        <button type="submit" class="rounded-md bg-litrec-primary px-3 py-1 text-sm font-semibold text-litrec-on-primary">
+        <button type="submit" class="lr-btn lr-btn-primary">
             Filter
         </button>
     </form>
@@ -63,9 +65,9 @@
             <input type="hidden" name="itemIds[]" :value="id" />
         </template>
 
-        <div class="overflow-x-auto rounded-card border border-litrec-border bg-litrec-surface shadow-card">
-            <table class="min-w-full divide-y divide-litrec-border text-sm" data-testid="report-barcode-picker-table">
-                <thead class="bg-litrec-bg-muted text-left text-xs font-semibold uppercase tracking-wider text-litrec-text-muted">
+        <div class="lr-card overflow-x-auto">
+            <table class="lr-table" data-testid="report-barcode-picker-table">
+                <thead>
                     <tr>
                         <th scope="col" class="px-3 py-2 w-8"></th>
                         <th scope="col" class="px-3 py-2">Code</th>
@@ -73,7 +75,7 @@
                         <th scope="col" class="px-3 py-2">Kind</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-litrec-border">
+                <tbody>
                     {% for item in picker.items %}
                         <tr>
                             <td class="px-3 py-2">
@@ -105,7 +107,7 @@
                 type="submit"
                 :disabled="selected.length === 0 || selected.length > {{ maxItems }}"
                 data-testid="report-barcode-print-submit"
-                class="rounded-md bg-litrec-primary px-4 py-2 text-sm font-semibold text-litrec-on-primary shadow-sm hover:bg-litrec-primary-strong disabled:cursor-not-allowed disabled:opacity-50"
+                class="lr-btn lr-btn-primary disabled:cursor-not-allowed disabled:opacity-50"
             >
                 Print barcodes
             </button>

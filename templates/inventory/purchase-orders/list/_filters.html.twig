@@ -9,39 +9,41 @@
     hx-push-url="true"
     hx-trigger="input changed delay:300ms, change"
     aria-label="Filter purchase orders"
-    class="rounded-card border border-litrec-border bg-litrec-surface p-4 shadow-card"
+    class="lr-card lr-card-body"
 >
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <div>
-            <label for="filter-po-vendorId" class="block text-sm font-medium text-litrec-text">Vendor ID</label>
-            <input
-                type="text"
-                id="filter-po-vendorId"
-                name="vendorId"
-                value="{{ q.get('vendorId', '') }}"
-                autocomplete="off"
-                class="mt-1 block w-full rounded-md border border-litrec-border bg-litrec-surface px-3 py-2 text-litrec-text focus:border-litrec-primary focus:outline-none focus:ring-1 focus:ring-litrec-primary"
-            >
-        </div>
+        <label for="filter-po-vendorId" class="lr-field">
+            <span class="lr-label">Vendor ID</span>
+            <span class="lr-input">
+                <input
+                    type="text"
+                    id="filter-po-vendorId"
+                    name="vendorId"
+                    value="{{ q.get('vendorId', '') }}"
+                    autocomplete="off"
+                >
+            </span>
+        </label>
 
-        <div>
-            <label for="filter-po-facilityCode" class="block text-sm font-medium text-litrec-text">Facility code</label>
-            <input
-                type="text"
-                id="filter-po-facilityCode"
-                name="facilityCode"
-                value="{{ q.get('facilityCode', '') }}"
-                autocomplete="off"
-                class="mt-1 block w-full rounded-md border border-litrec-border bg-litrec-surface px-3 py-2 text-litrec-text focus:border-litrec-primary focus:outline-none focus:ring-1 focus:ring-litrec-primary"
-            >
-        </div>
+        <label for="filter-po-facilityCode" class="lr-field">
+            <span class="lr-label">Facility code</span>
+            <span class="lr-input">
+                <input
+                    type="text"
+                    id="filter-po-facilityCode"
+                    name="facilityCode"
+                    value="{{ q.get('facilityCode', '') }}"
+                    autocomplete="off"
+                >
+            </span>
+        </label>
 
-        <div>
-            <label for="filter-po-status" class="block text-sm font-medium text-litrec-text">Status</label>
+        <label for="filter-po-status" class="lr-field">
+            <span class="lr-label">Status</span>
             <select
                 id="filter-po-status"
                 name="status"
-                class="mt-1 block w-full rounded-md border border-litrec-border bg-litrec-surface px-3 py-2 text-litrec-text focus:border-litrec-primary focus:outline-none focus:ring-1 focus:ring-litrec-primary"
+                class="lr-select"
             >
                 {% set currentStatus = q.get('status', '') %}
                 <option value="" {% if currentStatus == '' %}selected{% endif %}>All statuses</option>
@@ -51,7 +53,7 @@
                     </option>
                 {% endfor %}
             </select>
-        </div>
+        </label>
     </div>
 
     {# Page intentionally NOT preserved across filter changes: when the

@@ -24,9 +24,9 @@
         ctaRoute: 'inventory_index',
     } only %}
 {% else %}
-    <div class="overflow-x-auto rounded-card border border-litrec-border bg-litrec-surface shadow-card">
-        <table class="min-w-full divide-y divide-litrec-border text-sm">
-            <thead class="bg-litrec-bg-muted text-left text-xs font-semibold uppercase tracking-wider text-litrec-text-muted">
+    <div class="lr-card overflow-x-auto">
+        <table class="lr-table">
+            <thead>
                 <tr>
                     {# Code: sortable. Active = currentSort ends with 'code'. #}
                     {% set codeAsc  = currentSort == 'code' %}
@@ -95,11 +95,10 @@
                     <th scope="col" class="px-4 py-3">Status</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-litrec-border">
+            <tbody>
                 {% for item in page.items %}
                     <tr
                         data-testid="inventory-row-{{ item.inventoryItemId }}"
-                        class="hover:bg-litrec-bg-muted"
                     >
                         <td class="whitespace-nowrap px-4 py-2 font-mono text-xs text-litrec-text"
                             data-testid="inventory-code-{{ item.inventoryItemId }}">
@@ -123,7 +122,7 @@
                                     aria-haspopup="dialog"
                                     aria-label="Receive stock for {{ item.listingCode }}"
                                     data-testid="receive-stock-{{ item.inventoryItemId }}"
-                                    class="ml-2 inline-flex min-h-[24px] items-center rounded-md border border-litrec-border bg-litrec-surface px-2 py-1 text-[0.65rem] font-semibold text-litrec-text hover:bg-litrec-bg-muted focus:outline-none focus:ring-2 focus:ring-litrec-primary"
+                                    class="lr-btn lr-btn-ghost ml-2"
                                 >
                                     Receive
                                 </button>
@@ -133,7 +132,7 @@
                                     href="{{ path('inventory_item_history', { itemId: item.inventoryItemId }) }}"
                                     aria-label="View stock movement history for {{ item.listingCode }}"
                                     data-testid="history-link-{{ item.inventoryItemId }}"
-                                    class="ml-2 inline-flex min-h-[24px] items-center rounded-md border border-litrec-border bg-litrec-surface px-2 py-1 text-[0.65rem] font-semibold text-litrec-text hover:bg-litrec-bg-muted focus:outline-none focus:ring-2 focus:ring-litrec-primary"
+                                    class="lr-btn lr-btn-ghost ml-2"
                                 >
                                     History
                                 </a>
@@ -170,61 +169,19 @@
     {# Pagination footer. Previous/Next reuse the current query string with
        the page param overridden, so active filters survive navigation. #}
     {% set totalPages = (page.totalCount > 0) ? ((page.totalCount + page.pageSize - 1) // page.pageSize) : 1 %}
-    <nav
-        aria-label="Inventory pagination"
-        class="mt-4 flex items-center justify-between text-sm text-litrec-text-muted"
-    >
-        <span data-testid="pagination-status">
-            Page {{ page.pageNumber }} of {{ totalPages }}
-        </span>
-
-        <div class="flex items-center gap-2">
-            {% set prevDisabled = page.pageNumber <= 1 %}
-            {% set nextDisabled = page.pageNumber >= totalPages %}
-            {% set prevQuery = baseQuery|merge({ page: page.pageNumber - 1 }) %}
-            {% set nextQuery = baseQuery|merge({ page: page.pageNumber + 1 }) %}
-
-            {% if prevDisabled %}
-                <span
-                    aria-disabled="true"
-                    class="cursor-not-allowed rounded-md border border-litrec-border bg-litrec-bg-muted px-3 py-1 text-xs font-semibold text-litrec-text-muted opacity-60"
-                >
-                    Previous
-                </span>
-            {% else %}
-                <a
-                    href="{{ path('inventory_index', prevQuery) }}"
-                    hx-get="{{ path('inventory_table', prevQuery) }}"
-                    hx-target="#inventory-table"
-                    hx-swap="innerHTML"
-                    hx-push-url="true"
-                    data-testid="pagination-previous"
-                    class="rounded-md border border-litrec-border bg-litrec-surface px-3 py-1 text-xs font-semibold text-litrec-text hover:bg-litrec-bg-muted focus:outline-none focus:ring-2 focus:ring-litrec-primary"
-                >
-                    Previous
-                </a>
-            {% endif %}
-
-            {% if nextDisabled %}
-                <span
-                    aria-disabled="true"
-                    class="cursor-not-allowed rounded-md border border-litrec-border bg-litrec-bg-muted px-3 py-1 text-xs font-semibold text-litrec-text-muted opacity-60"
-                >
-                    Next
-                </span>
-            {% else %}
-                <a
-                    href="{{ path('inventory_index', nextQuery) }}"
-                    hx-get="{{ path('inventory_table', nextQuery) }}"
-                    hx-target="#inventory-table"
-                    hx-swap="innerHTML"
-                    hx-push-url="true"
-                    data-testid="pagination-next"
-                    class="rounded-md border border-litrec-border bg-litrec-surface px-3 py-1 text-xs font-semibold text-litrec-text hover:bg-litrec-bg-muted focus:outline-none focus:ring-2 focus:ring-litrec-primary"
-                >
-                    Next
-                </a>
-            {% endif %}
-        </div>
-    </nav>
+    {% set prevQuery = baseQuery|merge({ page: page.pageNumber - 1 }) %}
+    {% set nextQuery = baseQuery|merge({ page: page.pageNumber + 1 }) %}
+    {% include 'components/_table_footer.html.twig' with {
+        ariaLabel: 'Inventory pagination',
+        statusTestid: 'pagination-status',
+        pageNumber: page.pageNumber,
+        totalPages: totalPages,
+        prevTestid: 'pagination-previous',
+        nextTestid: 'pagination-next',
+        prevHref: page.pageNumber <= 1 ? null : path('inventory_index', prevQuery),
+        nextHref: page.pageNumber >= totalPages ? null : path('inventory_index', nextQuery),
+        prevHxGet: page.pageNumber <= 1 ? null : path('inventory_table', prevQuery),
+        nextHxGet: page.pageNumber >= totalPages ? null : path('inventory_table', nextQuery),
+        hxTarget: '#inventory-table',
+    } only %}
 {% endif %}

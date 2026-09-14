@@ -1,0 +1,69 @@
+{# Shared range-label + Previous/Next pagination footer (LRA-193). A single
+   source of truth for the pagination chrome duplicated across the Inventory
+   list, Purchase Orders list, and Stock Movement History pages.
+
+   @param string  ariaLabel     nav aria-label (e.g. "Inventory pagination").
+   @param string  statusTestid  data-testid for the "Page X of Y" status span.
+   @param int     pageNumber    Current 1-based page number.
+   @param int     totalPages    Total page count.
+   @param string  prevTestid    data-testid for the Previous control.
+   @param string  nextTestid    data-testid for the Next control.
+   @param ?string prevHref      Previous page href, or null when disabled.
+   @param ?string nextHref      Next page href, or null when disabled.
+   @param ?string prevHxGet     Previous page hx-get target, or null when disabled.
+   @param ?string nextHxGet     Next page hx-get target, or null when disabled.
+   @param string  hxTarget      Shared hx-target selector for both controls. #}
+<nav
+    aria-label="{{ ariaLabel }}"
+    class="mt-4 flex items-center justify-between text-sm text-litrec-text-muted"
+>
+    <span data-testid="{{ statusTestid }}">
+        Page {{ pageNumber }} of {{ totalPages }}
+    </span>
+
+    <div class="flex items-center gap-2">
+        {% if prevHref is null %}
+            <span
+                aria-disabled="true"
+                class="lr-btn lr-btn-ghost pointer-events-none opacity-50"
+                data-testid="{{ prevTestid }}"
+            >
+                Previous
+            </span>
+        {% else %}
+            <a
+                href="{{ prevHref }}"
+                hx-get="{{ prevHxGet }}"
+                hx-target="{{ hxTarget }}"
+                hx-swap="innerHTML"
+                hx-push-url="true"
+                data-testid="{{ prevTestid }}"
+                class="lr-btn lr-btn-ghost"
+            >
+                Previous
+            </a>
+        {% endif %}
+
+        {% if nextHref is null %}
+            <span
+                aria-disabled="true"
+                class="lr-btn lr-btn-ghost pointer-events-none opacity-50"
+                data-testid="{{ nextTestid }}"
+            >
+                Next
+            </span>
+        {% else %}
+            <a
+                href="{{ nextHref }}"
+                hx-get="{{ nextHxGet }}"
+                hx-target="{{ hxTarget }}"
+                hx-swap="innerHTML"
+                hx-push-url="true"
+                data-testid="{{ nextTestid }}"
+                class="lr-btn lr-btn-ghost"
+            >
+                Next
+            </a>
+        {% endif %}
+    </div>
+</nav>

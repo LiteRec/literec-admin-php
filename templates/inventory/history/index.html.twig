@@ -6,7 +6,7 @@
     <a
         href="{{ path('inventory_item_history_export', app.request.query.all|merge({ itemId: itemId })) }}"
         data-testid="history-export-csv"
-        class="inline-flex items-center rounded-md bg-litrec-primary px-3 py-1.5 text-sm font-semibold text-litrec-on-primary shadow-sm hover:bg-litrec-primary-strong focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
+        class="lr-btn lr-btn-primary"
     >
         Export CSV
     </a>
@@ -18,7 +18,7 @@
         hx-trigger="click once"
         data-testid="history-show-batches"
         aria-controls="batch-panel"
-        class="ml-2 inline-flex items-center rounded-md border border-litrec-border bg-litrec-surface px-3 py-1.5 text-sm font-semibold text-litrec-text hover:bg-litrec-bg-muted focus:outline-none focus:ring-2 focus:ring-litrec-primary"
+        class="ml-2 lr-btn lr-btn-secondary"
     >
         Show batches
     </button>
@@ -27,7 +27,7 @@
 {% block page_body %}
     <section
         aria-label="Item summary"
-        class="rounded-card border border-litrec-border bg-litrec-surface p-4 shadow-card"
+        class="lr-card lr-card-body"
     >
         <dl class="grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
             <div>

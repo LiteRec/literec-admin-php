@@ -3,7 +3,7 @@
    #po-detail so the controller's freshly-rendered body swaps in. #}
 <section
     aria-labelledby="po-lifecycle-heading"
-    class="mt-6 rounded-card border border-litrec-border bg-litrec-surface p-6 shadow-card"
+    class="mt-6 lr-card lr-card-body"
 >
     <h2 id="po-lifecycle-heading" class="text-lg font-semibold text-litrec-text">Actions</h2>
 
@@ -20,7 +20,7 @@
                     hx-post="{{ path('po_send', { poId: detail.purchaseOrderId }) }}"
                     hx-target="#po-detail"
                     hx-swap="innerHTML"
-                    class="rounded-md bg-litrec-primary px-4 py-2 text-sm font-semibold text-litrec-on-primary shadow-sm hover:bg-litrec-primary-strong focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
+                    class="lr-btn lr-btn-primary"
                 >
                     Mark sent
                 </button>
@@ -33,7 +33,7 @@
                     hx-post="{{ path('po_verify', { poId: detail.purchaseOrderId }) }}"
                     hx-target="#po-detail"
                     hx-swap="innerHTML"
-                    class="rounded-md bg-litrec-primary px-4 py-2 text-sm font-semibold text-litrec-on-primary shadow-sm hover:bg-litrec-primary-strong focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
+                    class="lr-btn lr-btn-primary"
                 >
                     Verify delivery
                 </button>

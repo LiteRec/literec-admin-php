@@ -9,67 +9,72 @@
 <section
     aria-labelledby="current-stock-heading"
     data-testid="report-card-current-stock"
-    class="rounded-card border border-litrec-border bg-litrec-surface p-4 shadow-card"
+    class="lr-card"
 >
-    <header class="flex items-center justify-between gap-2">
-        <h2 id="current-stock-heading" class="text-lg font-semibold text-litrec-text">Current Stock</h2>
+    <div class="lr-card-head">
+        <span class="lr-card-title" id="current-stock-heading">Current Stock</span>
         <a
             href="{{ path('inventory_reports_current_stock_export', app.request.query.all) }}"
             data-testid="report-current-stock-export"
-            class="rounded-md border border-litrec-border bg-litrec-surface px-3 py-1 text-xs font-semibold text-litrec-text hover:bg-litrec-bg-muted focus:outline-none focus:ring-2 focus:ring-litrec-primary"
+            class="lr-btn lr-btn-ghost"
         >
             Export CSV
         </a>
-    </header>
+    </div>
 
-    <form
-        class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3"
-        hx-get="{{ path('inventory_reports_current_stock_card') }}"
-        hx-target="#current-stock-body"
-        hx-swap="innerHTML"
-        hx-trigger="submit, change delay:200ms from:input"
-    >
-        {% set facilityValue = criteria is not null ? (criteria.facilityCode ?? '') : '' %}
-        {% set kindValue     = criteria is not null ? (criteria.kindFilter ?? '') : '' %}
-        {% set groupValue    = criteria is not null ? (criteria.groupId ?? '') : '' %}
-        <label class="text-xs font-semibold uppercase tracking-wider text-litrec-text-muted">
-            <span class="sr-only">Facility</span>
-            <input
-                type="text"
-                name="facilityCode"
-                placeholder="Facility code"
-                value="{{ facilityValue }}"
-                data-testid="report-current-stock-facility"
-                class="mt-1 w-full rounded-md border border-litrec-border bg-litrec-surface px-2 py-1 text-sm text-litrec-text"
-            />
-        </label>
-        <label class="text-xs font-semibold uppercase tracking-wider text-litrec-text-muted">
-            <span class="sr-only">Kind</span>
-            <input
-                type="text"
-                name="kind"
-                placeholder="Kind"
-                value="{{ kindValue }}"
-                data-testid="report-current-stock-kind"
-                class="mt-1 w-full rounded-md border border-litrec-border bg-litrec-surface px-2 py-1 text-sm text-litrec-text"
-            />
-        </label>
-        <label class="text-xs font-semibold uppercase tracking-wider text-litrec-text-muted">
-            <span class="sr-only">Group</span>
-            <input
-                type="text"
-                name="groupId"
-                placeholder="Group ID"
-                value="{{ groupValue }}"
-                data-testid="report-current-stock-group"
-                class="mt-1 w-full rounded-md border border-litrec-border bg-litrec-surface px-2 py-1 text-sm text-litrec-text"
-            />
-        </label>
-    </form>
+    <div class="lr-card-body">
+        <form
+            class="grid grid-cols-1 gap-2 sm:grid-cols-3"
+            hx-get="{{ path('inventory_reports_current_stock_card') }}"
+            hx-target="#current-stock-body"
+            hx-swap="innerHTML"
+            hx-trigger="submit, change delay:200ms from:input"
+        >
+            {% set facilityValue = criteria is not null ? (criteria.facilityCode ?? '') : '' %}
+            {% set kindValue     = criteria is not null ? (criteria.kindFilter ?? '') : '' %}
+            {% set groupValue    = criteria is not null ? (criteria.groupId ?? '') : '' %}
+            <label class="lr-field">
+                <span class="sr-only">Facility</span>
+                <span class="lr-input">
+                    <input
+                        type="text"
+                        name="facilityCode"
+                        placeholder="Facility code"
+                        value="{{ facilityValue }}"
+                        data-testid="report-current-stock-facility"
+                    />
+                </span>
+            </label>
+            <label class="lr-field">
+                <span class="sr-only">Kind</span>
+                <span class="lr-input">
+                    <input
+                        type="text"
+                        name="kind"
+                        placeholder="Kind"
+                        value="{{ kindValue }}"
+                        data-testid="report-current-stock-kind"
+                    />
+                </span>
+            </label>
+            <label class="lr-field">
+                <span class="sr-only">Group</span>
+                <span class="lr-input">
+                    <input
+                        type="text"
+                        name="groupId"
+                        placeholder="Group ID"
+                        value="{{ groupValue }}"
+                        data-testid="report-current-stock-group"
+                    />
+                </span>
+            </label>
+        </form>
 
-    <div id="current-stock-body" class="mt-4">
-        {% include 'inventory/reports/_card_current_stock_body.html.twig' with {
-            currentStock: currentStock,
-        } only %}
+        <div id="current-stock-body" class="mt-4">
+            {% include 'inventory/reports/_card_current_stock_body.html.twig' with {
+                currentStock: currentStock,
+            } only %}
+        </div>
     </div>
 </section>

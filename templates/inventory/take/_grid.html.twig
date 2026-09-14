@@ -25,9 +25,9 @@
         {% endif %}
     </output>
 
-    <div class="overflow-x-auto rounded-card border border-litrec-border bg-litrec-surface shadow-card">
-        <table class="min-w-full divide-y divide-litrec-border text-sm">
-            <thead class="bg-litrec-bg-muted text-left text-xs font-semibold uppercase tracking-wider text-litrec-text-muted">
+    <div class="lr-card overflow-x-auto">
+        <table class="lr-table">
+            <thead>
                 <tr>
                     <th scope="col" class="px-4 py-3">Code</th>
                     <th scope="col" class="px-4 py-3">Expected</th>
@@ -37,14 +37,13 @@
                     <th scope="col" class="px-4 py-3" aria-label="Row errors"></th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-litrec-border">
+            <tbody>
                 {% for index, line in form.lines %}
                     {% set expectedValue = line.expected.vars.value %}
                     <tr
                         data-testid="take-row-{{ index }}"
                         x-data="{ expected: {{ expectedValue|default(0) }}, actual: {{ line.actual.vars.value|default(0) }} }"
                         :class="actual != expected ? 'bg-amber-50' : ''"
-                        class="hover:bg-litrec-bg-muted"
                     >
                         <td class="whitespace-nowrap px-4 py-2 font-mono text-xs text-litrec-text">
                             {{ line.listingCode.vars.value }}
@@ -120,7 +119,7 @@
         <button
             type="submit"
             data-testid="take-inventory-submit"
-            class="rounded-md bg-litrec-primary px-4 py-2 text-sm font-semibold text-litrec-on-primary shadow-sm hover:bg-litrec-primary-strong focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
+            class="lr-btn lr-btn-primary"
         >
             Post Adjustments
         </button>

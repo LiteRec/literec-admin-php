@@ -5,7 +5,7 @@
      - detail: PurchaseOrderDetailView #}
 <section
     aria-labelledby="po-header-heading"
-    class="rounded-card border border-litrec-border bg-litrec-surface p-6 shadow-card"
+    class="lr-card lr-card-body"
 >
     <h2 id="po-header-heading" class="text-lg font-semibold text-litrec-text">
         Purchase Order
@@ -56,13 +56,13 @@
 
 <section
     aria-labelledby="po-lines-heading"
-    class="mt-6 rounded-card border border-litrec-border bg-litrec-surface p-6 shadow-card"
+    class="mt-6 lr-card lr-card-body"
 >
     <h2 id="po-lines-heading" class="text-lg font-semibold text-litrec-text">Lines</h2>
 
     <div class="mt-4 overflow-x-auto">
-        <table class="min-w-full divide-y divide-litrec-border text-sm">
-            <thead class="bg-litrec-bg-muted text-left text-xs font-semibold uppercase tracking-wider text-litrec-text-muted">
+        <table class="lr-table">
+            <thead>
                 <tr>
                     <th scope="col" class="px-3 py-2">Line</th>
                     <th scope="col" class="px-3 py-2">Item</th>
@@ -76,7 +76,7 @@
                     {% endif %}
                 </tr>
             </thead>
-            <tbody class="divide-y divide-litrec-border">
+            <tbody>
                 {% for line in detail.lines %}
                     <tr data-testid="po-line-row-{{ line.lineId }}">
                         <td class="whitespace-nowrap px-3 py-2 font-mono text-xs text-litrec-text">
