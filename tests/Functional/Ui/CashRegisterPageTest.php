@@ -70,21 +70,28 @@ final class CashRegisterPageTest extends WebTestCase
         self::assertSelectorTextContains('.lr-seg a[aria-current="page"]', 'Quick sale');
 
         // Item picker: scan/search field, Walk-in payer pill, category pills,
-        // and a touch-tile grid of items.
+        // and a touch-tile grid of items. The first category pill ("All") is
+        // pre-selected server-side, and every tender starts unselected, so a
+        // screen reader (or the functional test, which never runs Alpine)
+        // sees correct toggle state before any JS hydrates.
         self::assertSelectorExists('input[aria-label="Scan or search an item"]');
         self::assertSelectorTextContains('[data-testid="quick-sale-payer"]', 'Walk-in');
         self::assertSelectorTextContains('main', 'Day Passes');
+        self::assertSelectorExists('[data-testid="quick-sale-category-0"][aria-pressed="true"].is-active');
         self::assertGreaterThanOrEqual(8, $crawler->filter('.lr-tilegrid button.lr-tile')->count());
         self::assertSelectorTextContains('main', 'Adult Day Pass');
 
         // Receipt rail: line rows with steppers, totals, tender tiles, and a
-        // charge action. The rendered totals are the QuickSaleData fallback —
-        // the same numbers quickSale()'s initial Alpine state computes.
+        // charge action. The rendered totals — and the Adult Day Pass line's
+        // own total (2 x $8.00) — are the QuickSaleData fallback, the same
+        // numbers quickSale()'s initial Alpine state computes.
         self::assertSelectorTextContains('.lr-card-head', 'Receipt');
         self::assertSelectorExists('[data-testid="quick-sale-clear"]');
         self::assertSelectorExists('.lr-stepper');
+        self::assertSelectorTextContains('[data-testid="receipt-line-adult-day-pass"]', '$16.00');
         self::assertSelectorTextContains('.lr-totals .row.total', '$25.68');
         self::assertSelectorTextContains('[data-testid="quick-sale-tender-cash"]', 'Cash');
+        self::assertSelectorExists('[data-testid="quick-sale-tender-cash"][aria-pressed="false"]');
         self::assertSelectorTextContains('[data-testid="quick-sale-tender-card"]', 'Card');
         self::assertSelectorTextContains('[data-testid="quick-sale-tender-gift-card"]', 'Gift card');
         self::assertSelectorTextContains('main', 'Charge $25.68');
