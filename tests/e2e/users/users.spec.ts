@@ -73,15 +73,15 @@ test.describe('directory', () => {
     const inactivePill = page.getByTestId('segment-pill-inactive');
     await expect(inactivePill).toBeVisible();
     await expect(inactivePill).toHaveAttribute('aria-pressed', 'false');
-    // Visual regression for the .lr-seg button variant (LRA-192 review): a
-    // pressed pill must actually paint the sage-200 fill, not just carry
-    // aria-pressed with no visible effect.
-    await expect(inactivePill).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
 
     await inactivePill.click();
 
     await expect(inactivePill).toHaveAttribute('aria-pressed', 'true');
     await expect(page).toHaveURL(/segment=inactive/);
+    // Visual regression for the .lr-seg button variant (LRA-192 review): a
+    // pressed pill must actually paint the sage-200 fill, not just carry
+    // aria-pressed with no visible effect.
+    await expect(inactivePill).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
   });
 
   test('a pill click carries the live search text instead of a stale snapshot', async ({ page }) => {
