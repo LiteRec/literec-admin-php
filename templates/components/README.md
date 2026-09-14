@@ -96,7 +96,11 @@ recolor automatically with the active theme.
   hover row, no border on the last row).
 - **Lists:** `lr-list` + `lr-list-row` (divider list).
 - **Dashboard:** `lr-kpi` (gradient tile + `.ico`/`.val`/`.lbl`/`.delta`/`.blob`), `lr-quick` (dashed action tile), `lr-dot` (status dot), `lr-datechip` (`.d`/`.m`).
-- **Cash Register:** `lr-seg` (Full/Quick segmented toggle), `lr-totals` (`.row`/`.row.total`), `lr-avatar-lg` + `lr-avatar-xl-initials`.
+- **Cash Register:** `lr-seg` (Full/Quick segmented toggle), `lr-totals`
+  (`.row`/`.row.total`), `lr-pillradio` + `lr-pillradio-row` (Participant pill
+  radio rows), `lr-programrow` (`is-selected`) (program search result rows),
+  `lr-kindicon` (`info`/`success`/`warning`/`neutral`, matching `_badge`'s
+  variants — sale line-item kind icon).
 
 Do not transition `var()`-backed color/background/border on these classes — a
 theme switch would strand the old value (see the note in `app.css`).

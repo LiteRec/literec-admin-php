@@ -36,17 +36,20 @@ final class CashRegisterPageTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('main h1', 'Cash Register');
 
-        // Payer pane.
+        // Payer + Participant panes.
         self::assertSelectorTextContains('main', 'Mike Bocker');
+        self::assertSelectorExists('.lr-pillradio input[type="radio"]:checked');
+        self::assertSelectorTextContains('main', 'Add household member');
         // Builder pane.
         self::assertSelectorExists('.lr-tabs .lr-tab.is-active');
-        self::assertSelectorTextContains('main', 'Add to Cart');
-        // Cart pane.
-        self::assertSelectorTextContains('main', 'Shopping Cart');
+        self::assertSelectorExists('.lr-programrow.is-selected');
+        self::assertSelectorTextContains('main', 'Advanced Tap Dancing');
+        self::assertSelectorTextContains('main', 'Add to sale');
+        // Sale rail.
+        self::assertSelectorTextContains('[data-testid="sale-card-title"]', 'Sale');
         self::assertSelectorTextContains('main', 'Corporate 1-Year Membership');
-        // Summary pane.
         self::assertSelectorTextContains('.lr-totals .row.total', '$653.00');
-        self::assertSelectorTextContains('main', 'Complete Sale');
+        self::assertSelectorTextContains('main', 'Take payment');
 
         // Mode toggle: Full is the current segment.
         self::assertSelectorTextContains('.lr-seg a[aria-current="page"]', 'Full register');

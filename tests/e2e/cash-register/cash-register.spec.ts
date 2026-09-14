@@ -2,32 +2,41 @@ import { test, expect } from '../support/fixtures';
 
 /**
  * S4 (LRA-166): Cash Register mock-data smoke. Both screens render from
- * MockCashRegisterData and every control is a non-functional placeholder (no
- * backend mutation, no real Alpine state), so this asserts structure/presence
- * and relies on the page-error collector to catch any uncaught exception during
- * render — there are no functional interactions to exercise yet.
+ * MockCashRegisterData; LRA-190 rebuilds the Full register onto artboard 1b
+ * (payer/participant sand cards, pill tabs, program results with add-on
+ * toggles, Sale rail). Every control is a non-functional placeholder except
+ * the add-on toggles, which recompute the displayed "Add to sale" total
+ * client-side — no backend mutation happens on either screen.
  */
 test.describe('cash register — full sale', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/cash-register');
   });
 
-  test('renders the payer panel and program builder', async ({ page }) => {
+  test('renders the payer and participant cards, and the program builder', async ({ page }) => {
     await expect(page.getByText('Payer', { exact: true })).toBeVisible();
+    await expect(page.getByText('Participant', { exact: true })).toBeVisible();
+    await expect(page.getByRole('radio', { checked: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Programs', exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: /Add to Cart/i })).toBeVisible();
+    await expect(page.getByText('Advanced Tap Dancing')).toBeVisible();
   });
 
-  test('renders the shopping cart with line items', async ({ page }) => {
-    await expect(page.getByText('Shopping Cart')).toBeVisible();
+  test('toggling an add-on pill updates the Add to sale total', async ({ page }) => {
+    const addToSaleButton = page.getByRole('button', { name: /Add to sale/ });
+    await expect(addToSaleButton).toContainText('$193.00');
+
+    await page.getByRole('button', { name: /Soccer Uniform/ }).click();
+
+    await expect(addToSaleButton).toContainText('$201.50');
+  });
+
+  test('renders the sale rail with line items and totals', async ({ page }) => {
+    await expect(page.getByText('Sale', { exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: /^Remove / })).not.toHaveCount(0);
-  });
-
-  test('renders the sale totals and complete-sale action', async ({ page }) => {
     await expect(page.getByText('Subtotal')).toBeVisible();
     await expect(page.getByText('Tax', { exact: true })).toBeVisible();
     await expect(page.getByText('Total', { exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: /Complete Sale/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Take payment/i })).toBeVisible();
   });
 });
 

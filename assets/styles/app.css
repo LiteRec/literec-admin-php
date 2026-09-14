@@ -1088,9 +1088,10 @@
 }
 
 /* ======================================================================
-   Cash Register: the Full/Quick segmented mode toggle, the summary totals
-   block, and the large payer avatar. Token-driven. (LRA-131 adds the
-   quick-sale tile grid and stepper.)
+   Cash Register: the Full/Quick segmented mode toggle and the summary totals
+   block. Token-driven. (LRA-131 adds the quick-sale tile grid and stepper;
+   LRA-190 adds the Full register's pill radio rows, program result rows, and
+   sale line-item kind icons below.)
    ====================================================================== */
 @layer components {
     .lr-seg {
@@ -1134,17 +1135,82 @@
         font-synthesis-weight: none;
     }
 
-    .lr-avatar-lg {
-        width: 100%;
-        aspect-ratio: 1;
-        border-radius: var(--radius-card);
-        background: var(--lr-bg-muted);
+    /* Participant pill radio rows (LRA-190). Same hidden-input technique as
+       .lr-check above: the native <input> is clipped to 1px but stays
+       keyboard-focusable, and <label> wrapping keeps the whole pill
+       clickable regardless of the input's visual size — no absolute-overlay
+       hack needed. */
+    .lr-pillradio { display: block; cursor: pointer; }
+    .lr-pillradio input[type="radio"] {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        padding: 0;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+        border: 0;
+    }
+    .lr-pillradio-row {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
         border: 1px solid var(--lr-border);
+        border-radius: var(--radius-pill);
+        padding: 0.55rem 0.9rem;
+        background: var(--lr-surface);
+    }
+    .lr-pillradio:hover .lr-pillradio-row { border-color: var(--lr-primary); }
+    /* --lr-sage-200 / --lr-sage-900 — same proven pairing as .lr-tab.is-active:
+       sage-200 has no dark override, so accent-900-style text would fail;
+       sage-900 clears AA against the light fill in both themes. */
+    .lr-pillradio input:checked + .lr-pillradio-row { background: var(--lr-sage-200); border-color: var(--lr-sage-200); color: var(--lr-sage-900); }
+    /* .lr-muted sets its own color (not inherited), so it must be re-pinned
+       against the checked fill instead of the ambient theme text-muted —
+       otherwise dark mode's light text-muted would land on this
+       no-dark-override light fill and disappear (LRA-185 pitfall). */
+    .lr-pillradio input:checked + .lr-pillradio-row .lr-muted { color: color-mix(in srgb, var(--lr-sage-900) 70%, transparent); }
+    .lr-pillradio input:focus-visible + .lr-pillradio-row { outline: 2px solid var(--lr-primary); outline-offset: 2px; }
+
+    /* Program search result rows (LRA-190). */
+    .lr-programrow {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        border: 1px solid var(--lr-border);
+        border-radius: var(--radius-card-sm);
+        padding: 0.75rem 1rem;
+        background: var(--lr-surface);
+    }
+    /* --lr-accent-100 / --lr-accent-300 have no dark override (stay a light
+       fill/border in both themes), so the text pairs with --lr-accent-900
+       (also no dark override) rather than --lr-text, which flips near-white
+       in dark and would vanish on this fill (same pitfall as .lr-tab.is-active,
+       LRA-185 review). */
+    .lr-programrow.is-selected {
+        background: var(--lr-accent-100);
+        border-color: var(--lr-accent-300);
+        color: var(--lr-accent-900);
+    }
+    .lr-programrow.is-selected .lr-muted { color: color-mix(in srgb, var(--lr-accent-900) 70%, transparent); }
+    .lr-programrow-check { display: inline-flex; flex: none; color: var(--lr-accent-900); }
+
+    /* Sale line kind icons (LRA-190) — 34px circle, tinted per CartLine::$kind
+       using the same bg/fg token pairs as the matching .lr-badge variant, so
+       contrast is already vetted in both themes. */
+    .lr-kindicon {
+        width: 34px;
+        height: 34px;
+        border-radius: var(--radius-pill);
         display: grid;
         place-items: center;
-        color: var(--lr-text-muted);
+        flex: none;
     }
-    .lr-avatar-xl-initials { font-size: 2.6rem; font-weight: 800; color: var(--lr-primary); opacity: 0.85; }
+    .lr-kindicon.info { background: var(--lr-info-bg); color: var(--lr-info-fg); }
+    .lr-kindicon.success { background: var(--lr-success-bg); color: var(--lr-success-fg); }
+    .lr-kindicon.warning { background: var(--lr-warning-bg); color: var(--lr-warning-fg); }
+    .lr-kindicon.neutral { background: var(--lr-neutral-bg); color: var(--lr-neutral-fg); }
 }
 
 /* ======================================================================
