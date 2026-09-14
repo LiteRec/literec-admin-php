@@ -216,6 +216,45 @@ final class MemberTransactionHistoryCardTest extends WebTestCase
         self::assertResponseStatusCodeSame(400);
     }
 
+    #[Test]
+    #[TestDox('Renders one tab and panel per history view (LRA-206), Transactions selected by default.')]
+    public function history_card_renders_one_tab_and_panel_per_history_view(): void
+    {
+        $client = static::createClient();
+        $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
+        $this->seedHouseholdWithLargeMember();
+
+        $client->request('GET', sprintf('/admin/users/%s/%s', self::HOUSEHOLD_ID, self::LARGE_MEMBER_ID));
+
+        self::assertResponseIsSuccessful();
+
+        self::assertSelectorExists('[role="tablist"][aria-label="Member history"]');
+        self::assertCount(6, $client->getCrawler()->filter('[role="tab"]'));
+
+        self::assertSelectorExists('[data-testid="history-tab-transactions"][aria-selected="true"]');
+
+        self::assertSelectorExists('[data-testid="history-view-shim-activities"]');
+        self::assertSelectorExists('[data-testid="history-view-activities"][hidden]');
+
+        self::assertSelectorExists('[data-testid="history-view-shim-memberships"]');
+        self::assertSelectorExists('[data-testid="history-view-memberships"][hidden]');
+
+        self::assertSelectorExists('[data-testid="history-view-shim-facility-rentals"]');
+        self::assertSelectorExists('[data-testid="history-view-facility-rentals"][hidden]');
+
+        self::assertSelectorExists('[data-testid="history-view-shim-equipment-rentals"]');
+        self::assertSelectorExists('[data-testid="history-view-equipment-rentals"][hidden]');
+
+        self::assertSelectorExists('[data-testid="history-view-shim-pos-purchases"]');
+        self::assertSelectorExists('[data-testid="history-view-pos-purchases"][hidden]');
+
+        self::assertSelectorExists('[data-testid="history-sample-data-notice"]');
+
+        // None of the coming-soon panels' placeholder content has loaded yet
+        // (it only loads on first tab click via HTMX) — only the shims render.
+        self::assertSelectorNotExists('[data-testid^="history-view-placeholder-"]');
+    }
+
     private function seedHouseholdWithLargeMember(): void
     {
         $repo = static::getContainer()->get(Households::class);

@@ -1,0 +1,18 @@
+{# Shared "coming soon" fragment for every History card (LRA-206) tab
+   other than Transactions. Modelled on
+   templates/inventory/reports/_card_placeholder.html.twig — same
+   dashed-border/muted styling, adapted to the History tabpanel's own
+   testid/heading shape so it can be swapped straight into
+   #history-view-{slug} by the tab button's hx-get.
+
+   Expects:
+     - view: App\Households\Infrastructure\Http\View\MemberHistoryView #}
+<section
+    data-testid="history-view-placeholder-{{ view.value }}"
+    class="rounded-lg border-2 border-dashed bg-litrec-bg-muted p-6 text-center"
+>
+    <h3 class="text-lg font-semibold text-litrec-text-muted">{{ view.label }}</h3>
+    <p class="mt-2 text-sm text-litrec-text-muted">
+        Coming soon. {{ view.label }} for this member will appear here once that area of the application is available.
+    </p>
+</section>

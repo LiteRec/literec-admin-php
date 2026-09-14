@@ -16,6 +16,18 @@ const ALICE = ANCHORS.members.alice;
 const FRANK = ANCHORS.members.frank;
 const GAIL = ANCHORS.members.gail;
 
+// The five History card kinds (LRA-206) that render the shared "Coming
+// soon" placeholder — every App\Households\Infrastructure\Http\View\
+// MemberHistoryView case except `transactions`, which has a real
+// (stubbed) table instead.
+const COMING_SOON_HISTORY_VIEWS = [
+  'activities',
+  'memberships',
+  'facility-rentals',
+  'equipment-rentals',
+  'pos-purchases',
+] as const;
+
 async function createHousehold(page: Page, firstName: string, lastName: string): Promise<void> {
   await page.goto('/admin/users');
   await page.getByTestId('open-new-household').click();
@@ -185,6 +197,32 @@ test.describe('member detail', () => {
     // Residency is a sub-card within the Address & Residency card; Alice is a Resident.
     await expect(page.getByTestId('residency-sub-card-body')).toBeVisible();
     await expect(page.getByTestId('residency-status-badge')).toContainText(ALICE.residency);
+  });
+
+  test('History card tabs load each coming-soon view without discarding already-loaded panels (LRA-206)', async ({ page }) => {
+    await page.goto('/admin/users');
+    await page.getByTestId('more-filters-toggle').click();
+    await page.locator('#filter-email').fill(ALICE.email);
+    await page.getByRole('link', { name: ALICE.name }).click();
+
+    // The History card is collapsed by default; expand it before the tab
+    // strip inside becomes interactive.
+    await page.getByTestId('card-history').locator('summary').click();
+    await expect(page.getByRole('tablist', { name: 'Member history' })).toBeVisible();
+
+    for (const slug of COMING_SOON_HISTORY_VIEWS) {
+      await page.getByTestId(`history-tab-${slug}`).click();
+      const placeholder = page.getByTestId(`history-view-placeholder-${slug}`);
+      await expect(placeholder).toBeVisible();
+      await expect(placeholder).toContainText('Coming soon');
+    }
+
+    // Switching back to Transactions must still show the lazily-loaded
+    // table (or its empty state) rather than re-showing the pre-load shim —
+    // proof that tab switching does not discard an already-loaded panel.
+    await page.getByTestId('history-tab-transactions').click();
+    await expect(page.getByTestId('card-history-body')).toBeVisible();
+    await expect(page.getByTestId('history-lazy-shim')).toHaveCount(0);
   });
 
   test('switching the active member from the household roster updates the header, page title, breadcrumb and roster highlight', async ({ page }) => {
