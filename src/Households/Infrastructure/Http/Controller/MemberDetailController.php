@@ -258,47 +258,9 @@ final class MemberDetailController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            try {
-                $this->dispatchCommandUnwrapping(new UpdateMemberProfile(
-                    householdId: $householdId,
-                    memberId: $memberId,
-                    firstName: (string) $input->firstName,
-                    lastName: (string) $input->lastName,
-                    middleName: $input->middleName,
-                    suffix: $input->suffix,
-                    dobIso: (string) $input->dobIso,
-                    genderCode: (string) $input->genderCode,
-                    nickname: $input->nickname,
-                    salutationCode: $input->salutationCode,
-                    heightInches: $input->heightInches,
-                    weightPounds: $input->weightPounds,
-                ));
-
-                // Re-load the projection so the swapped read partial reflects
-                // the freshly persisted values; an unchanged submit yields the
-                // same projection and the card still swaps back to read mode.
-                $response = $this->render('households/detail/_card_profile_read.html.twig', [
-                    'detail' => $this->runQuery($householdId, $memberId),
-                ]);
-                $response->headers->set(self::HEADER_HX_TRIGGER, self::HX_TRIGGER_PROFILE_SAVED);
-
+            $response = $this->tryUpdateProfile($householdId, $memberId, $input, $form);
+            if ($response !== null) {
                 return $response;
-            } catch (MemberNotFound | HouseholdNotFound | InvalidHouseholdId | InvalidMemberId) {
-                throw $this->createNotFoundException(self::MEMBER_NOT_FOUND_MESSAGE);
-            } catch (InvalidPersonName $exception) {
-                $this->applyNameErrorToForm($form, $exception);
-            } catch (InvalidDateOfBirth $exception) {
-                if ($form->has('dobIso')) {
-                    $form->get('dobIso')->addError(new FormError($exception->getMessage()));
-                } else {
-                    $form->addError(new FormError($exception->getMessage()));
-                }
-            } catch (InvalidHeight $exception) {
-                $form->get('heightInches')->addError(new FormError($exception->getMessage()));
-            } catch (InvalidWeight $exception) {
-                $form->get('weightPounds')->addError(new FormError($exception->getMessage()));
-            } catch (SharedDomainException $exception) {
-                $form->addError(new FormError($exception->getMessage()));
             }
         }
 
@@ -309,6 +271,89 @@ final class MemberDetailController extends AbstractController
             $memberId,
             Response::HTTP_UNPROCESSABLE_ENTITY,
         );
+    }
+
+    /**
+     * Dispatches {@see UpdateMemberProfile} for a submitted-and-valid
+     * profile form and returns the read-mode response on success. On a
+     * domain validation failure it writes the error onto $form and returns
+     * null so {@see self::submitProfile()} falls through to the 422
+     * edit-partial re-render; on a not-found condition it throws directly.
+     *
+     * Extracted from {@see self::submitProfile()} to keep that method's
+     * cognitive complexity under the SonarCloud php:S3776 threshold now
+     * that the form covers name, DOB, gender, nickname, salutation,
+     * height, and weight (LRA-205).
+     *
+     * @template TData
+     *
+     * @param FormInterface<TData> $form
+     */
+    private function tryUpdateProfile(
+        string $householdId,
+        string $memberId,
+        UpdateMemberProfileInput $input,
+        FormInterface $form,
+    ): ?Response {
+        try {
+            $this->dispatchCommandUnwrapping(new UpdateMemberProfile(
+                householdId: $householdId,
+                memberId: $memberId,
+                firstName: (string) $input->firstName,
+                lastName: (string) $input->lastName,
+                middleName: $input->middleName,
+                suffix: $input->suffix,
+                dobIso: (string) $input->dobIso,
+                genderCode: (string) $input->genderCode,
+                nickname: $input->nickname,
+                salutationCode: $input->salutationCode,
+                heightInches: $input->heightInches,
+                weightPounds: $input->weightPounds,
+            ));
+
+            // Re-load the projection so the swapped read partial reflects
+            // the freshly persisted values; an unchanged submit yields the
+            // same projection and the card still swaps back to read mode.
+            $response = $this->render('households/detail/_card_profile_read.html.twig', [
+                'detail' => $this->runQuery($householdId, $memberId),
+            ]);
+            $response->headers->set(self::HEADER_HX_TRIGGER, self::HX_TRIGGER_PROFILE_SAVED);
+
+            return $response;
+        } catch (MemberNotFound | HouseholdNotFound | InvalidHouseholdId | InvalidMemberId) {
+            throw $this->createNotFoundException(self::MEMBER_NOT_FOUND_MESSAGE);
+        } catch (InvalidPersonName $exception) {
+            $this->applyNameErrorToForm($form, $exception);
+        } catch (InvalidDateOfBirth $exception) {
+            $this->applyDobErrorToForm($form, $exception);
+        } catch (InvalidHeight $exception) {
+            $form->get('heightInches')->addError(new FormError($exception->getMessage()));
+        } catch (InvalidWeight $exception) {
+            $form->get('weightPounds')->addError(new FormError($exception->getMessage()));
+        } catch (SharedDomainException $exception) {
+            $form->addError(new FormError($exception->getMessage()));
+        }
+
+        return null;
+    }
+
+    /**
+     * Maps an InvalidDateOfBirth exception onto the dobIso field when
+     * present, otherwise onto the form root.
+     *
+     * @template TData
+     *
+     * @param FormInterface<TData> $form
+     */
+    private function applyDobErrorToForm(FormInterface $form, InvalidDateOfBirth $exception): void
+    {
+        if ($form->has('dobIso')) {
+            $form->get('dobIso')->addError(new FormError($exception->getMessage()));
+
+            return;
+        }
+
+        $form->addError(new FormError($exception->getMessage()));
     }
 
     /**

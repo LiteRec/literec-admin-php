@@ -468,22 +468,11 @@ trait MemberReadModelContractCases
     #[TestDox('memberDetail(): projects nickname, salutation, height, and weight when populated.')]
     public function member_detail_projects_measurement_fields_when_populated(): void
     {
-        $household = Household::register(
-            HouseholdId::fromString(self::HOUSEHOLD_A),
-            HouseholdName::of('Smith Family'),
-            Address::of('100 Main St', 'Apt 2B', 'Seattle', 'WA', '98101', 'US'),
-            MemberId::fromString(self::A_PRIMARY_ID),
-            MemberCode::of(self::A_PRIMARY_CODE),
-            PersonName::of('Alice', 'Smith', nickname: 'Al'),
-            DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock()),
-            Gender::Female,
-            EmailAddress::of('alice@example.com'),
-            null,
-            ResidencyStatus::Resident,
-            $this->clock(),
-            Salutation::Ms,
-            Height::ofInches(65),
-            Weight::ofPounds(140),
+        $household = $this->buildHouseholdA(
+            nickname: 'Al',
+            salutation: Salutation::Ms,
+            height: Height::ofInches(65),
+            weight: Weight::ofPounds(140),
         );
         $this->seedHouseholds([$household]);
 
@@ -512,21 +501,36 @@ trait MemberReadModelContractCases
         );
     }
 
-    private function buildHouseholdA(): Household
-    {
+    /**
+     * @param non-empty-string|null $nickname Optional measurement/identity
+     *        fields (LRA-205) for the primary member, "Al"ice Smith. Left
+     *        null by every other call site so the projection stays
+     *        unpopulated for existing assertions; only
+     *        {@see self::member_detail_projects_measurement_fields_when_populated()}
+     *        supplies them, avoiding a second near-duplicate `register()` call.
+     */
+    private function buildHouseholdA(
+        ?string $nickname = null,
+        ?Salutation $salutation = null,
+        ?Height $height = null,
+        ?Weight $weight = null,
+    ): Household {
         $household = Household::register(
             HouseholdId::fromString(self::HOUSEHOLD_A),
             HouseholdName::of('Smith Family'),
             Address::of('100 Main St', 'Apt 2B', 'Seattle', 'WA', '98101', 'US'),
             MemberId::fromString(self::A_PRIMARY_ID),
             MemberCode::of(self::A_PRIMARY_CODE),
-            PersonName::of('Alice', 'Smith'),
+            PersonName::of('Alice', 'Smith', nickname: $nickname),
             DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock()),
             Gender::Female,
             EmailAddress::of('alice@example.com'),
             null,
             ResidencyStatus::Resident,
             $this->clock(),
+            $salutation,
+            $height,
+            $weight,
         );
 
         $household->addMember(
