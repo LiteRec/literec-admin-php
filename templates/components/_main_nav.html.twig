@@ -1,70 +1,134 @@
-{# Staff-admin main navigation bar. Renders the seven top-level categories
-   from MainNavigation; sub-items live in per-item Alpine dropdowns. Sub-item
-   route names live in App\Ui\Navigation\MainNavigation — never duplicate
-   them here. #}
+{# Staff-admin main navigation. Renders the seven top-level categories from
+   MainNavigation as an inline pill menubar merged into the single-row
+   app-shell header (LRA-187); sub-items live in per-item Alpine dropdowns.
+   Sub-item route names live in App\Ui\Navigation\MainNavigation — never
+   duplicate them here. #}
+{% import 'components/_icon.html.twig' as icon %}
 {% set current_route = app.request is not null ? app.request.attributes.get('_route') : null %}
 {% set nav = main_navigation() %}
 
-<nav class="border-b border-litrec-border bg-litrec-surface" aria-label="Main navigation" x-data="{ openIndex: null }">
-    {# Desktop (≥ lg / 1024px): horizontal menubar with dropdowns. Below lg
-       the menubar would force the two-word "Cash Register" label onto two
-       lines, so the mobile hamburger panel below takes over up to 1023px. #}
-    <div class="mx-auto hidden max-w-7xl px-6 lg:block">
-        {# role=menubar list with role=presentation items and role=menuitem
-           links is the WAI-ARIA Authoring Practices menubar pattern. The
-           ARIA-role lint (Web:S6842/S6819) is suppressed for this file in
-           sonar-project.properties with the rationale. #}
-        <ul role="menubar" class="flex items-stretch gap-1">
-            {% for index, item in nav.items %}
-                {% set active = is_active_nav_item(item, current_route) %}
-                <li
-                    role="presentation"
-                    class="relative flex items-stretch"
-                    @keydown.escape.window="openIndex = null"
-                    @click.outside="if (openIndex === {{ index }}) openIndex = null"
+{# No `relative` here: the mobile panel below is positioned against
+   .lr-header's own containing block (see .lr-header { position: relative }
+   in app.css) so it spans the full header width regardless of how wide
+   this <nav> itself renders — giving it one would intercept that and size
+   the panel to this element's own (much narrower) box instead. #}
+<nav
+    class="flex flex-1 items-center"
+    aria-label="Main navigation"
+    x-data="{ openIndex: null, closeTimer: null, mobileOpen: false }"
+>
+    {# Desktop (≥ lg / 1024px): inline pill menubar with dropdowns opened by
+       hover (150ms close delay so moving from the pill into the panel does
+       not close it) or by the existing click / keyboard toggle. Below lg the
+       menubar would force the two-word "Cash Register" label onto two lines,
+       so the mobile hamburger sheet below takes over up to 1023px. #}
+    <ul role="menubar" class="hidden items-stretch gap-1 lg:flex">
+        {% for index, item in nav.items %}
+            {% set active = is_active_nav_item(item, current_route) %}
+            {# role=menubar list with role=presentation items and role=menuitem
+               links is the WAI-ARIA Authoring Practices menubar pattern. The
+               ARIA-role lint (Web:S6842/S6819) is suppressed for this file in
+               sonar-project.properties with the rationale. #}
+            {# The pill background sits on the <li> itself (not a wrapping div)
+               so the label link stays a direct child, matching the WAI-ARIA
+               menubar > li > a[role=menuitem] structure the functional tests
+               assert on. #}
+            <li
+                role="presentation"
+                class="lr-navpill relative flex items-stretch {{ active ? 'is-active' : '' }}"
+                @keydown.escape.window="openIndex = null"
+                @click.outside="if (openIndex === {{ index }}) openIndex = null"
+                {%- if item.hasChildren() %}
+                @mouseenter="clearTimeout(closeTimer); openIndex = {{ index }}"
+                @mouseleave="closeTimer = setTimeout(() => { if (openIndex === {{ index }}) openIndex = null }, 150)"
+                {%- endif %}
+            >
+                <a
+                    role="menuitem"
+                    href="{{ path(item.route) }}"
+                    {%- if active %}
+                    aria-current="page"
+                    {%- endif %}
+                    class="lr-navpill-label"
                 >
-                    {# Clicking the label navigates to the section's index
-                       route. The chevron toggles the dropdown. Splitting
-                       the targets keeps both navigation and dropdown
-                       reachable from desktop. #}
-                    <a
-                        role="menuitem"
-                        href="{{ path(item.route) }}"
-                        class="inline-flex items-center whitespace-nowrap pl-4 pr-2 py-3 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-inset focus:ring-litrec-primary {{ active ? 'bg-litrec-primary text-litrec-on-primary' : 'text-litrec-text hover:bg-litrec-bg-muted' }}"
+                    {{ item.label }}
+                </a>
+
+                {% if item.hasChildren() %}
+                    {# A real click always lands on this button by way of a
+                       mouseenter first, which the @mouseenter above already
+                       opened; toggling here would immediately re-close it.
+                       Escape, click-outside and the mouseleave delay are the
+                       close paths, so the click handler only opens. #}
+                    <button
+                        type="button"
+                        @click="openIndex = {{ index }}"
+                        @keydown.arrow-down.prevent="openIndex = {{ index }}; $nextTick(() => $el.closest('li').querySelector('[role=menu] a')?.focus())"
+                        aria-haspopup="true"
+                        :aria-expanded="openIndex === {{ index }} ? 'true' : 'false'"
+                        aria-label="Toggle {{ item.label }} menu"
+                        class="lr-navpill-chevron"
                     >
-                        {{ item.label }}
-                    </a>
+                        {{ icon.icon('chevron', 14) }}
+                    </button>
+                {% endif %}
 
+                {% if item.hasChildren() %}
+                    <ul
+                        role="menu"
+                        x-show="openIndex === {{ index }}"
+                        x-cloak
+                        @keydown.arrow-down.prevent="$focus.next()"
+                        @keydown.arrow-up.prevent="$focus.previous()"
+                        class="lr-navdrop absolute left-0 top-full z-10"
+                    >
+                        {% for child in item.children %}
+                            <li role="presentation">
+                                <a
+                                    role="menuitem"
+                                    href="{{ path(child.route) }}"
+                                    class="lr-navdrop-link"
+                                >
+                                    {{ child.label }}
+                                </a>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </li>
+        {% endfor %}
+    </ul>
+
+    {# Mobile / tablet (< lg): hamburger toggles a rounded sheet dropping
+       below the header. #}
+    <div class="lg:hidden">
+        <button
+            type="button"
+            @click="mobileOpen = !mobileOpen"
+            :aria-expanded="mobileOpen ? 'true' : 'false'"
+            aria-controls="main-nav-mobile-panel"
+            aria-label="Toggle main navigation"
+            class="rounded-md border border-litrec-border px-3 py-1.5 text-sm text-litrec-text hover:bg-litrec-bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
+        >
+            <span x-text="mobileOpen ? 'Close' : 'Open'"></span>
+        </button>
+    </div>
+
+    <div
+        id="main-nav-mobile-panel"
+        x-show="mobileOpen"
+        x-cloak
+        class="lr-mobile-panel absolute inset-x-0 top-full z-10 lg:hidden"
+    >
+        <ul class="px-6 py-3">
+            {% for item in nav.items %}
+                <li class="border-b border-litrec-bg-muted py-2 last:border-b-0">
+                    <a href="{{ path(item.route) }}" class="block text-sm font-semibold text-litrec-text hover:text-litrec-primary">{{ item.label }}</a>
                     {% if item.hasChildren() %}
-                        <button
-                            type="button"
-                            @click="openIndex = openIndex === {{ index }} ? null : {{ index }}"
-                            @keydown.arrow-down.prevent="openIndex = {{ index }}; $nextTick(() => $el.parentElement.querySelector('[role=menu] a')?.focus())"
-                            aria-haspopup="true"
-                            :aria-expanded="openIndex === {{ index }} ? 'true' : 'false'"
-                            aria-label="Toggle {{ item.label }} menu"
-                            class="inline-flex items-center pl-1 pr-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-inset focus:ring-litrec-primary {{ active ? 'bg-litrec-primary text-litrec-on-primary' : 'text-litrec-text hover:bg-litrec-bg-muted' }}"
-                        >
-                            <span aria-hidden="true">▾</span>
-                        </button>
-
-                        <ul
-                            role="menu"
-                            x-show="openIndex === {{ index }}"
-                            x-cloak
-                            @keydown.arrow-down.prevent="$focus.next()"
-                            @keydown.arrow-up.prevent="$focus.previous()"
-                            class="absolute left-0 top-full z-10 min-w-[16rem] border border-litrec-border bg-litrec-surface py-1 shadow-card"
-                        >
+                        <ul class="mt-1 pl-4">
                             {% for child in item.children %}
-                                <li role="presentation">
-                                    <a
-                                        role="menuitem"
-                                        href="{{ path(child.route) }}"
-                                        class="block px-4 py-2 text-sm text-litrec-text hover:bg-litrec-bg-muted focus:bg-litrec-bg-muted focus:outline-none"
-                                    >
-                                        {{ child.label }}
-                                    </a>
+                                <li>
+                                    <a href="{{ path(child.route) }}" class="block py-1 text-sm text-litrec-text-muted hover:text-litrec-text">{{ child.label }}</a>
                                 </li>
                             {% endfor %}
                         </ul>
@@ -72,43 +136,5 @@
                 </li>
             {% endfor %}
         </ul>
-    </div>
-
-    {# Mobile / tablet (< lg): hamburger toggles a stacked panel with inline
-       sub-items. Covers everything up to 1023px to keep the menubar from
-       cramping at the md breakpoint. #}
-    <div class="lg:hidden" x-data="{ mobileOpen: false }">
-        <div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
-            <span class="text-sm font-semibold text-litrec-text">Menu</span>
-            <button
-                type="button"
-                @click="mobileOpen = !mobileOpen"
-                :aria-expanded="mobileOpen ? 'true' : 'false'"
-                aria-controls="main-nav-mobile-panel"
-                aria-label="Toggle main navigation"
-                class="rounded-md border border-litrec-border px-3 py-1.5 text-sm text-litrec-text hover:bg-litrec-bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
-            >
-                <span x-text="mobileOpen ? 'Close' : 'Open'"></span>
-            </button>
-        </div>
-
-        <div id="main-nav-mobile-panel" x-show="mobileOpen" x-cloak class="border-t border-litrec-border bg-litrec-surface">
-            <ul class="px-6 py-3">
-                {% for item in nav.items %}
-                    <li class="border-b border-litrec-bg-muted py-2 last:border-b-0">
-                        <a href="{{ path(item.route) }}" class="block text-sm font-semibold text-litrec-text hover:text-litrec-primary">{{ item.label }}</a>
-                        {% if item.hasChildren() %}
-                            <ul class="mt-1 pl-4">
-                                {% for child in item.children %}
-                                    <li>
-                                        <a href="{{ path(child.route) }}" class="block py-1 text-sm text-litrec-text-muted hover:text-litrec-text">{{ child.label }}</a>
-                                    </li>
-                                {% endfor %}
-                            </ul>
-                        {% endif %}
-                    </li>
-                {% endfor %}
-            </ul>
-        </div>
     </div>
 </nav>

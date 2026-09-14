@@ -51,7 +51,7 @@ test.describe('main navigation', () => {
 
     await expect(
       mainNav(page).getByRole('menuitem', { name: 'Users', exact: true }),
-    ).toHaveClass(/bg-litrec-primary/);
+    ).toHaveAttribute('aria-current', 'page');
   });
 
   test('a dropdown sub-item navigates to its destination', async ({ page }) => {

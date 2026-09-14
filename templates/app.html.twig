@@ -12,41 +12,50 @@
            switch) without any focus change. #}
         <div id="lr-live" role="status" aria-live="polite" aria-atomic="true" class="sr-only"></div>
 
-        <header class="lr-header">
+        <header class="lr-header shadow-sm">
             <div class="lr-header-in">
                 <a href="{{ path('app_dashboard') }}" class="lr-brand" aria-label="LiteRecAdmin home">
-                    <span class="lr-brand-mark">{{ icon.icon('leaf', 18) }}</span>
-                    <span class="lr-brand-name">LiteRecAdmin</span>
+                    <span class="lr-brand-mark">{{ icon.icon('leaf', 20) }}</span>
+                    <span class="lr-brand-name">LiteRec</span>
                 </a>
+
+                {% include 'components/_main_nav.html.twig' %}
 
                 <div class="lr-header-right">
                     <span data-testid="selected-facility" class="lr-facility-pill">
                         {{ icon.icon('pin', 13) }}
                         <span class="sr-only">Selected facility: </span>{{ selected_facility() }}
+                        {{ icon.icon('chevron', 13, 2.75, 'lr-facility-pill-chevron') }}
                     </span>
 
-                    {# Light/dark theme toggle (LRA-123). `dark` is seeded from the
-                       data-theme attribute the base.html.twig bootstrap script set
-                       before paint; clicking flips the attribute and persists it. #}
+                    {# Search opens the existing member lookup dialog (LRA-46) as
+                       a first step toward a global search surface. #}
                     <button
                         type="button"
                         class="lr-iconbtn"
-                        data-testid="theme-toggle"
-                        x-data="{ dark: document.documentElement.getAttribute('data-theme') === 'dark' }"
-                        @click="dark = !dark;
-                                document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
-                                try { localStorage.setItem('lr-theme', dark ? 'dark' : 'light'); } catch (e) {}"
-                        :aria-pressed="dark ? 'true' : 'false'"
-                        aria-label="Toggle dark theme"
+                        data-testid="open-search"
+                        aria-label="Search members"
+                        onclick="window.openMemberLookup && window.openMemberLookup()"
                     >
-                        <span x-show="!dark">{{ icon.icon('moon', 17) }}</span>
-                        <span x-show="dark" x-cloak>{{ icon.icon('sun', 17) }}</span>
+                        {{ icon.icon('search', 17) }}
+                    </button>
+
+                    {# Presentation-only placeholder: no notification source
+                       exists yet, so there is nothing to badge. Add the accent
+                       dot here once a real unread count backs this button. #}
+                    <button
+                        type="button"
+                        class="lr-iconbtn"
+                        data-testid="notifications"
+                        aria-label="Notifications"
+                    >
+                        {{ icon.icon('bell', 17) }}
                     </button>
 
                     {% if app.user %}
                         <div
                             class="relative"
-                            x-data="{ open: false }"
+                            x-data="{ open: false, dark: document.documentElement.getAttribute('data-theme') === 'dark' }"
                             @keydown.escape.window="open = false"
                             @click.outside="open = false"
                         >
@@ -72,6 +81,27 @@
                                     <span aria-hidden="true" class="lr-muted">Signed in as</span>
                                     <strong class="block text-litrec-text">{{ app.user.username }}</strong>
                                 </p>
+
+                                {# Light/dark theme toggle (LRA-123), moved into the
+                                   avatar menu (LRA-187). `dark` is seeded from the
+                                   data-theme attribute the base.html.twig bootstrap
+                                   script set before paint; clicking flips the
+                                   attribute and persists it. #}
+                                <button
+                                    type="button"
+                                    role="menuitemcheckbox"
+                                    class="lr-btn lr-btn-ghost lr-btn-block border-t border-litrec-border"
+                                    data-testid="theme-toggle"
+                                    @click="dark = !dark;
+                                            document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+                                            try { localStorage.setItem('lr-theme', dark ? 'dark' : 'light'); } catch (e) {}"
+                                    :aria-checked="dark ? 'true' : 'false'"
+                                    aria-label="Toggle dark theme"
+                                >
+                                    <span x-show="!dark" class="inline-flex items-center gap-2">{{ icon.icon('moon', 15) }}Dark mode</span>
+                                    <span x-show="dark" x-cloak class="inline-flex items-center gap-2">{{ icon.icon('sun', 15) }}Light mode</span>
+                                </button>
+
                                 <form method="post" action="{{ path('app_logout') }}" class="border-t border-litrec-border px-2 pt-1">
                                     <input type="hidden" name="_csrf_token" value="{{ csrf_token('logout') }}">
                                     <button type="submit" role="menuitem" aria-label="Sign out of your account" class="lr-btn lr-btn-ghost lr-btn-block">
@@ -85,9 +115,9 @@
             </div>
         </header>
 
-        {% include 'components/_main_nav.html.twig' %}
+        {% include 'components/member_lookup_dialog.html.twig' %}
 
-        <main id="main-content" tabindex="-1" class="mx-auto w-full max-w-7xl flex-1 px-6 py-8">
+        <main id="main-content" tabindex="-1" class="w-full flex-1 px-9 py-8">
             {# Define-and-capture pattern: declare the blocks so children can
                override them, then forward them as parameters to the
                _page_header component. The header markup — including the
