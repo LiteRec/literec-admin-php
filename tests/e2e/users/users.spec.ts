@@ -225,6 +225,21 @@ test.describe('member detail', () => {
     await expect(page.getByTestId('history-lazy-shim')).toHaveCount(0);
   });
 
+  test('arrow-key tab activation also loads the coming-soon panel, not just pointer clicks (LRA-206)', async ({ page }) => {
+    await page.goto('/admin/users');
+    await page.getByTestId('more-filters-toggle').click();
+    await page.locator('#filter-email').fill(ALICE.email);
+    await page.getByRole('link', { name: ALICE.name }).click();
+
+    await page.getByTestId('card-history').locator('summary').click();
+    await page.getByTestId('history-tab-transactions').focus();
+    await page.keyboard.press('ArrowRight');
+
+    const placeholder = page.getByTestId('history-view-placeholder-activities');
+    await expect(placeholder).toBeVisible();
+    await expect(placeholder).toContainText('Coming soon');
+  });
+
   test('switching the active member from the household roster updates the header, page title, breadcrumb and roster highlight', async ({ page }) => {
     await page.goto('/admin/users');
     await page.locator('#filter-q').fill(FRANK.lastName);

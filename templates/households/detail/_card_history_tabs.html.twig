@@ -26,8 +26,11 @@
             const tabs = Array.from($el.querySelectorAll('[role=tab]'));
             const currentIndex = tabs.findIndex((tab) => tab === document.activeElement);
             const nextTab = tabs[(currentIndex + offset + tabs.length) % tabs.length];
-            view = nextTab.dataset.view;
             nextTab.focus();
+            // Activate via the button's own click so the tab's `@click`
+            // (Alpine `view`) and `hx-trigger="click once"` (placeholder
+            // fetch) both fire, exactly as a pointer activation would.
+            nextTab.click();
         },
     }"
     @keydown.right.prevent="focusTab(1)"
