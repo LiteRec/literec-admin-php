@@ -32,9 +32,14 @@ test.describe('dashboard', () => {
     const transactions = page.getByRole('region', { name: 'Recent transactions' });
     const pendingFilter = page.getByTestId('transactions-filter-pending');
 
+    await expect(pendingFilter).toHaveAttribute('aria-pressed', 'false');
     await pendingFilter.click();
-    await expect(page).toHaveURL(/status=pending/);
+    // Anchored to the dashboard page URL, not the fetched partial's own
+    // /dashboard/_transactions URL (LRA-189 review: hx-push-url must push
+    // the page URL so a reload/bookmark doesn't land on a bare fragment).
+    await expect(page).toHaveURL(/\/dashboard\?status=pending$/);
     await expect(pendingFilter).toHaveClass(/is-active/);
+    await expect(pendingFilter).toHaveAttribute('aria-pressed', 'true');
 
     const rows = transactions.getByTestId('transaction-row');
     await expect(rows.first()).toBeVisible();
@@ -43,6 +48,17 @@ test.describe('dashboard', () => {
     for (const status of statuses) {
       expect(status.trim()).toBe('Pending');
     }
+  });
+
+  test('keyboard-activating a status pill keeps focus on it after the HTMX swap', async ({ page }) => {
+    const pendingFilter = page.getByTestId('transactions-filter-pending');
+
+    await pendingFilter.focus();
+    await page.keyboard.press('Enter');
+
+    await expect(page).toHaveURL(/\/dashboard\?status=pending$/);
+    await expect(pendingFilter).toHaveClass(/is-active/);
+    await expect(pendingFilter).toBeFocused();
   });
 
   test('renders the Upcoming list', async ({ page }) => {

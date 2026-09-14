@@ -165,15 +165,18 @@
     --lr-control-border: var(--lr-neutral-600);
     --lr-text: #201e1d;
     --lr-text-muted: #645c50;
-    --lr-primary: #c67139;
-    --lr-primary-strong: #b2622d;
+    /* LRA-189 review: the literal #c67139 (ramp step accent-500) measured
+       only 3.03:1 against --lr-on-primary, failing AA on every
+       .lr-btn-primary consumer (~32 across the app, including this ticket's
+       new "New sale" action) — accent-700/800 clear 5.09:1 / 7.71:1. */
+    --lr-primary: var(--lr-accent-700);
+    --lr-primary-strong: var(--lr-accent-800);
     --lr-on-primary: #f5ead8;
-    /* Pressed/:active fill for .lr-btn-primary (LRA-195). Was the literal,
-       theme-independent --lr-accent-700 ramp step: safe here (5.09:1 against
-       --lr-on-primary) but only by coincidence, and it drops to 2.33:1 once
-       dark mode's --lr-on-primary flips to a dark ink. A dedicated semantic
-       token keeps the pressed state theme-aware. */
-    --lr-primary-active: var(--lr-accent-700);
+    /* Pressed/:active fill for .lr-btn-primary (LRA-195), one ramp step past
+       --lr-primary-strong so the three states (fill/hover/press) stay
+       visually distinct now that --lr-primary itself is accent-700 (11.1:1
+       against --lr-on-primary). */
+    --lr-primary-active: var(--lr-accent-900);
     /* Text-on-surface variant of primary (LRA-185 review): --lr-primary itself
        is only ~3.3:1 on the app's light surfaces, which fails AA for 14px/600
        text (e.g. .lr-btn-ghost). accent-700 clears 4.5:1 against surface,
