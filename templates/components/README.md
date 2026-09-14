@@ -41,6 +41,10 @@ A curated SVG line-icon set on a 24x24 grid, drawn from Lucide icon paths at a
 2.75 default stroke. Unlike the other components, it is a **Twig macro**, so
 import it once per template and call it as a function:
 
+The path geometry is copied from [Lucide](https://lucide.dev) (ISC License,
+with an additional MIT sublicense for the icons it inherited from Feather);
+see the license text in `_icon.html.twig`'s header comment.
+
 ```twig
 {% import 'components/_icon.html.twig' as icon %}
 {{ icon.icon('bell', 17) }}
