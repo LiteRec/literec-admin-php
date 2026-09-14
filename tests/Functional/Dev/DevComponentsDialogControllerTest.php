@@ -13,7 +13,8 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 /**
  * Smoke-tests the HTMX dialog fragment backing the /_dev/components showcase
- * (LRA-185). Production isolation matches {@see DevComponentsControllerTest}.
+ * (LRA-185). Production isolation is enforced and verified the same way as
+ * {@see DevComponentsControllerTest} — see that class's docblock.
  */
 #[Large]
 #[Group('database')]

@@ -15,9 +15,14 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  * Smoke-tests the dev/test-only Organic component showcase (LRA-185).
  *
  * Production isolation is enforced by the `#[When(env: 'dev')]` and
- * `#[When(env: 'test')]` attributes on {@see \App\Controller\DevComponentsController},
- * the same mechanism used by {@see MemberLookupDemoControllerTest} — see that
- * test's docblock for why the prod-404 path is not exercised here too.
+ * `#[When(env: 'test')]` attributes on {@see \App\Controller\DevComponentsController}:
+ * Symfony skips the service (and its `#[Route]`) entirely under `prod`, so
+ * the route loader never registers it. That's verified directly against the
+ * prod-compiled container by {@see \App\Tests\Integration\Dev\DevComponentsRoutesProdTest}
+ * rather than here — this class's `createClient()` can't itself boot a
+ * prod-env kernel, since `framework.test: true` is only configured
+ * `when@test` (config/packages/framework.yaml), which `WebTestCase::createClient()`
+ * requires regardless of the `environment` option passed to it.
  */
 #[Large]
 #[Group('database')]
