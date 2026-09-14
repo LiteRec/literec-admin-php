@@ -168,6 +168,12 @@
     --lr-primary: #c67139;
     --lr-primary-strong: #b2622d;
     --lr-on-primary: #f5ead8;
+    /* Text-on-surface variant of primary (LRA-185 review): --lr-primary itself
+       is only ~3.3:1 on the app's light surfaces, which fails AA for 14px/600
+       text (e.g. .lr-btn-ghost). accent-700 clears 4.5:1 against surface,
+       bg, and surface-2 alike; dark mode's --lr-primary is already light
+       enough to use directly. */
+    --lr-primary-text: var(--lr-accent-700);
     /* The Organic system has no distinct secondary brand hue, so --lr-secondary
        is retired as its own color and aliases the terracotta ramp (same as
        --lr-primary) purely so existing --lr-secondary* consumers keep working. */
@@ -236,6 +242,8 @@
     --lr-primary: #a8c5e2;
     --lr-primary-strong: #c8ddf0;
     --lr-on-primary: #0a1820;
+    /* Dark mode's --lr-primary is already light enough to read as text. */
+    --lr-primary-text: var(--lr-primary);
     --lr-secondary: #daa520;
     --lr-secondary-strong: #f0c040;
     --lr-on-secondary: #0a1820;
@@ -483,7 +491,7 @@
         color: var(--lr-text);
     }
     .lr-btn:hover { background: var(--lr-border); }
-    .lr-btn-ghost { background: transparent; color: var(--lr-primary); }
+    .lr-btn-ghost { background: transparent; color: var(--lr-primary-text); }
     .lr-btn-ghost:hover { background: color-mix(in srgb, var(--lr-primary) 10%, transparent); }
     .lr-btn-primary {
         /* Minimum 44px hit height on primary page actions (WCAG 2.5.8). */
@@ -579,7 +587,11 @@
         background: none;
     }
     .lr-tab:hover { color: var(--lr-text); }
-    .lr-tab.is-active { background: var(--lr-sage-200); color: var(--lr-text); }
+    /* --lr-sage-200 is a light ramp step with no dark override, so the active
+       fill stays light in both themes — pairing it with --lr-text (which
+       flips to near-white in dark) drops contrast to ~1.2:1. --lr-sage-900
+       clears AA against the light fill in both themes (LRA-185 review). */
+    .lr-tab.is-active { background: var(--lr-sage-200); color: var(--lr-sage-900); }
 
     /* icon button — a circle, tinted on hover. */
     .lr-iconbtn {
@@ -595,7 +607,10 @@
     .lr-iconbtn:hover { background: var(--lr-bg-muted); color: var(--lr-text); }
     .lr-iconbtn.danger:hover { background: var(--lr-danger-bg); color: var(--lr-danger-fg); }
 
-    /* keyboard key */
+    /* keyboard key. --lr-neutral-100 has no dark override, so it stays a
+       light fill in both themes; --lr-neutral-700 (not --lr-text-muted,
+       which flips light in dark mode) keeps the label readable either way
+       (LRA-185 review). */
     .lr-kbd {
         font-family: var(--lr-mono);
         font-size: 0.7rem;
@@ -603,7 +618,7 @@
         border-bottom-width: 2px;
         border-radius: 6px;
         padding: 0.05rem 0.35rem;
-        color: var(--lr-text-muted);
+        color: var(--lr-neutral-700);
         background: var(--lr-neutral-100);
     }
 }
@@ -695,7 +710,11 @@
         font-size: 0.6875rem;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        color: color-mix(in srgb, var(--lr-text) 60%, transparent);
+        /* 70%, not the plan's literal 60% — matches .lr-label below and
+           clears AA (5.89:1 / 5.33:1) for 11px bold uppercase text; 60%
+           only reached 4.25:1 / 3.99:1 on --lr-surface / --lr-surface-2
+           (LRA-185 review). */
+        color: color-mix(in srgb, var(--lr-text) 70%, transparent);
         font-weight: 700;
         padding: 0.75rem;
         border-bottom: 1px solid var(--lr-border);
@@ -931,7 +950,9 @@
         gap: 0.4rem;
     }
     .lr-seg a:hover { color: var(--lr-text); }
-    .lr-seg a.is-active { background: var(--lr-sage-200); color: var(--lr-text); }
+    /* See the matching note on .lr-tab.is-active: --lr-sage-900 keeps this
+       readable in both themes since the sage-200 fill has no dark override. */
+    .lr-seg a.is-active { background: var(--lr-sage-200); color: var(--lr-sage-900); }
 
     .lr-totals { display: flex; flex-direction: column; gap: 0.4rem; }
     .lr-totals .row { display: flex; align-items: center; justify-content: space-between; font-size: 0.875rem; }
