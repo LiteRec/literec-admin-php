@@ -72,7 +72,7 @@
                                     aria-current="true"
                                     class="cursor-pointer bg-litrec-primary/10 ring-1 ring-inset ring-litrec-primary"
                                 {% else %}
-                                    class="cursor-pointer {{ not m.isActive ? 'opacity-60' : '' }}"
+                                    class="cursor-pointer"
                                 {% endif %}
                                 hx-get="{{ path('member_detail_lower_cards', { householdId: detail.household.householdId, memberId: m.memberId }) }}"
                                 hx-target="#member-cards-lower"
@@ -83,10 +83,10 @@
                                 tabindex="0"
                                 onkeydown="if (event.key === ' ') { event.preventDefault(); this.click(); }"
                             >
-                                <td class="text-litrec-text">
+                                <td class="{{ not m.isActive ? 'text-litrec-text-muted line-through' : 'text-litrec-text' }}">
                                     {{ m.fullName }}
                                 </td>
-                                <td class="whitespace-nowrap font-mono text-xs text-litrec-text-muted">
+                                <td class="whitespace-nowrap font-mono text-xs text-litrec-text-muted {{ not m.isActive ? 'line-through' : '' }}">
                                     {{ m.memberCode }}
                                 </td>
                                 <td class="whitespace-nowrap">

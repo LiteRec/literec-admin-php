@@ -23,7 +23,7 @@
                         <td class="text-litrec-text">{{ alert.facilityCode }}</td>
                         <td class="text-right font-mono text-litrec-text">{{ alert.currentOnHandUnits }}</td>
                         <td class="text-right font-mono text-litrec-text-muted">{{ alert.reorderThresholdUnits }}</td>
-                        <td class="text-right font-mono text-red-700">{{ alert.shortfallUnits }}</td>
+                        <td class="text-right font-mono font-semibold text-danger">{{ alert.shortfallUnits }}</td>
                     </tr>
                 {% endfor %}
             </tbody>

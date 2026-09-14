@@ -35,7 +35,9 @@ async function newSeriousViolations(page: Page, baseline = BASELINE_RULES): Prom
   const results = await new AxeBuilder({ page }).disableRules(baseline).analyze();
   return results.violations
     .filter((violation) => SERIOUS_IMPACTS.includes(violation.impact ?? ''))
-    .map((violation) => violation.id);
+    // Include the failing selectors so a CI failure names the element, not
+    // just the rule.
+    .map((violation) => `${violation.id}: ${violation.nodes.map((node) => node.target.join(' ')).join(', ')}`);
 }
 
 const AUTHENTICATED_PAGES = [
@@ -76,7 +78,9 @@ test.describe('accessibility smoke — dark theme @a11y', () => {
   // below, which has no toggle control.
   for (const target of AUTHENTICATED_PAGES) {
     test(`${target.name} has no new serious or critical axe violations in the dark theme`, async ({ page }) => {
-      await page.emulateMedia({ colorScheme: 'dark' });
+      // reducedMotion: the GSAP card fade-in (assets/app.js animateCards)
+      // otherwise races axe and reads as a contrast failure mid-animation.
+      await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
       await page.goto(target.url);
       await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
 
@@ -85,7 +89,7 @@ test.describe('accessibility smoke — dark theme @a11y', () => {
   }
 
   test('member detail has no new serious or critical axe violations in the dark theme', async ({ page }) => {
-    await page.emulateMedia({ colorScheme: 'dark' });
+    await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
     await page.goto('/admin/users');
     await page.locator('#filter-email').fill(ANCHORS.members.alice.email);
     await page.getByRole('link', { name: ANCHORS.members.alice.name }).click();
@@ -127,7 +131,7 @@ test.describe('accessibility smoke — anonymous @a11y', () => {
   });
 
   test('login page has no new serious or critical axe violations in the dark theme', async ({ page }) => {
-    await page.emulateMedia({ colorScheme: 'dark' });
+    await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
     await page.goto('/login');
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
 
