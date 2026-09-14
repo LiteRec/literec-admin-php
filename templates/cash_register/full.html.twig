@@ -17,146 +17,178 @@
 {% endblock %}
 
 {% block page_body %}
-    {# Three-pane layout: payer · builder + cart · sticky summary. Stubbed sample
-       data (register.*); every control is a non-functional placeholder — no
-       backend mutation happens on this screen. #}
+    {# Three-pane layout: payer + participant · program builder · sale rail.
+       Stubbed sample data (register.*); every control is a non-functional
+       placeholder except the add-on toggles, which recompute the displayed
+       "Add to sale" total client-side via Alpine — no backend mutation
+       happens on this screen. #}
+    {% set kind_icons = { 'program': 'calendar', 'membership': 'card', 'item': 'tag', 'rental': 'key' } %}
     {% set kind_variants = { 'program': 'info', 'membership': 'success', 'item': 'neutral', 'rental': 'warning' } %}
-    <div class="grid grid-cols-1 items-start gap-5 lg:grid-cols-[244px_1fr_332px]">
+    {% set selectedProgram = register.selectedProgram %}
+    <div class="grid grid-cols-1 items-start gap-6 lg:grid-cols-[340px_minmax(0,1fr)_400px]">
 
-        {# ---- Payer ---- #}
-        <div class="lr-card-context">
-            <div class="lr-card-head"><span class="lr-card-title">Payer</span></div>
-            <div class="lr-card-body flex flex-col gap-3">
-                <div class="lr-avatar-lg"><span class="lr-avatar-xl-initials">{{ register.payer.initials }}</span></div>
-                <div>
-                    <div class="text-sm font-bold">{{ register.payer.name }}</div>
-                    <div class="lr-muted font-mono text-xs">{{ register.payer.id }}</div>
-                </div>
-                <div class="flex flex-col gap-1 text-xs">
-                    <div class="lr-muted">{{ register.payer.household }}</div>
-                    <div class="lr-muted">{{ register.payer.email }}</div>
-                    <div class="lr-muted">{{ register.payer.phone }}</div>
-                </div>
-                <div class="flex items-center justify-between border-t border-litrec-border pt-2">
-                    <span class="lr-muted text-xs">Account balance</span>
-                    {% include 'components/_badge.html.twig' with { label: register.payer.accountBalance, variant: 'success' } only %}
-                </div>
-            </div>
-        </div>
-
-        {# ---- Builder + cart ---- #}
+        {# ---- Payer + Participant ---- #}
         <div class="flex flex-col gap-5">
-            <div class="lr-card">
-                <div class="px-[var(--pad-row-x)] pt-1">
-                    <div class="lr-tabs">
-                        <button type="button" class="lr-tab is-active">Programs</button>
-                        <button type="button" class="lr-tab">Memberships</button>
-                        <button type="button" class="lr-tab">Reservations</button>
-                        <button type="button" class="lr-tab">Items</button>
-                        <button type="button" class="lr-tab">Rentals</button>
+            <div class="lr-card-context">
+                <div class="lr-card-head"><span class="lr-card-title">Payer</span></div>
+                <div class="lr-card-body flex flex-col items-center gap-3 text-center">
+                    <div class="flex h-14 w-14 items-center justify-center rounded-full bg-litrec-sage-200 text-litrec-sage-800">
+                        <span class="font-heading text-lg font-extrabold [font-synthesis-weight:none]" aria-hidden="true">{{ register.payer.initials }}</span>
                     </div>
-                </div>
-                <div class="lr-card-body">
-                    <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
-                        {# left: lookup #}
-                        <div class="flex flex-col gap-3">
-                            <label class="lr-field">
-                                <span class="lr-label">Participant</span>
-                                <span class="lr-input">{{ ui.icon('search', 15, 2.75, 'ico') }}<input type="text" value="{{ register.participantName }}">{{ ui.icon('info', 15, 2.75, 'ico') }}</span>
-                            </label>
-                            <label class="lr-field">
-                                <span class="lr-label">Program ID</span>
-                                <span class="lr-input is-focus">{{ ui.icon('search', 15, 2.75, 'ico') }}<input type="text" value="{{ register.participantId }}"></span>
-                            </label>
-                            <div class="rounded-card-sm border border-litrec-border bg-litrec-surface-2 px-3 py-3">
-                                <div class="font-bold">{{ register.program.name }}</div>
-                                <div class="lr-muted mt-0.5 text-xs">{{ register.program.schedule }}</div>
-                                <div class="lr-num mt-1.5 text-lg font-extrabold">{{ register.program.price }}</div>
-                            </div>
-                            <label class="lr-check"><input type="checkbox" checked> <span class="box">{{ ui.icon('check', 11, 3) }}</span> Include program registration &amp; associated fee</label>
-                            <div><button type="button" class="lr-btn lr-btn-ghost">Discounts (0) {{ ui.icon('chevron', 12) }}</button></div>
-                        </div>
-                        {# right: add-on options #}
-                        <div>
-                            <div class="lr-section-label mb-2">Add-on options</div>
-                            <div class="lr-card shadow-none">
-                                <table class="lr-table">
-                                    <thead><tr><th>Option</th><th class="w-20">Disc.</th><th class="w-20 text-right">Price</th></tr></thead>
-                                    <tbody>
-                                        {% for option in register.addOnOptions %}
-                                            <tr>
-                                                <td>
-                                                    <label class="lr-check">
-                                                        <input type="checkbox"{% if option.checked %} checked{% endif %}>
-                                                        <span class="box">{{ ui.icon('check', 11, 3) }}</span>
-                                                        {{ option.name }}
-                                                    </label>
-                                                </td>
-                                                <td>
-                                                    <select class="lr-select" aria-label="Discount for {{ option.name }}">
-                                                        <option>0</option><option>1</option><option>2</option>
-                                                    </select>
-                                                </td>
-                                                <td class="lr-num text-right font-semibold">{{ option.price }}</td>
-                                            </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
+                    <div>
+                        <div class="font-heading text-base font-bold [font-synthesis-weight:none]">{{ register.payer.name }}</div>
+                        <div class="lr-muted font-mono text-xs">{{ register.payer.id }} · {{ register.payer.household }}</div>
                     </div>
-                    <div class="mt-4 flex items-center justify-between border-t border-litrec-border pt-4">
-                        <div><span class="lr-section-label">Line price</span><div class="lr-num text-2xl font-extrabold">{{ register.program.price }}</div></div>
-                        <button type="button" class="lr-btn lr-btn-primary lr-btn-lg">{{ ui.icon('plus', 16) }} Add to Cart</button>
+                    <div class="flex w-full flex-col gap-1 text-xs">
+                        <div class="lr-muted">{{ register.payer.email }}</div>
+                        <div class="lr-muted">{{ register.payer.phone }}</div>
                     </div>
+                    <div class="flex w-full items-center justify-between border-t border-litrec-border pt-2">
+                        <span class="lr-muted text-xs">Balance</span>
+                        {% include 'components/_badge.html.twig' with { label: register.payer.accountBalance, variant: 'success' } only %}
+                    </div>
+                    <button type="button" class="lr-btn lr-btn-ghost lr-btn-block">Change</button>
                 </div>
             </div>
 
-            {# cart #}
-            <div class="lr-card">
-                <div class="lr-card-head">
-                    <span class="lr-card-title inline-flex items-center gap-2">{{ ui.icon('cart', 16) }} Shopping Cart</span>
-                    <span class="lr-muted text-xs">{{ register.cart|length }} items</span>
-                </div>
-                <table class="lr-table">
-                    <thead><tr><th>Description</th><th class="w-16">Qty</th><th class="w-24 text-right">Price</th><th class="w-11"></th></tr></thead>
-                    <tbody>
-                        {% for line in register.cart %}
-                            <tr>
-                                <td>
-                                    <div class="flex items-center gap-2">
-                                        {% include 'components/_badge.html.twig' with { label: line.kind|capitalize, variant: kind_variants[line.kind] ?? 'neutral' } only %}
-                                        <span class="lr-row-strong">{{ line.name }}</span>
-                                    </div>
-                                    <div class="lr-muted mt-0.5 font-mono text-xs">{{ line.code }}</div>
-                                </td>
-                                <td><span class="lr-chip lr-num">{{ line.quantity }}</span></td>
-                                <td class="lr-num text-right font-semibold">{{ line.price }}</td>
-                                <td><button type="button" class="lr-iconbtn danger" aria-label="Remove {{ line.name }}">{{ ui.icon('trash', 15) }}</button></td>
-                            </tr>
+            <div class="lr-card-context">
+                <div class="lr-card-head"><span class="lr-card-title">Participant</span></div>
+                <div class="lr-card-body flex flex-col gap-3">
+                    <fieldset class="flex flex-col gap-2">
+                        <legend class="sr-only">Choose a household member</legend>
+                        {% for participant in register.participants %}
+                            <label class="lr-pillradio">
+                                <input type="radio" name="participant" value="{{ participant.memberCode }}"{% if participant.selected %} checked{% endif %}>
+                                <span class="lr-pillradio-row">
+                                    <span class="flex-1">
+                                        <span class="lr-row-strong block">{{ participant.name }}</span>
+                                        <span class="lr-muted font-mono text-xs">{{ participant.memberCode }}</span>
+                                    </span>
+                                    {% if participant.selected %}{{ ui.icon('check', 14, 3) }}{% endif %}
+                                </span>
+                            </label>
                         {% endfor %}
-                    </tbody>
-                </table>
+                    </fieldset>
+                    <button type="button" class="lr-btn lr-btn-ghost lr-btn-block">{{ ui.icon('plus', 14) }} Add household member</button>
+                </div>
             </div>
         </div>
 
-        {# ---- Summary (sticky) ---- #}
-        <div class="lr-card sticky top-4">
+        {# ---- Builder ---- #}
+        <div
+            class="lr-card"
+            x-data="{
+                addOns: { {% for option in register.addOnOptions %}{{ loop.index0 }}: {{ option.checked ? 'true' : 'false' }}{% if not loop.last %}, {% endif %}{% endfor %} },
+                addOnPrices: { {% for option in register.addOnOptions %}{{ loop.index0 }}: {{ option.priceCents }}{% if not loop.last %}, {% endif %}{% endfor %} },
+                base: {{ selectedProgram ? selectedProgram.priceCents : 0 }},
+                get addToSaleTotal() {
+                    let cents = this.base;
+                    for (const key in this.addOns) {
+                        if (this.addOns[key]) { cents += this.addOnPrices[key]; }
+                    }
+                    return (cents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                },
+            }"
+        >
+            <div class="px-[var(--pad-row-x)] pt-1">
+                <div class="lr-tabs">
+                    <button type="button" class="lr-tab is-active">Programs</button>
+                    <button type="button" class="lr-tab">Memberships</button>
+                    <button type="button" class="lr-tab">Items</button>
+                    <button type="button" class="lr-tab">Gift cards</button>
+                </div>
+            </div>
             <div class="lr-card-body flex flex-col gap-4">
                 <label class="lr-field">
-                    <span class="lr-label">Facility</span>
-                    <select class="lr-select"><option selected>{{ register.facility }}</option></select>
+                    <span class="sr-only">Search programs, memberships, items or gift cards</span>
+                    <span class="lr-input" style="min-height: 46px;">
+                        {{ ui.icon('search', 16, 2.75, 'ico') }}
+                        <input type="text" placeholder="Search programs, memberships, items…">
+                    </span>
                 </label>
-                <div class="lr-totals">
-                    <div class="row"><span class="lr-muted">Subtotal</span><span class="lr-num">{{ register.totals.subtotal }}</span></div>
-                    <div class="row"><span class="lr-muted">Discounts</span><span class="lr-num">{{ register.totals.discounts }}</span></div>
-                    <div class="row"><span class="lr-muted">Tax</span><span class="lr-num">{{ register.totals.tax }}</span></div>
-                    <div class="row total"><span>Total</span><span class="lr-num">{{ register.totals.total }}</span></div>
-                </div>
+
                 <div class="flex flex-col gap-2">
-                    <button type="button" class="lr-btn lr-btn-ghost lr-btn-block">{{ ui.icon('money', 16) }} Open Cash Register</button>
-                    <button type="button" class="lr-btn lr-btn-secondary lr-btn-block lr-btn-lg font-extrabold">Complete Sale · {{ register.totals.total }}</button>
-                    <button type="button" class="lr-btn lr-btn-block bg-transparent text-danger">{{ ui.icon('trash', 15) }} Clear sale</button>
+                    {% for result in register.programResults %}
+                        <div class="lr-programrow{% if result.selected %} is-selected{% endif %}">
+                            <div class="min-w-0 flex-1">
+                                <div class="lr-muted font-mono text-xs">{{ result.code }}</div>
+                                <div class="lr-row-strong">{{ result.name }}</div>
+                                <div class="lr-muted text-xs">{{ result.schedule }} · {{ result.spots }}</div>
+                            </div>
+                            <div class="lr-num font-heading text-lg font-extrabold [font-synthesis-weight:none]">{{ result.price }}</div>
+                            {% if result.selected %}
+                                <span class="lr-programrow-check" aria-hidden="true">{{ ui.icon('check', 14, 3) }}</span>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <div>
+                    <div class="lr-section-label mb-2">Add-on options</div>
+                    <div class="flex flex-wrap gap-2">
+                        {% for option in register.addOnOptions %}
+                            <button
+                                type="button"
+                                class="lr-chip"
+                                :class="addOns[{{ loop.index0 }}] ? 'border-litrec-primary bg-litrec-primary text-litrec-on-primary' : ''"
+                                :aria-pressed="addOns[{{ loop.index0 }}]"
+                                @click="addOns[{{ loop.index0 }}] = !addOns[{{ loop.index0 }}]"
+                            >
+                                {{ option.name }} · {{ option.price }}
+                            </button>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center justify-between border-t border-litrec-border p-[var(--pad-card)]">
+                <span class="lr-muted text-xs">{{ register.addOnOptions|length }} add-on option{{ register.addOnOptions|length == 1 ? '' : 's' }}</span>
+                <button type="button" class="lr-btn lr-btn-primary lr-btn-lg">
+                    {{ ui.icon('plus', 16) }} <span x-text="'Add to sale · $' + addToSaleTotal">{{ register.addToSaleLabel }}</span>
+                </button>
+            </div>
+        </div>
+
+        {# ---- Sale ---- #}
+        <div class="lr-card sticky top-4 overflow-hidden">
+            <div class="lr-card-head">
+                <span class="lr-card-title inline-flex items-center gap-2" data-testid="sale-card-title">{{ ui.icon('cart', 16) }} Sale</span>
+                {% include 'components/_badge.html.twig' with { label: register.cart|length ~ ' items', variant: 'neutral' } only %}
+            </div>
+            {% if register.cart is empty %}
+                <div class="flex flex-col items-center gap-3 px-6 py-10 text-center">
+                    <div class="flex h-14 w-14 items-center justify-center rounded-full bg-litrec-surface-2 text-litrec-text-muted">
+                        {{ ui.icon('cart', 22) }}
+                    </div>
+                    <p class="lr-muted text-sm">Nothing in this sale yet. Pick a program, membership or item.</p>
+                </div>
+            {% else %}
+                <div class="lr-list">
+                    {% for line in register.cart %}
+                        <div class="lr-list-row">
+                            <span class="lr-kindicon {{ kind_variants[line.kind] ?? 'neutral' }}">{{ ui.icon(kind_icons[line.kind] ?? 'tag', 15) }}</span>
+                            <div class="min-w-0 flex-1">
+                                <div class="lr-row-strong">{{ line.name }}</div>
+                                <div class="lr-muted font-mono text-xs">{{ line.code }} · Qty {{ line.quantity }}</div>
+                            </div>
+                            <div class="lr-num font-semibold">{{ line.price }}</div>
+                            <button type="button" class="lr-iconbtn danger" aria-label="Remove {{ line.name }}">{{ ui.icon('trash', 15) }}</button>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            <div class="flex flex-col gap-4 border-t border-litrec-border p-[var(--pad-card)]">
+                <div class="rounded-card-sm bg-litrec-surface-2 px-4 py-3">
+                    <div class="lr-totals">
+                        <div class="row"><span class="lr-muted">Subtotal</span><span class="lr-num">{{ register.totals.subtotal }}</span></div>
+                        <div class="row"><span class="lr-muted">Discounts</span><span class="lr-num">{{ register.totals.discounts }}</span></div>
+                        <div class="row"><span class="lr-muted">Tax</span><span class="lr-num">{{ register.totals.tax }}</span></div>
+                        <div class="row total"><span>Total</span><span class="lr-num">{{ register.totals.total }}</span></div>
+                    </div>
+                </div>
+                <button type="button" class="lr-btn lr-btn-primary lr-btn-block lr-btn-lg font-extrabold">Take payment · {{ register.totals.total }}</button>
+                <div class="flex gap-2">
+                    <button type="button" class="lr-btn lr-btn-secondary flex-1 justify-center">Hold sale</button>
+                    <button type="button" class="lr-btn lr-btn-secondary flex-1 justify-center">Clear</button>
                 </div>
             </div>
         </div>
