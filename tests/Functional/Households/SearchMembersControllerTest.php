@@ -82,7 +82,7 @@ final class SearchMembersControllerTest extends WebTestCase
         self::assertSelectorExists(sprintf(self::SEL_MEMBER_ROW, self::B_PRIMARY_ID));
         // Nav highlights the Users section.
         self::assertSelectorExists(
-            'nav[aria-label="Main navigation"] [role="menuitem"][href="/admin/users"].bg-litrec-primary',
+            'nav[aria-label="Main navigation"] [role="menuitem"][href="/admin/users"][aria-current="page"]',
         );
     }
 

@@ -38,7 +38,7 @@ final class AppShellTest extends WebTestCase
         $crawler = $client->request('GET', '/dashboard');
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('header a', 'LiteRecAdmin');
+        self::assertSelectorTextContains('header a', 'LiteRec');
         self::assertSelectorTextContains('header [data-testid="selected-facility"]', 'Main Facility');
         self::assertSelectorTextContains('header strong', self::TEST_USERNAME);
         self::assertSelectorExists('header form[action="/logout"] input[name="_csrf_token"]');

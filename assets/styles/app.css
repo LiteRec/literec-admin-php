@@ -745,31 +745,37 @@
    ====================================================================== */
 @layer components {
     .lr-header {
+        position: relative;
         background: var(--lr-surface);
         border-bottom: 1px solid var(--lr-border);
     }
     .lr-header-in {
         max-width: 80rem;
+        min-height: 72px;
         margin: 0 auto;
         display: flex;
+        flex-wrap: wrap;
         align-items: center;
-        justify-content: space-between;
-        gap: 1.5rem;
+        gap: 0.75rem 1.5rem;
         padding: 0.75rem 1.5rem;
     }
-    .lr-brand { display: flex; align-items: center; gap: 0.6rem; text-decoration: none; }
+    .lr-brand { display: flex; align-items: center; gap: 0.6rem; text-decoration: none; flex: none; }
+    /* Sage ramp tint, matching .lr-avatar below — no dark override on the
+       ramp step, so the mark stays Organic-consistent in both themes. */
     .lr-brand-mark {
-        width: 30px;
-        height: 30px;
+        width: 36px;
+        height: 36px;
         border-radius: var(--radius-card-sm);
-        background: var(--lr-primary);
-        color: var(--lr-on-primary);
+        background: var(--lr-sage-200);
+        color: var(--lr-sage-800);
         display: grid;
         place-items: center;
         flex: none;
     }
     .lr-brand-name {
-        font-size: 1.05rem;
+        font-family: var(--font-heading);
+        font-synthesis-weight: none;
+        font-size: 1.375rem;
         font-weight: 800;
         color: var(--lr-primary);
         letter-spacing: -0.01em;
@@ -777,33 +783,100 @@
     .lr-header-right {
         display: flex;
         align-items: center;
-        gap: 1rem;
+        gap: 0.75rem;
         font-size: 0.8125rem;
         color: var(--lr-text-muted);
+        flex: none;
     }
     .lr-facility-pill {
         display: inline-flex;
         align-items: center;
         gap: 0.4rem;
-        border: 1px solid var(--lr-border);
         border-radius: var(--radius-pill);
         padding: 0.3rem 0.7rem;
-        background: var(--lr-bg-muted);
-        color: var(--lr-text);
+        background: var(--lr-sage-100);
+        color: var(--lr-sage-900);
     }
-    /* Sage ramp tint (LRA-185) — was --lr-secondary, which is gold in dark
-       mode; a ramp tint keeps the avatar Organic-consistent in both themes. */
+    .lr-facility-pill-chevron { opacity: 0.7; }
+    /* Accent ramp tint (40px per the app-shell design, LRA-187) — no dark
+       override on the ramp step, so the avatar stays Organic-consistent in
+       both themes. */
     .lr-avatar {
-        width: 30px;
-        height: 30px;
+        width: 40px;
+        height: 40px;
         border-radius: var(--radius-pill);
-        background: var(--lr-sage-200);
-        color: var(--lr-sage-800);
+        background: var(--lr-accent-200);
+        color: var(--lr-accent-900);
         display: grid;
         place-items: center;
         font-weight: 700;
-        font-size: 0.75rem;
+        font-size: 0.8125rem;
         flex: none;
+    }
+}
+
+/* ======================================================================
+   Main nav pill menubar and its dropdowns (LRA-187). Token-driven; sits in
+   @layer components alongside the rest of the app-shell chrome.
+   ====================================================================== */
+@layer components {
+    /* Layout (flex/stretch) comes from the Tailwind utilities alongside this
+       class on the <li> itself; this class only carries the pill's visual
+       treatment so the label link stays a direct <li> child. */
+    .lr-navpill {
+        min-height: 38px;
+        border-radius: var(--radius-pill);
+        color: var(--lr-text);
+    }
+    .lr-navpill:hover { background: var(--lr-bg-muted); }
+    /* --lr-sage-200 / --lr-sage-900 — same proven pairing as .lr-tab.is-active
+       and .lr-avatar: no dark override on the ramp, so it clears AA in both
+       themes (LRA-185 review). */
+    .lr-navpill.is-active { background: var(--lr-sage-200); color: var(--lr-sage-900); }
+    .lr-navpill-label {
+        display: inline-flex;
+        align-items: center;
+        padding: 9px 14px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        white-space: nowrap;
+        color: inherit;
+    }
+    .lr-navpill-chevron {
+        display: inline-flex;
+        align-items: center;
+        padding: 9px 12px 9px 0;
+        color: inherit;
+    }
+    .lr-navdrop {
+        min-width: 260px;
+        padding: 8px;
+        border-radius: var(--radius-card-sm);
+        background: var(--lr-surface);
+        border: 1px solid var(--lr-border);
+        box-shadow: var(--shadow-md);
+    }
+    .lr-navdrop-link {
+        display: block;
+        border-radius: var(--radius-pill);
+        padding: 0.5rem 0.9rem;
+        font-size: 0.875rem;
+        color: var(--lr-text);
+    }
+    /* --lr-accent-100 has no dark override, so it stays a light fill in both
+       themes; pair it with --lr-accent-900 (not --lr-text, which flips
+       near-white in dark) to keep the hover legible in both themes
+       (same pitfall as .lr-tab.is-active, LRA-185 review). */
+    .lr-navdrop-link:hover, .lr-navdrop-link:focus {
+        background: var(--lr-accent-100);
+        color: var(--lr-accent-900);
+        outline: none;
+    }
+    .lr-mobile-panel {
+        background: var(--lr-surface);
+        border-top: 1px solid var(--lr-border);
+        border-radius: 0 0 var(--radius-card) var(--radius-card);
+        box-shadow: var(--shadow-pop);
     }
 }
 

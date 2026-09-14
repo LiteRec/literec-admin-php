@@ -74,7 +74,7 @@ final class MainNavTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSelectorExists(
-            'nav[aria-label="Main navigation"] [role="menuitem"][href="/programs"].bg-litrec-primary',
+            'nav[aria-label="Main navigation"] [role="menuitem"][href="/programs"][aria-current="page"]',
         );
     }
 }

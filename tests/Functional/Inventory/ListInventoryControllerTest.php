@@ -81,7 +81,7 @@ final class ListInventoryControllerTest extends WebTestCase
         // top-level item is what receives the active highlight, while the
         // Inventory anchor itself appears inside its dropdown sub-menu.
         self::assertSelectorExists(
-            'nav[aria-label="Main navigation"] [role="menuitem"][href="/cash-register"].bg-litrec-primary',
+            'nav[aria-label="Main navigation"] [role="menuitem"][href="/cash-register"][aria-current="page"]',
         );
         self::assertSelectorExists(
             'nav[aria-label="Main navigation"] [role="menuitem"][href="/admin/inventory"]',

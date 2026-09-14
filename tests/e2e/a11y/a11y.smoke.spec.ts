@@ -72,6 +72,7 @@ test.describe('accessibility smoke — component library (dev only) @a11y', () =
 
   test('component library has no new serious or critical axe violations in the dark theme', async ({ page }) => {
     await page.goto('/_dev/components');
+    await page.getByRole('button', { name: /account menu/i }).click();
     await page.getByTestId('theme-toggle').click();
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
 
