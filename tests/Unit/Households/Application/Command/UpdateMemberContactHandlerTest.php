@@ -193,24 +193,30 @@ final class UpdateMemberContactHandlerTest extends TestCase
     private function memberById(Household $household, string $memberId): HouseholdMember
     {
         $needle = MemberId::fromString($memberId);
-        foreach ($household->members() as $member) {
-            if ($member->id()->equals($needle)) {
-                return $member;
-            }
-        }
-        self::fail(sprintf('Member %s not found in household.', $memberId));
+        $matches = array_values(array_filter(
+            $household->members(),
+            static fn(HouseholdMember $member): bool => $member->id()->equals($needle),
+        ));
+
+        self::assertNotEmpty($matches, sprintf('Member %s not found in household.', $memberId));
+
+        return $matches[0];
     }
 
     private function seedHousehold(): Household
     {
+        $address = Address::of('100 Main St', null, 'Seattle', 'WA', '98101', 'US');
+        $primaryMemberName = PersonName::of('Alice', 'Smith');
+        $primaryMemberDob = DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock);
+
         return Household::register(
             HouseholdId::fromString(self::HOUSEHOLD_ID),
             HouseholdName::of('Smith Family'),
-            Address::of('100 Main St', null, 'Seattle', 'WA', '98101', 'US'),
+            $address,
             MemberId::fromString(self::PRIMARY_ID),
             MemberCode::of(self::PRIMARY_CODE),
-            PersonName::of('Alice', 'Smith'),
-            DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
+            $primaryMemberName,
+            $primaryMemberDob,
             Gender::Female,
             EmailAddress::of('alice@example.com'),
             PhoneNumber::of('5550001'),
