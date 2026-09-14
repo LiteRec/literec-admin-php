@@ -9,7 +9,7 @@ so callers pass parameters explicitly — no globals, no implicit context.
 | `_main_nav.html.twig` | _(no parameters; reads `main_navigation()` from `App\Ui\Twig\NavigationExtension`)_ | `{% include 'components/_main_nav.html.twig' %}` |
 | `_kpi_card.html.twig` | `string label`, `string value`, `?string delta` | `{% include 'components/_kpi_card.html.twig' with { label: 'Today\'s Revenue', value: '$4,182.50', delta: '+12% vs. yesterday' } only %}` |
 | `_page_header.html.twig` | `string title`, `?string subtitle`, `?string actions` _(pre-rendered HTML, rendered raw)_ | `{% include 'components/_page_header.html.twig' with { title: 'Admin Dashboard', subtitle: 'Welcome back.', actions: actionsHtml } only %}` |
-| `_badge.html.twig` | `string label`, `string variant` ∈ `success \| warning \| danger \| info \| neutral`, `?string class` | `{% include 'components/_badge.html.twig' with { label: 'Excellent', variant: 'success' } only %}` |
+| `_badge.html.twig` | `string label`, `string variant` ∈ `success \| warning \| danger \| info \| neutral`, `?bool outline`, `?string class` | `{% include 'components/_badge.html.twig' with { label: 'Excellent', variant: 'success' } only %}` |
 | `_status_badge.html.twig` | `string status` ∈ `succeeded \| pending \| failed \| refunded` _(maps onto `_badge`)_ | `{% include 'components/_status_badge.html.twig' with { status: tx.status.value } only %}` |
 | `_empty_state.html.twig` | `string title`, `string message`, `?string ctaLabel`, `?string ctaRoute` | `{% include 'components/_empty_state.html.twig' with { title: 'Coming soon', message: 'This screen arrives later.' } only %}` |
 | `_breadcrumbs.html.twig` | `array trail` of `{ label, route }` items | `{% include 'components/_breadcrumbs.html.twig' with { trail: [{label:'Dashboard',route:'app_dashboard'},{label:'Reports'}] } only %}` |
@@ -70,12 +70,17 @@ them directly in markup; they are global (not scoped to `.lr-screen`) and
 recolor automatically with the active theme.
 
 - **Buttons:** `lr-btn` with modifiers `lr-btn-ghost`, `lr-btn-primary`,
-  `lr-btn-secondary`, `lr-btn-danger`, `lr-btn-lg`, `lr-btn-block`.
-- **Cards:** `lr-card` + `lr-card-head`, `lr-card-title`, `lr-card-body`.
+  `lr-btn-secondary` (outlined divider-border), `lr-btn-danger`, `lr-btn-lg`,
+  `lr-btn-block`, `lr-btn-icon` (36px circle; combine with `lr-btn-lg` for 40px).
+- **Cards:** `lr-card` (shadowed data card) + `lr-card-head`, `lr-card-title`,
+  `lr-card-body`. `lr-card-context` is the shadow-less sand-surface variant for
+  context cards (payer, member/participant, upcoming, facility).
 - **Badges:** prefer the `_badge.html.twig` partial; the underlying classes are
-  `lr-badge` + a variant (`success`, `warning`, `danger`, `info`, `neutral`).
-- **Chips:** `lr-chip`. **Tabs:** `lr-tabs` + `lr-tab` (`is-active`).
-- **Icon button:** `lr-iconbtn` (`danger` variant). **Kbd:** `lr-kbd`.
+  `lr-badge` + a variant (`success`, `warning`, `danger`, `info`, `neutral`)
+  plus the optional `outline` modifier.
+- **Chips:** `lr-chip`. **Tabs:** `lr-tabs` + `lr-tab` (`is-active`), styled as
+  a pill group like `lr-seg`.
+- **Icon button:** `lr-iconbtn` (`danger` variant), a circle. **Kbd:** `lr-kbd`.
 - **Text helpers:** `lr-muted`, `lr-link`, `lr-num` (tabular figures),
   `lr-row-strong`, `lr-section-label`.
 - **Fields:** `lr-field` (label + control wrapper) + `lr-label`. Inputs come in

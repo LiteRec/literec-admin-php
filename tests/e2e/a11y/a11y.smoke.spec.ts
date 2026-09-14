@@ -57,6 +57,26 @@ test.describe('accessibility smoke @a11y', () => {
   });
 });
 
+test.describe('accessibility smoke — component library (dev only) @a11y', () => {
+  // LRA-185: the Organic lr-* component layer restyle. Dev/test-only page
+  // (see DevComponentsController) rendering every restyled component so this
+  // covers the new pill controls, tags, table, and dialog treatment in both
+  // themes via the header's existing theme toggle.
+  test('component library has no new serious or critical axe violations in the light theme', async ({ page }) => {
+    await page.goto('/_dev/components');
+
+    expect(await newSeriousViolations(page)).toEqual([]);
+  });
+
+  test('component library has no new serious or critical axe violations in the dark theme', async ({ page }) => {
+    await page.goto('/_dev/components');
+    await page.getByTestId('theme-toggle').click();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+
+    expect(await newSeriousViolations(page)).toEqual([]);
+  });
+});
+
 test.describe('accessibility smoke — anonymous @a11y', () => {
   test.use({ storageState: ANON_STATE });
 
