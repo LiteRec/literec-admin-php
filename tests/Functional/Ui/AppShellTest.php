@@ -43,6 +43,10 @@ final class AppShellTest extends WebTestCase
         self::assertSelectorTextContains('header strong', self::TEST_USERNAME);
         self::assertSelectorExists('header form[action="/logout"] input[name="_csrf_token"]');
         self::assertSelectorExists('nav[aria-label="Main navigation"]');
+        self::assertSelectorExists('header [data-testid="open-search"]');
+        // The shell embeds the member lookup dialog once (LRA-187); a second
+        // include anywhere in the page tree would produce a duplicate host.
+        self::assertSelectorCount(1, '#member-lookup-host');
         self::assertMatchesRegularExpression(
             '/^Good (morning|afternoon|evening), \w+$/',
             trim($crawler->filter('main h1')->text()),

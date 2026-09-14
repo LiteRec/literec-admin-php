@@ -3,10 +3,12 @@
    Rendered by `MemberLookupController::__invoke` and swapped into the
    dialog's `#member-lookup-results` slot by HTMX. Each row is a button —
    not a link — because the action is "select this member and emit a
-   `member-selected` event", not "navigate to the member page". The four
-   payload attributes (`data-member-id`, `data-household-id`,
-   `data-full-name`, `data-code`) are read by the inline Alpine handler
-   and forwarded as the CustomEvent `detail` shape that callers consume.
+   `member-selected` event", not "navigate to the member page" — callers
+   that want navigation do it themselves from `onSelected` using the
+   `detailUrl` in the payload. The five payload attributes (`data-member-id`,
+   `data-household-id`, `data-full-name`, `data-code`, `data-detail-url`) are
+   read by the inline Alpine handler and forwarded as the CustomEvent
+   `detail` shape that callers consume.
 
    Expects:
      - page:     PageOfMembers
@@ -50,6 +52,7 @@
                                 data-household-id="{{ item.householdId }}"
                                 data-full-name="{{ item.fullName }}"
                                 data-code="{{ item.memberCode }}"
+                                data-detail-url="{{ path('member_detail', { householdId: item.householdId, memberId: item.memberId }) }}"
                                 class="grid w-full grid-cols-5 items-center gap-0 px-0 py-0 text-left hover:bg-litrec-bg-muted focus:bg-litrec-bg-muted focus:outline-none"
                                 @click="
                                     window.dispatchEvent(new CustomEvent('member-selected', {
@@ -58,6 +61,7 @@
                                             householdId: $event.currentTarget.dataset.householdId,
                                             fullName: $event.currentTarget.dataset.fullName,
                                             code: $event.currentTarget.dataset.code,
+                                            detailUrl: $event.currentTarget.dataset.detailUrl,
                                         }
                                     }));
                                     dismiss();
