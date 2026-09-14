@@ -116,6 +116,7 @@ test.describe('directory', () => {
 test.describe('member detail', () => {
   test('shows the profile, address, residency and history cards', async ({ page }) => {
     await page.goto('/admin/users');
+    await page.getByTestId('more-filters-toggle').click();
     await page.locator('#filter-email').fill(ALICE.email);
     await page.getByRole('link', { name: ALICE.name }).click();
 

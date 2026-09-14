@@ -66,6 +66,7 @@ test.describe('accessibility smoke @a11y', () => {
 
   test('member detail has no new serious or critical axe violations', async ({ page }) => {
     await page.goto('/admin/users');
+    await page.getByTestId('more-filters-toggle').click();
     await page.locator('#filter-email').fill(ANCHORS.members.alice.email);
     await page.getByRole('link', { name: ANCHORS.members.alice.name }).click();
     await expect(page.getByTestId('member-header')).toBeVisible();
@@ -95,6 +96,7 @@ test.describe('accessibility smoke — dark theme @a11y', () => {
   test('member detail has no new serious or critical axe violations in the dark theme', async ({ page }) => {
     await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
     await page.goto('/admin/users');
+    await page.getByTestId('more-filters-toggle').click();
     await page.locator('#filter-email').fill(ANCHORS.members.alice.email);
     await page.getByRole('link', { name: ANCHORS.members.alice.name }).click();
     await expect(page.getByTestId('member-header')).toBeVisible();
