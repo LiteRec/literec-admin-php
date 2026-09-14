@@ -1,7 +1,13 @@
 {# Recent transactions table partial for the dashboard (LRA-189). Rendered
-   both as part of the full page (status: null) and by dashboard_transactions
-   on every HTMX status-pill swap, so the pill bar's active state and the
-   table body always stay in agreement.
+   both as part of the full page (via GET /dashboard) and by
+   dashboard_transactions on every HTMX status-pill swap, so the pill bar's
+   active state and the table body always stay in agreement. hx-push-url is
+   pinned to the *page* URL (app_dashboard), not the fetched partial's own
+   URL (htmx's "true" would push /dashboard/_transactions?status=... itself,
+   which renders as a bare, unstyled fragment with no shell/nav/stylesheet on
+   reload or bookmark). Each pill keeps a stable id so htmx restores focus to
+   it after the swap (WCAG 2.4.3); aria-pressed carries the active state for
+   assistive tech since the visual state is colour-only otherwise (WCAG 4.1.2).
 
    @param list<TransactionRow> transactions Rows to render, already filtered.
    @param ?TransactionStatus status Current filter, or null for "All".
@@ -10,21 +16,25 @@
     <div class="lr-tabs" role="group" aria-label="Filter transactions by status">
         <button
             type="button"
+            id="transactions-filter-all"
             class="lr-tab{{ status is null ? ' is-active' : '' }}"
+            aria-pressed="{{ status is null ? 'true' : 'false' }}"
             hx-get="{{ path('dashboard_transactions') }}"
             hx-target="#dashboard-transactions-table"
             hx-swap="innerHTML"
-            hx-push-url="true"
+            hx-push-url="{{ path('app_dashboard') }}"
             data-testid="transactions-filter-all"
         >All</button>
         {% for case in statusCases %}
             <button
                 type="button"
+                id="transactions-filter-{{ case.value }}"
                 class="lr-tab{{ status == case ? ' is-active' : '' }}"
+                aria-pressed="{{ status == case ? 'true' : 'false' }}"
                 hx-get="{{ path('dashboard_transactions', { status: case.value }) }}"
                 hx-target="#dashboard-transactions-table"
                 hx-swap="innerHTML"
-                hx-push-url="true"
+                hx-push-url="{{ path('app_dashboard', { status: case.value }) }}"
                 data-testid="transactions-filter-{{ case.value }}"
             >{{ case.name }}</button>
         {% endfor %}

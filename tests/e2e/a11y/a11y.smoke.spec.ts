@@ -27,8 +27,11 @@ const BASELINE_RULES = [
 // passes below run color-contrast un-baselined instead of inheriting the
 // light theme's baseline — otherwise a dark-mode contrast regression (e.g.
 // --lr-text-muted reverting to the failing --lr-neutral-400 step) would stay
-// green here. The light theme keeps color-contrast baselined until its own
-// known --lr-primary defect is fixed separately.
+// green here. The light theme keeps color-contrast baselined: LRA-189 fixed
+// the --lr-primary/.lr-btn-primary defect this comment used to name, but
+// un-baselining surfaced further pre-existing findings across unrelated
+// pages (and is confounded by the GSAP card fade-in, per the reducedMotion
+// note below) that are still open in the project's manual WCAG audits.
 const DARK_BASELINE_RULES = BASELINE_RULES.filter((rule) => rule !== 'color-contrast');
 
 async function newSeriousViolations(page: Page, baseline = BASELINE_RULES): Promise<string[]> {

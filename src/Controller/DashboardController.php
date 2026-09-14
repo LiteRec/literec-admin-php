@@ -23,10 +23,14 @@ final class DashboardController extends AbstractController
     }
 
     #[Route('/dashboard', name: 'app_dashboard', methods: ['GET'])]
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $status = $this->parseStatus($request);
+
         return $this->render('dashboard/index.html.twig', [
             'dashboard' => $this->dashboardData->build(),
+            'transactions' => $this->dashboardData->recentTransactions($status),
+            'status' => $status,
             'statusCases' => TransactionStatus::cases(),
         ]);
     }

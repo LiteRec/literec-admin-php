@@ -20,6 +20,8 @@ final class SecurityCurrentStaffMemberTest extends TestCase
     #[TestWith(['leslie.knope', 'Leslie'], 'dotted username takes the first segment')]
     #[TestWith(['dashboard_e2e', 'Dashboard'], 'underscored username takes the first segment')]
     #[TestWith(['RONSWANSON', 'Ronswanson'], 'single-word username is title-cased')]
+    #[TestWith(['jane.doe@example.com', 'Jane'], 'dotted email-shaped username takes the first segment')]
+    #[TestWith(['jane@example.com', 'Jane'], 'email-shaped username splits on the @ separator')]
     #[TestDox('Derives a title-cased first name from the signed-in user\'s identifier.')]
     public function derives_first_name_from_the_username(string $identifier, string $expected): void
     {

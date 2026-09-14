@@ -10,6 +10,7 @@ use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Large;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\TestDox;
+use PHPUnit\Framework\Attributes\TestWith;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 #[Large]
@@ -58,6 +59,14 @@ final class DashboardPageTest extends WebTestCase
         self::assertGreaterThanOrEqual(10, $transactionRows);
         self::assertSelectorExists('[data-testid="transactions-filter-all"].is-active');
         self::assertSelectorTextContains('[data-testid="transactions-filter-label"]', 'Today');
+        self::assertSame(
+            'true',
+            $crawler->filter('[data-testid="transactions-filter-all"]')->attr('aria-pressed'),
+        );
+        self::assertSame(
+            'false',
+            $crawler->filter('[data-testid="transactions-filter-pending"]')->attr('aria-pressed'),
+        );
 
         // Stubbed presentation sections render.
         $eventRows = $crawler->filter('[aria-labelledby="upcoming-heading"] .lr-list-row')->count();
@@ -72,7 +81,33 @@ final class DashboardPageTest extends WebTestCase
     }
 
     #[Test]
-    #[TestDox('The transactions HTMX partial filters by status and reports the active filter in its label.')]
+    #[TestDox('GET /dashboard?status=pending renders the full page shell with the Pending pill pre-selected.')]
+    public function dashboard_page_with_status_query_preselects_the_filter(): void
+    {
+        $client = static::createClient();
+        $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
+
+        $crawler = $client->request('GET', '/dashboard?status=pending');
+        self::assertResponseIsSuccessful();
+
+        // The full page shell rendered, not the bare HTMX table partial.
+        self::assertSelectorExists('main h1');
+        self::assertSelectorExists('[aria-labelledby="kpi-heading"]');
+
+        self::assertSelectorTextContains('[data-testid="transactions-filter-label"]', 'Pending · today');
+        self::assertSelectorExists('[data-testid="transactions-filter-pending"].is-active');
+        self::assertSame(
+            'true',
+            $crawler->filter('[data-testid="transactions-filter-pending"]')->attr('aria-pressed'),
+        );
+        self::assertSame(
+            'false',
+            $crawler->filter('[data-testid="transactions-filter-all"]')->attr('aria-pressed'),
+        );
+    }
+
+    #[Test]
+    #[TestDox('The transactions partial filters by status and pushes the page URL, not its own.')]
     public function transactions_partial_filters_by_status(): void
     {
         $client = static::createClient();
@@ -84,6 +119,18 @@ final class DashboardPageTest extends WebTestCase
         self::assertSelectorTextContains('[data-testid="transactions-filter-label"]', 'Pending · today');
         self::assertSelectorExists('[data-testid="transactions-filter-pending"].is-active');
 
+        // hx-push-url must be the dashboard page URL, not the partial's own
+        // fetch URL — otherwise reloading/bookmarking lands on a bare,
+        // unstyled table fragment (LRA-189 review).
+        self::assertSame(
+            '/dashboard?status=pending',
+            $crawler->filter('[data-testid="transactions-filter-pending"]')->attr('hx-push-url'),
+        );
+        self::assertSame(
+            '/dashboard',
+            $crawler->filter('[data-testid="transactions-filter-all"]')->attr('hx-push-url'),
+        );
+
         $badges = $crawler
             ->filter('[data-testid="transaction-row"] .lr-badge')
             ->each(static fn ($n): string => trim($n->text()));
@@ -91,5 +138,28 @@ final class DashboardPageTest extends WebTestCase
         foreach ($badges as $badge) {
             self::assertSame('Pending', $badge);
         }
+    }
+
+    #[Test]
+    #[TestWith(['bogus'], 'unknown status value falls back to All')]
+    #[TestWith([''], 'empty status value falls back to All')]
+    #[TestWith([null], 'missing status parameter falls back to All')]
+    #[TestDox('An invalid, empty, or missing status query parameter silently shows All rather than erroring.')]
+    public function transactions_partial_falls_back_to_all_for_invalid_status(?string $status): void
+    {
+        $client = static::createClient();
+        $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
+
+        $url = '/dashboard/_transactions' . ($status !== null ? '?status=' . $status : '');
+        $crawler = $client->request('GET', $url);
+        self::assertResponseIsSuccessful();
+
+        self::assertSelectorTextContains('[data-testid="transactions-filter-label"]', 'Today');
+        self::assertSelectorExists('[data-testid="transactions-filter-all"].is-active');
+        self::assertSame(
+            'true',
+            $crawler->filter('[data-testid="transactions-filter-all"]')->attr('aria-pressed'),
+        );
+        self::assertGreaterThanOrEqual(10, $crawler->filter('[data-testid="transaction-row"]')->count());
     }
 }

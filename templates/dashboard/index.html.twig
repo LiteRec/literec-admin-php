@@ -43,8 +43,8 @@
             <div class="lr-card-body">
                 <div id="dashboard-transactions-table">
                     {% include 'dashboard/_transactions_table.html.twig' with {
-                        transactions: dashboard.recentTransactions,
-                        status: null,
+                        transactions: transactions,
+                        status: status,
                         statusCases: statusCases,
                     } only %}
                 </div>
