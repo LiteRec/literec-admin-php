@@ -83,18 +83,7 @@ final class MemberProfileCardTest extends WebTestCase
         $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
         $this->seedHouseholdA();
 
-        $this->postProfileUpdate($client, self::HOUSEHOLD_A, self::A_PRIMARY_ID, [
-            'firstName' => 'Alice',
-            'middleName' => '',
-            'lastName' => 'Smith',
-            'suffix' => '',
-            'nickname' => 'Al',
-            'dobIso' => self::DOB,
-            'genderCode' => 'F',
-            'salutationCode' => 'MS',
-            'heightInches' => '65',
-            'weightPounds' => '140',
-        ]);
+        $this->postProfileUpdate($client, self::HOUSEHOLD_A, self::A_PRIMARY_ID, $this->measurementFieldsPayload());
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('[data-testid="profile-salutation"]', 'Ms.');
@@ -121,18 +110,7 @@ final class MemberProfileCardTest extends WebTestCase
         $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
         $this->seedHouseholdA();
 
-        $this->postProfileUpdate($client, self::HOUSEHOLD_A, self::A_PRIMARY_ID, [
-            'firstName' => 'Alice',
-            'middleName' => '',
-            'lastName' => 'Smith',
-            'suffix' => '',
-            'nickname' => 'Al',
-            'dobIso' => self::DOB,
-            'genderCode' => 'F',
-            'salutationCode' => 'MS',
-            'heightInches' => '65',
-            'weightPounds' => '140',
-        ]);
+        $this->postProfileUpdate($client, self::HOUSEHOLD_A, self::A_PRIMARY_ID, $this->measurementFieldsPayload());
 
         $this->postProfileUpdate($client, self::HOUSEHOLD_A, self::A_PRIMARY_ID, [
             'firstName' => 'Alice',
@@ -405,6 +383,30 @@ final class MemberProfileCardTest extends WebTestCase
             $client->getResponse()->headers->get('HX-Trigger'),
             'A 404 profile POST must not emit the profileSaved trigger.',
         );
+    }
+
+    /**
+     * The name/dob/gender fields plus a populated set of nickname,
+     * salutation, height, and weight (LRA-205), shared by the measurement
+     * field tests to keep new-code duplication under the SonarCloud 3%
+     * gate.
+     *
+     * @return array<string, string>
+     */
+    private function measurementFieldsPayload(): array
+    {
+        return [
+            'firstName' => 'Alice',
+            'middleName' => '',
+            'lastName' => 'Smith',
+            'suffix' => '',
+            'nickname' => 'Al',
+            'dobIso' => self::DOB,
+            'genderCode' => 'F',
+            'salutationCode' => 'MS',
+            'heightInches' => '65',
+            'weightPounds' => '140',
+        ];
     }
 
     /**
