@@ -36,6 +36,8 @@ const AUTHENTICATED_PAGES = [
   { name: 'inventory list', url: '/admin/inventory' },
   { name: 'inventory reports', url: '/admin/inventory/reports' },
   { name: 'cash register', url: '/cash-register' },
+  // LRA-194: coming-soon placeholder stub, restyled onto Organic.
+  { name: 'placeholder page', url: '/cash-register/pos-transactions' },
 ];
 
 test.describe('accessibility smoke @a11y', () => {

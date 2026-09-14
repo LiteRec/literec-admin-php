@@ -18,6 +18,7 @@
    invoker are all handled by the shared modal shell — this template adds
    only the lookup-specific UI and behaviour. #}
 
+{% import 'components/_icon.html.twig' as ui %}
 {% set body %}
     <form
         id="member-lookup-form"
@@ -28,65 +29,43 @@
         aria-label="Search members"
     >
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div>
-                <label for="member-lookup-code" class="block text-sm font-medium text-litrec-text">Member code</label>
-                <input
-                    type="text"
-                    id="member-lookup-code"
-                    name="code"
-                    autocomplete="off"
-                    data-testid="member-lookup-input-code"
-                    class="mt-1 block w-full rounded-md border border-litrec-border bg-litrec-surface px-3 py-2 text-litrec-text focus:border-litrec-primary focus:outline-none focus:ring-1 focus:ring-litrec-primary"
-                >
-            </div>
+            <label for="member-lookup-code" class="lr-field">
+                <span class="lr-label">Member code</span>
+                <span class="lr-input">
+                    {{ ui.icon('tag', 15, 2.75, 'ico') }}
+                    <input type="text" id="member-lookup-code" name="code" autocomplete="off" data-testid="member-lookup-input-code">
+                </span>
+            </label>
 
-            <div>
-                <label for="member-lookup-lastName" class="block text-sm font-medium text-litrec-text">Last name</label>
-                <input
-                    type="text"
-                    id="member-lookup-lastName"
-                    name="lastName"
-                    autocomplete="off"
-                    data-testid="member-lookup-input-lastName"
-                    class="mt-1 block w-full rounded-md border border-litrec-border bg-litrec-surface px-3 py-2 text-litrec-text focus:border-litrec-primary focus:outline-none focus:ring-1 focus:ring-litrec-primary"
-                >
-            </div>
+            <label for="member-lookup-lastName" class="lr-field">
+                <span class="lr-label">Last name</span>
+                <span class="lr-input">
+                    {{ ui.icon('user', 15, 2.75, 'ico') }}
+                    <input type="text" id="member-lookup-lastName" name="lastName" autocomplete="off" data-testid="member-lookup-input-lastName">
+                </span>
+            </label>
 
-            <div>
-                <label for="member-lookup-firstName" class="block text-sm font-medium text-litrec-text">First name</label>
-                <input
-                    type="text"
-                    id="member-lookup-firstName"
-                    name="firstName"
-                    autocomplete="off"
-                    data-testid="member-lookup-input-firstName"
-                    class="mt-1 block w-full rounded-md border border-litrec-border bg-litrec-surface px-3 py-2 text-litrec-text focus:border-litrec-primary focus:outline-none focus:ring-1 focus:ring-litrec-primary"
-                >
-            </div>
+            <label for="member-lookup-firstName" class="lr-field">
+                <span class="lr-label">First name</span>
+                <span class="lr-input">
+                    {{ ui.icon('user', 15, 2.75, 'ico') }}
+                    <input type="text" id="member-lookup-firstName" name="firstName" autocomplete="off" data-testid="member-lookup-input-firstName">
+                </span>
+            </label>
 
-            <div>
-                <label for="member-lookup-phone" class="block text-sm font-medium text-litrec-text">Phone</label>
-                <input
-                    type="text"
-                    id="member-lookup-phone"
-                    name="phone"
-                    autocomplete="off"
-                    data-testid="member-lookup-input-phone"
-                    class="mt-1 block w-full rounded-md border border-litrec-border bg-litrec-surface px-3 py-2 text-litrec-text focus:border-litrec-primary focus:outline-none focus:ring-1 focus:ring-litrec-primary"
-                >
-            </div>
+            <label for="member-lookup-phone" class="lr-field">
+                <span class="lr-label">Phone</span>
+                <span class="lr-input">
+                    <input type="text" id="member-lookup-phone" name="phone" autocomplete="off" data-testid="member-lookup-input-phone">
+                </span>
+            </label>
 
-            <div class="sm:col-span-2">
-                <label for="member-lookup-email" class="block text-sm font-medium text-litrec-text">Email</label>
-                <input
-                    type="email"
-                    id="member-lookup-email"
-                    name="email"
-                    autocomplete="off"
-                    data-testid="member-lookup-input-email"
-                    class="mt-1 block w-full rounded-md border border-litrec-border bg-litrec-surface px-3 py-2 text-litrec-text focus:border-litrec-primary focus:outline-none focus:ring-1 focus:ring-litrec-primary"
-                >
-            </div>
+            <label for="member-lookup-email" class="lr-field sm:col-span-2">
+                <span class="lr-label">Email</span>
+                <span class="lr-input">
+                    <input type="email" id="member-lookup-email" name="email" autocomplete="off" data-testid="member-lookup-input-email">
+                </span>
+            </label>
         </div>
 
         {# Keyboard fallback for users without JS; HTMX fires on change. #}
@@ -110,7 +89,7 @@
     >
         {# Initial empty state so the dialog isn't bare on first open. The
            HTMX form swaps real results in once a filter changes. #}
-        <p class="rounded-md border border-dashed border-litrec-border bg-litrec-surface p-4 text-center text-sm text-litrec-text-muted">
+        <p class="rounded-card-sm border border-litrec-border bg-litrec-surface-2 p-4 text-center text-sm text-litrec-text-muted">
             Enter a search filter to find members.
         </p>
     </div>
@@ -119,7 +98,7 @@
         <button
             type="button"
             data-testid="member-lookup-cancel"
-            class="rounded-md border border-litrec-border bg-litrec-surface px-4 py-2 text-sm font-semibold text-litrec-text hover:bg-litrec-bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
+            class="lr-btn lr-btn-secondary"
             @click="dismiss()"
         >
             Cancel

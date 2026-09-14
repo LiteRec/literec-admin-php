@@ -43,19 +43,19 @@
                 No transactions on file.
             </p>
         {% else %}
-            <div class="overflow-x-auto rounded-md border border-litrec-border">
-                <table data-testid="history-table" class="min-w-full divide-y divide-litrec-border text-sm">
-                    <thead class="bg-litrec-bg-muted text-left text-xs font-semibold uppercase tracking-wider text-litrec-text-muted">
+            <div class="overflow-x-auto">
+                <table data-testid="history-table" class="lr-table">
+                    <thead>
                         <tr>
-                            <th scope="col" class="px-3 py-2">Date</th>
-                            <th scope="col" class="px-3 py-2">Kind</th>
-                            <th scope="col" class="px-3 py-2">Description</th>
-                            <th scope="col" class="px-3 py-2 text-right">Amount</th>
-                            <th scope="col" class="px-3 py-2">Status</th>
-                            <th scope="col" class="px-3 py-2">Payment method</th>
+                            <th scope="col">Date</th>
+                            <th scope="col">Kind</th>
+                            <th scope="col">Description</th>
+                            <th scope="col" class="text-right">Amount</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Payment method</th>
                         </tr>
                     </thead>
-                    <tbody data-testid="history-tbody" class="divide-y divide-litrec-border">
+                    <tbody data-testid="history-tbody">
                         {% for row in page.items %}
                             {% include 'households/detail/_card_history_row.html.twig' with {
                                 row: row,

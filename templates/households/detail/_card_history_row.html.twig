@@ -5,18 +5,18 @@
      - kindBadgeMap: map<string, string>  badge variant per kind code
 #}
 <tr data-testid="history-row" data-row-id="{{ row.transactionId }}">
-    <td class="whitespace-nowrap px-3 py-2 text-litrec-text">
+    <td class="whitespace-nowrap text-litrec-text">
         {{ row.occurredAt.format('Y-m-d') }}
     </td>
-    <td class="whitespace-nowrap px-3 py-2">
+    <td class="whitespace-nowrap">
         {% include 'components/_badge.html.twig' with {
             label: row.kind.value|capitalize,
             variant: kindBadgeMap[row.kind.value]|default('neutral'),
             testid: 'history-kind-badge',
         } only %}
     </td>
-    <td class="px-3 py-2 text-litrec-text">{{ row.description }}</td>
-    <td class="whitespace-nowrap px-3 py-2 text-right font-mono text-litrec-text">{{ row.amount }}</td>
-    <td class="whitespace-nowrap px-3 py-2 text-litrec-text-muted">{{ row.status }}</td>
-    <td class="whitespace-nowrap px-3 py-2 text-litrec-text-muted">{{ row.paymentMethod }}</td>
+    <td class="text-litrec-text">{{ row.description }}</td>
+    <td class="whitespace-nowrap text-right font-mono text-litrec-text lr-num">{{ row.amount }}</td>
+    <td class="whitespace-nowrap text-litrec-text-muted">{{ row.status }}</td>
+    <td class="whitespace-nowrap text-litrec-text-muted">{{ row.paymentMethod }}</td>
 </tr>

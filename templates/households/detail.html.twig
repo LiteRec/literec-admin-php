@@ -35,13 +35,25 @@
 {% endblock %}
 
 {% block page_body %}
+    {% set residencyLabelMap = {
+        'RESIDENT': 'Resident',
+        'NON_RESIDENT': 'Non-resident',
+        'MEMBER': 'Member',
+        'STAFF': 'Staff',
+    } %}
     <header
         data-testid="member-header"
-        class="mb-6 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 border-b border-litrec-border pb-4"
+        class="mb-6 flex flex-wrap items-center justify-between gap-x-4 gap-y-3 border-b border-litrec-border pb-4"
     >
-        <div>
-            <h2 class="text-2xl font-bold text-litrec-text">{{ detail.profile.fullName }}</h2>
-            <p class="mt-1 text-sm text-litrec-text-muted">{{ detail.household.householdName }}</p>
+        <div class="flex items-center gap-4">
+            <span
+                aria-hidden="true"
+                class="flex h-14 w-14 flex-none items-center justify-center rounded-full bg-litrec-sage-200 text-lg font-bold text-litrec-sage-800"
+            >{{ detail.profile.firstName|slice(0, 1) }}{{ detail.profile.lastName|slice(0, 1) }}</span>
+            <div>
+                <h2 class="font-heading text-2xl font-bold text-litrec-text [font-synthesis-weight:none]">{{ detail.profile.fullName }}</h2>
+                <p class="mt-1 text-sm text-litrec-text-muted">{{ detail.household.householdName }}</p>
+            </div>
         </div>
         <div class="flex flex-wrap items-center gap-2">
             {% if detail.profile.isActive %}
@@ -54,6 +66,12 @@
             {% else %}
                 {% include 'components/_badge.html.twig' with { label: 'Secondary', variant: 'neutral', testid: 'badge-secondary' } only %}
             {% endif %}
+            {% include 'components/_badge.html.twig' with {
+                label: residencyLabelMap[detail.residency.status]|default(detail.residency.status),
+                variant: 'neutral',
+                outline: true,
+                testid: 'badge-residency',
+            } only %}
         </div>
     </header>
 

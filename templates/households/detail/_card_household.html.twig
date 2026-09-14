@@ -44,22 +44,22 @@
                     hx-target="body"
                     hx-swap="beforeend"
                     aria-haspopup="dialog"
-                    class="rounded-md bg-litrec-primary px-3 py-1.5 text-xs font-semibold text-litrec-on-primary shadow-sm hover:bg-litrec-primary-strong focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary"
+                    class="lr-btn lr-btn-primary"
                 >
                     Add Member
                 </button>
             </div>
 
-            <div class="overflow-x-auto rounded-md border border-litrec-border">
-                <table class="min-w-full divide-y divide-litrec-border text-sm">
-                    <thead class="bg-litrec-bg-muted text-left text-xs font-semibold uppercase tracking-wider text-litrec-text-muted">
+            <div class="overflow-x-auto">
+                <table class="lr-table">
+                    <thead>
                         <tr>
-                            <th scope="col" class="px-3 py-2">Name</th>
-                            <th scope="col" class="px-3 py-2">Code</th>
-                            <th scope="col" class="px-3 py-2">Status</th>
+                            <th scope="col">Name</th>
+                            <th scope="col">Code</th>
+                            <th scope="col">Status</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-litrec-border">
+                    <tbody>
                         {% for m in detail.householdMembers %}
                             {% set isActiveMember = m.memberId == detail.profile.memberId %}
                             {% set pushUrl = path('member_detail', { householdId: detail.household.householdId, memberId: m.memberId }) %}
@@ -70,9 +70,9 @@
                                 data-testid="household-member-row-{{ m.memberId }}"
                                 {% if isActiveMember %}
                                     aria-current="true"
-                                    class="cursor-pointer bg-litrec-primary/10 ring-1 ring-litrec-primary"
+                                    class="cursor-pointer bg-litrec-sage-100 ring-1 ring-inset ring-litrec-primary"
                                 {% else %}
-                                    class="cursor-pointer hover:bg-litrec-bg-muted {{ not m.isActive ? 'opacity-60' : '' }}"
+                                    class="cursor-pointer {{ not m.isActive ? 'opacity-60' : '' }}"
                                 {% endif %}
                                 hx-get="{{ path('member_detail_lower_cards', { householdId: detail.household.householdId, memberId: m.memberId }) }}"
                                 hx-target="#member-cards-lower"
@@ -83,13 +83,13 @@
                                 tabindex="0"
                                 onkeydown="if (event.key === ' ') { event.preventDefault(); this.click(); }"
                             >
-                                <td class="px-3 py-2 text-litrec-text">
+                                <td class="text-litrec-text">
                                     {{ m.fullName }}
                                 </td>
-                                <td class="whitespace-nowrap px-3 py-2 font-mono text-xs text-litrec-text-muted">
+                                <td class="whitespace-nowrap font-mono text-xs text-litrec-text-muted">
                                     {{ m.memberCode }}
                                 </td>
-                                <td class="whitespace-nowrap px-3 py-2">
+                                <td class="whitespace-nowrap">
                                     {% if m.isPrimary %}
                                         {% include 'components/_badge.html.twig' with { label: 'Primary', variant: 'info' } only %}
                                     {% endif %}
