@@ -168,6 +168,12 @@
     --lr-primary: #c67139;
     --lr-primary-strong: #b2622d;
     --lr-on-primary: #f5ead8;
+    /* Pressed/:active fill for .lr-btn-primary (LRA-195). Was the literal,
+       theme-independent --lr-accent-700 ramp step: safe here (5.09:1 against
+       --lr-on-primary) but only by coincidence, and it drops to 2.33:1 once
+       dark mode's --lr-on-primary flips to a dark ink. A dedicated semantic
+       token keeps the pressed state theme-aware. */
+    --lr-primary-active: var(--lr-accent-700);
     /* Text-on-surface variant of primary (LRA-185 review): --lr-primary itself
        is only ~3.3:1 on the app's light surfaces, which fails AA for 14px/600
        text (e.g. .lr-btn-ghost). accent-700 clears 4.5:1 against surface,
@@ -224,57 +230,131 @@
     --lr-shadow-md: 0 3px 10px color-mix(in srgb, #2e2b25 16%, transparent);
 }
 
-/* Dark theme. Driven entirely by [data-theme="dark"] on <html>: the header
-   toggle (LRA-123) sets it on user action and, on first load, from the OS
-   prefers-color-scheme. State colors are lightened so badge/pill foregrounds
-   keep AA contrast on dark surfaces (the light reds/greens drop below 4.5:1). */
+/* Dark theme (LRA-195). Driven entirely by [data-theme="dark"] on <html>: the
+   header toggle (LRA-123) sets it on user action and, on first load, from the
+   OS prefers-color-scheme. Derived from the same Organic ramps as :root — a
+   deep warm brown ground (not grey) rather than a distinct dark palette — by
+   walking the neutral/accent/sage ramps to the opposite end (dark surfaces,
+   light text/brand fills) instead of reusing the light-mode ramp steps
+   as-is. Every pairing below is a real usage from this file (button fills,
+   badge/tag pairs, links, borders) and is annotated with its computed WCAG
+   contrast ratio (relative-luminance formula, no eyeballing) against every
+   surface it actually renders on; 4.5:1 is the AA text threshold and 3:1 is
+   the AA large-text / UI-component threshold. */
 :root[data-theme="dark"] {
     color-scheme: dark;
 
-    --lr-bg: #101820;
-    --lr-bg-muted: #080c10;
-    --lr-surface: #1a2530;
-    --lr-surface-2: #141d26;
-    --lr-border: #2a3a48;
-    --lr-control-border: #6f8799;
-    --lr-text: #f0f5f8;
-    --lr-text-muted: #8aa8c0;
-    --lr-primary: #a8c5e2;
-    --lr-primary-strong: #c8ddf0;
-    --lr-on-primary: #0a1820;
+    /* neutral-900, matching the warm-brown ambient already used by the light
+       theme's shadow color-mix base below, rather than the ramp's literal
+       #312d26 (chosen slightly darker for headroom under --lr-surface). */
+    --lr-bg: #2e2b25;
+    /* One step darker than --lr-bg (recessed fills: table stripes, inset
+       panels), scaling the same R>G>B warm-brown ratio down rather than
+       desaturating to grey. */
+    --lr-bg-muted: #27251f;
+    --lr-surface: #3a3630;
+    /* neutral-800, chosen slightly lighter than the ramp's literal #48433a
+       so it stays a step above --lr-surface for card-in-card contexts
+       (.lr-card-context). */
+    --lr-surface-2: #474238;
+    --lr-border: color-mix(in srgb, var(--lr-neutral-100) 16%, transparent);
+    /* Interactive-control border (LRA-155, WCAG 1.4.11) — neutral-500, a
+       lighter ramp step than --lr-text-muted so a control's boundary reads as
+       more emphasized than divider/label text. 3.92:1 on --lr-surface, 3.26:1
+       on --lr-surface-2, 4.60:1 on --lr-bg, 5.00:1 on --lr-bg-muted — all
+       clear the 3:1 non-text AA floor. */
+    --lr-control-border: var(--lr-neutral-500);
+    /* neutral-100. 12.89:1 on --lr-bg, 10.96:1 on --lr-surface, 9.12:1 on
+       --lr-surface-2, 14.00:1 on --lr-bg-muted. */
+    --lr-text: var(--lr-neutral-100);
+    /* neutral-400 (#c2aa84) reaches only 4.46:1 against --lr-surface-2 —
+       just under the 4.5:1 AA floor for the .lr-card-context body copy that
+       pairing serves — so this is a custom step between neutral-400 and
+       neutral-300: 4.96:1 on --lr-surface-2, 5.96:1 on --lr-surface, 7.01:1
+       on --lr-bg, 7.62:1 on --lr-bg-muted. */
+    --lr-text-muted: #c9b494;
+    /* Terracotta (accent) ramp, 400 step, lightened for AA on the dark
+       ground rather than reused verbatim from :root's #d5986f: 6.83:1 on
+       --lr-bg, 5.80:1 on --lr-surface, 4.83:1 on --lr-surface-2, 7.41:1 on
+       --lr-bg-muted — used as both the .lr-btn-primary fill (paired with the
+       dark --lr-on-primary below) and, via --lr-primary-text, as ghost-button
+       text on every app surface. */
+    --lr-primary: #f6a06b;
+    /* 300 step, lightened by the same delta applied to reach --lr-primary
+       from the literal accent-400: 9.18:1 on --lr-bg as the
+       .lr-btn-primary:hover fill (still paired with --lr-on-primary). */
+    --lr-primary-strong: #f9c6a8;
+    --lr-on-primary: #2e2b25;
+    /* Reuses --lr-primary-strong (LRA-195): the literal, theme-independent
+       --lr-accent-700 ramp step this pressed state used in light mode drops
+       to 2.33:1 against a dark --lr-on-primary, well under AA. */
+    --lr-primary-active: var(--lr-primary-strong);
     /* Dark mode's --lr-primary is already light enough to read as text. */
     --lr-primary-text: var(--lr-primary);
-    --lr-secondary: #daa520;
-    --lr-secondary-strong: #f0c040;
-    --lr-on-secondary: #0a1820;
-    --lr-accent: #5a9e7c;
-    --lr-on-accent: #0a1820;
-    /* Dark danger is a light red, so text on a danger fill must be dark. */
+    /* The Organic system has no distinct secondary hue in either theme; alias
+       to primary so no Eagleton gold survives in dark mode either. */
+    --lr-secondary: var(--lr-primary);
+    --lr-secondary-strong: var(--lr-primary-strong);
+    --lr-on-secondary: var(--lr-on-primary);
+    /* Sage ramp, 400 step, lightened the same way as --lr-primary: 7.17:1 on
+       --lr-bg. */
+    --lr-accent: #aebf92;
+    --lr-on-accent: var(--lr-on-primary);
+    /* Dark danger is a light red, so text on a danger fill must be dark;
+       7.64:1 against --lr-danger below. */
     --lr-on-danger: #450a0a;
-    --lr-link: #e0b84a;
-    --lr-sidebar-bg: #080c10;
-    --lr-sidebar-text: #f0f5f8;
+    --lr-link: var(--lr-primary);
+    /* Terracotta ramp, 900 step — a deep brand-colored strip rather than the
+       near-black Eagleton value, in case a future sidebar layout consumes
+       this token; 12.08:1 against --lr-sidebar-text. */
+    --lr-sidebar-bg: var(--lr-accent-900);
+    --lr-sidebar-text: var(--lr-neutral-100);
 
-    --lr-success: #5fc98a;
-    --lr-warning: #fcd34d;
+    /* .lr-dot status-dot colors — reuse the same tuned brand steps as
+       --lr-primary / --lr-accent so the dashboard's succeeded/pending dots
+       stay warm instead of Eagleton blue/gold. */
+    --lr-success: var(--lr-accent);
+    --lr-warning: var(--lr-primary);
+    /* Already a lightened, warm-enough red for dark (7.64:1 as the
+       .lr-btn-danger fill against --lr-on-danger above); kept as-is rather
+       than re-derived from the ramps, which have no red step. */
     --lr-danger: #f49a9a;
     --lr-info: #93c5fd;
 
-    --lr-success-bg: #052e16;
-    --lr-success-fg: #86efac;
-    --lr-warning-bg: #422006;
-    --lr-warning-fg: #fde047;
-    /* Not redesigned for Organic yet (LRA-183 keeps the dark block compiling
-       only); matches the .lr-badge.neutral treatment it replaces. */
-    --lr-neutral-bg: var(--lr-bg-muted);
-    --lr-neutral-fg: var(--lr-text-muted);
+    /* State tag pairs (LRA-195): swap the light theme's {100 bg}/{800 fg}
+       (light tint, dark text) to {800 bg}/{200 fg} (dark tint, light text) so
+       every .lr-badge variant reads as a filled dark chip instead of
+       inheriting a light-mode tint. */
+    --lr-success-bg: var(--lr-sage-800);
+    --lr-success-fg: var(--lr-sage-200);
+    --lr-warning-bg: var(--lr-accent-800);
+    --lr-warning-fg: var(--lr-accent-200);
+    --lr-neutral-bg: var(--lr-neutral-800);
+    --lr-neutral-fg: var(--lr-neutral-200);
+    /* Already lightened for dark (8.51:1); danger has no ramp equivalent so
+       it keeps its own true-red pair rather than following the 800/200 swap
+       above. */
     --lr-danger-bg: #450a0a;
     --lr-danger-fg: #fca5a5;
-    --lr-info-bg: #0c1f44;
-    --lr-info-fg: #93c5fd;
+    /* One sage step past --lr-success-bg/-fg (900/100 instead of 800/200) so
+       info stays visually distinct from success, mirroring how the light
+       theme separates them by ramp step (100/800 vs 200/900) rather than by
+       hue. 12.70:1. */
+    --lr-info-bg: var(--lr-sage-900);
+    --lr-info-fg: var(--lr-sage-100);
 
-    --lr-shadow-card: 0 1px 2px rgb(0 0 0 / 0.35), 0 1px 3px rgb(0 0 0 / 0.45);
-    --lr-shadow-pop: 0 14px 36px rgb(0 0 0 / 0.55), 0 2px 6px rgb(0 0 0 / 0.4);
+    /* Verified ratios above: success-bg/-fg 7.25:1, warning-bg/-fg 6.69:1,
+       neutral-bg/-fg 7.33:1, info-bg/-fg 12.70:1 — every tag variant clears
+       AA. */
+
+    /* Hairline edge (a translucent light line, since dark surfaces have no
+       natural rim highlight) plus a flat 40% black blur for ambient
+       darkness, replacing the plain black drop-shadows carried over from
+       Eagleton. Blur/offset distances keep the light theme's card < md < pop
+       elevation progression. */
+    --lr-shadow-card: 0 0 0 1px color-mix(in srgb, var(--lr-neutral-100) 8%, transparent), 0 1px 3px rgb(0 0 0 / 0.4);
+    --lr-shadow-md: 0 0 0 1px color-mix(in srgb, var(--lr-neutral-100) 8%, transparent), 0 4px 12px rgb(0 0 0 / 0.4);
+    --lr-shadow-pop: 0 0 0 1px color-mix(in srgb, var(--lr-neutral-100) 8%, transparent), 0 14px 36px rgb(0 0 0 / 0.4);
 }
 
 @theme {
@@ -500,7 +580,7 @@
         color: var(--lr-on-primary);
     }
     .lr-btn-primary:hover { background: var(--lr-primary-strong); }
-    .lr-btn-primary:active { background: var(--lr-accent-700); }
+    .lr-btn-primary:active { background: var(--lr-primary-active); }
     /* Outlined divider-border variant — replaces the old gold fill so no
        Eagleton secondary color survives in this button (LRA-185). */
     .lr-btn-secondary { background: transparent; border-color: var(--lr-border); color: var(--lr-text); }
