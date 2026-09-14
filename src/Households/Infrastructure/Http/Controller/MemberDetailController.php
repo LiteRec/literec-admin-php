@@ -6,6 +6,7 @@ namespace App\Households\Infrastructure\Http\Controller;
 
 use App\Households\Application\Command\ChangeMemberResidency;
 use App\Households\Application\Command\UpdateHouseholdAddress;
+use App\Households\Application\Command\UpdateMemberContact;
 use App\Households\Application\Command\UpdateMemberProfile;
 use App\Households\Application\Port\MemberTransactionHistory;
 use App\Households\Application\Query\GetMemberDetail;
@@ -23,8 +24,12 @@ use App\Households\Infrastructure\Http\Form\ChangeMemberResidencyFormType;
 use App\Households\Infrastructure\Http\Form\ChangeMemberResidencyInput;
 use App\Households\Infrastructure\Http\Form\UpdateHouseholdAddressFormType;
 use App\Households\Infrastructure\Http\Form\UpdateHouseholdAddressInput;
+use App\Households\Infrastructure\Http\Form\UpdateMemberContactFormType;
+use App\Households\Infrastructure\Http\Form\UpdateMemberContactInput;
 use App\Households\Infrastructure\Http\Form\UpdateMemberProfileFormType;
 use App\Households\Infrastructure\Http\Form\UpdateMemberProfileInput;
+use App\Shared\Domain\Exception\InvalidEmailAddress;
+use App\Shared\Domain\Exception\InvalidPhoneNumber;
 use App\Shared\Domain\Exception\SharedDomainException;
 use LogicException;
 use Psr\Clock\ClockInterface;
@@ -50,7 +55,10 @@ use Throwable;
  * History (LRA-45). The Profile card mutation flow lives entirely in this
  * controller: an HTMX-swapped read partial, an HTMX-swapped edit form,
  * and a POST that re-dispatches the read query and returns the read
- * partial on success.
+ * partial on success. The Contact sub-card (LRA-204) — email and phone —
+ * follows the same read/edit/submit shape as an independent HTMX swap
+ * target nested inside the Profile card, so an in-progress identity edit
+ * and an in-progress contact edit never clobber each other.
  *
  * The controller stays thin: dispatches {@see GetMemberDetail} via the
  * `query.bus` and {@see UpdateMemberProfile} via the `command.bus`, catches
@@ -87,6 +95,8 @@ final class MemberDetailController extends AbstractController
 
     private const string TEMPLATE_RESIDENCY_EDIT = 'households/detail/_residency_sub_card_edit.html.twig';
 
+    private const string TEMPLATE_CONTACT_EDIT = 'households/detail/_contact_sub_card_edit.html.twig';
+
     /**
      * HTMX response header (LRA-153). Success responses set it so assets/app.js
      * can announce the outcome of an in-place update in the shared #lr-live
@@ -95,6 +105,8 @@ final class MemberDetailController extends AbstractController
     private const string HEADER_HX_TRIGGER = 'HX-Trigger';
 
     private const string HX_TRIGGER_PROFILE_SAVED = 'profileSaved';
+
+    private const string HX_TRIGGER_CONTACT_SAVED = 'contactSaved';
 
     private const string HX_TRIGGER_MEMBER_LOADED = 'memberLoaded';
 
@@ -282,6 +294,96 @@ final class MemberDetailController extends AbstractController
 
         return $this->renderEditPartial(
             self::TEMPLATE_PROFILE_EDIT,
+            $form,
+            $householdId,
+            $memberId,
+            Response::HTTP_UNPROCESSABLE_ENTITY,
+        );
+    }
+
+    /**
+     * HTMX partial endpoint that returns the Contact sub-card edit-mode
+     * form, pre-populated with the member's current email and phone. The
+     * Edit Contact button swaps `#contact-sub-card-body` with this
+     * response; submission posts to {@see self::submitContact()}.
+     */
+    #[Route(
+        '/admin/users/{householdId}/{memberId}/contact/edit',
+        name: 'member_contact_edit_form',
+        requirements: [
+            'householdId' => self::UUID_V7_REGEX,
+            'memberId'    => self::UUID_V7_REGEX,
+        ],
+        methods: ['GET'],
+    )]
+    public function editContactForm(string $householdId, string $memberId): Response
+    {
+        try {
+            $detail = $this->runQuery($householdId, $memberId);
+        } catch (MemberNotFound | HouseholdNotFound | InvalidHouseholdId | InvalidMemberId) {
+            throw $this->createNotFoundException(self::MEMBER_NOT_FOUND_MESSAGE);
+        }
+
+        $input = $this->inputFromContact($detail);
+        $form = $this->createForm(UpdateMemberContactFormType::class, $input);
+
+        return $this->render(self::TEMPLATE_CONTACT_EDIT, [
+            'form' => $form->createView(),
+            'householdId' => $householdId,
+            'memberId' => $memberId,
+        ]);
+    }
+
+    /**
+     * Handles the Contact sub-card edit submission. On validation failure
+     * or a domain exception re-renders the edit partial at HTTP 422 with
+     * inline form errors. On success re-dispatches {@see GetMemberDetail}
+     * and returns the read-mode partial at HTTP 200, so the sub-card swaps
+     * back to read mode with the updated values.
+     */
+    #[Route(
+        '/admin/users/{householdId}/{memberId}/contact',
+        name: 'member_contact_submit',
+        requirements: [
+            'householdId' => self::UUID_V7_REGEX,
+            'memberId'    => self::UUID_V7_REGEX,
+        ],
+        methods: ['POST'],
+    )]
+    public function submitContact(string $householdId, string $memberId, Request $request): Response
+    {
+        $input = new UpdateMemberContactInput();
+        $form = $this->createForm(UpdateMemberContactFormType::class, $input);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            try {
+                $this->dispatchCommandUnwrapping(new UpdateMemberContact(
+                    householdId: $householdId,
+                    memberId: $memberId,
+                    email: $input->email,
+                    phone: $input->phone,
+                ));
+
+                $response = $this->render('households/detail/_contact_sub_card_read.html.twig', [
+                    'detail' => $this->runQuery($householdId, $memberId),
+                ]);
+                $response->headers->set(self::HEADER_HX_TRIGGER, self::HX_TRIGGER_CONTACT_SAVED);
+
+                return $response;
+            } catch (MemberNotFound | HouseholdNotFound | InvalidHouseholdId | InvalidMemberId) {
+                throw $this->createNotFoundException(self::MEMBER_NOT_FOUND_MESSAGE);
+            } catch (InvalidEmailAddress $exception) {
+                $form->get('email')->addError(new FormError($exception->getMessage()));
+            } catch (InvalidPhoneNumber $exception) {
+                $form->get('phone')->addError(new FormError($exception->getMessage()));
+            } catch (SharedDomainException $exception) {
+                $form->addError(new FormError($exception->getMessage()));
+            }
+        }
+
+        return $this->renderEditPartial(
+            self::TEMPLATE_CONTACT_EDIT,
             $form,
             $householdId,
             $memberId,
@@ -695,6 +797,15 @@ final class MemberDetailController extends AbstractController
         $input->suffix = $detail->profile->suffix;
         $input->dobIso = $detail->profile->dobIso;
         $input->genderCode = $detail->profile->genderCode;
+
+        return $input;
+    }
+
+    private function inputFromContact(MemberDetail $detail): UpdateMemberContactInput
+    {
+        $input = new UpdateMemberContactInput();
+        $input->email = $detail->profile->email;
+        $input->phone = $detail->profile->phone;
 
         return $input;
     }

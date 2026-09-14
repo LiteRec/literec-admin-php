@@ -36,11 +36,7 @@ trait BuildsHouseholdFormFields
         $this->addAutocompleteTextField($builder, 'suffix', 'Suffix', false, 'honorific-suffix');
         $this->addDateOfBirthField($builder);
         $this->addGenderField($builder);
-        $builder->add('email', EmailType::class, [
-            'label' => 'Email',
-            'required' => true,
-            'attr' => ['autocomplete' => 'email'],
-        ]);
+        $this->addEmailField($builder, true);
         $this->addAutocompleteTextField($builder, 'phone', 'Phone', true, 'tel');
         $builder->add('residencyStatusCode', ChoiceType::class, [
             'label' => 'Residency status',
@@ -88,6 +84,25 @@ trait BuildsHouseholdFormFields
             'label' => $label,
             'required' => $required,
             'attr' => ['autocomplete' => $autocomplete],
+        ]);
+    }
+
+    /**
+     * Adds the email field shared by the primary-member-entry fields and
+     * the Contact sub-card (LRA-204). Extracted here so the field
+     * definition — including its `email` autocomplete token — is declared
+     * once, per the SonarCloud 3% new-code duplication gate.
+     *
+     * @template T
+     *
+     * @param FormBuilderInterface<T> $builder
+     */
+    private function addEmailField(FormBuilderInterface $builder, bool $required): void
+    {
+        $builder->add('email', EmailType::class, [
+            'label' => 'Email',
+            'required' => $required,
+            'attr' => ['autocomplete' => 'email'],
         ]);
     }
 

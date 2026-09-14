@@ -23,5 +23,8 @@
             <span aria-hidden="true" class="text-xs transition-transform group-open:rotate-180">▾</span>
         </summary>
         {% include 'households/detail/_card_profile_read.html.twig' with { detail: detail } only %}
+        <div class="border-t border-litrec-border px-5 py-4">
+            {% include 'households/detail/_contact_sub_card_read.html.twig' with { detail: detail } only %}
+        </div>
     </details>
 </div>

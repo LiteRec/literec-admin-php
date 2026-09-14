@@ -1,0 +1,54 @@
+{# Contact sub-card — edit mode (LRA-204).
+
+   Returned by GET  /admin/users/{h}/{m}/contact/edit and re-rendered on
+   422 by POST /admin/users/{h}/{m}/contact. Replaces
+   #contact-sub-card-body in-place via outerHTML swap. On submit success
+   the POST endpoint returns _contact_sub_card_read.html.twig, swapping
+   the sub-card back to read mode with the updated values.
+
+   Expects:
+     - form: Symfony FormView bound to UpdateMemberContactInput
+     - householdId: string (UUID v7)
+     - memberId: string (UUID v7)
+#}
+<div id="contact-sub-card-body" data-testid="contact-sub-card-body" class="rounded-card-sm border border-litrec-border bg-litrec-surface p-4">
+    <form
+        method="post"
+        action="{{ path('member_contact_submit', { householdId: householdId, memberId: memberId }) }}"
+        hx-post="{{ path('member_contact_submit', { householdId: householdId, memberId: memberId }) }}"
+        hx-target="#contact-sub-card-body"
+        hx-swap="outerHTML"
+        novalidate
+    >
+        <h3 class="mb-3 text-xs font-semibold uppercase tracking-wide text-litrec-text-muted">Edit contact</h3>
+
+        {% include 'components/_form_error_summary.html.twig' with { form: form, testid: 'contact-form-error' } only %}
+
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {{ form_row(form.email, { attr: { class: 'litrec-input' }, row_attr: { class: 'lr-field' }, label_attr: { class: 'lr-label' } }) }}
+            {{ form_row(form.phone, { attr: { class: 'litrec-input' }, row_attr: { class: 'lr-field' }, label_attr: { class: 'lr-label' } }) }}
+        </div>
+
+        {{ form_widget(form._token) }}
+
+        <div class="mt-6 flex items-center justify-end gap-2">
+            <button
+                type="button"
+                data-testid="contact-cancel"
+                hx-get="{{ path('member_detail_lower_cards', { householdId: householdId, memberId: memberId }) }}"
+                hx-target="#member-cards-lower"
+                hx-swap="outerHTML"
+                class="lr-btn lr-btn-secondary"
+            >
+                Cancel
+            </button>
+            <button
+                type="submit"
+                data-testid="contact-save"
+                class="lr-btn lr-btn-primary"
+            >
+                Save
+            </button>
+        </div>
+    </form>
+</div>
