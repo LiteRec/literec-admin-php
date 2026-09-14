@@ -1345,10 +1345,8 @@
     .lr-stepper button:hover { background: var(--lr-primary); color: var(--lr-on-primary); }
     .lr-stepper .q { min-width: 28px; text-align: center; font-weight: 800; font-size: 0.9375rem; color: var(--lr-neutral-900); }
 
-    /* Shared filter-pill selected state for category pills and tender tiles:
-       ink (a fixed dark ramp step) on cream (a fixed light ramp step), the
-       same theme-proof pairing as .lr-tab.is-active / .lr-seg a.is-active. */
-    .lr-chip.is-active { background: var(--lr-neutral-200); color: var(--lr-neutral-900); border-color: transparent; }
+    /* Category pills and tender tiles reuse .lr-chip.is-selected (LRA-190) for
+       their selected state rather than defining a parallel modifier here. */
 
     /* Sand footer band for the receipt rail's totals/tender/charge group.
        --lr-surface-2 and the inherited text colour are both properly
