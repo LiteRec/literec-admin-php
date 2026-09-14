@@ -27,14 +27,14 @@
         <table class="lr-table" data-testid="history-table">
             <thead>
                 <tr>
-                    <th scope="col" class="px-4 py-3">Date</th>
-                    <th scope="col" class="px-4 py-3">Kind</th>
-                    <th scope="col" class="px-4 py-3">Reason</th>
-                    <th scope="col" class="px-4 py-3">Facility</th>
-                    <th scope="col" class="px-4 py-3 text-right">Quantity</th>
-                    <th scope="col" class="px-4 py-3">Batch</th>
-                    <th scope="col" class="px-4 py-3 text-right">Cost/unit (¢)</th>
-                    <th scope="col" class="px-4 py-3">Note</th>
+                    <th scope="col">Date</th>
+                    <th scope="col">Kind</th>
+                    <th scope="col">Reason</th>
+                    <th scope="col">Facility</th>
+                    <th scope="col" class="text-right">Quantity</th>
+                    <th scope="col">Batch</th>
+                    <th scope="col" class="text-right">Cost/unit (¢)</th>
+                    <th scope="col">Note</th>
                 </tr>
             </thead>
             <tbody>
@@ -46,20 +46,20 @@
                     <tr
                         data-testid="history-row-{{ movement.movementId }}"
                     >
-                        <td class="whitespace-nowrap px-4 py-2 text-litrec-text-muted">
+                        <td class="whitespace-nowrap text-litrec-text-muted">
                             {{ movement.recordedAt|date('Y-m-d H:i') }}
                         </td>
-                        <td class="whitespace-nowrap px-4 py-2">
+                        <td class="whitespace-nowrap">
                             {% include 'components/_badge.html.twig' with { label: kindLabel, variant: 'neutral' } only %}
                         </td>
-                        <td class="whitespace-nowrap px-4 py-2 text-litrec-text-muted">{{ movement.reason }}</td>
-                        <td class="whitespace-nowrap px-4 py-2 text-litrec-text">{{ movement.facilityCode }}</td>
-                        <td class="whitespace-nowrap px-4 py-2 text-right font-mono text-litrec-text">{{ signedQty }}</td>
-                        <td class="whitespace-nowrap px-4 py-2 font-mono text-xs text-litrec-text-muted">
+                        <td class="whitespace-nowrap text-litrec-text-muted">{{ movement.reason }}</td>
+                        <td class="whitespace-nowrap text-litrec-text">{{ movement.facilityCode }}</td>
+                        <td class="whitespace-nowrap text-right font-mono text-litrec-text">{{ signedQty }}</td>
+                        <td class="whitespace-nowrap font-mono text-xs text-litrec-text-muted">
                             {% if movement.stockBatchId %}{{ movement.stockBatchId|slice(0, 8) }}{% else %}—{% endif %}
                         </td>
-                        <td class="whitespace-nowrap px-4 py-2 text-right font-mono text-litrec-text-muted">{{ movement.costPerUnitCents }}</td>
-                        <td class="px-4 py-2 text-litrec-text-muted">{{ movement.operatorNote|default('—') }}</td>
+                        <td class="whitespace-nowrap text-right font-mono text-litrec-text-muted">{{ movement.costPerUnitCents }}</td>
+                        <td class="text-litrec-text-muted">{{ movement.operatorNote|default('—') }}</td>
                     </tr>
                 {% endfor %}
             </tbody>

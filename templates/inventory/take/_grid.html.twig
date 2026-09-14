@@ -29,12 +29,12 @@
         <table class="lr-table">
             <thead>
                 <tr>
-                    <th scope="col" class="px-4 py-3">Code</th>
-                    <th scope="col" class="px-4 py-3">Expected</th>
-                    <th scope="col" class="px-4 py-3">Counted</th>
-                    <th scope="col" class="px-4 py-3">Reason</th>
-                    <th scope="col" class="px-4 py-3">Note</th>
-                    <th scope="col" class="px-4 py-3" aria-label="Row errors"></th>
+                    <th scope="col">Code</th>
+                    <th scope="col">Expected</th>
+                    <th scope="col">Counted</th>
+                    <th scope="col">Reason</th>
+                    <th scope="col">Note</th>
+                    <th scope="col" aria-label="Row errors"></th>
                 </tr>
             </thead>
             <tbody>
@@ -45,16 +45,16 @@
                         x-data="{ expected: {{ expectedValue|default(0) }}, actual: {{ line.actual.vars.value|default(0) }} }"
                         :class="actual != expected ? 'bg-amber-50' : ''"
                     >
-                        <td class="whitespace-nowrap px-4 py-2 font-mono text-xs text-litrec-text">
+                        <td class="whitespace-nowrap font-mono text-xs text-litrec-text">
                             {{ line.listingCode.vars.value }}
                             {{ form_widget(line.itemId) }}
                             {{ form_widget(line.listingCode) }}
                             {{ form_widget(line.expected) }}
                         </td>
-                        <td class="whitespace-nowrap px-4 py-2 text-litrec-text" data-testid="row-{{ index }}-expected">
+                        <td class="whitespace-nowrap text-litrec-text" data-testid="row-{{ index }}-expected">
                             {{ expectedValue }}
                         </td>
-                        <td class="px-2 py-2">
+                        <td>
                             {% set actualErrorId = 'row-' ~ index ~ '-actual-error' %}
                             {% set actualHasError = line.actual.vars.errors|length > 0 %}
                             {% set actualAttr = {
@@ -72,7 +72,7 @@
                                 <p id="{{ actualErrorId }}" class="text-xs text-danger mt-1" data-testid="{{ actualErrorId }}">{{ form_errors(line.actual) }}</p>
                             {% endif %}
                         </td>
-                        <td class="px-2 py-2">
+                        <td>
                             {% set reasonErrorId = 'row-' ~ index ~ '-reason-error' %}
                             {% set reasonHasError = line.reason.vars.errors|length > 0 %}
                             {% set reasonAttr = {
@@ -88,7 +88,7 @@
                                 <p id="{{ reasonErrorId }}" class="text-xs text-danger mt-1" data-testid="{{ reasonErrorId }}">{{ form_errors(line.reason) }}</p>
                             {% endif %}
                         </td>
-                        <td class="px-2 py-2">
+                        <td>
                             {{ form_widget(line.reasonNote, {
                                 attr: {
                                     class: 'litrec-input',
@@ -98,13 +98,13 @@
                                 }
                             }) }}
                         </td>
-                        <td class="whitespace-nowrap px-4 py-2 text-xs text-danger" data-testid="row-{{ index }}-row-error">
+                        <td class="whitespace-nowrap text-xs text-danger" data-testid="row-{{ index }}-row-error">
                             {{ rowErrors[index] ?? '' }}
                         </td>
                     </tr>
                 {% else %}
                     <tr>
-                        <td colspan="6" class="px-4 py-6 text-center text-sm text-litrec-text-muted">
+                        <td colspan="6" class="text-center text-sm text-litrec-text-muted">
                             No active items at this facility.
                         </td>
                     </tr>

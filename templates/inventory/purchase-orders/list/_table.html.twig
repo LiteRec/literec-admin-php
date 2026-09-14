@@ -28,15 +28,15 @@
         <table class="lr-table">
             <thead>
                 <tr>
-                    <th scope="col" class="px-4 py-3">PO</th>
-                    <th scope="col" class="px-4 py-3">Vendor</th>
-                    <th scope="col" class="px-4 py-3">Facility</th>
-                    <th scope="col" class="px-4 py-3">Status</th>
-                    <th scope="col" class="px-4 py-3">Lines</th>
-                    <th scope="col" class="px-4 py-3">Ordered</th>
-                    <th scope="col" class="px-4 py-3">Received</th>
-                    <th scope="col" class="px-4 py-3">Total cost</th>
-                    <th scope="col" class="px-4 py-3">Created</th>
+                    <th scope="col">PO</th>
+                    <th scope="col">Vendor</th>
+                    <th scope="col">Facility</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Lines</th>
+                    <th scope="col">Ordered</th>
+                    <th scope="col">Received</th>
+                    <th scope="col">Total cost</th>
+                    <th scope="col">Created</th>
                 </tr>
             </thead>
             <tbody>
@@ -44,7 +44,7 @@
                     <tr
                         data-testid="po-row-{{ item.purchaseOrderId }}"
                     >
-                        <td class="whitespace-nowrap px-4 py-2 font-mono text-xs text-litrec-text">
+                        <td class="whitespace-nowrap font-mono text-xs text-litrec-text">
                             <a
                                 href="{{ path('po_detail', { poId: item.purchaseOrderId }) }}"
                                 data-testid="po-detail-link-{{ item.purchaseOrderId }}"
@@ -53,22 +53,22 @@
                                 {{ item.purchaseOrderId|slice(0, 8) }}…
                             </a>
                         </td>
-                        <td class="whitespace-nowrap px-4 py-2 font-mono text-xs text-litrec-text-muted">
+                        <td class="whitespace-nowrap font-mono text-xs text-litrec-text-muted">
                             {{ item.vendorId|slice(0, 8) }}…
                         </td>
-                        <td class="whitespace-nowrap px-4 py-2 text-litrec-text">
+                        <td class="whitespace-nowrap text-litrec-text">
                             {{ item.facilityCode }}
                         </td>
-                        <td class="whitespace-nowrap px-4 py-2">
+                        <td class="whitespace-nowrap">
                             {% include 'components/_badge.html.twig' with { label: item.status, variant: 'info', testid: 'po-status-' ~ item.purchaseOrderId } only %}
                         </td>
-                        <td class="whitespace-nowrap px-4 py-2 text-litrec-text">{{ item.lineCount }}</td>
-                        <td class="whitespace-nowrap px-4 py-2 text-litrec-text">{{ item.totalOrderedUnits }}</td>
-                        <td class="whitespace-nowrap px-4 py-2 text-litrec-text">{{ item.totalReceivedUnits }}</td>
-                        <td class="whitespace-nowrap px-4 py-2 text-litrec-text">
+                        <td class="whitespace-nowrap text-litrec-text">{{ item.lineCount }}</td>
+                        <td class="whitespace-nowrap text-litrec-text">{{ item.totalOrderedUnits }}</td>
+                        <td class="whitespace-nowrap text-litrec-text">{{ item.totalReceivedUnits }}</td>
+                        <td class="whitespace-nowrap text-litrec-text">
                             {{ (item.totalCostCents / 100)|number_format(2) }}
                         </td>
-                        <td class="whitespace-nowrap px-4 py-2 text-litrec-text-muted">
+                        <td class="whitespace-nowrap text-litrec-text-muted">
                             {{ item.createdAt|date('Y-m-d') }}
                         </td>
                     </tr>

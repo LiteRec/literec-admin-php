@@ -11,11 +11,11 @@
         <table class="lr-table" data-testid="report-current-stock-table">
             <thead>
                 <tr>
-                    <th scope="col" class="px-3 py-2">Code</th>
-                    <th scope="col" class="px-3 py-2">Name</th>
-                    <th scope="col" class="px-3 py-2">Facility</th>
-                    <th scope="col" class="px-3 py-2 text-right">On hand</th>
-                    <th scope="col" class="px-3 py-2 text-right">Threshold</th>
+                    <th scope="col">Code</th>
+                    <th scope="col">Name</th>
+                    <th scope="col">Facility</th>
+                    <th scope="col" class="text-right">On hand</th>
+                    <th scope="col" class="text-right">Threshold</th>
                 </tr>
             </thead>
             <tbody>
@@ -24,10 +24,10 @@
                         data-testid="report-current-stock-row-{{ row.inventoryItemId }}"
                         class="{% if row.isAtOrBelowThreshold %}bg-red-50{% endif %}"
                     >
-                        <td class="px-3 py-2 font-mono text-xs text-litrec-text">{{ row.listingCode }}</td>
-                        <td class="px-3 py-2 text-litrec-text">{{ row.name }}</td>
-                        <td class="px-3 py-2 text-litrec-text-muted">{{ row.facilityCode }}</td>
-                        <td class="px-3 py-2 text-right font-mono text-litrec-text">
+                        <td class="font-mono text-xs text-litrec-text">{{ row.listingCode }}</td>
+                        <td class="text-litrec-text">{{ row.name }}</td>
+                        <td class="text-litrec-text-muted">{{ row.facilityCode }}</td>
+                        <td class="text-right font-mono text-litrec-text">
                             {{ row.onHandUnits }}
                             {% if row.isAtOrBelowThreshold %}
                                 {# Non-color marker (LRA-155, WCAG 1.4.1): the red row tint
@@ -35,7 +35,7 @@
                                 {% include 'components/_badge.html.twig' with { label: 'Low', variant: 'danger' } only %}
                             {% endif %}
                         </td>
-                        <td class="px-3 py-2 text-right font-mono text-litrec-text-muted">
+                        <td class="text-right font-mono text-litrec-text-muted">
                             {% if row.reorderThresholdUnits > 0 %}{{ row.reorderThresholdUnits }}{% else %}—{% endif %}
                         </td>
                     </tr>

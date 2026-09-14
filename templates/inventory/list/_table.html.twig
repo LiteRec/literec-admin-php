@@ -32,7 +32,7 @@
                     {% set codeAsc  = currentSort == 'code' %}
                     {% set codeDesc = currentSort == '-code' %}
                     {% set codeNext = codeAsc ? '-code' : 'code' %}
-                    <th scope="col" class="px-4 py-3">
+                    <th scope="col">
                         <button
                             type="button"
                             hx-get="{{ path('inventory_table', baseQuery|merge({ sort: codeNext, page: 1 })) }}"
@@ -52,7 +52,7 @@
                     {% set nameAsc  = currentSort == 'name' %}
                     {% set nameDesc = currentSort == '-name' %}
                     {% set nameNext = nameAsc ? '-name' : 'name' %}
-                    <th scope="col" class="px-4 py-3">
+                    <th scope="col">
                         <button
                             type="button"
                             hx-get="{{ path('inventory_table', baseQuery|merge({ sort: nameNext, page: 1 })) }}"
@@ -68,13 +68,13 @@
                         </button>
                     </th>
 
-                    <th scope="col" class="px-4 py-3">Kind</th>
+                    <th scope="col">Kind</th>
 
                     {# Quantity: sortable. #}
                     {% set qtyAsc  = currentSort == 'quantity' %}
                     {% set qtyDesc = currentSort == '-quantity' %}
                     {% set qtyNext = qtyAsc ? '-quantity' : 'quantity' %}
-                    <th scope="col" class="px-4 py-3">
+                    <th scope="col">
                         <button
                             type="button"
                             hx-get="{{ path('inventory_table', baseQuery|merge({ sort: qtyNext, page: 1 })) }}"
@@ -90,9 +90,9 @@
                         </button>
                     </th>
 
-                    <th scope="col" class="px-4 py-3">Reorder threshold</th>
-                    <th scope="col" class="px-4 py-3">Groups</th>
-                    <th scope="col" class="px-4 py-3">Status</th>
+                    <th scope="col">Reorder threshold</th>
+                    <th scope="col">Groups</th>
+                    <th scope="col">Status</th>
                 </tr>
             </thead>
             <tbody>
@@ -100,7 +100,7 @@
                     <tr
                         data-testid="inventory-row-{{ item.inventoryItemId }}"
                     >
-                        <td class="whitespace-nowrap px-4 py-2 font-mono text-xs text-litrec-text"
+                        <td class="whitespace-nowrap font-mono text-xs text-litrec-text"
                             data-testid="inventory-code-{{ item.inventoryItemId }}">
                             <button
                                 type="button"
@@ -138,22 +138,22 @@
                                 </a>
                             {% endif %}
                         </td>
-                        <td class="px-4 py-2 text-litrec-text">
+                        <td class="text-litrec-text">
                             {{ item.name }}
                         </td>
-                        <td class="whitespace-nowrap px-4 py-2 text-litrec-text-muted">
+                        <td class="whitespace-nowrap text-litrec-text-muted">
                             {{ item.kind }}
                         </td>
-                        <td class="whitespace-nowrap px-4 py-2 text-litrec-text">
+                        <td class="whitespace-nowrap text-litrec-text">
                             {{ item.totalQuantityOnHand }}
                         </td>
-                        <td class="whitespace-nowrap px-4 py-2 text-litrec-text-muted">
+                        <td class="whitespace-nowrap text-litrec-text-muted">
                             {% if item.reorderThresholdUnits > 0 %}{{ item.reorderThresholdUnits }}{% else %}—{% endif %}
                         </td>
-                        <td class="px-4 py-2 text-litrec-text-muted">
+                        <td class="text-litrec-text-muted">
                             {% if item.groupNames is not empty %}{{ item.groupNames|join(', ') }}{% else %}—{% endif %}
                         </td>
-                        <td class="whitespace-nowrap px-4 py-2">
+                        <td class="whitespace-nowrap">
                             {% if item.archived %}
                                 {% include 'components/_badge.html.twig' with { label: 'Archived', variant: 'neutral' } only %}
                             {% else %}
