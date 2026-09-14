@@ -45,6 +45,7 @@ final class CashRegisterPageTest extends WebTestCase
         self::assertSelectorExists('.lr-programrow.is-selected');
         self::assertSelectorTextContains('main', 'Advanced Tap Dancing');
         self::assertSelectorTextContains('main', 'Add to sale');
+        self::assertSelectorExists('.lr-chip.is-selected[aria-pressed="true"]');
         // Sale rail.
         self::assertSelectorTextContains('[data-testid="sale-card-title"]', 'Sale');
         self::assertSelectorTextContains('main', 'Corporate 1-Year Membership');

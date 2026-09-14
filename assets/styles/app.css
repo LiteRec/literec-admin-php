@@ -647,6 +647,16 @@
         background: var(--lr-neutral-200);
         color: var(--lr-neutral-800);
     }
+    /* Selected/pressed toggle chip (LRA-190 review) — reuses the same
+       accent-100/accent-300/accent-900 pairing as .lr-programrow.is-selected:
+       --lr-primary/--lr-on-primary only clears ~3:1 at this 12px chip size,
+       under the 4.5:1 AA floor for text this small; accent-100/900 has no
+       dark override and clears AA in both themes without one. */
+    .lr-chip.is-selected {
+        background: var(--lr-accent-100);
+        border-color: var(--lr-accent-300);
+        color: var(--lr-accent-900);
+    }
 
     /* tabs — a pill group, mirroring .lr-seg below. */
     .lr-tabs {
@@ -1166,6 +1176,12 @@
        sage-200 has no dark override, so accent-900-style text would fail;
        sage-900 clears AA against the light fill in both themes. */
     .lr-pillradio input:checked + .lr-pillradio-row { background: var(--lr-sage-200); border-color: var(--lr-sage-200); color: var(--lr-sage-900); }
+    /* The check icon is always in the markup (LRA-190 review) so it tracks
+       :checked the same way the fill does — Twig previously rendered it only
+       for the originally-selected row, so it stayed put after a different
+       row was chosen. */
+    .lr-pillradio-check { display: none; flex: none; }
+    .lr-pillradio input:checked + .lr-pillradio-row .lr-pillradio-check { display: inline-flex; }
     /* .lr-muted sets its own color (not inherited), so it must be re-pinned
        against the checked fill instead of the ambient theme text-muted —
        otherwise dark mode's light text-muted would land on this
