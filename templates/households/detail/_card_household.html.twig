@@ -70,7 +70,12 @@
                                 data-testid="household-member-row-{{ m.memberId }}"
                                 {% if isActiveMember %}
                                     aria-current="true"
-                                    class="cursor-pointer bg-litrec-primary/10 ring-1 ring-inset ring-litrec-primary"
+                                    {# LRA-195: /10 tinted the row enough to drop the
+                                       memberCode cell's text-litrec-text-muted below AA on
+                                       --lr-surface-2 in both themes (4.19:1 dark, 4.48:1
+                                       light); /3 keeps the highlight visible at 4.70:1 /
+                                       4.80:1. #}
+                                    class="cursor-pointer bg-litrec-primary/3 ring-1 ring-inset ring-litrec-primary"
                                 {% else %}
                                     class="cursor-pointer"
                                 {% endif %}
