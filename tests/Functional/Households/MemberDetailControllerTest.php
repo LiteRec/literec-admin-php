@@ -83,6 +83,11 @@ final class MemberDetailControllerTest extends WebTestCase
         self::assertSelectorTextContains('nav[aria-label="Breadcrumb"]', 'Smith Family');
         self::assertSelectorTextContains('nav[aria-label="Breadcrumb"]', 'Alice Smith');
 
+        // Breadcrumb is the eyebrow inside the shared page header, directly
+        // above the h1 — not a stray row inside page_body (LRA-188).
+        self::assertSelectorExists('.lr-pagehead nav[aria-label="Breadcrumb"] + h1.lr-pagetitle');
+        self::assertSelectorNotExists('header[data-testid="member-header"] ~ nav[aria-label="Breadcrumb"]');
+
         // Header strip surfaces the member full name and the right badges.
         self::assertSelectorTextContains('header[data-testid="member-header"]', 'Alice Smith');
         self::assertSelectorExists('[data-testid="badge-active"]');

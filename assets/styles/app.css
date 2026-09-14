@@ -832,7 +832,8 @@
 
     /* Page actions are 44px pills regardless of lr-btn variant (WCAG 2.5.8
        target size), matching the eyebrow/title/pills proportions in the
-       design — narrower than the app-wide 36px default for .lr-btn. */
+       design — taller than the app-wide 36px min-height on .lr-btn, scoped
+       to the page header only. */
     .lr-pagehead .lr-btn { min-height: 44px; }
 }
 

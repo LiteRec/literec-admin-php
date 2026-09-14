@@ -4,7 +4,7 @@
 
 {% block page_title %}{{ dashboard.greeting }}{% endblock %}
 
-{% block page_subtitle %}{{ 'now'|date('l, F j, Y') }} · {{ selected_facility() }}{% endblock %}
+{% block page_subtitle %}{{ dashboard.today|date('l, F j, Y') }} · {{ selected_facility() }}{% endblock %}
 
 {% block page_body %}
     {# KPI tiles — gradient cards rendered through the reusable _kpi_card component. #}
