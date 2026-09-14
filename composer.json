@@ -22,7 +22,7 @@
         "symfony/expression-language": "8.1.*",
         "symfony/flex": "^2.10",
         "symfony/form": "8.1.*",
-        "symfony/framework-bundle": "8.0.*",
+        "symfony/framework-bundle": "8.1.*",
         "symfony/http-client": "8.1.*",
         "symfony/intl": "8.1.*",
         "symfony/mailer": "8.1.*",
