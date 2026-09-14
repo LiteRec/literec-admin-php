@@ -27,7 +27,15 @@
         hx-target="#members-table"
         hx-swap="innerHTML"
         hx-push-url="true"
-        hx-trigger="input changed delay:500ms, change"
+        {# Scoped explicitly to the two checkboxes: a bare "change" trigger on
+           the form also catches the search/detail text inputs' blur-time
+           change event, firing a second, redundant request on top of the
+           debounced "input" one a few hundred ms later. Two back-to-back
+           #members-table swaps in quick succession left Alpine's row-actions
+           popovers cross-wired (opening every row's popover instead of just
+           the clicked one) — this keeps text fields on the single debounced
+           trigger and checkboxes on their own immediate one. #}
+        hx-trigger="input changed delay:500ms, change from:#filter-primaryOnly, change from:#filter-includeDeleted"
         hx-sync="this:replace"
         aria-label="Filter users"
         class="lr-card lr-card-body"

@@ -2,6 +2,19 @@
 
 The LiteRec Admin PHP Server. A parks and recreation management solution.
 
+## Design system
+
+The staff-admin UI follows **Organic**: a warm terracotta/sage palette on a
+sand-neutral background, Caprasimo display headings over Figtree body text,
+and a rounded, token-driven `lr-*` component layer defined in
+`assets/styles/app.css`. Every screen supports both a light and a dark theme
+via the header's theme toggle.
+
+See `templates/components/README.md` for the full component reference
+(Twig partials and `lr-*` CSS classes), and visit `/_dev/components` in the
+`dev` or `test` environment for a live, side-by-side showcase of every
+restyled component in both themes.
+
 ## Real TLS on local dev (Cloudflare DNS-01)
 
 The shipped FrankenPHP image is rebuilt with the
