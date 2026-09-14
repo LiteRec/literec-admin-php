@@ -43,6 +43,10 @@ final class MemberContactCardTest extends WebTestCase
     private const string DOB = '1990-01-01';
     private const string ROUTE_CONTACT = '/admin/users/%s/%s/contact';
     private const string SEEDED_EMAIL = 'alice@example.com';
+    private const string SELECTOR_PROFILE_EMAIL = '[data-testid="profile-email"]';
+    private const string SELECTOR_PROFILE_PHONE = '[data-testid="profile-phone"]';
+    private const string NEW_EMAIL = 'alicia.new@example.com';
+    private const string NEW_PHONE = '5559999';
 
     private const string TEST_USERNAME = 'contact_card_e2e';
 
@@ -71,8 +75,8 @@ final class MemberContactCardTest extends WebTestCase
 
         self::assertResponseIsSuccessful();
         self::assertSelectorExists('[data-testid="contact-sub-card-body"]');
-        self::assertSelectorTextContains('[data-testid="profile-email"]', self::SEEDED_EMAIL);
-        self::assertSelectorTextContains('[data-testid="profile-phone"]', '—');
+        self::assertSelectorTextContains(self::SELECTOR_PROFILE_EMAIL, self::SEEDED_EMAIL);
+        self::assertSelectorTextContains(self::SELECTOR_PROFILE_PHONE, '—');
     }
 
     #[Test]
@@ -119,19 +123,19 @@ final class MemberContactCardTest extends WebTestCase
         $this->seedHouseholdA();
 
         $this->postContactUpdate($client, self::HOUSEHOLD_A, self::A_PRIMARY_ID, [
-            'email' => 'alicia.new@example.com',
-            'phone' => '5559999',
+            'email' => self::NEW_EMAIL,
+            'phone' => self::NEW_PHONE,
         ]);
 
         self::assertResponseIsSuccessful();
         self::assertSelectorExists('[data-testid="contact-sub-card-body"]');
-        self::assertSelectorTextContains('[data-testid="profile-email"]', 'alicia.new@example.com');
-        self::assertSelectorTextContains('[data-testid="profile-phone"]', '5559999');
+        self::assertSelectorTextContains(self::SELECTOR_PROFILE_EMAIL, self::NEW_EMAIL);
+        self::assertSelectorTextContains(self::SELECTOR_PROFILE_PHONE, self::NEW_PHONE);
         self::assertSame('contactSaved', $client->getResponse()->headers->get('HX-Trigger'));
 
         $member = $this->firstMember(self::HOUSEHOLD_A);
-        self::assertSame('alicia.new@example.com', (string) $member->email());
-        self::assertSame('5559999', (string) $member->phone());
+        self::assertSame(self::NEW_EMAIL, (string) $member->email());
+        self::assertSame(self::NEW_PHONE, (string) $member->phone());
     }
 
     #[Test]
@@ -148,8 +152,8 @@ final class MemberContactCardTest extends WebTestCase
         ]);
 
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('[data-testid="profile-email"]', '—');
-        self::assertSelectorTextContains('[data-testid="profile-phone"]', '—');
+        self::assertSelectorTextContains(self::SELECTOR_PROFILE_EMAIL, '—');
+        self::assertSelectorTextContains(self::SELECTOR_PROFILE_PHONE, '—');
 
         $member = $this->firstMember(self::HOUSEHOLD_A);
         self::assertNull($member->email());
