@@ -65,6 +65,7 @@ const LIVE_REGION_MESSAGES = {
     poLineReceived: 'Purchase order line received.',
     poVerified: 'Purchase order delivery verified.',
     profileSaved: 'Profile saved.',
+    contactSaved: 'Contact info saved.',
 };
 
 function announceStatus(message) {

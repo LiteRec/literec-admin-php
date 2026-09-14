@@ -232,6 +232,23 @@ test.describe('create and edit', () => {
     await page.getByTestId('profile-save').click();
     await expect(page.getByTestId('profile-first-name')).toContainText('Quincy');
 
+    // Edit contact info.
+    await page.getByTestId('contact-edit').click();
+    await page.getByTestId('card-profile').getByLabel('Email').fill(`quincy.${lastName}@example.com`.toLowerCase());
+    await page.getByTestId('card-profile').getByLabel('Phone').fill('+1-555-0177');
+    await page.getByTestId('contact-save').click();
+    await expect(page.getByTestId('profile-email')).toContainText(`quincy.${lastName}@example.com`.toLowerCase());
+    // PhoneNumber::of() strips whitespace/parens/hyphens, preserving a leading "+".
+    await expect(page.getByTestId('profile-phone')).toContainText('+15550177');
+
+    // Clear contact info.
+    await page.getByTestId('contact-edit').click();
+    await page.getByTestId('card-profile').getByLabel('Email').fill('');
+    await page.getByTestId('card-profile').getByLabel('Phone').fill('');
+    await page.getByTestId('contact-save').click();
+    await expect(page.getByTestId('profile-email')).toContainText('—');
+    await expect(page.getByTestId('profile-phone')).toContainText('—');
+
     // Edit residency.
     await page.getByTestId('residency-edit').click();
     await page.getByTestId('card-address').getByLabel('Residency status').selectOption({ label: 'Member' });

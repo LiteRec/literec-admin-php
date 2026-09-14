@@ -346,6 +346,27 @@ final class HouseholdTest extends TestCase
     }
 
     #[Test]
+    #[TestDox('::updateMemberContact() with (null, null) clears both channels and records the event with null values.')]
+    public function update_contact_clears_both_channels_when_given_null(): void
+    {
+        $household = $this->register();
+        $household->releaseEvents();
+
+        $household->updateMemberContact(
+            MemberId::fromString(self::PRIMARY_MEMBER_ID),
+            null,
+            null,
+            $this->clock,
+        );
+
+        $events = $household->releaseEvents();
+        self::assertCount(1, $events);
+        self::assertInstanceOf(MemberContactUpdated::class, $events[0]);
+        self::assertNull($events[0]->email);
+        self::assertNull($events[0]->phone);
+    }
+
+    #[Test]
     #[TestDox('::updateMemberContact() is a no-op when neither value changed.')]
     public function update_contact_is_noop_when_unchanged(): void
     {

@@ -52,18 +52,6 @@
             <dt class="text-xs font-semibold uppercase tracking-wide text-litrec-text-muted">Gender</dt>
             <dd data-testid="profile-gender" class="mt-1 text-litrec-text">{{ genderLabel }}</dd>
         </div>
-        {% if detail.profile.email is not null %}
-            <div>
-                <dt class="text-xs font-semibold uppercase tracking-wide text-litrec-text-muted">Email</dt>
-                <dd data-testid="profile-email" class="mt-1 text-litrec-text">{{ detail.profile.email }}</dd>
-            </div>
-        {% endif %}
-        {% if detail.profile.phone is not null %}
-            <div>
-                <dt class="text-xs font-semibold uppercase tracking-wide text-litrec-text-muted">Phone</dt>
-                <dd data-testid="profile-phone" class="mt-1 text-litrec-text">{{ detail.profile.phone }}</dd>
-            </div>
-        {% endif %}
         <div>
             <dt class="text-xs font-semibold uppercase tracking-wide text-litrec-text-muted">Primary</dt>
             <dd data-testid="profile-primary" class="mt-1 text-litrec-text">{{ detail.profile.isPrimary ? 'Yes' : 'No' }}</dd>
