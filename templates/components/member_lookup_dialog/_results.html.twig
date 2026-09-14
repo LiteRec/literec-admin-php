@@ -23,23 +23,23 @@
 {% if page.totalItems == 0 %}
     <p
         data-testid="member-lookup-empty"
-        class="rounded-md border border-dashed border-litrec-border bg-litrec-surface p-4 text-center text-sm text-litrec-text-muted"
+        class="rounded-card-sm border border-litrec-border bg-litrec-surface-2 p-4 text-center text-sm text-litrec-text-muted"
     >
         No members match.
     </p>
 {% else %}
-    <div class="overflow-x-auto rounded-card border border-litrec-border bg-litrec-surface shadow-card">
-        <table class="min-w-full divide-y divide-litrec-border text-sm">
-            <thead class="bg-litrec-bg-muted text-left text-xs font-semibold uppercase tracking-wider text-litrec-text-muted">
+    <div class="lr-card overflow-x-auto">
+        <table class="lr-table">
+            <thead>
                 <tr>
-                    <th scope="col" class="px-4 py-2">Code</th>
-                    <th scope="col" class="px-4 py-2">Full name</th>
-                    <th scope="col" class="px-4 py-2">DOB</th>
-                    <th scope="col" class="px-4 py-2">Phone</th>
-                    <th scope="col" class="px-4 py-2">Status</th>
+                    <th scope="col">Member</th>
+                    <th scope="col">Code</th>
+                    <th scope="col">DOB</th>
+                    <th scope="col">Phone</th>
+                    <th scope="col">Status</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-litrec-border">
+            <tbody>
                 {% for item in page.items %}
                     <tr>
                         <td colspan="5" class="p-0">
@@ -63,8 +63,13 @@
                                     dismiss();
                                 "
                             >
+                                <span class="flex items-center gap-2 px-4 py-2 text-litrec-text">
+                                    <span class="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-litrec-sage-200 text-xs font-bold text-litrec-sage-800">
+                                        {{ item.fullName|slice(0, 1) }}
+                                    </span>
+                                    {{ item.fullName }}
+                                </span>
                                 <span class="whitespace-nowrap px-4 py-2 font-mono text-xs text-litrec-text">{{ item.memberCode }}</span>
-                                <span class="px-4 py-2 text-litrec-text">{{ item.fullName }}</span>
                                 <span class="whitespace-nowrap px-4 py-2 text-litrec-text-muted">
                                     {% if item.dobIso %}{{ item.dobIso }}{% else %}—{% endif %}
                                 </span>

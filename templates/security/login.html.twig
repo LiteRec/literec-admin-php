@@ -1,16 +1,21 @@
 {% extends 'base.html.twig' %}
 
+{% import 'components/_icon.html.twig' as icon %}
+
 {% block title %}Sign in — LiteRecAdmin{% endblock %}
 
 {% block body %}
     <main id="main-content" tabindex="-1" class="flex min-h-screen items-center justify-center bg-litrec-bg p-6">
         <div
             data-gsap="card"
-            class="w-full max-w-md rounded-card border border-litrec-border bg-litrec-surface p-8 shadow-card"
+            class="w-full max-w-md rounded-modal border border-litrec-border bg-litrec-surface p-8 shadow-pop"
             x-data="{ submitting: false }"
         >
-            <h1 class="text-2xl font-bold text-litrec-primary">LiteRecAdmin</h1>
-            <p class="mt-1 text-sm text-litrec-text-muted">Sign in to continue.</p>
+            <div class="flex flex-col items-center text-center">
+                <span class="lr-brand-mark mb-3 h-11 w-11">{{ icon.icon('leaf', 22) }}</span>
+                <h1 class="font-heading text-2xl font-bold text-litrec-primary [font-synthesis-weight:none]">LiteRecAdmin</h1>
+                <p class="mt-1 text-sm text-litrec-text-muted">Sign in to continue.</p>
+            </div>
 
             {% if error %}
                 <p role="alert" class="mt-4 text-sm font-semibold text-danger">
@@ -24,37 +29,41 @@
                 class="mt-6 space-y-4"
                 x-on:submit="submitting = true"
             >
-                <div>
-                    <label for="username" class="block text-sm font-medium text-litrec-text">Username</label>
-                    <input
-                        type="text"
-                        id="username"
-                        name="_username"
-                        value="{{ last_username }}"
-                        required
-                        autofocus
-                        autocomplete="username"
-                        class="mt-1 block w-full rounded-md border border-litrec-border bg-litrec-surface px-3 py-2 text-litrec-text focus:border-litrec-primary focus:outline-none focus:ring-1 focus:ring-litrec-primary"
-                    >
-                </div>
+                <label for="username" class="lr-field">
+                    <span class="lr-label">Username</span>
+                    <span class="lr-input">
+                        {{ icon.icon('user', 15, 2.75, 'ico') }}
+                        <input
+                            type="text"
+                            id="username"
+                            name="_username"
+                            value="{{ last_username }}"
+                            required
+                            autofocus
+                            autocomplete="username"
+                        >
+                    </span>
+                </label>
 
-                <div>
-                    <label for="password" class="block text-sm font-medium text-litrec-text">Password</label>
-                    <input
-                        type="password"
-                        id="password"
-                        name="_password"
-                        required
-                        autocomplete="current-password"
-                        class="mt-1 block w-full rounded-md border border-litrec-border bg-litrec-surface px-3 py-2 text-litrec-text focus:border-litrec-primary focus:outline-none focus:ring-1 focus:ring-litrec-primary"
-                    >
-                </div>
+                <label for="password" class="lr-field">
+                    <span class="lr-label">Password</span>
+                    <span class="lr-input">
+                        {{ icon.icon('key', 15, 2.75, 'ico') }}
+                        <input
+                            type="password"
+                            id="password"
+                            name="_password"
+                            required
+                            autocomplete="current-password"
+                        >
+                    </span>
+                </label>
 
                 <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
 
                 <button
                     type="submit"
-                    class="w-full rounded-md bg-litrec-primary px-4 py-2 text-sm font-semibold text-litrec-on-primary shadow-sm hover:bg-litrec-primary-strong focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-litrec-primary disabled:cursor-not-allowed disabled:opacity-60"
+                    class="lr-btn lr-btn-primary lr-btn-lg lr-btn-block disabled:cursor-not-allowed disabled:opacity-60"
                     :disabled="submitting"
                     x-text="submitting ? 'Signing in…' : 'Login'"
                 >Login</button>
