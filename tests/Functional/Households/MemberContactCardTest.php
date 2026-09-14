@@ -87,18 +87,15 @@ final class MemberContactCardTest extends WebTestCase
         $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
         $this->seedHouseholdA();
 
-        $crawler = $client->request(
-            'GET',
-            sprintf('/admin/users/%s/%s/contact/edit', self::HOUSEHOLD_A, self::A_PRIMARY_ID),
-        );
+        $editUrl = sprintf('/admin/users/%s/%s/contact/edit', self::HOUSEHOLD_A, self::A_PRIMARY_ID);
+        $crawler = $client->request('GET', $editUrl);
 
         self::assertResponseIsSuccessful();
-
-        // Fragment, not a full page.
-        $body = (string) $client->getResponse()->getContent();
-        self::assertStringNotContainsStringIgnoringCase('<!doctype', $body);
-        self::assertStringNotContainsStringIgnoringCase('<html', $body);
-
+        self::assertDoesNotMatchRegularExpression(
+            '/<!doctype|<html[\s>]/i',
+            (string) $client->getResponse()->getContent(),
+            'Expected an HTMX fragment, not a full document.',
+        );
         self::assertSelectorExists('#contact-sub-card-body form');
         self::assertSame(
             self::SEEDED_EMAIL,
@@ -311,31 +308,38 @@ final class MemberContactCardTest extends WebTestCase
         return (string) $tokenField->attr('value');
     }
 
-    private function firstMember(string $householdId): HouseholdMember
+    private function householdsRepository(): Households
     {
         $repo = static::getContainer()->get(Households::class);
         self::assertInstanceOf(Households::class, $repo);
-        $household = $repo->findById(HouseholdId::fromString($householdId));
 
-        foreach ($household->members() as $member) {
-            return $member;
-        }
-        self::fail('Seeded household has no members.');
+        return $repo;
+    }
+
+    private function firstMember(string $householdId): HouseholdMember
+    {
+        $household = $this->householdsRepository()->findById(HouseholdId::fromString($householdId));
+        $members = $household->members();
+
+        self::assertNotEmpty($members, 'Seeded household has no members.');
+
+        return $members[0];
     }
 
     private function seedHouseholdA(): void
     {
-        $repo = static::getContainer()->get(Households::class);
-        self::assertInstanceOf(Households::class, $repo);
+        $address = Address::of('100 Main St', 'Apt 2B', 'Seattle', 'WA', '98101', 'US');
+        $primaryMemberName = PersonName::of('Alice', 'Smith');
+        $primaryMemberDob = DateOfBirth::of(new DateTimeImmutable(self::DOB), $this->clock);
 
         $household = Household::register(
             HouseholdId::fromString(self::HOUSEHOLD_A),
             HouseholdName::of('Smith Family'),
-            Address::of('100 Main St', 'Apt 2B', 'Seattle', 'WA', '98101', 'US'),
+            $address,
             MemberId::fromString(self::A_PRIMARY_ID),
             MemberCode::of(self::A_PRIMARY_CODE),
-            PersonName::of('Alice', 'Smith'),
-            DateOfBirth::of(new DateTimeImmutable(self::DOB), $this->clock),
+            $primaryMemberName,
+            $primaryMemberDob,
             Gender::Female,
             EmailAddress::of(self::SEEDED_EMAIL),
             null,
@@ -343,6 +347,6 @@ final class MemberContactCardTest extends WebTestCase
             $this->clock,
         );
 
-        $repo->save($household);
+        $this->householdsRepository()->save($household);
     }
 }
