@@ -1008,93 +1008,102 @@
 }
 
 /* ======================================================================
-   Dashboard widgets: gradient KPI tiles, dashed quick-action tiles, the
-   activity status dot, and the upcoming-event date chip. Token-driven; the
-   KPI tile uses a caller-supplied gradient and white-on-gradient text.
+   Dashboard widgets (LRA-189): flat KPI cards, the transaction/facility
+   status dot, the upcoming-event date badge, and the small transaction-row
+   avatar. Token-driven; the flat KPI card is a plain .lr-card (light
+   surface, 28px radius, resting shadow) plus its own icon/label/value/delta
+   layout — no gradient, no caller-supplied color.
    ====================================================================== */
 @layer components {
-    .lr-kpi {
-        border-radius: var(--radius-card);
-        padding: var(--pad-card);
+    .lr-kpi-flat {
         position: relative;
-        overflow: hidden;
-        color: #fff;
-        min-height: 116px;
         display: flex;
         flex-direction: column;
-        justify-content: space-between;
+        gap: 0.35rem;
+        padding: var(--pad-card);
     }
-    /* Scrim (LRA-155, WCAG 1.4.3): darken the caller-supplied gradient behind
-       the white tile text so the small label/delta text keeps adequate contrast
-       regardless of the gradient's lightest stop. The content divs sit above it;
-       the decorative .blob span is unaffected. */
-    .lr-kpi::before {
-        content: "";
+    .lr-kpi-flat-icon {
         position: absolute;
-        inset: 0;
-        background: rgb(0 0 0 / 0.22);
-        pointer-events: none;
-    }
-    .lr-kpi > div { position: relative; }
-    .lr-kpi .ico {
-        width: 34px;
-        height: 34px;
-        border-radius: var(--radius-card-sm);
-        background: rgb(255 255 255 / 0.16);
+        top: var(--pad-card);
+        right: var(--pad-card);
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
         display: grid;
         place-items: center;
     }
-    .lr-kpi .val { font-family: var(--font-heading); font-synthesis-weight: none; font-size: 1.8rem; font-weight: 800; line-height: 1; }
-    .lr-kpi .lbl { font-size: 0.8125rem; opacity: 0.96; margin-top: 0.2rem; }
-    .lr-kpi .delta {
-        font-size: 0.6875rem;
-        font-weight: 700;
-        background: rgb(0 0 0 / 0.26);
-        border-radius: var(--radius-pill);
-        padding: 0.1rem 0.45rem;
-        align-self: flex-start;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.25rem;
-    }
-    .lr-kpi .blob {
-        position: absolute;
-        right: -28px;
-        bottom: -36px;
-        width: 120px;
-        height: 120px;
-        border-radius: 50%;
-        background: rgb(255 255 255 / 0.08);
-    }
-
-    .lr-quick {
-        border: 1px dashed var(--lr-border);
-        border-radius: var(--radius-card);
-        padding: var(--pad-card);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 0.5rem;
+    /* Same accent/sage ramp pairing as .lr-avatar / .lr-brand-mark — no dark
+       override on either ramp step, so the tint stays consistent in both
+       themes. */
+    .lr-kpi-flat-icon.tint-accent { background: var(--lr-accent-200); color: var(--lr-accent-900); }
+    .lr-kpi-flat-icon.tint-sage { background: var(--lr-sage-200); color: var(--lr-sage-800); }
+    /* --lr-text-muted equals the design's literal neutral-700 value in light
+       mode and additionally adapts for dark, unlike a bare ramp step
+       (LRA-185 precedent: prefer the semantic token when one already
+       matches). Right padding clears the absolutely-positioned icon circle. */
+    .lr-kpi-flat-label {
+        padding-right: 48px;
+        font-size: 0.8125rem;
+        font-weight: 600;
         color: var(--lr-text-muted);
-        background: var(--lr-surface);
-        text-align: center;
     }
-    .lr-quick:hover { border-color: var(--lr-primary); color: var(--lr-text); }
+    .lr-kpi-flat-value {
+        font-family: var(--font-heading);
+        font-synthesis-weight: none;
+        font-size: 2.25rem;
+        font-weight: 800;
+        line-height: 1;
+        color: var(--lr-text);
+    }
+    .lr-kpi-flat-delta {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.75rem;
+        color: var(--lr-text-muted);
+    }
+    .lr-kpi-flat-delta-pill { display: inline-flex; align-items: center; gap: 0.2rem; font-weight: 700; }
+    .lr-kpi-flat-delta-pill.tone-positive { color: var(--lr-success); }
+    .lr-kpi-flat-delta-pill.tone-negative { color: var(--lr-danger); }
+    .lr-kpi-flat-delta-pill.tone-neutral { color: var(--lr-text-muted); }
 
     .lr-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
 
-    /* Ramp tint (LRA-185) — was --lr-secondary, which is gold in dark mode. */
-    .lr-datechip {
+    /* Circular date badge for the Upcoming card. Same accent tint as the
+       former .lr-datechip it replaces, just round instead of square. */
+    .lr-datebadge {
+        width: 52px;
+        height: 52px;
+        border-radius: 50%;
         background: var(--lr-accent-200);
-        color: var(--lr-accent-800);
-        border-radius: var(--radius-card-sm);
-        width: 42px;
-        text-align: center;
-        padding: 0.3rem 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
         flex: none;
     }
-    .lr-datechip .d { font-size: 1.05rem; font-weight: 800; line-height: 1; }
-    .lr-datechip .m { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; }
+    .lr-datebadge .d { font-family: var(--font-heading); font-synthesis-weight: none; font-size: 1.25rem; font-weight: 800; line-height: 1; color: var(--lr-accent-900); }
+    /* accent-800, not accent-700: at 10px/700 this text does not qualify as
+       WCAG "large text", and accent-700 on accent-200 measures only 4.41:1
+       (just under the 4.5:1 AA floor); accent-800 clears it at 6.69:1. */
+    .lr-datebadge .m { font-size: 0.625rem; font-weight: 700; text-transform: uppercase; color: var(--lr-accent-800); }
+
+    /* Small sage-tinted initials circle for the Recent transactions table's
+       User column. Same sage-200/900 pairing as .lr-tab.is-active (LRA-185:
+       clears AA in both themes since the ramp step has no dark override). */
+    .lr-avatar-sm {
+        width: 30px;
+        height: 30px;
+        border-radius: var(--radius-pill);
+        background: var(--lr-sage-200);
+        color: var(--lr-sage-900);
+        display: grid;
+        place-items: center;
+        font-weight: 700;
+        font-size: 0.7rem;
+        flex: none;
+    }
 }
 
 /* ======================================================================

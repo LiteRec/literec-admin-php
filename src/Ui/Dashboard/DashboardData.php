@@ -8,9 +8,9 @@ use DateTimeImmutable;
 
 /**
  * Aggregate of every block the dashboard renders: the page header greeting,
- * KPI cards, the recent activity feed (transactions), upcoming events,
- * facility status, and quick-action tiles. Immutable by construction so the
- * template can rely on a stable shape.
+ * KPI cards, the recent transactions table, upcoming events, and facility
+ * status. Immutable by construction so the template can rely on a stable
+ * shape.
  */
 final readonly class DashboardData
 {
@@ -19,7 +19,6 @@ final readonly class DashboardData
      * @param list<TransactionRow> $recentTransactions
      * @param list<EventItem> $upcomingEvents
      * @param list<FacilityStatus> $facilityStatuses
-     * @param list<QuickLink> $quickLinks
      */
     public function __construct(
         public string $greeting,
@@ -28,7 +27,6 @@ final readonly class DashboardData
         public array $recentTransactions,
         public array $upcomingEvents,
         public array $facilityStatuses,
-        public array $quickLinks,
     ) {
     }
 }

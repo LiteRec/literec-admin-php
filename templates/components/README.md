@@ -7,7 +7,7 @@ so callers pass parameters explicitly — no globals, no implicit context.
 | Component | Parameters | One-line usage |
 | --- | --- | --- |
 | `_main_nav.html.twig` | _(no parameters; reads `main_navigation()` from `App\Ui\Twig\NavigationExtension`)_ | `{% include 'components/_main_nav.html.twig' %}` |
-| `_kpi_card.html.twig` | `string label`, `string value`, `?string delta` | `{% include 'components/_kpi_card.html.twig' with { label: 'Today\'s Revenue', value: '$4,182.50', delta: '+12% vs. yesterday' } only %}` |
+| `_kpi_card.html.twig` | `string icon`, `string value`, `string label`, `?string tint` ∈ `accent \| sage` (defaults to `accent`), `?string deltaText`, `?string deltaTone` ∈ `positive \| negative \| neutral`, `?string note` | `{% include 'components/_kpi_card.html.twig' with { icon: 'money', label: 'Today\'s Revenue', value: '$4,182.50', tint: 'accent', deltaText: '+12%', deltaTone: 'positive', note: 'vs. yesterday' } only %}` |
 | `_page_header.html.twig` | `?string breadcrumbs` _(pre-rendered HTML, rendered raw)_, `string title`, `?string subtitle`, `?string actions` _(pre-rendered HTML, rendered raw)_ | `{% include 'components/_page_header.html.twig' with { breadcrumbs: crumbsHtml, title: 'Admin Dashboard', subtitle: 'Welcome back.', actions: actionsHtml } only %}` |
 | `_badge.html.twig` | `string label`, `string variant` ∈ `success \| warning \| danger \| info \| neutral`, `?bool outline`, `?string class` | `{% include 'components/_badge.html.twig' with { label: 'Excellent', variant: 'success' } only %}` |
 | `_status_badge.html.twig` | `string status` ∈ `succeeded \| pending \| failed \| refunded` _(maps onto `_badge`)_ | `{% include 'components/_status_badge.html.twig' with { status: tx.status.value } only %}` |
@@ -95,7 +95,7 @@ recolor automatically with the active theme.
 - **Tables:** `lr-table` (uppercase header cells, density-token row padding,
   hover row, no border on the last row).
 - **Lists:** `lr-list` + `lr-list-row` (divider list).
-- **Dashboard:** `lr-kpi` (gradient tile + `.ico`/`.val`/`.lbl`/`.delta`/`.blob`), `lr-quick` (dashed action tile), `lr-dot` (status dot), `lr-datechip` (`.d`/`.m`).
+- **Dashboard:** `lr-kpi-flat` (flat card + `lr-kpi-flat-icon` tinted circle, `-label`, `-value`, `-delta`/`-delta-pill`), `lr-dot` (status dot), `lr-datebadge` (circular date badge, `.d`/`.m`), `lr-avatar-sm` (30px sage initials circle).
 - **Cash Register:** `lr-seg` (Full/Quick segmented toggle), `lr-totals`
   (`.row`/`.row.total`), `lr-pillradio` + `lr-pillradio-row` (Participant pill
   radio rows), `lr-programrow` (`is-selected`) (program search result rows),

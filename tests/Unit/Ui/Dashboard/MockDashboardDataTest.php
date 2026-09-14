@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Tests\Unit\Ui\Dashboard;
 
+use App\Ui\Dashboard\CurrentStaffMember;
 use App\Ui\Dashboard\DashboardData;
+use App\Ui\Dashboard\DeltaTone;
 use App\Ui\Dashboard\EventItem;
 use App\Ui\Dashboard\FacilityStatus;
 use App\Ui\Dashboard\KpiCard;
+use App\Ui\Dashboard\KpiTint;
 use App\Ui\Dashboard\MockDashboardData;
-use App\Ui\Dashboard\QuickLink;
 use App\Ui\Dashboard\TransactionRow;
 use App\Ui\Dashboard\TransactionStatus;
 use DateTimeImmutable;
@@ -23,12 +25,12 @@ use Psr\Clock\ClockInterface;
 final class MockDashboardDataTest extends TestCase
 {
     #[Test]
-    #[TestDox('Greeting reflects the clock hour: a 2026-05-23T12:00:00Z clock produces an afternoon greeting.')]
-    public function greeting_reflects_the_clock_hour(): void
+    #[TestDox('Greeting reflects the clock hour and the signed-in staff member\'s first name.')]
+    public function greeting_reflects_the_clock_hour_and_current_staff_member(): void
     {
         $data = $this->buildData();
 
-        self::assertMatchesRegularExpression('/^Good afternoon, \w+$/', $data->greeting);
+        self::assertSame('Good afternoon, Riley', $data->greeting);
     }
 
     #[Test]
@@ -41,7 +43,7 @@ final class MockDashboardDataTest extends TestCase
     }
 
     #[Test]
-    #[TestDox('Builds four KPI cards (revenue, memberships, reservations, refunds), each with an icon and gradient.')]
+    #[TestDox('Builds four KPI cards (revenue, memberships, reservations, refunds), each with an icon and tint.')]
     public function it_builds_the_four_documented_kpi_cards(): void
     {
         $data = $this->buildData();
@@ -54,8 +56,21 @@ final class MockDashboardDataTest extends TestCase
         );
         foreach ($data->kpis as $kpi) {
             self::assertNotSame('', $kpi->icon);
-            self::assertStringContainsString('gradient', $kpi->gradient);
+            self::assertInstanceOf(KpiTint::class, $kpi->tint);
+            self::assertTrue($kpi->deltaText !== null || $kpi->note !== null);
         }
+    }
+
+    #[Test]
+    #[TestDox('A KPI with a delta figure also carries a positive delta tone.')]
+    public function a_kpi_with_a_delta_figure_carries_a_delta_tone(): void
+    {
+        $data = $this->buildData();
+
+        $revenue = $data->kpis[0];
+        self::assertSame('+12%', $revenue->deltaText);
+        self::assertSame(DeltaTone::Positive, $revenue->deltaTone);
+        self::assertSame('vs. yesterday', $revenue->note);
     }
 
     #[Test]
@@ -74,6 +89,20 @@ final class MockDashboardDataTest extends TestCase
     }
 
     #[Test]
+    #[TestDox('recentTransactions(status) narrows the feed to rows matching that status only.')]
+    public function recent_transactions_can_be_filtered_by_status(): void
+    {
+        $mock = $this->buildMock();
+
+        $filtered = $mock->recentTransactions(TransactionStatus::Pending);
+
+        self::assertNotEmpty($filtered);
+        foreach ($filtered as $row) {
+            self::assertSame(TransactionStatus::Pending, $row->status);
+        }
+    }
+
+    #[Test]
     #[TestDox('Upcoming events sample has at least three dated entries.')]
     public function upcoming_events_have_at_least_three_entries(): void
     {
@@ -83,13 +112,13 @@ final class MockDashboardDataTest extends TestCase
         foreach ($data->upcomingEvents as $event) {
             self::assertInstanceOf(EventItem::class, $event);
             self::assertNotSame('', $event->title);
-            self::assertGreaterThanOrEqual(0, $event->attendees);
+            self::assertGreaterThanOrEqual(0, $event->enrolledCount);
         }
     }
 
     #[Test]
-    #[TestDox('Facility status sample lists facilities with a known badge variant and visitor count.')]
-    public function facility_statuses_have_a_badge_variant_and_visitor_count(): void
+    #[TestDox('Facility status sample lists facilities with a known badge variant and check-in count.')]
+    public function facility_statuses_have_a_badge_variant_and_checkin_count(): void
     {
         $data = $this->buildData();
 
@@ -100,36 +129,16 @@ final class MockDashboardDataTest extends TestCase
                 $facility->badgeVariant,
                 ['success', 'warning', 'danger', 'info', 'neutral'],
             );
-            self::assertGreaterThanOrEqual(0, $facility->visitorsToday);
-        }
-    }
-
-    #[Test]
-    #[TestDox('Quick actions target the seven top-level nav route names, each with an icon.')]
-    public function quick_links_target_the_seven_nav_categories(): void
-    {
-        $data = $this->buildData();
-
-        self::assertCount(7, $data->quickLinks);
-        $routes = array_map(static fn (QuickLink $l): string => $l->route, $data->quickLinks);
-        self::assertSame(
-            [
-                'cash_register_index',
-                'programs_index',
-                'users_index',
-                'memberships_index',
-                'facilities_index',
-                'reports_index',
-                'communications_index',
-            ],
-            $routes,
-        );
-        foreach ($data->quickLinks as $link) {
-            self::assertNotSame('', $link->icon);
+            self::assertGreaterThanOrEqual(0, $facility->checkInsToday);
         }
     }
 
     private function buildData(): DashboardData
+    {
+        return $this->buildMock()->build();
+    }
+
+    private function buildMock(): MockDashboardData
     {
         $clock = new class () implements ClockInterface {
             public function now(): DateTimeImmutable
@@ -138,6 +147,13 @@ final class MockDashboardDataTest extends TestCase
             }
         };
 
-        return (new MockDashboardData($clock))->build();
+        $currentStaffMember = new class () implements CurrentStaffMember {
+            public function firstName(): string
+            {
+                return 'Riley';
+            }
+        };
+
+        return new MockDashboardData($clock, $currentStaffMember);
     }
 }
