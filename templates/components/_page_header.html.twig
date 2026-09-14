@@ -1,10 +1,16 @@
+{# @param ?string breadcrumbs Pre-rendered breadcrumb nav HTML (from
+   _breadcrumbs.html.twig), shown as an eyebrow above the title. #}
 {# @param string title     Page heading rendered as an h1. #}
 {# @param ?string subtitle  Optional supporting line rendered under the title. #}
 {# @param ?string actions   Pre-rendered HTML for the right-side action slot. #}
+{% set breadcrumbs = breadcrumbs|default(null) %}
 {% set subtitle = subtitle|default(null) %}
 {% set actions = actions|default(null) %}
 <div class="lr-pagehead">
     <div>
+        {% if breadcrumbs is not null and breadcrumbs|trim is not empty %}
+            {{ breadcrumbs|raw }}
+        {% endif %}
         <h1 class="lr-pagetitle text-litrec-text">{{ title }}</h1>
         {% if subtitle is not null and subtitle|trim is not empty %}
             <p class="lr-pagesub">{{ subtitle }}</p>

@@ -35,7 +35,7 @@ final class AppShellTest extends WebTestCase
         $client = static::createClient();
         $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
 
-        $client->request('GET', '/dashboard');
+        $crawler = $client->request('GET', '/dashboard');
 
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('header a', 'LiteRecAdmin');
@@ -43,7 +43,10 @@ final class AppShellTest extends WebTestCase
         self::assertSelectorTextContains('header strong', self::TEST_USERNAME);
         self::assertSelectorExists('header form[action="/logout"] input[name="_csrf_token"]');
         self::assertSelectorExists('nav[aria-label="Main navigation"]');
-        self::assertSelectorTextContains('main h1', 'Admin Dashboard');
+        self::assertMatchesRegularExpression(
+            '/^Good (morning|afternoon|evening), \w+$/',
+            trim($crawler->filter('main h1')->text()),
+        );
         self::assertSelectorExists('main [data-gsap="card"]');
         self::assertSelectorTextContains('footer', 'LiteRec');
         self::assertSelectorTextContains('footer', 'build dev');

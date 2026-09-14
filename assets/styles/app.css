@@ -357,7 +357,7 @@
     --font-sans: var(--font-body);
     --font-mono: var(--lr-mono);
 
-    --text-h1: 2.625rem;
+    --text-h1: 2.125rem;
     --text-h2: 2rem;
     --text-h3: 1.5625rem;
     --text-h4: 1.25rem;
@@ -815,8 +815,8 @@
         gap: 1rem;
         margin-bottom: var(--gap-stack);
     }
-    .lr-pagetitle { font-family: var(--font-heading); font-synthesis-weight: none; font-size: var(--text-h1); font-weight: 800; letter-spacing: -0.015em; }
-    .lr-pagesub { color: var(--lr-text-muted); margin-top: 0.15rem; }
+    .lr-pagetitle { font-family: var(--font-heading); font-synthesis-weight: none; font-size: var(--text-h1); font-weight: 800; line-height: 1.05; letter-spacing: -0.015em; }
+    .lr-pagesub { font-size: 0.8125rem; color: var(--lr-text-muted); margin-top: 0.15rem; }
 
     .lr-crumbs {
         display: flex;
@@ -829,6 +829,11 @@
     .lr-crumbs a { color: var(--lr-text-muted); text-decoration: none; }
     .lr-crumbs a:hover { color: var(--lr-text); }
     .lr-crumbs .sep { opacity: 0.5; }
+
+    /* Page actions are 44px pills regardless of lr-btn variant (WCAG 2.5.8
+       target size), matching the eyebrow/title/pills proportions in the
+       design — narrower than the app-wide 36px default for .lr-btn. */
+    .lr-pagehead .lr-btn { min-height: 44px; }
 }
 
 /* ======================================================================

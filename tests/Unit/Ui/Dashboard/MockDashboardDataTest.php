@@ -23,6 +23,15 @@ use Psr\Clock\ClockInterface;
 final class MockDashboardDataTest extends TestCase
 {
     #[Test]
+    #[TestDox('Greeting reflects the clock hour: a 2026-05-23T12:00:00Z clock produces an afternoon greeting.')]
+    public function greeting_reflects_the_clock_hour(): void
+    {
+        $data = $this->buildData();
+
+        self::assertMatchesRegularExpression('/^Good afternoon, \w+$/', $data->greeting);
+    }
+
+    #[Test]
     #[TestDox('Builds four KPI cards (revenue, memberships, reservations, refunds), each with an icon and gradient.')]
     public function it_builds_the_four_documented_kpi_cards(): void
     {

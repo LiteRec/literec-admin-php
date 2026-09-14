@@ -54,8 +54,11 @@ final class LoginRedirectTest extends WebTestCase
 
         self::assertResponseRedirects($expectedTarget);
 
-        $client->followRedirect();
+        $crawler = $client->followRedirect();
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('main h1', 'Admin Dashboard');
+        self::assertMatchesRegularExpression(
+            '/^Good (morning|afternoon|evening), \w+$/',
+            trim($crawler->filter('main h1')->text()),
+        );
     }
 }

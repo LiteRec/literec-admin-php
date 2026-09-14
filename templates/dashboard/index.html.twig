@@ -2,9 +2,9 @@
 
 {% import 'components/_icon.html.twig' as ui %}
 
-{% block page_title %}Admin Dashboard{% endblock %}
+{% block page_title %}{{ dashboard.greeting }}{% endblock %}
 
-{% block page_subtitle %}Welcome back. Here's what's happening across your facilities today.{% endblock %}
+{% block page_subtitle %}{{ 'now'|date('l, F j, Y') }} · {{ selected_facility() }}{% endblock %}
 
 {% block page_body %}
     {# KPI tiles — gradient cards rendered through the reusable _kpi_card component. #}
