@@ -8,7 +8,7 @@ so callers pass parameters explicitly — no globals, no implicit context.
 | --- | --- | --- |
 | `_main_nav.html.twig` | _(no parameters; reads `main_navigation()` from `App\Ui\Twig\NavigationExtension`)_ | `{% include 'components/_main_nav.html.twig' %}` |
 | `_kpi_card.html.twig` | `string label`, `string value`, `?string delta` | `{% include 'components/_kpi_card.html.twig' with { label: 'Today\'s Revenue', value: '$4,182.50', delta: '+12% vs. yesterday' } only %}` |
-| `_page_header.html.twig` | `string title`, `?string subtitle`, `?string actions` _(pre-rendered HTML, rendered raw)_ | `{% include 'components/_page_header.html.twig' with { title: 'Admin Dashboard', subtitle: 'Welcome back.', actions: actionsHtml } only %}` |
+| `_page_header.html.twig` | `?string breadcrumbs` _(pre-rendered HTML, rendered raw)_, `string title`, `?string subtitle`, `?string actions` _(pre-rendered HTML, rendered raw)_ | `{% include 'components/_page_header.html.twig' with { breadcrumbs: crumbsHtml, title: 'Admin Dashboard', subtitle: 'Welcome back.', actions: actionsHtml } only %}` |
 | `_badge.html.twig` | `string label`, `string variant` ∈ `success \| warning \| danger \| info \| neutral`, `?bool outline`, `?string class` | `{% include 'components/_badge.html.twig' with { label: 'Excellent', variant: 'success' } only %}` |
 | `_status_badge.html.twig` | `string status` ∈ `succeeded \| pending \| failed \| refunded` _(maps onto `_badge`)_ | `{% include 'components/_status_badge.html.twig' with { status: tx.status.value } only %}` |
 | `_empty_state.html.twig` | `string title`, `string message`, `?string ctaLabel`, `?string ctaRoute` | `{% include 'components/_empty_state.html.twig' with { title: 'Coming soon', message: 'This screen arrives later.' } only %}` |
@@ -31,9 +31,12 @@ so callers pass parameters explicitly — no globals, no implicit context.
 ```
 
 The subtitle renders under the title inside `_page_header`; breadcrumbs render
-above it. Both are empty by default, so pages that set neither look unchanged.
-The breadcrumbs slot is a block (not a captured string) because a trail is an
-array, which Twig blocks can't carry — so the page does the include itself.
+as the eyebrow above it, inside the same component. Both are empty by default,
+so pages that set neither look unchanged. The breadcrumbs slot is a block
+(not a captured string) because a trail is an array, which Twig blocks can't
+carry — so the page does the `_breadcrumbs` include itself; `app.html.twig`
+then captures the block's rendered HTML and forwards it to `_page_header` as
+the `breadcrumbs` parameter, the same way it already does for `page_actions`.
 
 ## Icons (`_icon.html.twig`)
 

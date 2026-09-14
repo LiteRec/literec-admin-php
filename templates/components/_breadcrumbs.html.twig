@@ -11,8 +11,10 @@
                 <li class="flex items-center gap-[0.4rem]">
                     {% if not isLast and crumb.route is defined and crumb.route is not null %}
                         <a href="{{ path(crumb.route) }}">{{ crumb.label }}</a>
+                    {% elseif isLast %}
+                        <span aria-current="page" class="font-semibold text-litrec-text">{{ crumb.label }}</span>
                     {% else %}
-                        <span aria-current="{{ isLast ? 'page' : 'false' }}" class="{{ isLast ? 'font-semibold text-litrec-text' : '' }}">{{ crumb.label }}</span>
+                        <span>{{ crumb.label }}</span>
                     {% endif %}
                     {% if not isLast %}<span class="sep" aria-hidden="true">/</span>{% endif %}
                 </li>

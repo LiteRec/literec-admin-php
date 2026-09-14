@@ -23,7 +23,7 @@
 
 {% block page_title %}{{ detail.profile.fullName }}{% endblock %}
 
-{% block page_body %}
+{% block breadcrumbs %}
     {% include 'components/_breadcrumbs.html.twig' with {
         trail: [
             { label: 'Home', route: 'app_dashboard' },
@@ -32,7 +32,9 @@
             { label: detail.profile.fullName, route: null },
         ],
     } only %}
+{% endblock %}
 
+{% block page_body %}
     <header
         data-testid="member-header"
         class="mb-6 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2 border-b border-litrec-border pb-4"

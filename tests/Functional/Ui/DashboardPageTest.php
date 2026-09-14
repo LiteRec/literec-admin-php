@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Functional\Ui;
 
 use App\Tests\Support\Trait\SignsInUsers;
+use DateTimeImmutable;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Large;
 use PHPUnit\Framework\Attributes\Test;
@@ -29,8 +30,12 @@ final class DashboardPageTest extends WebTestCase
         $crawler = $client->request('GET', '/dashboard');
         self::assertResponseIsSuccessful();
 
-        self::assertSelectorTextContains('main h1', 'Admin Dashboard');
-        self::assertSelectorTextContains('.lr-pagesub', 'Welcome back');
+        self::assertMatchesRegularExpression(
+            '/^Good (morning|afternoon|evening), \w+$/',
+            trim($crawler->filter('main h1')->text()),
+        );
+        self::assertSelectorTextContains('.lr-pagesub', (new DateTimeImmutable())->format('l, F j, Y'));
+        self::assertSelectorTextContains('.lr-pagesub', 'Main Facility');
 
         // KPI gradient tiles: four, each a GSAP card carrying its label in .lbl.
         $kpiLabels = $crawler

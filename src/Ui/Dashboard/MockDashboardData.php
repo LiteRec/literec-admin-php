@@ -24,12 +24,30 @@ final readonly class MockDashboardData
     public function build(): DashboardData
     {
         return new DashboardData(
+            greeting: $this->buildGreeting(),
             kpis: $this->buildKpis(),
             recentTransactions: $this->buildRecentTransactions(),
             upcomingEvents: $this->buildUpcomingEvents(),
             facilityStatuses: $this->buildFacilityStatuses(),
             quickLinks: $this->buildQuickLinks(),
         );
+    }
+
+    /**
+     * Time-of-day greeting paired with a mock first name; the signed-in
+     * staff member's real name is not yet available on the User aggregate
+     * (tracked as follow-up work), so this stands in for it.
+     */
+    private function buildGreeting(): string
+    {
+        $hour = (int) $this->clock->now()->format('G');
+        $timeOfDay = match (true) {
+            $hour < 12 => 'morning',
+            $hour < 17 => 'afternoon',
+            default => 'evening',
+        };
+
+        return "Good {$timeOfDay}, Casey";
     }
 
     /**
