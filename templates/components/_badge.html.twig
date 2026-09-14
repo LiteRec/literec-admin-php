@@ -1,14 +1,17 @@
-{# Shared Eagleton badge — a single source of truth for the lr-badge pill so
+{# Shared Organic tag — a single source of truth for the lr-badge pill so
    callers never hand-roll badge markup.
 
    @param string  label    Visible badge text.
    @param string  variant  One of: success, warning, danger, info, neutral.
                            Defaults to neutral for any unknown value.
+   @param bool    outline  When true, renders the transparent/bordered
+                           outline treatment instead of the variant's fill.
    @param ?string class    Optional extra classes (e.g. uppercase tracking).
    @param ?string testid   Optional data-testid for the pill. #}
 {% set variant = variant|default('neutral') %}
 {% set known = ['success', 'warning', 'danger', 'info', 'neutral'] %}
 {% set variant = variant in known ? variant : 'neutral' %}
+{% set outline = outline|default(false) %}
 {% set class = class|default('') %}
 {% set testid = testid|default(null) %}
-<span class="lr-badge {{ variant }}{% if class %} {{ class }}{% endif %}"{% if testid %} data-testid="{{ testid }}"{% endif %}>{{ label }}</span>
+<span class="lr-badge {{ variant }}{% if outline %} outline{% endif %}{% if class %} {{ class }}{% endif %}"{% if testid %} data-testid="{{ testid }}"{% endif %}>{{ label }}</span>

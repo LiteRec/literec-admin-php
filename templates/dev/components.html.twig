@@ -1,0 +1,136 @@
+{% extends 'app.html.twig' %}
+
+{% import 'components/_icon.html.twig' as ui %}
+
+{# Dev-only showcase of the Organic lr-* component layer (LRA-185). Renders
+   every restyled component so reviewers can check the treatment without
+   hunting across feature pages; toggle the header's theme switch to review
+   both themes. Not registered in production — see DevComponentsController. #}
+
+{% block page_title %}Component Library (dev only){% endblock %}
+{% block page_subtitle %}Every Organic lr-* component, for visual review in both themes.{% endblock %}
+
+{% block page_body %}
+    <div class="flex flex-col gap-5">
+
+        <section aria-labelledby="buttons-heading" class="lr-card">
+            <div class="lr-card-head"><span class="lr-card-title" id="buttons-heading">Buttons</span></div>
+            <div class="lr-card-body flex flex-wrap items-center gap-3">
+                <button type="button" class="lr-btn">Default</button>
+                <button type="button" class="lr-btn lr-btn-primary">Primary</button>
+                <button type="button" class="lr-btn lr-btn-secondary">Secondary</button>
+                <button type="button" class="lr-btn lr-btn-ghost">Ghost</button>
+                <button type="button" class="lr-btn lr-btn-danger">Danger</button>
+                <button type="button" class="lr-btn lr-btn-primary lr-btn-lg">Large primary</button>
+                <button type="button" class="lr-btn lr-btn-icon" aria-label="36px icon button">{{ ui.icon('plus', 16) }}</button>
+                <button type="button" class="lr-btn lr-btn-icon lr-btn-lg" aria-label="40px icon button">{{ ui.icon('plus', 18) }}</button>
+                <button type="button" class="lr-btn lr-btn-primary lr-btn-block">Block</button>
+            </div>
+        </section>
+
+        <section aria-labelledby="surfaces-heading" class="lr-card">
+            <div class="lr-card-head"><span class="lr-card-title" id="surfaces-heading">Surfaces</span></div>
+            <div class="lr-card-body grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div class="lr-card">
+                    <div class="lr-card-head"><span class="lr-card-title">lr-card</span></div>
+                    <div class="lr-card-body text-sm text-litrec-text-muted">Data card — light surface, shadow-card, 28px radius.</div>
+                </div>
+                <div class="lr-card-context">
+                    <div class="lr-card-head"><span class="lr-card-title">lr-card-context</span></div>
+                    <div class="lr-card-body text-sm text-litrec-text-muted">Context card — sand surface-2, no shadow.</div>
+                </div>
+            </div>
+        </section>
+
+        <section aria-labelledby="tags-heading" class="lr-card">
+            <div class="lr-card-head"><span class="lr-card-title" id="tags-heading">Tags</span></div>
+            <div class="lr-card-body flex flex-wrap items-center gap-2">
+                {% include 'components/_badge.html.twig' with { label: 'Success', variant: 'success' } only %}
+                {% include 'components/_badge.html.twig' with { label: 'Warning', variant: 'warning' } only %}
+                {% include 'components/_badge.html.twig' with { label: 'Neutral', variant: 'neutral' } only %}
+                {% include 'components/_badge.html.twig' with { label: 'Danger', variant: 'danger' } only %}
+                {% include 'components/_badge.html.twig' with { label: 'Info', variant: 'info' } only %}
+                {% include 'components/_badge.html.twig' with { label: 'Outline', variant: 'neutral', outline: true } only %}
+            </div>
+        </section>
+
+        <section aria-labelledby="inputs-heading" class="lr-card">
+            <div class="lr-card-head"><span class="lr-card-title" id="inputs-heading">Inputs</span></div>
+            <div class="lr-card-body grid grid-cols-1 gap-4 md:grid-cols-2">
+                <label class="lr-field">
+                    <span class="lr-label">lr-input</span>
+                    <span class="lr-input">{{ ui.icon('search', 15, 2.75, 'ico') }}<input type="text" placeholder="Search…"></span>
+                </label>
+                <label class="lr-field">
+                    <span class="lr-label">lr-select</span>
+                    <select class="lr-select"><option>Option one</option><option>Option two</option></select>
+                </label>
+                <label class="lr-field">
+                    <span class="lr-label">litrec-input</span>
+                    <input type="text" class="litrec-input" placeholder="Symfony form field">
+                </label>
+                <label class="lr-check">
+                    <input type="checkbox" checked> <span class="box">{{ ui.icon('check', 11, 3) }}</span> lr-check
+                </label>
+            </div>
+        </section>
+
+        <section aria-labelledby="seg-heading" class="lr-card">
+            <div class="lr-card-head"><span class="lr-card-title" id="seg-heading">Segmented control &amp; tabs</span></div>
+            <div class="lr-card-body flex flex-col gap-4">
+                <nav class="lr-seg" aria-label="Demo segmented control">
+                    <a href="#" class="is-active" aria-current="page">{{ ui.icon('grid', 14) }} Full register</a>
+                    <a href="#">{{ ui.icon('bolt', 14) }} Quick sale</a>
+                </nav>
+                <div class="lr-tabs">
+                    <button type="button" class="lr-tab is-active">Programs</button>
+                    <button type="button" class="lr-tab">Memberships</button>
+                    <button type="button" class="lr-tab">Items</button>
+                </div>
+            </div>
+        </section>
+
+        <section aria-labelledby="table-heading" class="lr-card">
+            <div class="lr-card-head"><span class="lr-card-title" id="table-heading">Table</span></div>
+            <table class="lr-table">
+                <thead><tr><th>Item</th><th>Qty</th><th>Price</th></tr></thead>
+                <tbody>
+                    <tr><td>Adult Day Pass</td><td class="lr-num">2</td><td class="lr-num">$18.00</td></tr>
+                    <tr><td>Locker Rental</td><td class="lr-num">1</td><td class="lr-num">$4.00</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section aria-labelledby="dialog-heading" class="lr-card">
+            <div class="lr-card-head"><span class="lr-card-title" id="dialog-heading">Dialog</span></div>
+            <div class="lr-card-body">
+                <button
+                    type="button"
+                    data-testid="open-components-dialog"
+                    class="lr-btn lr-btn-primary"
+                    hx-get="{{ path('dev_components_dialog') }}"
+                    hx-target="body"
+                    hx-swap="beforeend"
+                >
+                    Open dialog
+                </button>
+            </div>
+        </section>
+
+        <section aria-labelledby="misc-heading" class="lr-card">
+            <div class="lr-card-head"><span class="lr-card-title" id="misc-heading">Chips, stepper, kbd, icon button &amp; avatar</span></div>
+            <div class="lr-card-body flex flex-wrap items-center gap-4">
+                <span class="lr-chip">Filter chip</span>
+                <span class="lr-stepper">
+                    <button type="button"><span class="sr-only">Decrease</span>{{ ui.icon('chevron', 12) }}</button>
+                    <span class="q lr-num">3</span>
+                    <button type="button"><span class="sr-only">Increase</span>{{ ui.icon('chevronUp', 12) }}</button>
+                </span>
+                <span class="lr-kbd">F2</span>
+                <button type="button" class="lr-iconbtn" aria-label="More options">{{ ui.icon('more', 16) }}</button>
+                <span class="lr-avatar"><span aria-hidden="true">AB</span></span>
+            </div>
+        </section>
+
+    </div>
+{% endblock %}

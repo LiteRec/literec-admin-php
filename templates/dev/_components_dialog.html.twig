@@ -1,0 +1,17 @@
+{# Dev-only dialog demo fragment for the /_dev/components showcase (LRA-185).
+   Mirrors the real dialog pattern (see e.g. inventory/combos/_dialog.html.twig):
+   an HTMX GET swaps this fragment onto the end of <body>, rendering the shared
+   modal shell so reviewers can see the Organic dialog treatment — 32px radius,
+   sand surface, shadow-pop, and the neutral-900/50 backdrop — without needing
+   a real domain form behind it. #}
+{% set body %}
+    <p class="text-sm text-litrec-text-muted">
+        This is the shared modal shell (<span class="lr-kbd">components/_modal.html.twig</span>)
+        with the Organic dialog treatment: 32&nbsp;px radius, sand surface, and a soft popover shadow.
+    </p>
+{% endset %}
+{% include 'components/_modal.html.twig' with {
+    id: 'dev-components-modal',
+    title: 'Demo dialog',
+    body: body,
+} only %}

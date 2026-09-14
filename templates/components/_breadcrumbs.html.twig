@@ -1,6 +1,6 @@
 {# @param array trail List of crumbs, each shaped like { label: string, route: ?string }.
    The last crumb is rendered as plain text even if it has a route (current page marker).
-   Styled with the Eagleton lr-crumbs classes; an ordered list keeps the
+   Styled with the Organic lr-crumbs classes; an ordered list keeps the
    breadcrumb semantics. #}
 {% set trail = trail|default([]) %}
 {% if trail|length > 0 %}

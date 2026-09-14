@@ -35,7 +35,7 @@
        @click.outside on its container so internal clicks do NOT propagate
        to here. #}
     <div
-        class="absolute inset-0 bg-black/40"
+        class="absolute inset-0 bg-litrec-neutral-900/50"
         aria-hidden="true"
         @click="dismiss()"
     ></div>
@@ -46,7 +46,7 @@
        First focusable child receives focus automatically; on close, focus
        is returned to the element that opened the dialog. #}
     <div
-        class="relative z-10 max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-card border border-litrec-border bg-litrec-surface p-6 shadow-card"
+        class="relative z-10 max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-modal border border-litrec-border bg-litrec-surface-2 p-6 shadow-pop"
         x-trap.noscroll.inert="open"
         @click.outside="dismiss()"
     >
