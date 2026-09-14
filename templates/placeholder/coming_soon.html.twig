@@ -5,8 +5,9 @@
 {% block page_subtitle %}This area is on the navigation surface so staff can find every legacy section; the feature itself arrives in a later milestone.{% endblock %}
 
 {% block breadcrumbs %}
-    {# Breadcrumbs render above the page header. The trail is mocked here; real
-       route hierarchy lands when each section gets its own feature pages. #}
+    {# Breadcrumbs render as the eyebrow inside the page header, above the
+       title. The trail is mocked here; real route hierarchy lands when each
+       section gets its own feature pages. #}
     {% include 'components/_breadcrumbs.html.twig' with {
         trail: [
             { label: 'Dashboard', route: 'app_dashboard' },

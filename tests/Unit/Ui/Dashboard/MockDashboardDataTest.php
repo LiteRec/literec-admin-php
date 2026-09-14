@@ -32,6 +32,15 @@ final class MockDashboardDataTest extends TestCase
     }
 
     #[Test]
+    #[TestDox('The header date comes from the same injected clock as the greeting, not the PHP wall clock.')]
+    public function today_comes_from_the_injected_clock(): void
+    {
+        $data = $this->buildData();
+
+        self::assertEquals(new DateTimeImmutable('2026-05-23T12:00:00Z'), $data->today);
+    }
+
+    #[Test]
     #[TestDox('Builds four KPI cards (revenue, memberships, reservations, refunds), each with an icon and gradient.')]
     public function it_builds_the_four_documented_kpi_cards(): void
     {

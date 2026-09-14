@@ -25,6 +25,7 @@ final readonly class MockDashboardData
     {
         return new DashboardData(
             greeting: $this->buildGreeting(),
+            today: $this->clock->now(),
             kpis: $this->buildKpis(),
             recentTransactions: $this->buildRecentTransactions(),
             upcomingEvents: $this->buildUpcomingEvents(),

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Ui\Dashboard;
 
+use DateTimeImmutable;
+
 /**
  * Aggregate of every block the dashboard renders: the page header greeting,
  * KPI cards, the recent activity feed (transactions), upcoming events,
@@ -21,6 +23,7 @@ final readonly class DashboardData
      */
     public function __construct(
         public string $greeting,
+        public DateTimeImmutable $today,
         public array $kpis,
         public array $recentTransactions,
         public array $upcomingEvents,
