@@ -77,7 +77,7 @@ final class CashRegisterPageTest extends WebTestCase
         self::assertSelectorExists('input[aria-label="Scan or search an item"]');
         self::assertSelectorTextContains('[data-testid="quick-sale-payer"]', 'Walk-in');
         self::assertSelectorTextContains('main', 'Day Passes');
-        self::assertSelectorExists('[data-testid="quick-sale-category-0"][aria-pressed="true"].is-active');
+        self::assertSelectorExists('[data-testid="quick-sale-category-0"][aria-pressed="true"].is-selected');
         self::assertGreaterThanOrEqual(8, $crawler->filter('.lr-tilegrid button.lr-tile')->count());
         self::assertSelectorTextContains('main', 'Adult Day Pass');
 

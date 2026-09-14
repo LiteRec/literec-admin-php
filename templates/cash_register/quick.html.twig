@@ -54,8 +54,8 @@
                 {% for category in quick.categories %}
                     <button
                         type="button"
-                        class="lr-chip{% if loop.first %} is-active{% endif %}"
-                        :class="{ 'is-active': activeCategory === {{ category|json_encode }} }"
+                        class="lr-chip{% if loop.first %} is-selected{% endif %}"
+                        :class="{ 'is-selected': activeCategory === {{ category|json_encode }} }"
                         aria-pressed="{{ loop.first ? 'true' : 'false' }}"
                         :aria-pressed="(activeCategory === {{ category|json_encode }}).toString()"
                         @click="activeCategory = {{ category|json_encode }}"
@@ -143,7 +143,7 @@
                         <button
                             type="button"
                             class="lr-chip flex-1 justify-center"
-                            :class="{ 'is-active': selectedTenderId === {{ tender.id|json_encode }} }"
+                            :class="{ 'is-selected': selectedTenderId === {{ tender.id|json_encode }} }"
                             aria-pressed="false"
                             :aria-pressed="(selectedTenderId === {{ tender.id|json_encode }}).toString()"
                             @click="selectTender({{ tender.id|json_encode }})"
