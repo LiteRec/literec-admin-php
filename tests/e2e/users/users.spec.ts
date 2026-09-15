@@ -446,6 +446,27 @@ test.describe('create and edit', () => {
     // Success redirects to the new member's detail page.
     await expect(page.getByTestId('member-header')).toContainText(`Sibling ${lastName}`);
   });
+
+  test('deactivates then reactivates a member (LRA-211)', async ({ page }) => {
+    const lastName = `Archivecase${RUN}`;
+    await createHousehold(page, 'Archive', lastName);
+    await expect(page.getByTestId('member-header')).toContainText(`Archive ${lastName}`);
+
+    await page.getByTestId('profile-deactivate').click();
+    const dialog = page.locator('#deactivate-member-modal');
+    await expect(dialog).toBeVisible();
+
+    await dialog.getByLabel('Reason').fill('E2E deactivation test');
+    await page.getByTestId('deactivate-member-submit').click();
+
+    await expect(page.getByTestId('badge-deactivated')).toBeVisible();
+    await expect(
+      page.locator('[data-testid^="household-member-row-"]', { hasText: `Archive ${lastName}` }),
+    ).toContainText('Deactivated');
+
+    await page.getByTestId('profile-reactivate').click();
+    await expect(page.getByTestId('badge-active')).toBeVisible();
+  });
 });
 
 test.describe('merge members', () => {

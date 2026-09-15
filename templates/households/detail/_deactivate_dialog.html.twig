@@ -1,0 +1,54 @@
+{# HTMX fragment: Deactivate Member confirmation dialog (LRA-211).
+
+   Expected variables:
+     - form:        Symfony FormView built from DeactivateMemberFormType
+     - householdId:  home household UUID v7 string (identity data lives on
+                     the home aggregate — LRA-210)
+     - memberId:     UUID v7 string of the member being deactivated
+     - memberName:   display name shown in the confirmation copy
+#}
+{% set body %}
+    <form
+        id="deactivate-member-form"
+        method="post"
+        action="{{ path('member_deactivate_submit', { householdId: householdId, memberId: memberId }) }}"
+        hx-post="{{ path('member_deactivate_submit', { householdId: householdId, memberId: memberId }) }}"
+        hx-target="closest .modal-root"
+        hx-swap="outerHTML"
+        novalidate
+    >
+        {% include 'components/_form_error_summary.html.twig' with { form: form, testid: 'deactivate-form-error' } only %}
+
+        <p class="mb-4 text-sm text-litrec-text-muted">
+            Deactivating <strong class="text-litrec-text">{{ memberName }}</strong> keeps their record and
+            history, hides them from the default Users list, and can be reversed later by reactivating them.
+        </p>
+
+        {{ form_row(form.reason, { attr: { class: 'litrec-input' }, row_attr: { class: 'lr-field' }, label_attr: { class: 'lr-label' } }) }}
+
+        {{ form_widget(form._token) }}
+
+        <div class="mt-6 flex items-center justify-end gap-2">
+            <button
+                type="button"
+                class="lr-btn lr-btn-secondary"
+                @click="dismiss()"
+            >
+                Cancel
+            </button>
+            <button
+                type="submit"
+                data-testid="deactivate-member-submit"
+                class="lr-btn lr-btn-danger"
+            >
+                Deactivate
+            </button>
+        </div>
+    </form>
+{% endset %}
+
+{% include 'components/_modal.html.twig' with {
+    id: 'deactivate-member-modal',
+    title: 'Deactivate member',
+    body: body,
+} only %}
