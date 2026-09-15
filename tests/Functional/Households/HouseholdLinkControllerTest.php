@@ -78,7 +78,7 @@ final class HouseholdLinkControllerTest extends WebTestCase
         );
 
         // Reachable under the target household, roster flags it Shared.
-        $client->request('GET', $this->memberDetailPath(self::TARGET_HOUSEHOLD_ID, self::MINOR_ID));
+        $crawler = $client->request('GET', $this->memberDetailPath(self::TARGET_HOUSEHOLD_ID, self::MINOR_ID));
         self::assertResponseIsSuccessful();
         self::assertSelectorExists(sprintf(
             '[data-testid="household-member-row-%s"] [data-testid="badge-shared"]',
@@ -87,10 +87,54 @@ final class HouseholdLinkControllerTest extends WebTestCase
         self::assertSelectorTextContains(self::LINKED_HOUSEHOLDS_SELECTOR, 'Smith Family (Home)');
         self::assertSelectorTextContains(self::LINKED_HOUSEHOLDS_SELECTOR, 'Jones Family');
 
+        // Identity-mutating actions (photo upload, merge) route through the
+        // home household even though the page is viewed under the target —
+        // AttachMemberPhotoHandler and MergeMembersHandler both load the
+        // aggregate by the householdId in the request, and the minor only
+        // exists in the home aggregate's own members() collection.
+        $photoForm = $crawler->filter('[data-testid="photo-upload"]')->closest('form');
+        self::assertNotNull($photoForm, 'Photo upload form was not rendered.');
+        self::assertStringContainsString(
+            $this->memberDetailPath(self::HOME_HOUSEHOLD_ID, self::MINOR_ID) . '/photo',
+            (string) $photoForm->attr('hx-post'),
+        );
+        $mergeButton = $crawler->filter('[data-testid="merge-member"]');
+        self::assertGreaterThan(0, $mergeButton->count(), 'Merge button was not rendered.');
+        self::assertStringContainsString(
+            $this->memberDetailPath(self::HOME_HOUSEHOLD_ID, self::MINOR_ID) . '/merge/confirm',
+            (string) $mergeButton->attr('onclick'),
+        );
+
         // Still reachable under the home household, unaffected.
         $client->request('GET', $this->memberDetailPath(self::HOME_HOUSEHOLD_ID, self::MINOR_ID));
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('[data-testid="member-header"]', 'Minor Smith');
+    }
+
+    #[Test]
+    #[TestDox('Linking a member already merged into another record is rejected with 422 and the shared error region.')]
+    public function link_rejects_merged_member(): void
+    {
+        $client = static::createClient();
+        $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
+        $this->seedHomeHouseholdWithMinor();
+        $this->seedTargetHousehold();
+
+        $repo = static::getContainer()->get(Households::class);
+        self::assertInstanceOf(Households::class, $repo);
+        $home = $repo->findById(HouseholdId::fromString(self::HOME_HOUSEHOLD_ID));
+        $home->mergeMemberInto(
+            MemberId::fromString(self::MINOR_ID),
+            HouseholdId::fromString(self::HOME_HOUSEHOLD_ID),
+            MemberId::fromString(self::PRIMARY_ID),
+            $this->clock,
+        );
+        $repo->save($home);
+
+        $this->postLink($client, self::MINOR_ID);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorExists('[data-testid="household-link-error"]');
     }
 
     #[Test]

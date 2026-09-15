@@ -10,6 +10,7 @@ use App\Households\Domain\Event\MemberSharedWithHousehold;
 use App\Households\Domain\Exception\CannotShareWithHomeHousehold;
 use App\Households\Domain\Exception\HouseholdAlreadyLinked;
 use App\Households\Domain\Exception\HouseholdNotFound;
+use App\Households\Domain\Exception\MemberAlreadyMerged;
 use App\Households\Domain\Exception\MemberNotAMinor;
 use App\Households\Domain\Household;
 use App\Households\Domain\ValueObject\Address;
@@ -118,6 +119,36 @@ final class LinkMinorToHouseholdHandlerTest extends TestCase
         }
 
         self::assertCount(1, $this->eventBus->dispatchedMessages());
+    }
+
+    #[Test]
+    #[TestDox('Locks and re-asserts the member is not merged, with the home household and member id, before saving.')]
+    public function locks_unmerged_member_before_saving(): void
+    {
+        $spy = new RecordsLockUnmergedMemberCalls($this->households);
+        $handler = new LinkMinorToHouseholdHandler($spy, $this->clock, $this->eventBus);
+
+        $handler(new LinkMinorToHousehold(self::TARGET_HOUSEHOLD_ID, self::MINOR_ID));
+
+        self::assertCount(1, $spy->lockCalls);
+        self::assertTrue($spy->lockCalls[0]['householdId']->equals(HouseholdId::fromString(self::HOME_HOUSEHOLD_ID)));
+        self::assertTrue($spy->lockCalls[0]['memberId']->equals(MemberId::fromString(self::MINOR_ID)));
+    }
+
+    #[Test]
+    #[TestDox('Propagates MemberAlreadyMerged and never saves when the member was merged concurrently.')]
+    public function propagates_lock_failure_and_never_saves(): void
+    {
+        $spy = new ThrowsOnLockHouseholds($this->households);
+        $handler = new LinkMinorToHouseholdHandler($spy, $this->clock, $this->eventBus);
+
+        $this->expectException(MemberAlreadyMerged::class);
+
+        try {
+            $handler(new LinkMinorToHousehold(self::TARGET_HOUSEHOLD_ID, self::MINOR_ID));
+        } finally {
+            self::assertSame(0, $spy->saveCalls);
+        }
     }
 
     private function memberById(Household $household, string $memberId): \App\Households\Domain\HouseholdMember

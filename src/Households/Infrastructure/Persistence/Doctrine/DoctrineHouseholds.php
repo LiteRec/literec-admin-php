@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Households\Infrastructure\Persistence\Doctrine;
 
 use App\Households\Domain\Exception\DuplicateMemberCode;
+use App\Households\Domain\Exception\HouseholdAlreadyLinked;
 use App\Households\Domain\Exception\HouseholdNotFound;
 use App\Households\Domain\Exception\MemberAlreadyMerged;
 use App\Households\Domain\Exception\MemberNotFound;
@@ -26,8 +27,12 @@ use LogicException;
  *
  * Translates Postgres unique-constraint violations on
  * (household_id, code) into the domain's {@see DuplicateMemberCode}
- * exception so callers in the Application layer can react in domain
- * terms regardless of which adapter is wired.
+ * exception, and on `household_member_affiliations`' primary key into
+ * {@see HouseholdAlreadyLinked} (LRA-210 — two concurrent link requests
+ * for the same (member, household) pair that both pass the in-memory
+ * `isSharedWith()` check before either commits), so callers in the
+ * Application layer can react in domain terms regardless of which
+ * adapter is wired.
  */
 final class DoctrineHouseholds implements Households
 {
@@ -46,6 +51,10 @@ final class DoctrineHouseholds implements Households
                 || str_contains($e->getMessage(), 'uniq_household_members_household_code')
             ) {
                 throw $this->firstDuplicateMemberCode($household);
+            }
+
+            if (str_contains(strtolower($e->getMessage()), 'household_member_affiliations_pkey')) {
+                throw HouseholdAlreadyLinked::detectedOnWrite();
             }
 
             throw $e;
