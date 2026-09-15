@@ -8,6 +8,7 @@ use App\Shared\Infrastructure\Fixtures\FixtureEnv;
 use App\Households\Application\Command\AddMemberToHousehold;
 use App\Households\Application\Command\ChangeMemberResidency;
 use App\Households\Application\Command\DeactivateMember;
+use App\Households\Application\Command\LinkMinorToHousehold;
 use App\Households\Application\Command\RegisterHousehold;
 use App\Households\Domain\ValueObject\Gender;
 use App\Households\Domain\ValueObject\HouseholdId;
@@ -147,7 +148,7 @@ final class HouseholdsFixtures extends Fixture implements FixtureGroupInterface,
             '+1-555-0103',
             ResidencyStatus::Resident,
         );
-        $this->addMember(
+        $dylanId = $this->addMember(
             $familyId,
             'Dylan',
             'Jones',
@@ -167,6 +168,32 @@ final class HouseholdsFixtures extends Fixture implements FixtureGroupInterface,
             '+1-555-0105',
             ResidencyStatus::Resident,
         );
+
+        // LRA-210: a second curated household sharing Dylan (shared custody),
+        // so dev/test data exhibits the feature. Registered with its own
+        // primary member — a minor cannot be a household's sole member —
+        // then linked to Dylan's home household via the command bus, same
+        // as staff would perform the action through the UI.
+        $secondHomeId = $this->registerHousehold(new RegisterHousehold(
+            householdName: 'Jones Second Home',
+            firstName: 'Patricia',
+            lastName: 'Jones',
+            middleName: null,
+            suffix: null,
+            dobIso: '1979-04-18',
+            genderCode: Gender::Female->value,
+            email: 'patricia.jones@example.com',
+            phone: '+1-555-0110',
+            residencyStatusCode: ResidencyStatus::Resident->value,
+            memberCode: null,
+            street: '789 Birch Ln',
+            unit: null,
+            city: 'Anytown',
+            state: 'CA',
+            postalCode: self::DEFAULT_POSTAL_CODE,
+            country: 'US',
+        ));
+        $this->dispatch(new LinkMinorToHousehold($secondHomeId->value, $dylanId->value));
     }
 
     private function loadSeniorWithResidencyChange(): void

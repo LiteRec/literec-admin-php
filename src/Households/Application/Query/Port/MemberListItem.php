@@ -28,6 +28,7 @@ final readonly class MemberListItem
         public bool $isActive,
         public ?string $photoVersion,
         public bool $isMerged,
+        public bool $isShared,
     ) {
     }
 }

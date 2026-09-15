@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Households\Infrastructure\Persistence\InMemory;
 
 use App\Households\Application\Query\Port\HouseholdSummary;
+use App\Households\Application\Query\Port\LinkedHouseholdDto;
 use App\Households\Application\Query\Port\MemberAddressDto;
 use App\Households\Application\Query\Port\MemberDetail;
 use App\Households\Application\Query\Port\MemberListItem;
@@ -21,6 +22,7 @@ use App\Households\Domain\HouseholdMember;
 use App\Households\Domain\ValueObject\HouseholdId;
 use App\Households\Domain\ValueObject\MemberId;
 use App\Households\Domain\ValueObject\ResidencyStatus;
+use DateTimeInterface;
 
 /**
  * In-memory adapter for the {@see MemberReadModel} port. Walks aggregate
@@ -132,62 +134,128 @@ final class InMemoryMemberReadModel implements MemberReadModel
         return $member->isMerged() || ($q !== null && !$this->matchesQuery($member, $household, $q));
     }
 
+    /**
+     * $householdId names the household being VIEWED, which may differ from
+     * the member's home household when the member is a shared minor
+     * (LRA-210) viewed from a linked household — `household`, `address`,
+     * and `householdMembers` all reflect the viewed household;
+     * `homeHouseholdId` names the household that actually owns the
+     * member's identity data.
+     */
     public function memberDetail(HouseholdId $householdId, MemberId $memberId): MemberDetail
     {
-        $household = $this->households[$householdId->value] ?? null;
-        if ($household === null) {
+        $viewedHousehold = $this->households[$householdId->value] ?? null;
+        if ($viewedHousehold === null) {
             throw MemberNotFound::inHousehold($householdId, $memberId);
         }
 
-        $member = null;
-        foreach ($household->members() as $candidate) {
-            if ($candidate->id()->equals($memberId)) {
-                $member = $candidate;
-                break;
-            }
+        $found = $this->findHomeHouseholdAndMember($memberId);
+        if ($found === null) {
+            throw MemberNotFound::inHousehold($householdId, $memberId);
         }
+        [$homeHousehold, $member] = $found;
 
-        if ($member === null) {
+        $isHome = $homeHousehold->id()->equals($householdId);
+        if (!$isHome && !$member->isSharedWith($householdId)) {
             throw MemberNotFound::inHousehold($householdId, $memberId);
         }
 
         return new MemberDetail(
-            $this->householdSummary($household),
+            $this->householdSummary($viewedHousehold),
             $this->profile($member),
-            $this->address($household),
+            $this->address($viewedHousehold),
             new MemberResidencyDto($member->residencyStatus()->value, null),
-            $this->householdMembers($household),
+            $this->householdMembers($viewedHousehold),
+            $homeHousehold->id()->value,
+            $this->linkedHouseholds($member, $homeHousehold),
         );
     }
 
     /**
-     * Projects every member of the household to a {@see MemberListItem}
-     * (active and deactivated alike), sorted by lastName / firstName / id
-     * to match the Doctrine adapter's ORDER BY. Powers the Household card
-     * roster (LRA-42).
+     * Finds the household that owns (home) $memberId and the member itself,
+     * by walking every aggregate's own members collection — a member only
+     * ever appears in its home household's `Household::$members`, so the
+     * first (only) match is the home household by construction.
+     *
+     * @return array{0: Household, 1: HouseholdMember}|null
+     */
+    private function findHomeHouseholdAndMember(MemberId $memberId): ?array
+    {
+        foreach ($this->households as $household) {
+            foreach ($household->members() as $candidate) {
+                if ($candidate->id()->equals($memberId)) {
+                    return [$household, $candidate];
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @return list<LinkedHouseholdDto>
+     */
+    private function linkedHouseholds(HouseholdMember $member, Household $homeHousehold): array
+    {
+        $items = [new LinkedHouseholdDto($homeHousehold->id()->value, $homeHousehold->name()->value, true, null)];
+
+        foreach ($member->sharedHouseholdIds() as $sharedId) {
+            $sharedHousehold = $this->households[$sharedId->value] ?? null;
+            $linkedAt = $member->linkedAtFor($sharedId);
+            $items[] = new LinkedHouseholdDto(
+                $sharedId->value,
+                $sharedHousehold?->name()->value ?? '',
+                false,
+                $linkedAt?->format(DateTimeInterface::ATOM),
+            );
+        }
+
+        return $items;
+    }
+
+    /**
+     * Projects every member of the household — its own (home) members plus
+     * every member another household's home aggregate has shared with it
+     * (LRA-210) — to a {@see MemberListItem} (active and deactivated
+     * alike), sorted by lastName / firstName / id to match the Doctrine
+     * adapter's ORDER BY. Powers the Household card roster (LRA-42).
      *
      * @return list<MemberListItem>
      */
     private function householdMembers(Household $household): array
     {
-        $members = $household->members();
+        /** @var list<array{member: HouseholdMember, home: Household, isShared: bool}> $rows */
+        $rows = [];
+        foreach ($household->members() as $member) {
+            $rows[] = ['member' => $member, 'home' => $household, 'isShared' => false];
+        }
+        foreach ($this->households as $other) {
+            if ($other->id()->equals($household->id())) {
+                continue;
+            }
+            foreach ($other->members() as $member) {
+                if ($member->isSharedWith($household->id())) {
+                    $rows[] = ['member' => $member, 'home' => $other, 'isShared' => true];
+                }
+            }
+        }
 
-        usort($members, static function (HouseholdMember $a, HouseholdMember $b): int {
-            $byLast = strcasecmp($a->name()->lastName, $b->name()->lastName);
+        usort($rows, static function (array $a, array $b): int {
+            $byLast = strcasecmp($a['member']->name()->lastName, $b['member']->name()->lastName);
             if ($byLast !== 0) {
                 return $byLast;
             }
-            $byFirst = strcasecmp($a->name()->firstName, $b->name()->firstName);
+            $byFirst = strcasecmp($a['member']->name()->firstName, $b['member']->name()->firstName);
             if ($byFirst !== 0) {
                 return $byFirst;
             }
 
-            return strcmp($a->id()->value, $b->id()->value);
+            return strcmp($a['member']->id()->value, $b['member']->id()->value);
         });
 
         $items = [];
-        foreach ($members as $member) {
-            $items[] = $this->toListItem($member, $household);
+        foreach ($rows as $row) {
+            $items[] = $this->toListItem($row['member'], $row['home'], $row['isShared']);
         }
 
         return $items;
@@ -256,7 +324,7 @@ final class InMemoryMemberReadModel implements MemberReadModel
         return $haystack !== null && mb_stripos($haystack, $needle) !== false;
     }
 
-    private function toListItem(HouseholdMember $member, Household $household): MemberListItem
+    private function toListItem(HouseholdMember $member, Household $household, bool $isShared = false): MemberListItem
     {
         return new MemberListItem(
             $member->id()->value,
@@ -273,9 +341,15 @@ final class InMemoryMemberReadModel implements MemberReadModel
             $member->isActive(),
             $member->photo()?->version(),
             $member->isMerged(),
+            $isShared,
         );
     }
 
+    /**
+     * memberCount includes both the household's own members and members
+     * shared into it from another household's home aggregate (LRA-210), so
+     * it matches the union {@see self::householdMembers()} returns.
+     */
     private function householdSummary(Household $household): HouseholdSummary
     {
         $members = $household->members();
@@ -307,10 +381,24 @@ final class InMemoryMemberReadModel implements MemberReadModel
         return new HouseholdSummary(
             $household->id()->value,
             $household->name()->value,
-            count($members),
+            count($members) + $this->countMembersSharedInto($household->id()),
             $primary->id()->value,
             $primary->name()->fullName(),
         );
+    }
+
+    private function countMembersSharedInto(HouseholdId $householdId): int
+    {
+        $count = 0;
+        foreach ($this->households as $household) {
+            foreach ($household->members() as $member) {
+                if ($member->isSharedWith($householdId)) {
+                    $count++;
+                }
+            }
+        }
+
+        return $count;
     }
 
     private function profile(HouseholdMember $member): MemberProfileDto

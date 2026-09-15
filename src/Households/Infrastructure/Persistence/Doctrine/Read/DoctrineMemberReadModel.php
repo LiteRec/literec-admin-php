@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Households\Infrastructure\Persistence\Doctrine\Read;
 
 use App\Households\Application\Query\Port\HouseholdSummary;
+use App\Households\Application\Query\Port\LinkedHouseholdDto;
 use App\Households\Application\Query\Port\MemberAddressDto;
 use App\Households\Application\Query\Port\MemberDetail;
 use App\Households\Application\Query\Port\MemberListItem;
@@ -83,7 +84,7 @@ final class DoctrineMemberReadModel implements MemberReadModel
             . self::COL_MERGED
             . 'm.last_name, m.suffix, m.date_of_birth, m.phone, m.residency_status, '
             . 'm.is_primary, m.is_active, '
-            . 'h.street, h.city, h.state '
+            . 'h.street, h.city, h.state, FALSE AS is_shared '
             . self::FROM_MEMBERS
             . 'INNER JOIN households h ON h.id = m.household_id'
             . '%s'
@@ -111,6 +112,17 @@ final class DoctrineMemberReadModel implements MemberReadModel
         );
     }
 
+    /**
+     * Matches $memberId whose home household is $householdId (unchanged
+     * behaviour) OR whose home household has shared $memberId with
+     * $householdId (LRA-210). `h` joins the VIEWED household ($householdId)
+     * rather than the member's own household_id, so the Address card and
+     * `household` summary always reflect the household being browsed;
+     * `home_h` separately carries the home household's id/name for
+     * {@see MemberDetail::$homeHouseholdId} and the home entry in
+     * {@see MemberDetail::$linkedHouseholds} — identity edits always route
+     * through the home household regardless of which household is viewed.
+     */
     public function memberDetail(HouseholdId $householdId, MemberId $memberId): MemberDetail
     {
         $sql = self::SQL_SELECT
@@ -122,11 +134,17 @@ final class DoctrineMemberReadModel implements MemberReadModel
             . 'm.photo_storage_key, m.photo_format, '
             . 'm.merged_into_member_id, m.merged_at, s.household_id AS merged_into_household_id, '
             . 'h.name AS household_name, '
-            . 'h.street, h.unit, h.city, h.state, h.postal_code, h.country '
+            . 'h.street, h.unit, h.city, h.state, h.postal_code, h.country, '
+            . 'home_h.name AS home_household_name '
             . self::FROM_MEMBERS
-            . 'INNER JOIN households h ON h.id = m.household_id '
+            . 'INNER JOIN households h ON h.id = :household_id '
+            . 'INNER JOIN households home_h ON home_h.id = m.household_id '
             . 'LEFT JOIN household_members s ON s.id = m.merged_into_member_id '
-            . 'WHERE m.household_id = :household_id AND m.id = :member_id';
+            . 'WHERE m.id = :member_id '
+            . 'AND (m.household_id = :household_id OR EXISTS ('
+            . 'SELECT 1 FROM household_member_affiliations aff '
+            . 'WHERE aff.member_id = m.id AND aff.household_id = :household_id'
+            . '))';
 
         $row = $this->connection->fetchAssociative($sql, [
             'household_id' => $householdId->value,
@@ -139,6 +157,12 @@ final class DoctrineMemberReadModel implements MemberReadModel
 
         $summary = $this->loadHouseholdSummary($householdId, $this->rowString($row, 'household_name'));
         $householdMembers = $this->loadHouseholdMembers($householdId);
+        $homeHouseholdId = $this->rowString($row, 'household_id');
+        $linkedHouseholds = $this->loadLinkedHouseholds(
+            $memberId,
+            $homeHouseholdId,
+            $this->rowString($row, 'home_household_name'),
+        );
 
         return new MemberDetail(
             $summary,
@@ -149,7 +173,35 @@ final class DoctrineMemberReadModel implements MemberReadModel
                 $this->loadLatestResidencyEffectiveFrom($memberId),
             ),
             $householdMembers,
+            $homeHouseholdId,
+            $linkedHouseholds,
         );
+    }
+
+    /**
+     * @return list<LinkedHouseholdDto>
+     */
+    private function loadLinkedHouseholds(MemberId $memberId, string $homeHouseholdId, string $homeHouseholdName): array
+    {
+        $items = [new LinkedHouseholdDto($homeHouseholdId, $homeHouseholdName, true, null)];
+
+        $sql = 'SELECT h2.id AS household_id, h2.name AS household_name, aff.linked_at '
+            . 'FROM household_member_affiliations aff '
+            . 'INNER JOIN households h2 ON h2.id = aff.household_id '
+            . 'WHERE aff.member_id = :member_id '
+            . 'ORDER BY aff.linked_at ASC';
+
+        $rows = $this->connection->fetchAllAssociative($sql, ['member_id' => $memberId->value]);
+        foreach ($rows as $row) {
+            $items[] = new LinkedHouseholdDto(
+                $this->rowString($row, 'household_id'),
+                $this->rowString($row, 'household_name'),
+                false,
+                $this->normalizeDateTime($row['linked_at'] ?? null),
+            );
+        }
+
+        return $items;
     }
 
     /**
@@ -176,8 +228,11 @@ final class DoctrineMemberReadModel implements MemberReadModel
 
     /**
      * Loads every member of the household — including deactivated ones —
-     * for the Household card roster (LRA-42). Sorted to match the list page
-     * (lastName / firstName / id ASC).
+     * for the Household card roster (LRA-42). UNIONs the household's own
+     * (home) members with members whose home household has shared them
+     * with this household (LRA-210); `is_shared` distinguishes the two so
+     * the roster row can render the "Shared" badge. Sorted to match the
+     * list page (lastName / firstName / id ASC).
      *
      * This is the third SELECT issued by {@see memberDetail()} (member row
      * + summary aggregate + this list). The card needs the full roster
@@ -188,18 +243,25 @@ final class DoctrineMemberReadModel implements MemberReadModel
      */
     private function loadHouseholdMembers(HouseholdId $householdId): array
     {
-        $sql = self::SQL_SELECT
-            . self::COL_MEMBER_CORE
+        $columns = self::COL_MEMBER_CORE
             . self::COL_LIST_ITEM_EXTRA
             . self::COL_PHOTO
             . self::COL_MERGED
             . 'm.last_name, m.suffix, m.date_of_birth, m.phone, m.residency_status, '
             . 'm.is_primary, m.is_active, '
-            . 'h.street, h.city, h.state '
+            . 'h.street, h.city, h.state';
+
+        $sql = '(' . self::SQL_SELECT . $columns . ', FALSE AS is_shared '
             . self::FROM_MEMBERS
             . 'INNER JOIN households h ON h.id = m.household_id '
-            . 'WHERE m.household_id = :household_id '
-            . 'ORDER BY m.last_name ASC, m.first_name ASC, m.id ASC';
+            . 'WHERE m.household_id = :household_id) '
+            . 'UNION ALL '
+            . '(' . self::SQL_SELECT . $columns . ', TRUE AS is_shared '
+            . 'FROM household_member_affiliations aff '
+            . 'INNER JOIN household_members m ON m.id = aff.member_id '
+            . 'INNER JOIN households h ON h.id = m.household_id '
+            . 'WHERE aff.household_id = :household_id) '
+            . 'ORDER BY last_name ASC, first_name ASC, member_id ASC';
 
         $rows = $this->connection->fetchAllAssociative($sql, [
             'household_id' => $householdId->value,
@@ -393,6 +455,7 @@ final class DoctrineMemberReadModel implements MemberReadModel
             $this->rowBool($row, 'is_active'),
             $this->photoVersion($this->rowNullableString($row, 'photo_storage_key')),
             $this->rowNullableString($row, 'merged_into_member_id') !== null,
+            $this->rowBool($row, 'is_shared'),
         );
     }
 
@@ -472,7 +535,9 @@ final class DoctrineMemberReadModel implements MemberReadModel
     private function loadHouseholdSummary(HouseholdId $householdId, string $householdName): HouseholdSummary
     {
         $sql = self::SQL_SELECT
-            . 'COUNT(*) AS member_count, '
+            . '(SELECT COUNT(*) FROM household_members WHERE household_id = :household_id) '
+            . '+ (SELECT COUNT(*) FROM household_member_affiliations WHERE household_id = :household_id) '
+            . 'AS member_count, '
             . 'MAX(CASE WHEN is_primary THEN id END) AS primary_id, '
             . 'MAX(CASE WHEN is_primary THEN first_name END) AS primary_first, '
             . 'MAX(CASE WHEN is_primary THEN middle_name END) AS primary_middle, '

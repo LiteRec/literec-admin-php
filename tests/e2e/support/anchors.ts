@@ -26,6 +26,14 @@ export const ANCHORS = {
     gail: {
       name: 'Gail Miller',
     },
+    // Read-only: a minor shared between two households (LRA-210, e.g.
+    // shared custody). Home household is "Jones Family"; also linked to
+    // "Jones Second Home".
+    dylan: {
+      name: 'Dylan Jones',
+      homeHouseholdName: 'Jones Family',
+      sharedHouseholdName: 'Jones Second Home',
+    },
   },
   inventory: {
     // A seeded facility code (stock + purchase-order flows target it).

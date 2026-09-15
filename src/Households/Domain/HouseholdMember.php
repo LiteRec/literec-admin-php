@@ -8,6 +8,7 @@ use App\Households\Domain\ValueObject\DateOfBirth;
 use App\Households\Domain\ValueObject\Deactivation;
 use App\Households\Domain\ValueObject\Gender;
 use App\Households\Domain\ValueObject\Height;
+use App\Households\Domain\ValueObject\HouseholdId;
 use App\Households\Domain\ValueObject\ImageFormat;
 use App\Households\Domain\ValueObject\MemberCode;
 use App\Households\Domain\ValueObject\MemberId;
@@ -20,6 +21,8 @@ use App\Households\Domain\ValueObject\Weight;
 use App\Shared\Domain\ValueObject\EmailAddress;
 use App\Shared\Domain\ValueObject\PhoneNumber;
 use DateTimeImmutable;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 
 /**
  * Child entity owned by the {@see Household} aggregate.
@@ -51,6 +54,16 @@ final class HouseholdMember
     private ?string $photoStorageKey;
     private ?ImageFormat $photoFormat;
     private ?DateTimeImmutable $photoUploadedAt;
+    /**
+     * Households this (necessarily minor) member has been shared with
+     * (LRA-210), in addition to this — their home — household. Held as a
+     * Doctrine-compatible {@see Collection} for the same reason
+     * {@see Household::$members} is: the persistence adapter maps this via
+     * a one-to-many association.
+     *
+     * @var Collection<int, HouseholdAffiliation>
+     */
+    private Collection $affiliations;
     /**
      * Back-reference to the owning {@see Household}. Required by the
      * Doctrine persistence mapping (many-to-one inverse) so that adding a
@@ -103,6 +116,7 @@ final class HouseholdMember
         $this->photoStorageKey = null;
         $this->photoFormat = null;
         $this->photoUploadedAt = null;
+        $this->affiliations = new ArrayCollection();
     }
 
     public function id(): MemberId
@@ -344,5 +358,68 @@ final class HouseholdMember
             );
         }
         $this->household = $household;
+    }
+
+    /**
+     * @return list<HouseholdId>
+     */
+    public function sharedHouseholdIds(): array
+    {
+        return array_values(array_map(
+            static fn(HouseholdAffiliation $a): HouseholdId => $a->householdId(),
+            $this->affiliations->toArray(),
+        ));
+    }
+
+    public function isSharedWith(HouseholdId $householdId): bool
+    {
+        foreach ($this->affiliations as $affiliation) {
+            if ($affiliation->householdId()->equals($householdId)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * The timestamp the member was shared with $householdId, or null when
+     * not currently shared with it. Materialized from the affiliations
+     * collection the same way {@see self::deactivation()} projects
+     * {@see Deactivation} — a read of already-validated state.
+     */
+    public function linkedAtFor(HouseholdId $householdId): ?DateTimeImmutable
+    {
+        foreach ($this->affiliations as $affiliation) {
+            if ($affiliation->householdId()->equals($householdId)) {
+                return $affiliation->linkedAt();
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @internal Mutation must be triggered via {@see Household} aggregate.
+     */
+    public function shareWith(HouseholdId $householdId, DateTimeImmutable $at): void
+    {
+        $this->affiliations->add(new HouseholdAffiliation($this, $householdId, $at));
+    }
+
+    /**
+     * @internal Mutation must be triggered via {@see Household} aggregate.
+     *           No-op when the member is not currently shared with
+     *           $householdId.
+     */
+    public function withdrawFrom(HouseholdId $householdId): void
+    {
+        foreach ($this->affiliations as $affiliation) {
+            if ($affiliation->householdId()->equals($householdId)) {
+                $this->affiliations->removeElement($affiliation);
+
+                return;
+            }
+        }
     }
 }

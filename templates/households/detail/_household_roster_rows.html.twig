@@ -60,6 +60,9 @@
                 {% if m.isMerged %}
                     {% include 'components/_badge.html.twig' with { label: 'Merged', variant: 'neutral', class: 'ml-1' } only %}
                 {% endif %}
+                {% if m.isShared %}
+                    {% include 'components/_badge.html.twig' with { label: 'Shared', variant: 'info', testid: 'badge-shared', class: 'ml-1' } only %}
+                {% endif %}
             </td>
         </tr>
     {% endfor %}

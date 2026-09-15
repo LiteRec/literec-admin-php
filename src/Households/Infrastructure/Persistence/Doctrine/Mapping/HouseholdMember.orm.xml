@@ -69,6 +69,13 @@
             <join-column name="household_id" referenced-column-name="id" nullable="false" on-delete="CASCADE"/>
         </many-to-one>
 
+        <one-to-many field="affiliations" target-entity="App\Households\Domain\HouseholdAffiliation" mapped-by="member" orphan-removal="true" fetch="EAGER">
+            <cascade>
+                <cascade-persist/>
+                <cascade-remove/>
+            </cascade>
+        </one-to-many>
+
     </entity>
 
 </doctrine-mapping>

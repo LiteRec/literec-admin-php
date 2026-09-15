@@ -10,6 +10,7 @@ use DateTimeImmutable;
 use PHPUnit\Framework\Attributes\Small;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\TestDox;
+use PHPUnit\Framework\Attributes\TestWith;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Clock\MockClock;
 
@@ -116,5 +117,20 @@ final class DateOfBirthTest extends TestCase
 
         self::assertTrue($a->equals($b));
         self::assertFalse($a->equals($c));
+    }
+
+    #[Test]
+    #[TestWith(['2008-09-15', '2026-09-14', true], 'day before 18th birthday: still a minor')]
+    #[TestWith(['2008-09-15', '2026-09-15', false], 'on the 18th birthday: no longer a minor')]
+    #[TestWith(['2008-09-15', '2026-09-16', false], 'day after 18th birthday: no longer a minor')]
+    #[TestWith(['2008-02-29', '2026-02-28', true], 'leap-day birthday, day before non-leap anniversary: still a minor')]
+    #[TestWith(['2008-02-29', '2026-03-01', false], 'leap-day birthday, non-leap anniversary + 1 day: no longer minor')]
+    #[TestWith(['2020-01-01', '2026-01-01', true], 'well under 18: a minor')]
+    #[TestDox('isMinorOn() is birthday-aware, including leap-day birthdays.')]
+    public function is_minor_on_is_birthday_aware(string $dobIso, string $onIso, bool $expectedIsMinor): void
+    {
+        $dob = DateOfBirth::fromString($dobIso);
+
+        self::assertSame($expectedIsMinor, $dob->isMinorOn(new DateTimeImmutable($onIso)));
     }
 }

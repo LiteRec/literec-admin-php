@@ -37,18 +37,51 @@
                         {{ detail.household.memberCount }} member{{ detail.household.memberCount == 1 ? '' : 's' }}
                     </p>
                 </div>
-                <button
-                    type="button"
-                    data-testid="add-member"
-                    hx-get="{{ path('households_member_new_form', { householdId: detail.household.householdId }) }}"
-                    hx-target="body"
-                    hx-swap="beforeend"
-                    aria-haspopup="dialog"
-                    class="lr-btn lr-btn-primary"
-                >
-                    Add Member
-                </button>
+                <div class="flex flex-wrap items-center gap-2">
+                    {# Link Shared Member (LRA-210): reuses the global member
+                       lookup dialog (embedded once by app.html.twig) and, on
+                       selection, POSTs directly to household_member_link —
+                       unlike the merge flow there is no confirm step. #}
+                    <button
+                        type="button"
+                        data-testid="link-shared-member"
+                        aria-haspopup="dialog"
+                        class="lr-btn lr-btn-secondary"
+                        onclick="window.openMemberLookup({
+                            onSelected: function (payload) {
+                                var linkUrl = '{{ path('household_member_link', { householdId: detail.household.householdId }) }}';
+                                window.htmx.ajax('POST', linkUrl, {
+                                    target: '#household-link-error',
+                                    swap: 'outerHTML',
+                                    values: {
+                                        'link_minor_to_household[memberId]': payload.memberId,
+                                        'link_minor_to_household[_token]': '{{ csrf_token('link_minor_to_household') }}'
+                                    }
+                                });
+                            }
+                        })"
+                    >
+                        Link Shared Member
+                    </button>
+                    <button
+                        type="button"
+                        data-testid="add-member"
+                        hx-get="{{ path('households_member_new_form', { householdId: detail.household.householdId }) }}"
+                        hx-target="body"
+                        hx-swap="beforeend"
+                        aria-haspopup="dialog"
+                        class="lr-btn lr-btn-primary"
+                    >
+                        Add Member
+                    </button>
+                </div>
             </div>
+
+            {# Populated (and swapped in non-empty) by HouseholdLinkController
+               on a 422 link/unlink failure; see
+               households/detail/_household_link_error.html.twig. Empty on
+               initial render. #}
+            <div id="household-link-error" data-testid="household-link-error" role="alert" class="sr-only"></div>
 
             <div class="overflow-x-auto">
                 <table class="lr-table">

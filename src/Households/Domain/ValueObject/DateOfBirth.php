@@ -79,4 +79,15 @@ final readonly class DateOfBirth
     {
         return $this->value == $other->value;
     }
+
+    /**
+     * True when the member is strictly under 18 years old on $on — birthday
+     * aware (uses elapsed calendar years via {@see DateTimeImmutable::diff()},
+     * not 365-day arithmetic), so leap-day birthdays resolve the same way a
+     * calendar does.
+     */
+    public function isMinorOn(DateTimeImmutable $on): bool
+    {
+        return $this->value->diff($on)->y < 18;
+    }
 }
