@@ -67,6 +67,8 @@ services:
             - '../src/Households/Application/Command/DeactivateMember.php'
             - '../src/Households/Application/Command/AttachMemberPhoto.php'
             - '../src/Households/Application/Command/RemoveMemberPhoto.php'
+            - '../src/Households/Application/Command/MergeMembers.php'
+            - '../src/Households/Integration/'
             - '../src/Households/Application/Query/Port/'
             - '../src/Households/Application/Query/SearchMembers.php'
             - '../src/Households/Application/Query/GetMemberDetail.php'
@@ -248,6 +250,15 @@ services:
     # is autowired by interface and resolves to the local-filesystem
     # adapter via the binding above (or the in-memory test binding).
     App\Households\Infrastructure\Http\Controller\MemberPhotoController:
+        arguments:
+            $queryBus: '@query.bus'
+            $commandBus: '@command.bus'
+        tags: ['controller.service_arguments']
+
+    # LRA-208: wire the MergeMembersController onto both buses (query for
+    # the confirm dialog's side-by-side GetMemberDetail lookups, command
+    # for MergeMembers).
+    App\Households\Infrastructure\Http\Controller\MergeMembersController:
         arguments:
             $queryBus: '@query.bus'
             $commandBus: '@command.bus'

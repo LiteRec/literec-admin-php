@@ -11,6 +11,7 @@ use App\Households\Domain\ValueObject\Height;
 use App\Households\Domain\ValueObject\ImageFormat;
 use App\Households\Domain\ValueObject\MemberCode;
 use App\Households\Domain\ValueObject\MemberId;
+use App\Households\Domain\ValueObject\MemberMerge;
 use App\Households\Domain\ValueObject\PersonName;
 use App\Households\Domain\ValueObject\ProfilePhoto;
 use App\Households\Domain\ValueObject\ResidencyStatus;
@@ -45,6 +46,8 @@ final class HouseholdMember
     private bool $isActive;
     private ?string $deactivatedReason;
     private ?DateTimeImmutable $deactivatedAt;
+    private ?MemberId $mergedIntoMemberId;
+    private ?DateTimeImmutable $mergedAt;
     private ?string $photoStorageKey;
     private ?ImageFormat $photoFormat;
     private ?DateTimeImmutable $photoUploadedAt;
@@ -92,6 +95,8 @@ final class HouseholdMember
         $this->isActive = true;
         $this->deactivatedReason = null;
         $this->deactivatedAt = null;
+        $this->mergedIntoMemberId = null;
+        $this->mergedAt = null;
         $this->salutation = $salutation;
         $this->height = $height;
         $this->weight = $weight;
@@ -177,6 +182,25 @@ final class HouseholdMember
         }
 
         return new Deactivation($this->deactivatedReason, $this->deactivatedAt);
+    }
+
+    public function isMerged(): bool
+    {
+        return $this->mergedIntoMemberId !== null;
+    }
+
+    /**
+     * The merge record (survivor id + timestamp), or null while the member
+     * has not been merged. Materialized from the persisted scalar fields the
+     * same way {@see self::deactivation()} projects {@see Deactivation}.
+     */
+    public function merge(): ?MemberMerge
+    {
+        if ($this->mergedIntoMemberId === null || $this->mergedAt === null) {
+            return null;
+        }
+
+        return new MemberMerge($this->mergedIntoMemberId, $this->mergedAt);
     }
 
     /**
@@ -270,6 +294,15 @@ final class HouseholdMember
         $this->isActive = true;
         $this->deactivatedReason = null;
         $this->deactivatedAt = null;
+    }
+
+    /**
+     * @internal Mutation must be triggered via {@see Household} aggregate.
+     */
+    public function markMergedInto(MemberId $survivorId, DateTimeImmutable $at): void
+    {
+        $this->mergedIntoMemberId = $survivorId;
+        $this->mergedAt = $at;
     }
 
     /**

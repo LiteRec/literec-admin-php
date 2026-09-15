@@ -35,9 +35,10 @@ use Doctrine\DBAL\Types\Type;
  * the write side ({@see \App\Households\Infrastructure\Persistence\Doctrine\DoctrineHouseholds})
  * persists into; CQRS-lite.
  *
- * The orgName, gateway, includeMerged, and recentOnly criteria fields
- * are accepted but ignored — the backing columns do not yet exist (see
- * {@see SearchMembersCriteria} for context).
+ * The orgName, gateway, and recentOnly criteria fields are accepted but
+ * ignored — the backing columns do not yet exist (see
+ * {@see SearchMembersCriteria} for context). includeMerged (LRA-208) is
+ * honoured via {@see self::buildWhere()} and {@see self::segmentCounts()}.
  */
 final class DoctrineMemberReadModel implements MemberReadModel
 {
@@ -53,6 +54,8 @@ final class DoctrineMemberReadModel implements MemberReadModel
     private const string COL_LIST_ITEM_EXTRA = 'm.email, h.name AS household_name, ';
 
     private const string COL_PHOTO = 'm.photo_storage_key, ';
+
+    private const string COL_MERGED = 'm.merged_into_member_id, ';
 
     private const string FROM_MEMBERS = 'FROM household_members m ';
 
@@ -77,6 +80,7 @@ final class DoctrineMemberReadModel implements MemberReadModel
             . self::COL_MEMBER_CORE
             . self::COL_LIST_ITEM_EXTRA
             . self::COL_PHOTO
+            . self::COL_MERGED
             . 'm.last_name, m.suffix, m.date_of_birth, m.phone, m.residency_status, '
             . 'm.is_primary, m.is_active, '
             . 'h.street, h.city, h.state '
@@ -116,10 +120,12 @@ final class DoctrineMemberReadModel implements MemberReadModel
             . 'm.residency_status, m.is_primary, m.is_active, '
             . 'm.deactivated_reason, m.deactivated_at, '
             . 'm.photo_storage_key, m.photo_format, '
+            . 'm.merged_into_member_id, m.merged_at, s.household_id AS merged_into_household_id, '
             . 'h.name AS household_name, '
             . 'h.street, h.unit, h.city, h.state, h.postal_code, h.country '
             . self::FROM_MEMBERS
             . 'INNER JOIN households h ON h.id = m.household_id '
+            . 'LEFT JOIN household_members s ON s.id = m.merged_into_member_id '
             . 'WHERE m.household_id = :household_id AND m.id = :member_id';
 
         $row = $this->connection->fetchAssociative($sql, [
@@ -186,6 +192,7 @@ final class DoctrineMemberReadModel implements MemberReadModel
             . self::COL_MEMBER_CORE
             . self::COL_LIST_ITEM_EXTRA
             . self::COL_PHOTO
+            . self::COL_MERGED
             . 'm.last_name, m.suffix, m.date_of_birth, m.phone, m.residency_status, '
             . 'm.is_primary, m.is_active, '
             . 'h.street, h.city, h.state '
@@ -229,6 +236,10 @@ final class DoctrineMemberReadModel implements MemberReadModel
             $clauses[] = 'm.is_active = :is_active';
             $params['is_active'] = true;
             $types['is_active'] = ParameterType::BOOLEAN;
+        }
+
+        if (!$c->includeMerged) {
+            $clauses[] = 'm.merged_into_member_id IS NULL';
         }
 
         if ($c->segment === MembersSegment::Residents) {
@@ -275,7 +286,7 @@ final class DoctrineMemberReadModel implements MemberReadModel
             $params['phone'] = '%' . strtolower($c->phone) . '%';
         }
 
-        // receipt, orgName, gateway, includeMerged, recentOnly:
+        // receipt, orgName, gateway, recentOnly:
         // no backing columns yet — see SearchMembersCriteria docblock.
 
         $whereSql = $clauses === [] ? '' : ' WHERE ' . implode(' AND ', $clauses);
@@ -329,7 +340,7 @@ final class DoctrineMemberReadModel implements MemberReadModel
             . 'THEN 1 ELSE 0 END) AS non_residents_count, '
             . 'SUM(CASE WHEN NOT m.is_active THEN 1 ELSE 0 END) AS inactive_count '
             . 'FROM household_members m INNER JOIN households h ON h.id = m.household_id '
-            . 'WHERE 1 = 1%s',
+            . 'WHERE m.merged_into_member_id IS NULL%s',
             $qClause,
         );
 
@@ -381,6 +392,7 @@ final class DoctrineMemberReadModel implements MemberReadModel
             $this->rowBool($row, 'is_primary'),
             $this->rowBool($row, 'is_active'),
             $this->photoVersion($this->rowNullableString($row, 'photo_storage_key')),
+            $this->rowNullableString($row, 'merged_into_member_id') !== null,
         );
     }
 
@@ -436,6 +448,9 @@ final class DoctrineMemberReadModel implements MemberReadModel
             $this->normalizeDateTime($row['deactivated_at'] ?? null),
             $this->photoVersion($this->rowNullableString($row, 'photo_storage_key')),
             $this->rowNullableString($row, 'photo_format'),
+            $this->rowNullableString($row, 'merged_into_member_id'),
+            $this->rowNullableString($row, 'merged_into_household_id'),
+            $this->normalizeDateTime($row['merged_at'] ?? null),
         );
     }
 

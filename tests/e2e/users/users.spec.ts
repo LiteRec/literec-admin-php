@@ -388,6 +388,60 @@ test.describe('create and edit', () => {
   });
 });
 
+test.describe('merge members', () => {
+  test('merges a duplicate into the survivor via the Member Lookup dialog', async ({ page }) => {
+    const survivorLastName = `MergeSurvivor${RUN}`;
+    const duplicateLastName = `MergeDup${RUN}`;
+
+    await createHousehold(page, 'Sam', survivorLastName);
+    await expect(page.getByTestId('member-header')).toContainText(`Sam ${survivorLastName}`);
+    const survivorUrl = page.url();
+
+    await createHousehold(page, 'Dana', duplicateLastName);
+    await expect(page.getByTestId('member-header')).toContainText(`Dana ${duplicateLastName}`);
+
+    await page.goto(survivorUrl);
+    await page.getByTestId('merge-member').click();
+
+    const lookupDialog = page.locator('#member-lookup-modal');
+    await expect(lookupDialog).toBeVisible();
+    await page.getByTestId('member-lookup-input-lastName').fill(duplicateLastName);
+    await page
+      .locator('[data-testid^="member-lookup-row-"]', { hasText: `Dana ${duplicateLastName}` })
+      .click();
+
+    const confirmDialog = page.locator('#merge-confirm-modal');
+    await expect(confirmDialog).toBeVisible();
+    await expect(page.getByTestId('merge-survivor-summary')).toContainText(`Sam ${survivorLastName}`);
+    await expect(page.getByTestId('merge-duplicate-summary')).toContainText(`Dana ${duplicateLastName}`);
+
+    await confirmDialog.getByLabel(/understand this merge cannot be undone/i).check();
+    await page.getByTestId('merge-confirm-submit').click();
+
+    // Success redirects (full reload) back to the survivor.
+    await expect(page).toHaveURL(survivorUrl);
+    await expect(page.getByTestId('member-header')).toContainText(`Sam ${survivorLastName}`);
+
+    // The duplicate's own detail page is read-only with a merged banner.
+    await page.goto('/admin/users?q=' + encodeURIComponent(duplicateLastName) + '&includeMerged=1');
+    await page
+      .locator('[data-testid^="member-row-"]', { hasText: `Dana ${duplicateLastName}` })
+      .first()
+      .click();
+    await expect(page.getByTestId('merged-banner')).toBeVisible();
+
+    // The Users list hides the duplicate by default and shows it with "Include merged".
+    await page.goto('/admin/users?q=' + encodeURIComponent(duplicateLastName));
+    await expect(page.getByTestId('members-table')).toBeVisible();
+    await expect(page.locator('[data-testid^="member-row-"]')).toHaveCount(0);
+
+    await page.goto('/admin/users?q=' + encodeURIComponent(duplicateLastName) + '&includeMerged=1');
+    await expect(
+      page.locator('[data-testid^="member-row-"]', { hasText: `Dana ${duplicateLastName}` }),
+    ).toBeVisible();
+  });
+});
+
 test.describe('member lookup results', () => {
   // LRA-194: the avatar-initial span must be aria-hidden so it does not leak
   // into the result row's accessible name — the name must start with the

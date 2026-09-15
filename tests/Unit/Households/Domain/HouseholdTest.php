@@ -9,6 +9,7 @@ use App\Households\Domain\Event\HouseholdRegistered;
 use App\Households\Domain\Event\MemberAddedToHousehold;
 use App\Households\Domain\Event\MemberContactUpdated;
 use App\Households\Domain\Event\MemberDeactivated;
+use App\Households\Domain\Event\MemberMergedInto;
 use App\Households\Domain\Event\MemberPhotoAttached;
 use App\Households\Domain\Event\MemberPhotoReleased;
 use App\Households\Domain\Event\MemberPhotoRemoved;
@@ -16,8 +17,10 @@ use App\Households\Domain\Event\MemberProfileUpdated;
 use App\Households\Domain\Event\MemberReactivated;
 use App\Households\Domain\Event\MemberRemovedFromHousehold;
 use App\Households\Domain\Event\MemberResidencyChanged;
+use App\Households\Domain\Exception\CannotMergeMemberIntoItself;
 use App\Households\Domain\Exception\DuplicateMemberCode;
 use App\Households\Domain\Exception\DuplicateMemberId;
+use App\Households\Domain\Exception\MemberAlreadyMerged;
 use App\Households\Domain\Exception\MemberNotFound;
 use App\Households\Domain\Household;
 use App\Households\Domain\ValueObject\Address;
@@ -37,6 +40,8 @@ use App\Households\Domain\ValueObject\ResidencyStatus;
 use App\Households\Domain\ValueObject\Salutation;
 use App\Households\Domain\ValueObject\Weight;
 use DateTimeImmutable;
+use Generator;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Small;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\TestDox;
@@ -334,6 +339,195 @@ final class HouseholdTest extends TestCase
         $events = $household->releaseEvents();
         self::assertCount(1, $events);
         self::assertInstanceOf(MemberReactivated::class, $events[0]);
+    }
+
+    #[Test]
+    #[TestDox('::mergeMemberInto() records MemberMergedInto carrying the duplicate\'s contact and marks it merged.')]
+    public function merge_member_into_records_event_with_contact(): void
+    {
+        $household = $this->register();
+        $household->releaseEvents();
+        $duplicateId = MemberId::fromString(self::PRIMARY_MEMBER_ID);
+        $survivorHouseholdId = HouseholdId::fromString('019571bf-5d51-7000-b500-000000000099');
+        $survivorId = MemberId::fromString('019571bf-5d51-7000-b500-000000000098');
+
+        $household->mergeMemberInto($duplicateId, $survivorHouseholdId, $survivorId, $this->clock);
+
+        $events = $household->releaseEvents();
+        self::assertCount(1, $events);
+        self::assertInstanceOf(MemberMergedInto::class, $events[0]);
+        self::assertTrue($events[0]->householdId->equals(HouseholdId::fromString(self::HOUSEHOLD_ID)));
+        self::assertTrue($events[0]->memberId->equals($duplicateId));
+        self::assertTrue($events[0]->survivorHouseholdId->equals($survivorHouseholdId));
+        self::assertTrue($events[0]->survivorMemberId->equals($survivorId));
+        self::assertNotNull($events[0]->email);
+        self::assertTrue($events[0]->email->equals(EmailAddress::of('alice@example.com')));
+        self::assertNotNull($events[0]->phone);
+        self::assertTrue($events[0]->phone->equals(PhoneNumber::of('5550001')));
+        self::assertEquals($this->clock->now(), $events[0]->occurredAt);
+
+        $merged = $this->memberById($household, $duplicateId);
+        self::assertTrue($merged->isMerged());
+        $merge = $merged->merge();
+        self::assertNotNull($merge);
+        self::assertTrue($merge->intoMemberId->equals($survivorId));
+    }
+
+    #[Test]
+    #[TestDox('::mergeMemberInto() throws CannotMergeMemberIntoItself when the duplicate and survivor ids match.')]
+    public function merge_member_into_rejects_self_merge(): void
+    {
+        $household = $this->register();
+        $memberId = MemberId::fromString(self::PRIMARY_MEMBER_ID);
+
+        $this->expectException(CannotMergeMemberIntoItself::class);
+
+        $household->mergeMemberInto($memberId, HouseholdId::fromString(self::HOUSEHOLD_ID), $memberId, $this->clock);
+    }
+
+    #[Test]
+    #[TestDox('::mergeMemberInto() throws MemberAlreadyMerged when the duplicate is already merged.')]
+    public function merge_member_into_rejects_already_merged_duplicate(): void
+    {
+        $household = $this->register();
+        $duplicateId = MemberId::fromString(self::PRIMARY_MEMBER_ID);
+        $survivorId = MemberId::fromString('019571bf-5d51-7000-b500-000000000098');
+        $household->mergeMemberInto(
+            $duplicateId,
+            HouseholdId::fromString('019571bf-5d51-7000-b500-000000000099'),
+            $survivorId,
+            $this->clock,
+        );
+        $household->releaseEvents();
+
+        $this->expectException(MemberAlreadyMerged::class);
+
+        $household->mergeMemberInto(
+            $duplicateId,
+            HouseholdId::fromString('019571bf-5d51-7000-b500-000000000099'),
+            $survivorId,
+            $this->clock,
+        );
+    }
+
+    /**
+     * @return Generator<string, array{mutate: callable(Household, MemberId, MockClock): void}>
+     */
+    public static function mergedMemberMutatorCases(): Generator
+    {
+        yield 'updateMemberProfile' => ['mutate' => static function (
+            Household $h,
+            MemberId $id,
+            MockClock $clock,
+        ): void {
+            $h->updateMemberProfile(
+                $id,
+                PersonName::of('Changed', 'Name'),
+                DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $clock),
+                Gender::Male,
+                $clock,
+            );
+        }];
+        yield 'updateMemberContact' => ['mutate' => static function (
+            Household $h,
+            MemberId $id,
+            MockClock $clock,
+        ): void {
+            $h->updateMemberContact($id, EmailAddress::of('new@example.com'), null, $clock);
+        }];
+        yield 'setResidencyStatus' => ['mutate' => static function (
+            Household $h,
+            MemberId $id,
+            MockClock $clock,
+        ): void {
+            $h->setResidencyStatus($id, ResidencyStatus::Member, $clock->now(), $clock);
+        }];
+        yield 'deactivateMember' => ['mutate' => static function (Household $h, MemberId $id, MockClock $clock): void {
+            $h->deactivateMember($id, 'reason', $clock);
+        }];
+        yield 'reactivateMember' => ['mutate' => static function (Household $h, MemberId $id, MockClock $clock): void {
+            $h->reactivateMember($id, $clock);
+        }];
+    }
+
+    #[Test]
+    #[DataProvider('mergedMemberMutatorCases')]
+    #[TestDox('every other mutator throws MemberAlreadyMerged when the target member is merged.')]
+    public function mutators_throw_member_already_merged_on_merged_member(callable $mutate): void
+    {
+        $household = $this->register();
+        $memberId = MemberId::fromString(self::PRIMARY_MEMBER_ID);
+        $household->mergeMemberInto(
+            $memberId,
+            HouseholdId::fromString('019571bf-5d51-7000-b500-000000000099'),
+            MemberId::fromString('019571bf-5d51-7000-b500-000000000098'),
+            $this->clock,
+        );
+        $household->releaseEvents();
+
+        $this->expectException(MemberAlreadyMerged::class);
+
+        $mutate($household, $memberId, $this->clock);
+    }
+
+    #[Test]
+    #[TestDox('::fillMemberContactGaps() fills only blank email/phone and records MemberContactUpdated.')]
+    public function fill_member_contact_gaps_fills_only_blanks(): void
+    {
+        $household = $this->register();
+        $household->addMember(
+            MemberId::fromString(self::SECOND_MEMBER_ID),
+            MemberCode::of('M0002'),
+            PersonName::of('Bob', 'Smith'),
+            DateOfBirth::of(new DateTimeImmutable('1992-03-04'), $this->clock),
+            Gender::Male,
+            null,
+            null,
+            ResidencyStatus::Resident,
+            false,
+            $this->clock,
+        );
+        $household->releaseEvents();
+        $secondId = MemberId::fromString(self::SECOND_MEMBER_ID);
+
+        $household->fillMemberContactGaps(
+            $secondId,
+            EmailAddress::of('found@example.com'),
+            PhoneNumber::of('5559999'),
+            $this->clock,
+        );
+
+        $events = $household->releaseEvents();
+        self::assertCount(1, $events);
+        self::assertInstanceOf(MemberContactUpdated::class, $events[0]);
+        $second = $this->memberById($household, $secondId);
+        self::assertNotNull($second->email());
+        self::assertTrue($second->email()->equals(EmailAddress::of('found@example.com')));
+        self::assertNotNull($second->phone());
+        self::assertTrue($second->phone()->equals(PhoneNumber::of('5559999')));
+    }
+
+    #[Test]
+    #[TestDox('::fillMemberContactGaps() is silent when the survivor already has both fields populated.')]
+    public function fill_member_contact_gaps_is_silent_when_nothing_blank(): void
+    {
+        $household = $this->register();
+        $household->releaseEvents();
+        $primaryId = MemberId::fromString(self::PRIMARY_MEMBER_ID);
+
+        $household->fillMemberContactGaps(
+            $primaryId,
+            EmailAddress::of('duplicate@example.com'),
+            PhoneNumber::of('5551234'),
+            $this->clock,
+        );
+
+        self::assertSame([], $household->releaseEvents());
+        $primary = $this->memberById($household, $primaryId);
+        self::assertNotNull($primary->email());
+        self::assertTrue($primary->email()->equals(EmailAddress::of('alice@example.com')));
+        self::assertNotNull($primary->phone());
+        self::assertTrue($primary->phone()->equals(PhoneNumber::of('5550001')));
     }
 
     #[Test]

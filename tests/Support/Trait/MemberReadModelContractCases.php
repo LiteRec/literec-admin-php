@@ -173,6 +173,106 @@ trait MemberReadModelContractCases
     }
 
     #[Test]
+    #[TestDox('search(): includeMerged = false (default) hides merged members.')]
+    public function search_excludes_merged_members_by_default(): void
+    {
+        $household = $this->buildHouseholdA();
+        $household->mergeMemberInto(
+            MemberId::fromString(self::A_SECOND_ID),
+            HouseholdId::fromString(self::HOUSEHOLD_A),
+            MemberId::fromString(self::A_PRIMARY_ID),
+            $this->clock(),
+        );
+        $this->seedHouseholds([$household]);
+
+        $page = $this->readModel()->search(new SearchMembersCriteria());
+
+        self::assertSame(2, $page->totalItems);
+        $codes = array_map(static fn($item): string => $item->memberCode, $page->items);
+        self::assertNotContains(self::A_SECOND_CODE, $codes);
+    }
+
+    #[Test]
+    #[TestDox('search(): includeMerged = true includes merged members, flagged isMerged.')]
+    public function search_includes_merged_members_when_requested(): void
+    {
+        $household = $this->buildHouseholdA();
+        $household->mergeMemberInto(
+            MemberId::fromString(self::A_SECOND_ID),
+            HouseholdId::fromString(self::HOUSEHOLD_A),
+            MemberId::fromString(self::A_PRIMARY_ID),
+            $this->clock(),
+        );
+        $this->seedHouseholds([$household]);
+
+        $page = $this->readModel()->search(new SearchMembersCriteria(includeMerged: true));
+
+        self::assertSame(3, $page->totalItems);
+        $merged = null;
+        foreach ($page->items as $item) {
+            if ($item->memberCode === self::A_SECOND_CODE) {
+                $merged = $item;
+                break;
+            }
+        }
+        self::assertNotNull($merged);
+        self::assertTrue($merged->isMerged);
+    }
+
+    #[Test]
+    #[TestDox('segmentCounts(): ignores merged members.')]
+    public function segment_counts_excludes_merged_members(): void
+    {
+        $household = $this->buildHouseholdA();
+        $household->mergeMemberInto(
+            MemberId::fromString(self::A_SECOND_ID),
+            HouseholdId::fromString(self::HOUSEHOLD_A),
+            MemberId::fromString(self::A_PRIMARY_ID),
+            $this->clock(),
+        );
+        $this->seedHouseholds([$household]);
+
+        $counts = $this->readModel()->segmentCounts(null);
+
+        // Alice + Eli are active and unmerged; Bob is merged and excluded.
+        self::assertSame(2, $counts->all);
+    }
+
+    #[Test]
+    #[TestDox('memberDetail(): projects the merge pointer for a merged member.')]
+    public function member_detail_projects_merge_pointer_for_merged_member(): void
+    {
+        $household = $this->buildHouseholdA();
+        $household->mergeMemberInto(
+            MemberId::fromString(self::A_SECOND_ID),
+            HouseholdId::fromString(self::HOUSEHOLD_A),
+            MemberId::fromString(self::A_PRIMARY_ID),
+            $this->clock(),
+        );
+        $this->seedHouseholds([$household]);
+
+        $detail = $this->readModel()->memberDetail(
+            HouseholdId::fromString(self::HOUSEHOLD_A),
+            MemberId::fromString(self::A_SECOND_ID),
+        );
+
+        self::assertSame(self::A_PRIMARY_ID, $detail->profile->mergedIntoMemberId);
+        self::assertSame(self::HOUSEHOLD_A, $detail->profile->mergedIntoHouseholdId);
+        self::assertNotNull($detail->profile->mergedAtIso);
+
+        // The merged member still appears in the household roster, flagged.
+        $rosterEntry = null;
+        foreach ($detail->householdMembers as $item) {
+            if ($item->memberId === self::A_SECOND_ID) {
+                $rosterEntry = $item;
+                break;
+            }
+        }
+        self::assertNotNull($rosterEntry);
+        self::assertTrue($rosterEntry->isMerged);
+    }
+
+    #[Test]
     #[TestDox('search(): pagination respects page + pageSize and returns the requested slice.')]
     public function search_paginates_results(): void
     {

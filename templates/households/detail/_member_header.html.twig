@@ -29,7 +29,9 @@
         </div>
     </div>
     <div class="flex flex-wrap items-center gap-2">
-        {% if detail.profile.isActive %}
+        {% if detail.profile.mergedIntoMemberId is not null %}
+            {% include 'components/_badge.html.twig' with { label: 'Merged', variant: 'neutral', testid: 'badge-merged' } only %}
+        {% elseif detail.profile.isActive %}
             {% include 'components/_badge.html.twig' with { label: 'Active', variant: 'success', testid: 'badge-active' } only %}
         {% else %}
             {% include 'components/_badge.html.twig' with { label: 'Deactivated', variant: 'neutral', testid: 'badge-deactivated' } only %}
@@ -45,5 +47,36 @@
             outline: true,
             testid: 'badge-residency',
         } only %}
+        {% if detail.profile.mergedIntoMemberId is null and detail.profile.isActive %}
+            <button
+                type="button"
+                data-testid="merge-member"
+                class="lr-btn lr-btn-secondary"
+                onclick="window.openMemberLookup({
+                    onSelected: function (payload) {
+                        var confirmUrl = '{{ path('member_merge_confirm_form', { householdId: detail.household.householdId, memberId: detail.profile.memberId }) }}';
+                        window.htmx.ajax('GET', confirmUrl + '?duplicateMemberId=' + encodeURIComponent(payload.memberId) + '&duplicateHouseholdId=' + encodeURIComponent(payload.householdId), { target: 'body', swap: 'beforeend' });
+                    }
+                })"
+            >
+                Merge duplicate into this member
+            </button>
+        {% endif %}
     </div>
 </header>
+
+{% if detail.profile.mergedIntoMemberId is not null %}
+    <div
+        data-testid="merged-banner"
+        class="mb-6 rounded-card border border-litrec-border bg-litrec-bg-muted p-3 text-sm text-litrec-text"
+    >
+        This record was merged into
+        <a
+            class="font-semibold text-litrec-primary hover:underline"
+            href="{{ path('member_detail', { householdId: detail.profile.mergedIntoHouseholdId, memberId: detail.profile.mergedIntoMemberId }) }}"
+        >this member</a>
+        {% if detail.profile.mergedAtIso is not null %}
+            on {{ detail.profile.mergedAtIso|date('M j, Y') }}
+        {% endif %}.
+    </div>
+{% endif %}

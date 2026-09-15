@@ -57,6 +57,9 @@
                 {% if not m.isActive %}
                     {% include 'components/_badge.html.twig' with { label: 'Deactivated', variant: 'neutral', class: 'ml-1' } only %}
                 {% endif %}
+                {% if m.isMerged %}
+                    {% include 'components/_badge.html.twig' with { label: 'Merged', variant: 'neutral', class: 'ml-1' } only %}
+                {% endif %}
             </td>
         </tr>
     {% endfor %}

@@ -9,6 +9,7 @@ use App\Households\Domain\Event\MemberAddedToHousehold;
 use App\Households\Domain\Event\HouseholdAddressUpdated;
 use App\Households\Domain\Event\MemberContactUpdated;
 use App\Households\Domain\Event\MemberDeactivated;
+use App\Households\Domain\Event\MemberMergedInto;
 use App\Households\Domain\Event\MemberPhotoAttached;
 use App\Households\Domain\Event\MemberPhotoReleased;
 use App\Households\Domain\Event\MemberPhotoRemoved;
@@ -16,8 +17,10 @@ use App\Households\Domain\Event\MemberProfileUpdated;
 use App\Households\Domain\Event\MemberReactivated;
 use App\Households\Domain\Event\MemberRemovedFromHousehold;
 use App\Households\Domain\Event\MemberResidencyChanged;
+use App\Households\Domain\Exception\CannotMergeMemberIntoItself;
 use App\Households\Domain\Exception\DuplicateMemberCode;
 use App\Households\Domain\Exception\DuplicateMemberId;
+use App\Households\Domain\Exception\MemberAlreadyMerged;
 use App\Households\Domain\Exception\MemberNotFound;
 use App\Households\Domain\ValueObject\Address;
 use App\Households\Domain\ValueObject\DateOfBirth;
@@ -257,6 +260,7 @@ final class Household
         ?Weight $weight = null,
     ): void {
         $member = $this->memberById($memberId);
+        $this->assertNotMerged($member);
 
         $heightChanged = !self::optionalEquals(
             $member->height(),
@@ -296,6 +300,7 @@ final class Household
         ClockInterface $clock,
     ): void {
         $member = $this->memberById($memberId);
+        $this->assertNotMerged($member);
 
         $currentEmail = $member->email();
         $currentPhone = $member->phone();
@@ -343,6 +348,7 @@ final class Household
         ?string $reason = null,
     ): void {
         $member = $this->memberById($memberId);
+        $this->assertNotMerged($member);
 
         if ($member->residencyStatus() === $status) {
             return;
@@ -365,6 +371,7 @@ final class Household
         ClockInterface $clock,
     ): void {
         $member = $this->memberById($memberId);
+        $this->assertNotMerged($member);
 
         if (!$member->isActive()) {
             return;
@@ -378,6 +385,7 @@ final class Household
     public function reactivateMember(MemberId $memberId, ClockInterface $clock): void
     {
         $member = $this->memberById($memberId);
+        $this->assertNotMerged($member);
 
         if ($member->isActive()) {
             return;
@@ -385,6 +393,73 @@ final class Household
 
         $member->reactivate();
         $this->recordThat(new MemberReactivated($this->id, $memberId, $clock->now()));
+    }
+
+    /**
+     * Merges the duplicate member identified by $duplicateId into the
+     * survivor member identified by $survivorId (owned by a possibly
+     * different {@see Household} aggregate, identified by
+     * $survivorHouseholdId) — LRA-208.
+     *
+     * Called on the duplicate's owning aggregate: $this must be the
+     * household that owns $duplicateId. The survivor-side invariant (the
+     * survivor exists and is not itself merged) is asserted separately by
+     * {@see MemberMergePolicy} against the survivor's aggregate before
+     * this method runs, since a single aggregate transaction cannot span
+     * two Household instances.
+     *
+     * @throws CannotMergeMemberIntoItself when $duplicateId equals $survivorId
+     * @throws MemberAlreadyMerged when the duplicate is already merged
+     * @throws MemberNotFound when $duplicateId does not belong to $this household
+     */
+    public function mergeMemberInto(
+        MemberId $duplicateId,
+        HouseholdId $survivorHouseholdId,
+        MemberId $survivorId,
+        ClockInterface $clock,
+    ): void {
+        if ($duplicateId->equals($survivorId)) {
+            throw CannotMergeMemberIntoItself::for($duplicateId);
+        }
+
+        $duplicate = $this->memberById($duplicateId);
+        $this->assertNotMerged($duplicate);
+
+        $now = $clock->now();
+        $duplicate->markMergedInto($survivorId, $now);
+
+        $this->recordThat(new MemberMergedInto(
+            $this->id,
+            $duplicateId,
+            $survivorHouseholdId,
+            $survivorId,
+            $duplicate->email(),
+            $duplicate->phone(),
+            $now,
+        ));
+    }
+
+    /**
+     * Fills the survivor's blank email/phone from the values carried on
+     * {@see MemberMergedInto} — the legacy merge's contact gap-fill
+     * (LRA-208). Delegates to {@see self::updateMemberContact()} so the
+     * existing {@see MemberContactUpdated} event is reused and a no-op
+     * (nothing blank, or nothing supplied) stays silent.
+     */
+    public function fillMemberContactGaps(
+        MemberId $memberId,
+        ?EmailAddress $email,
+        ?PhoneNumber $phone,
+        ClockInterface $clock,
+    ): void {
+        $member = $this->memberById($memberId);
+
+        $this->updateMemberContact(
+            $memberId,
+            $member->email() ?? $email,
+            $member->phone() ?? $phone,
+            $clock,
+        );
     }
 
     /**
@@ -434,6 +509,18 @@ final class Household
         }
 
         throw MemberNotFound::inHousehold($this->id, $id);
+    }
+
+    /**
+     * @throws MemberAlreadyMerged when $member has already been merged into
+     *                             a survivor — every mutator on a merged
+     *                             member is refused (LRA-208).
+     */
+    private function assertNotMerged(HouseholdMember $member): void
+    {
+        if ($member->isMerged()) {
+            throw MemberAlreadyMerged::for($member->id());
+        }
     }
 
     /**

@@ -32,6 +32,9 @@ final readonly class MemberProfileDto
         public ?string $deactivatedAtIso,
         public ?string $photoVersion,
         public ?string $photoMimeType,
+        public ?string $mergedIntoMemberId,
+        public ?string $mergedIntoHouseholdId,
+        public ?string $mergedAtIso,
     ) {
     }
 }

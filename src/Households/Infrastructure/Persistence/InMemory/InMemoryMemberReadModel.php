@@ -28,9 +28,10 @@ use App\Households\Domain\ValueObject\ResidencyStatus;
  * adapter returns from SQL, so domain/application unit tests can stay
  * #[Small] without booting Doctrine.
  *
- * The orgName, gateway, includeMerged, and recentOnly criteria fields
- * are accepted but ignored (see {@see SearchMembersCriteria} for the
- * rationale).
+ * The orgName, gateway, and recentOnly criteria fields are accepted but
+ * ignored (see {@see SearchMembersCriteria} for the rationale). includeMerged
+ * (LRA-208) is honoured: merged members are excluded by default from every
+ * result set (search, segmentCounts) and included only when set.
  */
 final class InMemoryMemberReadModel implements MemberReadModel
 {
@@ -99,6 +100,10 @@ final class InMemoryMemberReadModel implements MemberReadModel
 
         foreach ($this->households as $household) {
             foreach ($household->members() as $member) {
+                if ($member->isMerged()) {
+                    continue;
+                }
+
                 if ($q !== null && !$this->matchesQuery($member, $household, $q)) {
                     continue;
                 }
@@ -194,10 +199,11 @@ final class InMemoryMemberReadModel implements MemberReadModel
         };
 
         // Each criterion is satisfied when it is unset (null/false) or the
-        // member matches it. receipt, orgName, gateway, includeMerged and
-        // recentOnly have no backing data on the in-memory aggregate yet
-        // and are intentionally ignored.
-        return $activeMatches
+        // member matches it. receipt, orgName, gateway, and recentOnly
+        // have no backing data on the in-memory aggregate yet and are
+        // intentionally ignored.
+        return ($c->includeMerged || !$member->isMerged())
+            && $activeMatches
             && $segmentMatches
             && ($c->q === null || $this->matchesQuery($member, $household, $c->q))
             && (!$c->primaryOnly || $member->isPrimary())
@@ -250,6 +256,7 @@ final class InMemoryMemberReadModel implements MemberReadModel
             $member->isPrimary(),
             $member->isActive(),
             $member->photo()?->version(),
+            $member->isMerged(),
         );
     }
 
@@ -294,6 +301,7 @@ final class InMemoryMemberReadModel implements MemberReadModel
     {
         $deactivation = $member->deactivation();
         $photo = $member->photo();
+        $merge = $member->merge();
 
         return new MemberProfileDto(
             $member->id()->value,
@@ -317,7 +325,29 @@ final class InMemoryMemberReadModel implements MemberReadModel
             $deactivation?->at->format(\DateTimeInterface::ATOM),
             $photo?->version(),
             $photo?->format->value,
+            $merge?->intoMemberId->value,
+            $merge !== null ? $this->householdIdFor($merge->intoMemberId) : null,
+            $merge?->at->format(\DateTimeInterface::ATOM),
         );
+    }
+
+    /**
+     * Resolves the owning household id for a survivor member id, used to
+     * project {@see MemberProfileDto::$mergedIntoHouseholdId} on a merged
+     * member's profile. Mirrors the Doctrine adapter's LEFT JOIN against
+     * household_members for the same projection.
+     */
+    private function householdIdFor(MemberId $memberId): ?string
+    {
+        foreach ($this->households as $household) {
+            foreach ($household->members() as $candidate) {
+                if ($candidate->id()->equals($memberId)) {
+                    return $household->id()->value;
+                }
+            }
+        }
+
+        return null;
     }
 
     private function address(Household $household): MemberAddressDto

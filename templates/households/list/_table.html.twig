@@ -105,6 +105,9 @@
                                 ></span>
                                 {{ item.isActive ? 'Active' : 'Inactive' }}
                             </span>
+                            {% if item.isMerged %}
+                                {% include 'components/_badge.html.twig' with { label: 'Merged', variant: 'neutral', class: 'ml-1' } only %}
+                            {% endif %}
                         </td>
                         <td class="whitespace-nowrap text-right">
                             <div

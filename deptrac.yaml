@@ -28,6 +28,15 @@ deptrac:
           collectors:
               - type: directory
                 value: src/Households/Infrastructure/.*
+        - name: HouseholdsIntegration
+          collectors:
+              # Published-language DTOs other contexts subscribe to
+              # (LRA-208's MemberMerged). Same contract as
+              # CatalogIntegration / InventoryIntegration: pure DTOs, no
+              # framework or domain imports, so consumers can reference
+              # them without pulling Households internals.
+              - type: directory
+                value: src/Households/Integration/.*
         - name: CatalogPublishedLanguage
           collectors:
               # Narrow published-language subset of Catalog\Domain that
@@ -284,6 +293,7 @@ deptrac:
         HouseholdsInfrastructure:
             - HouseholdsDomain
             - HouseholdsApplication
+            - HouseholdsIntegration
             - SharedDomain
             - SymfonyMessenger
             - PsrClock
@@ -292,6 +302,7 @@ deptrac:
             - Symfony
             - Faker
             - SharedInfrastructure
+        HouseholdsIntegration: []
         # Catalog layers. CatalogDomain is framework-free and owns the
         # cross-cutting "sellable thing" concept (Listing aggregate, fees,
         # tax treatment, GL account). CatalogIntegration holds the
