@@ -155,6 +155,28 @@ final class SplitMemberControllerTest extends WebTestCase
     }
 
     #[Test]
+    #[TestDox('POST with a blank transactionIds entry returns 422 rather than 500.')]
+    public function post_blank_transaction_id_returns_422(): void
+    {
+        $client = static::createClient();
+        $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
+        $this->seedSource();
+
+        $crawler = $client->request('GET', $this->splitFormUrl(['txn-1']));
+        self::assertResponseIsSuccessful();
+
+        $form = $crawler->selectButton('Split off new member')->form([
+            'split_member[firstName]' => 'Bob',
+            'split_member[lastName]' => 'Smith',
+            'split_member[transactionIds][0]' => '',
+        ]);
+        $client->submit($form);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorExists('[data-testid="split-form-error"]');
+    }
+
+    #[Test]
     #[TestDox('POST for an unknown member returns 404.')]
     public function post_404s_for_unknown_member(): void
     {

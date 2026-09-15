@@ -10,6 +10,7 @@ use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Component\Validator\Constraints\NotBlank;
 
 /**
  * Symfony Form type backing the split-member dialog (LRA-209): the new
@@ -45,6 +46,7 @@ final class SplitMemberFormType extends AbstractType
             ])
             ->add('transactionIds', CollectionType::class, [
                 'entry_type' => HiddenType::class,
+                'entry_options' => ['constraints' => [new NotBlank()]],
                 'allow_add' => true,
                 'allow_delete' => false,
                 'prototype' => false,

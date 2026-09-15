@@ -53,49 +53,60 @@ async function createHousehold(page: Page, firstName: string, lastName: string):
   await submit.click();
 }
 
+const ENSURE_HISTORY_MAX_ATTEMPTS = 5;
+
 /**
  * The Transaction History stub (LRA-45) synthesises `crc32(memberId) % 26`
- * rows, so a freshly created member has a 1-in-26 chance of an empty
- * history. Expects the caller to already be on a member detail page;
- * expands the History card (which lazily loads the default Transactions
- * view) and, on the unlucky empty case, adds a second member via the Add
- * Member dialog and checks that one instead — so a split test never
- * depends on the odds coming up in its favour (LRA-209).
+ * rows, so a freshly created member has roughly a 1-in-26 chance of having
+ * fewer than `minRows` history rows. Expects the caller to already be on a
+ * member detail page; expands the History card (which lazily loads the
+ * default Transactions view) and, whenever the row count is short, adds a
+ * new sibling via the Add Member dialog and checks that one instead — so a
+ * test needing `minRows` rows never depends on the odds coming up in its
+ * favour on the first member id tried (LRA-209).
  */
-async function ensureMemberWithHistory(page: Page): Promise<void> {
+async function ensureMemberWithHistory(page: Page, minRows = 1): Promise<void> {
   await page.getByTestId('card-history').locator('summary').click();
-  // The pre-load shim and the HTMX-swapped content share the
-  // `card-history-body` testid, so waiting on that alone resolves against
-  // the shim before the lazy-load request completes. Wait for the actual
-  // loaded state (either the table or the empty-state paragraph) instead.
-  await page
-    .locator('[data-testid="history-empty-state"], [data-testid="history-table"]')
-    .first()
-    .waitFor();
+  await waitForHistoryLoaded(page);
 
-  if ((await page.getByTestId('history-empty-state').count()) === 0) {
-    return;
+  for (let attempt = 1; (await page.getByTestId('history-row').count()) < minRows; attempt++) {
+    if (attempt > ENSURE_HISTORY_MAX_ATTEMPTS) {
+      throw new Error(
+        `ensureMemberWithHistory: could not find a member with >= ${minRows} history rows ` +
+          `after ${ENSURE_HISTORY_MAX_ATTEMPTS} attempts.`,
+      );
+    }
+
+    await page.getByTestId('add-member').click();
+    const dialog = page.locator('#add-member-modal');
+    await expect(dialog).toBeVisible();
+
+    const suffix = `${Date.now()}-${attempt}`;
+    await dialog.getByLabel('First name').fill('Sibling');
+    await dialog.getByLabel('Last name').fill(`HasHistory${suffix}`);
+    await dialog.getByLabel('Date of birth').fill('2001-05-05');
+    await dialog.getByLabel('Gender').selectOption({ label: 'Unspecified' });
+    await dialog.getByLabel('Email').fill(`sibling.hashistory${suffix}@example.com`);
+    await dialog.getByLabel('Phone').fill('+1-555-0197');
+    await dialog.getByLabel('Residency status').selectOption({ label: 'Resident' });
+
+    const submit = page.getByTestId('add-member-submit');
+    await submit.scrollIntoViewIfNeeded();
+    await submit.click();
+
+    await expect(page.getByTestId('member-header')).toContainText('Sibling');
+    await page.getByTestId('card-history').locator('summary').click();
+    await waitForHistoryLoaded(page);
   }
+}
 
-  await page.getByTestId('add-member').click();
-  const dialog = page.locator('#add-member-modal');
-  await expect(dialog).toBeVisible();
-
-  const suffix = `${Date.now()}`;
-  await dialog.getByLabel('First name').fill('Sibling');
-  await dialog.getByLabel('Last name').fill(`HasHistory${suffix}`);
-  await dialog.getByLabel('Date of birth').fill('2001-05-05');
-  await dialog.getByLabel('Gender').selectOption({ label: 'Unspecified' });
-  await dialog.getByLabel('Email').fill(`sibling.hashistory${suffix}@example.com`);
-  await dialog.getByLabel('Phone').fill('+1-555-0197');
-  await dialog.getByLabel('Residency status').selectOption({ label: 'Resident' });
-
-  const submit = page.getByTestId('add-member-submit');
-  await submit.scrollIntoViewIfNeeded();
-  await submit.click();
-
-  await expect(page.getByTestId('member-header')).toContainText('Sibling');
-  await page.getByTestId('card-history').locator('summary').click();
+/**
+ * The pre-load shim and the HTMX-swapped content share the
+ * `card-history-body` testid, so waiting on that alone resolves against
+ * the shim before the lazy-load request completes. Wait for the actual
+ * loaded state (either the table or the empty-state paragraph) instead.
+ */
+async function waitForHistoryLoaded(page: Page): Promise<void> {
   await page
     .locator('[data-testid="history-empty-state"], [data-testid="history-table"]')
     .first()
@@ -498,7 +509,7 @@ test.describe('split members', () => {
     await createHousehold(page, 'Sam', lastName);
     await expect(page.getByTestId('member-header')).toContainText(`Sam ${lastName}`);
 
-    await ensureMemberWithHistory(page);
+    await ensureMemberWithHistory(page, 2);
     const sourceUrl = page.url();
     const sourceFirstName = (await page.getByTestId('profile-first-name').textContent())?.trim() ?? '';
     const sourceLastName = (await page.getByTestId('profile-last-name').textContent())?.trim() ?? '';
