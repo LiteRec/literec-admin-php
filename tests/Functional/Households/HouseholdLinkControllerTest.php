@@ -51,6 +51,8 @@ final class HouseholdLinkControllerTest extends WebTestCase
     private const string TARGET_PRIMARY_ID   = '019571bf-5d56-7000-b500-00000000ea05';
     private const string TARGET_PRIMARY_CODE = 'M000722';
 
+    private const string LINKED_HOUSEHOLDS_SELECTOR = '[data-testid="linked-households"]';
+
     private MockClock $clock;
 
     protected function setUp(): void
@@ -71,22 +73,22 @@ final class HouseholdLinkControllerTest extends WebTestCase
 
         self::assertResponseStatusCodeSame(200);
         self::assertSame(
-            sprintf('/admin/users/%s/%s', self::TARGET_HOUSEHOLD_ID, self::MINOR_ID),
+            $this->memberDetailPath(self::TARGET_HOUSEHOLD_ID, self::MINOR_ID),
             (string) $client->getResponse()->headers->get('HX-Redirect'),
         );
 
         // Reachable under the target household, roster flags it Shared.
-        $client->request('GET', sprintf('/admin/users/%s/%s', self::TARGET_HOUSEHOLD_ID, self::MINOR_ID));
+        $client->request('GET', $this->memberDetailPath(self::TARGET_HOUSEHOLD_ID, self::MINOR_ID));
         self::assertResponseIsSuccessful();
         self::assertSelectorExists(sprintf(
             '[data-testid="household-member-row-%s"] [data-testid="badge-shared"]',
             self::MINOR_ID,
         ));
-        self::assertSelectorTextContains('[data-testid="linked-households"]', 'Smith Family (Home)');
-        self::assertSelectorTextContains('[data-testid="linked-households"]', 'Jones Family');
+        self::assertSelectorTextContains(self::LINKED_HOUSEHOLDS_SELECTOR, 'Smith Family (Home)');
+        self::assertSelectorTextContains(self::LINKED_HOUSEHOLDS_SELECTOR, 'Jones Family');
 
         // Still reachable under the home household, unaffected.
-        $client->request('GET', sprintf('/admin/users/%s/%s', self::HOME_HOUSEHOLD_ID, self::MINOR_ID));
+        $client->request('GET', $this->memberDetailPath(self::HOME_HOUSEHOLD_ID, self::MINOR_ID));
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('[data-testid="member-header"]', 'Minor Smith');
     }
@@ -136,10 +138,7 @@ final class HouseholdLinkControllerTest extends WebTestCase
         $this->postLink($client, self::MINOR_ID);
         self::assertResponseStatusCodeSame(200);
 
-        $crawler = $client->request(
-            'GET',
-            sprintf('/admin/users/%s/%s', self::TARGET_HOUSEHOLD_ID, self::MINOR_ID),
-        );
+        $crawler = $client->request('GET', $this->memberDetailPath(self::TARGET_HOUSEHOLD_ID, self::MINOR_ID));
         self::assertResponseIsSuccessful();
         $token = $this->extractUnlinkToken($crawler, self::TARGET_HOUSEHOLD_ID);
 
@@ -151,28 +150,25 @@ final class HouseholdLinkControllerTest extends WebTestCase
 
         self::assertResponseStatusCodeSame(200);
         self::assertSame(
-            sprintf('/admin/users/%s/%s', self::HOME_HOUSEHOLD_ID, self::MINOR_ID),
+            $this->memberDetailPath(self::HOME_HOUSEHOLD_ID, self::MINOR_ID),
             (string) $client->getResponse()->headers->get('HX-Redirect'),
         );
 
         // Back on the home household's page, no linked-households list
         // (only the home entry remains, so the list does not render).
-        $client->request('GET', sprintf('/admin/users/%s/%s', self::HOME_HOUSEHOLD_ID, self::MINOR_ID));
+        $client->request('GET', $this->memberDetailPath(self::HOME_HOUSEHOLD_ID, self::MINOR_ID));
         self::assertResponseIsSuccessful();
-        self::assertSelectorNotExists('[data-testid="linked-households"]');
+        self::assertSelectorNotExists(self::LINKED_HOUSEHOLDS_SELECTOR);
 
         // The target household's roster no longer lists the child at all.
-        $client->request('GET', sprintf('/admin/users/%s/%s', self::TARGET_HOUSEHOLD_ID, self::TARGET_PRIMARY_ID));
+        $client->request('GET', $this->memberDetailPath(self::TARGET_HOUSEHOLD_ID, self::TARGET_PRIMARY_ID));
         self::assertResponseIsSuccessful();
         self::assertSelectorNotExists(sprintf('[data-testid="household-member-row-%s"]', self::MINOR_ID));
     }
 
     private function postLink(KernelBrowser $client, string $memberId): void
     {
-        $crawler = $client->request(
-            'GET',
-            sprintf('/admin/users/%s/%s', self::TARGET_HOUSEHOLD_ID, self::TARGET_PRIMARY_ID),
-        );
+        $crawler = $client->request('GET', $this->memberDetailPath(self::TARGET_HOUSEHOLD_ID, self::TARGET_PRIMARY_ID));
         self::assertResponseIsSuccessful();
         $token = $this->extractLinkToken($crawler);
 
@@ -181,6 +177,11 @@ final class HouseholdLinkControllerTest extends WebTestCase
             sprintf('/admin/users/%s/members/link', self::TARGET_HOUSEHOLD_ID),
             ['link_minor_to_household' => ['memberId' => $memberId, '_token' => $token]],
         );
+    }
+
+    private function memberDetailPath(string $householdId, string $memberId): string
+    {
+        return sprintf('/admin/users/%s/%s', $householdId, $memberId);
     }
 
     /**
