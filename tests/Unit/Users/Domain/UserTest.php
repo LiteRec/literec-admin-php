@@ -251,6 +251,40 @@ final class UserTest extends TestCase
     }
 
     #[Test]
+    #[TestDox('::issueOneTimePassword() records the issuance instant, readable via oneTimePasswordIssuedAt().')]
+    public function issue_one_time_password_records_the_issuance_instant(): void
+    {
+        $user = $this->register();
+
+        $user->issueOneTimePassword(HashedPassword::fromHash(self::SAMPLE_HASH), $this->clock);
+
+        self::assertEquals($this->clock->now(), $user->oneTimePasswordIssuedAt());
+    }
+
+    #[Test]
+    #[TestDox('::establishPassword() clears the recorded one-time-password issuance instant.')]
+    public function establish_password_clears_the_issuance_instant(): void
+    {
+        $user = $this->register();
+        $user->issueOneTimePassword(HashedPassword::fromHash(self::SAMPLE_HASH), $this->clock);
+        $user->consumeOneTimePassword($this->clock);
+
+        $newHash = '$2y$10$zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz0';
+        $user->establishPassword(HashedPassword::fromHash($newHash), $this->clock);
+
+        self::assertNull($user->oneTimePasswordIssuedAt());
+    }
+
+    #[Test]
+    #[TestDox('::register() starts with no one-time-password issuance recorded.')]
+    public function register_starts_with_no_issuance_instant(): void
+    {
+        $user = $this->register();
+
+        self::assertNull($user->oneTimePasswordIssuedAt());
+    }
+
+    #[Test]
     #[TestDox('::issueOneTimePassword() throws OneTimePasswordNotAllowed for an inactive user.')]
     public function issue_one_time_password_throws_for_inactive_user(): void
     {
