@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Functional\Users;
 
 use App\Tests\Support\Trait\IssuesOneTimePasswords;
+use App\Tests\Support\Trait\SignsInUsers;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Large;
 use PHPUnit\Framework\Attributes\Test;
@@ -29,6 +30,19 @@ use Symfony\Component\DomCrawler\Form;
 final class EstablishPasswordControllerTest extends WebTestCase
 {
     use IssuesOneTimePasswords;
+    use SignsInUsers;
+
+    #[Test]
+    #[TestDox('An Established account is redirected to the dashboard instead of seeing the form.')]
+    public function established_account_is_redirected_to_the_dashboard(): void
+    {
+        $client = static::createClient();
+        $this->signInUser($client, 'establish_gate_e2e', self::TEST_PASSWORD);
+
+        $client->request('GET', '/account/password');
+
+        self::assertResponseRedirects('/dashboard');
+    }
 
     #[Test]
     #[TestDox('Mismatched password fields return 422 with an inline error.')]
