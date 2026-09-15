@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<doctrine-mapping xmlns="http://doctrine-project.org/schemas/orm/doctrine-mapping"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping
+                                      https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
+
+    <!--
+        HouseholdAffiliation child entity (LRA-210), owned by
+        HouseholdMember. Derived composite identity: (member, householdId).
+        `member` is an association-key id (the many-to-one back to the
+        owning HouseholdMember row); `householdId` is the shared household's
+        id, stored with the same custom type as Household::$id.
+    -->
+    <entity name="App\Households\Domain\HouseholdAffiliation" table="household_member_affiliations">
+
+        <indexes>
+            <index name="IDX_household_member_affiliations_household" columns="household_id"/>
+        </indexes>
+
+        <id name="member" association-key="true"/>
+        <id name="householdId" type="households_household_id" column="household_id"/>
+
+        <field name="linkedAt" type="datetime_immutable" nullable="false" column="linked_at"/>
+
+        <many-to-one field="member" target-entity="App\Households\Domain\HouseholdMember" inversed-by="affiliations" fetch="LAZY">
+            <join-column name="member_id" referenced-column-name="id" nullable="false" on-delete="CASCADE"/>
+        </many-to-one>
+
+    </entity>
+
+</doctrine-mapping>

@@ -12,10 +12,12 @@
 <div id="contact-sub-card-body" data-testid="contact-sub-card-body" class="rounded-card-sm border border-litrec-border bg-litrec-surface p-4">
     <div class="mb-3 flex items-center justify-between">
         <h3 class="text-xs font-semibold uppercase tracking-wide text-litrec-text-muted">Contact</h3>
+        {# Routed through homeHouseholdId (LRA-210) — see the Profile
+           card's Edit button for the rationale. #}
         <button
             type="button"
             data-testid="contact-edit"
-            hx-get="{{ path('member_contact_edit_form', { householdId: detail.household.householdId, memberId: detail.profile.memberId }) }}"
+            hx-get="{{ path('member_contact_edit_form', { householdId: detail.homeHouseholdId, memberId: detail.profile.memberId }) }}"
             hx-target="#contact-sub-card-body"
             hx-swap="outerHTML"
             class="lr-btn lr-btn-secondary"

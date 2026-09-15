@@ -26,6 +26,38 @@
         <div>
             <h2 class="font-heading text-2xl font-bold text-litrec-text [font-synthesis-weight:none]">{{ detail.profile.fullName }}</h2>
             <p class="mt-1 text-sm text-litrec-text-muted">{{ detail.household.householdName }}</p>
+            {# Linked households (LRA-210): home first, then every household
+               this member has been shared with. Only rendered when a share
+               actually exists, so members with no links show nothing extra. #}
+            {% if detail.linkedHouseholds|length > 1 %}
+                <ul data-testid="linked-households" class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-litrec-text-muted">
+                    {% for linked in detail.linkedHouseholds %}
+                        <li class="flex items-center gap-1" data-testid="linked-household-{{ linked.householdId }}">
+                            <a
+                                class="{{ linked.isHome ? 'font-semibold text-litrec-text' : 'text-litrec-primary' }} hover:underline"
+                                href="{{ path('member_detail', { householdId: linked.householdId, memberId: detail.profile.memberId }) }}"
+                            >{{ linked.householdName }}{{ linked.isHome ? ' (Home)' : '' }}</a>
+                            {% if not linked.isHome %}
+                                <form
+                                    method="post"
+                                    action="{{ path('household_member_unlink', { householdId: linked.householdId, memberId: detail.profile.memberId }) }}"
+                                    hx-post="{{ path('household_member_unlink', { householdId: linked.householdId, memberId: detail.profile.memberId }) }}"
+                                    hx-target="#household-link-error"
+                                    hx-swap="outerHTML"
+                                    hx-confirm="Unlink {{ detail.profile.fullName }} from {{ linked.householdName }}?"
+                                >
+                                    <input type="hidden" name="withdraw_minor_from_household[_token]" value="{{ csrf_token('withdraw_minor_from_household') }}">
+                                    <button
+                                        type="submit"
+                                        data-testid="unlink-household-{{ linked.householdId }}"
+                                        class="lr-btn lr-btn-ghost"
+                                    >Unlink</button>
+                                </form>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
         </div>
     </div>
     <div class="flex flex-wrap items-center gap-2">

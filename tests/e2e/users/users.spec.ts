@@ -562,6 +562,71 @@ test.describe('split members', () => {
   });
 });
 
+test.describe('link shared minor (LRA-210)', () => {
+  test('links a minor to a second household via the Member Lookup dialog, then unlinks', async ({ page }) => {
+    const homeLastName = `LinkHome${RUN}`;
+    const targetLastName = `LinkTarget${RUN}`;
+    const minorEmail = `link.minor.${RUN}@example.com`.toLowerCase();
+
+    // Household X: the minor's home.
+    await createHousehold(page, 'Parent', homeLastName);
+    await expect(page.getByTestId('member-header')).toContainText(`Parent ${homeLastName}`);
+
+    await page.getByTestId('add-member').click();
+    const addDialog = page.locator('#add-member-modal');
+    await expect(addDialog).toBeVisible();
+    await addDialog.getByLabel('First name').fill('Minor');
+    await addDialog.getByLabel('Last name').fill(homeLastName);
+    await addDialog.getByLabel('Date of birth').fill('2015-01-01');
+    await addDialog.getByLabel('Gender').selectOption({ label: 'Unspecified' });
+    await addDialog.getByLabel('Email').fill(minorEmail);
+    await addDialog.getByLabel('Phone').fill('+1-555-0197');
+    await addDialog.getByLabel('Residency status').selectOption({ label: 'Resident' });
+    await page.getByTestId('add-member-submit').click();
+    await expect(page.getByTestId('member-header')).toContainText(`Minor ${homeLastName}`);
+    const homeMinorUrl = page.url();
+
+    // Household Y: the household the minor will be shared into.
+    await createHousehold(page, 'Other', targetLastName);
+    await expect(page.getByTestId('member-header')).toContainText(`Other ${targetLastName}`);
+    const targetUrl = page.url();
+
+    await page.getByTestId('link-shared-member').click();
+    const lookupDialog = page.locator('#member-lookup-modal');
+    await expect(lookupDialog).toBeVisible();
+    await page.getByTestId('member-lookup-input-email').fill(minorEmail);
+    await page
+      .locator('[data-testid^="member-lookup-row-"]', { hasText: `Minor ${homeLastName}` })
+      .click();
+
+    // Success redirects (full reload) to the minor's page under household Y.
+    await expect(page).not.toHaveURL(targetUrl);
+    await expect(page.getByTestId('member-header')).toContainText(`Minor ${homeLastName}`);
+    const sharedViewUrl = page.url();
+
+    // The roster row under household Y carries the Shared badge.
+    await expect(
+      page
+        .locator('[data-testid^="household-member-row-"]', { hasText: `Minor ${homeLastName}` })
+        .getByTestId('badge-shared'),
+    ).toBeVisible();
+
+    // The header lists both households, home first.
+    const linkedHouseholds = page.getByTestId('linked-households');
+    await expect(linkedHouseholds).toContainText(`${homeLastName} Household (Home)`);
+    await expect(linkedHouseholds).toContainText(`${targetLastName} Household`);
+
+    // Unlinking (from either household's header) returns the minor to home only.
+    page.once('dialog', (dialog) => dialog.accept());
+    await linkedHouseholds.getByTestId(/^unlink-household-/).click();
+
+    await expect(page).not.toHaveURL(sharedViewUrl);
+    await expect(page).toHaveURL(homeMinorUrl);
+    await expect(page.getByTestId('member-header')).toContainText(`Minor ${homeLastName}`);
+    await expect(page.getByTestId('linked-households')).toHaveCount(0);
+  });
+});
+
 test.describe('member lookup results', () => {
   // LRA-194: the avatar-initial span must be aria-hidden so it does not leak
   // into the result row's accessible name — the name must start with the

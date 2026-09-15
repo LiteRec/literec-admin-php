@@ -17,11 +17,17 @@ use App\Households\Domain\Event\MemberProfileUpdated;
 use App\Households\Domain\Event\MemberReactivated;
 use App\Households\Domain\Event\MemberRemovedFromHousehold;
 use App\Households\Domain\Event\MemberResidencyChanged;
+use App\Households\Domain\Event\MemberSharedWithHousehold;
+use App\Households\Domain\Event\MemberSharingWithdrawn;
 use App\Households\Domain\Event\MemberSplitOff;
 use App\Households\Domain\Exception\CannotMergeMemberIntoItself;
+use App\Households\Domain\Exception\CannotShareWithHomeHousehold;
 use App\Households\Domain\Exception\DuplicateMemberCode;
 use App\Households\Domain\Exception\DuplicateMemberId;
+use App\Households\Domain\Exception\HouseholdAlreadyLinked;
+use App\Households\Domain\Exception\InvariantViolation;
 use App\Households\Domain\Exception\MemberAlreadyMerged;
+use App\Households\Domain\Exception\MemberNotAMinor;
 use App\Households\Domain\Exception\MemberNotFound;
 use App\Households\Domain\Exception\SplitSelectionEmpty;
 use App\Households\Domain\Household;
@@ -57,6 +63,8 @@ final class HouseholdTest extends TestCase
     private const string HOUSEHOLD_ID = '019571bf-5d51-7000-b500-000000000001';
     private const string PRIMARY_MEMBER_ID = '019571bf-5d51-7000-b500-000000000002';
     private const string SECOND_MEMBER_ID = '019571bf-5d51-7000-b500-000000000003';
+    private const string MINOR_MEMBER_ID = '019571bf-5d51-7000-b500-000000000004';
+    private const string TARGET_HOUSEHOLD_ID = '019571bf-5d51-7000-b500-000000000005';
 
     private MockClock $clock;
 
@@ -966,6 +974,184 @@ final class HouseholdTest extends TestCase
 
         self::assertCount(2, $household->releaseEvents());
         self::assertSame([], $household->releaseEvents());
+    }
+
+    #[Test]
+    #[TestDox('::shareMemberWithHousehold() records MemberSharedWithHousehold and updates sharedHouseholdIds().')]
+    public function share_member_with_household_records_event_and_updates_shared_ids(): void
+    {
+        $household = $this->registerWithMinorMember();
+        $household->releaseEvents();
+
+        $household->shareMemberWithHousehold(
+            MemberId::fromString(self::MINOR_MEMBER_ID),
+            HouseholdId::fromString(self::TARGET_HOUSEHOLD_ID),
+            $this->clock,
+        );
+
+        $events = $household->releaseEvents();
+        self::assertCount(1, $events);
+        self::assertInstanceOf(MemberSharedWithHousehold::class, $events[0]);
+        self::assertSame(self::HOUSEHOLD_ID, $events[0]->householdId->value);
+        self::assertSame(self::MINOR_MEMBER_ID, $events[0]->memberId->value);
+        self::assertSame(self::TARGET_HOUSEHOLD_ID, $events[0]->sharedHouseholdId->value);
+        self::assertEquals($this->clock->now(), $events[0]->occurredAt);
+
+        $minor = $this->memberById($household, MemberId::fromString(self::MINOR_MEMBER_ID));
+        self::assertTrue($minor->isSharedWith(HouseholdId::fromString(self::TARGET_HOUSEHOLD_ID)));
+        self::assertEquals(
+            [HouseholdId::fromString(self::TARGET_HOUSEHOLD_ID)],
+            $minor->sharedHouseholdIds(),
+        );
+        self::assertEquals(
+            $this->clock->now(),
+            $minor->linkedAtFor(HouseholdId::fromString(self::TARGET_HOUSEHOLD_ID)),
+        );
+        self::assertNull($minor->linkedAtFor(HouseholdId::fromString(self::HOUSEHOLD_ID)));
+    }
+
+    #[Test]
+    #[TestDox('::shareMemberWithHousehold() throws MemberNotFound for an unknown member.')]
+    public function share_member_throws_when_member_unknown(): void
+    {
+        $household = $this->registerWithMinorMember();
+
+        $this->expectException(MemberNotFound::class);
+
+        $household->shareMemberWithHousehold(
+            MemberId::fromString('019571bf-5d51-7000-b500-bbbbbbbbbbbb'),
+            HouseholdId::fromString(self::TARGET_HOUSEHOLD_ID),
+            $this->clock,
+        );
+    }
+
+    #[Test]
+    #[TestDox('::shareMemberWithHousehold() throws InvariantViolation for a deactivated member.')]
+    public function share_member_throws_for_inactive_member(): void
+    {
+        $household = $this->registerWithMinorMember();
+        $household->deactivateMember(MemberId::fromString(self::MINOR_MEMBER_ID), 'moved away', $this->clock);
+
+        $this->expectException(InvariantViolation::class);
+
+        $household->shareMemberWithHousehold(
+            MemberId::fromString(self::MINOR_MEMBER_ID),
+            HouseholdId::fromString(self::TARGET_HOUSEHOLD_ID),
+            $this->clock,
+        );
+    }
+
+    #[Test]
+    #[TestDox('::shareMemberWithHousehold() throws CannotShareWithHomeHousehold when the target is this household.')]
+    public function share_member_throws_when_target_is_home_household(): void
+    {
+        $household = $this->registerWithMinorMember();
+
+        $this->expectException(CannotShareWithHomeHousehold::class);
+
+        $household->shareMemberWithHousehold(
+            MemberId::fromString(self::MINOR_MEMBER_ID),
+            HouseholdId::fromString(self::HOUSEHOLD_ID),
+            $this->clock,
+        );
+    }
+
+    #[Test]
+    #[TestDox('::shareMemberWithHousehold() throws MemberNotAMinor for a member who is 18 or older.')]
+    public function share_member_throws_for_adult_member(): void
+    {
+        $household = $this->registerWithMinorMember();
+
+        $this->expectException(MemberNotAMinor::class);
+
+        $household->shareMemberWithHousehold(
+            MemberId::fromString(self::PRIMARY_MEMBER_ID),
+            HouseholdId::fromString(self::TARGET_HOUSEHOLD_ID),
+            $this->clock,
+        );
+    }
+
+    #[Test]
+    #[TestDox('::shareMemberWithHousehold() throws HouseholdAlreadyLinked when already shared with the target.')]
+    public function share_member_throws_when_already_linked(): void
+    {
+        $household = $this->registerWithMinorMember();
+        $household->shareMemberWithHousehold(
+            MemberId::fromString(self::MINOR_MEMBER_ID),
+            HouseholdId::fromString(self::TARGET_HOUSEHOLD_ID),
+            $this->clock,
+        );
+
+        $this->expectException(HouseholdAlreadyLinked::class);
+
+        $household->shareMemberWithHousehold(
+            MemberId::fromString(self::MINOR_MEMBER_ID),
+            HouseholdId::fromString(self::TARGET_HOUSEHOLD_ID),
+            $this->clock,
+        );
+    }
+
+    #[Test]
+    #[TestDox('::withdrawMemberFromHousehold() records MemberSharingWithdrawn and removes the target link.')]
+    public function withdraw_member_from_household_records_event_and_removes_link(): void
+    {
+        $household = $this->registerWithMinorMember();
+        $household->shareMemberWithHousehold(
+            MemberId::fromString(self::MINOR_MEMBER_ID),
+            HouseholdId::fromString(self::TARGET_HOUSEHOLD_ID),
+            $this->clock,
+        );
+        $household->releaseEvents();
+
+        $household->withdrawMemberFromHousehold(
+            MemberId::fromString(self::MINOR_MEMBER_ID),
+            HouseholdId::fromString(self::TARGET_HOUSEHOLD_ID),
+            $this->clock,
+        );
+
+        $events = $household->releaseEvents();
+        self::assertCount(1, $events);
+        self::assertInstanceOf(MemberSharingWithdrawn::class, $events[0]);
+        self::assertSame(self::TARGET_HOUSEHOLD_ID, $events[0]->sharedHouseholdId->value);
+
+        $minor = $this->memberById($household, MemberId::fromString(self::MINOR_MEMBER_ID));
+        self::assertFalse($minor->isSharedWith(HouseholdId::fromString(self::TARGET_HOUSEHOLD_ID)));
+        self::assertSame([], $minor->sharedHouseholdIds());
+    }
+
+    #[Test]
+    #[TestDox('::withdrawMemberFromHousehold() is a no-op (no event) when the member is not shared with the target.')]
+    public function withdraw_member_from_household_is_noop_when_not_shared(): void
+    {
+        $household = $this->registerWithMinorMember();
+
+        $household->withdrawMemberFromHousehold(
+            MemberId::fromString(self::MINOR_MEMBER_ID),
+            HouseholdId::fromString(self::TARGET_HOUSEHOLD_ID),
+            $this->clock,
+        );
+
+        self::assertSame([], $household->releaseEvents());
+    }
+
+    private function registerWithMinorMember(): Household
+    {
+        $household = $this->register();
+        $household->addMember(
+            MemberId::fromString(self::MINOR_MEMBER_ID),
+            MemberCode::of('M0004'),
+            PersonName::of('Timmy', 'Smith'),
+            DateOfBirth::of(new DateTimeImmutable('2015-01-01'), $this->clock),
+            Gender::Male,
+            null,
+            null,
+            ResidencyStatus::Resident,
+            false,
+            $this->clock,
+        );
+        $household->releaseEvents();
+
+        return $household;
     }
 
     private function register(): Household

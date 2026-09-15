@@ -60,6 +60,9 @@ trait MemberReadModelContractCases
     private const B_SECOND_ID         = '019571bf-5d51-7000-b500-00000000bb03';
     private const B_SECOND_CODE       = 'M000021';
 
+    private const A_MINOR_ID          = '019571bf-5d51-7000-b500-00000000aa05';
+    private const A_MINOR_CODE        = 'M000013';
+
     abstract protected function readModel(): MemberReadModel;
 
     /**
@@ -638,6 +641,97 @@ trait MemberReadModelContractCases
         $this->readModel()->memberDetail(
             HouseholdId::fromString(self::HOUSEHOLD_A),
             MemberId::fromString('019571bf-5d51-7000-b500-0000000000ff'),
+        );
+    }
+
+    #[Test]
+    #[TestDox('memberDetail(): a shared minor viewed via a link scopes household/roster, exposes homeHouseholdId.')]
+    public function member_detail_for_shared_minor_viewed_from_linked_household(): void
+    {
+        $home = $this->buildHouseholdA();
+        $this->addMinorTo($home);
+        $home->shareMemberWithHousehold(
+            MemberId::fromString(self::A_MINOR_ID),
+            HouseholdId::fromString(self::HOUSEHOLD_B),
+            $this->clock(),
+        );
+        // Household B must exist before $home is saved: the affiliation row
+        // saved with $home carries a foreign key to household B.
+        $this->seedHouseholds([$this->buildHouseholdB(), $home]);
+
+        $detail = $this->readModel()->memberDetail(
+            HouseholdId::fromString(self::HOUSEHOLD_B),
+            MemberId::fromString(self::A_MINOR_ID),
+        );
+
+        // Household summary + address reflect the VIEWED household (B),
+        // not home (A) — B's own 2 members plus the 1 shared-in minor.
+        self::assertSame(self::HOUSEHOLD_B, $detail->household->householdId);
+        self::assertSame('Smith-Lopez Household', $detail->household->householdName);
+        self::assertSame(3, $detail->household->memberCount);
+        self::assertSame('200 Oak Ave', $detail->address->street);
+
+        // Identity/profile is still the minor's own (home) data.
+        self::assertSame('Fiona', $detail->profile->firstName);
+
+        // homeHouseholdId names the actual owner, regardless of viewed household.
+        self::assertSame(self::HOUSEHOLD_A, $detail->homeHouseholdId);
+
+        // linkedHouseholds: home first (no linkedAt), then the shared household.
+        self::assertCount(2, $detail->linkedHouseholds);
+        self::assertSame(self::HOUSEHOLD_A, $detail->linkedHouseholds[0]->householdId);
+        self::assertTrue($detail->linkedHouseholds[0]->isHome);
+        self::assertNull($detail->linkedHouseholds[0]->linkedAtIso);
+        self::assertSame(self::HOUSEHOLD_B, $detail->linkedHouseholds[1]->householdId);
+        self::assertFalse($detail->linkedHouseholds[1]->isHome);
+        self::assertNotNull($detail->linkedHouseholds[1]->linkedAtIso);
+
+        // Roster of the viewed household (B) includes the shared minor,
+        // flagged isShared and attributed to their home household; B's own
+        // members are not flagged.
+        $sharedRow = null;
+        foreach ($detail->householdMembers as $item) {
+            if ($item->memberId === self::A_MINOR_ID) {
+                $sharedRow = $item;
+
+                continue;
+            }
+            self::assertFalse($item->isShared, sprintf('Expected %s not flagged shared.', $item->memberId));
+        }
+        self::assertNotNull($sharedRow);
+        self::assertTrue($sharedRow->isShared);
+        self::assertSame(self::HOUSEHOLD_A, $sharedRow->householdId);
+    }
+
+    #[Test]
+    #[TestDox('memberDetail(): throws MemberNotFound when viewed from an unrelated household.')]
+    public function member_detail_throws_for_unrelated_household(): void
+    {
+        $home = $this->buildHouseholdA();
+        $this->addMinorTo($home);
+        $this->seedHouseholds([$home, $this->buildHouseholdB()]);
+
+        $this->expectException(MemberNotFound::class);
+
+        $this->readModel()->memberDetail(
+            HouseholdId::fromString(self::HOUSEHOLD_B),
+            MemberId::fromString(self::A_MINOR_ID),
+        );
+    }
+
+    private function addMinorTo(Household $household): void
+    {
+        $household->addMember(
+            MemberId::fromString(self::A_MINOR_ID),
+            MemberCode::of(self::A_MINOR_CODE),
+            PersonName::of('Fiona', 'Smith'),
+            DateOfBirth::of(new DateTimeImmutable('2015-01-01'), $this->clock()),
+            Gender::Female,
+            null,
+            null,
+            ResidencyStatus::Resident,
+            false,
+            $this->clock(),
         );
     }
 

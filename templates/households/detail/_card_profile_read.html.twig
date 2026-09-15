@@ -73,10 +73,15 @@
 
     {% if detail.profile.mergedIntoMemberId is null %}
         <div class="mb-3 flex items-center justify-end">
+            {# Routed through homeHouseholdId (LRA-210), not the viewed
+               household: identity data lives only on the home aggregate, so
+               edits made while viewing a shared minor from a linked
+               household still land on the aggregate that owns the member
+               row. #}
             <button
                 type="button"
                 data-testid="profile-edit"
-                hx-get="{{ path('member_profile_edit_form', { householdId: detail.household.householdId, memberId: detail.profile.memberId }) }}"
+                hx-get="{{ path('member_profile_edit_form', { householdId: detail.homeHouseholdId, memberId: detail.profile.memberId }) }}"
                 hx-target="#card-profile-body"
                 hx-swap="outerHTML"
                 class="lr-btn lr-btn-secondary"

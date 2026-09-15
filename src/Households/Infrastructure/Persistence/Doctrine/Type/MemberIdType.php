@@ -38,6 +38,15 @@ final class MemberIdType extends Type
         return MemberId::fromString($value);
     }
 
+    /**
+     * Accepts an already-converted string in addition to a {@see MemberId}
+     * instance (LRA-210): Doctrine's derived-identity handling for
+     * {@see \App\Households\Domain\HouseholdAffiliation}'s
+     * association-key id (`member`) resolves the associated
+     * HouseholdMember's identifier as an already-database-converted scalar
+     * — not the original value object — when building DELETE/UPDATE
+     * statements, then passes it back through this type.
+     */
     public function convertToDatabaseValue(mixed $value, AbstractPlatform $platform): ?string
     {
         if ($value === null) {
@@ -48,8 +57,12 @@ final class MemberIdType extends Type
             return $value->value;
         }
 
+        if (is_string($value)) {
+            return $value;
+        }
+
         throw new \UnexpectedValueException(sprintf(
-            'Expected null or MemberId, got %s.',
+            'Expected null, string, or MemberId, got %s.',
             get_debug_type($value),
         ));
     }

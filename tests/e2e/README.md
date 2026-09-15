@@ -102,6 +102,7 @@ The anchor set (do **not** edit these rows when testing by hand):
 | Curated member | `Alice Smith` (`alice.smith@example.com`, Resident) | users, a11y |
 | Curated member | `Frank Miller` | users |
 | Curated member | `Gail Miller` (household mate of `Frank Miller`) | users |
+| Curated member | `Dylan Jones` — minor shared between "Jones Family" (home) and "Jones Second Home" (LRA-210) | users |
 | Seeded item | `ITEM-0001` / `Test Item 0001` (and `0002`, `0003`, `0007`) | items, stock, PO |
 | Item code sort scope | `ITEM-009` → `ITEM-0090`…`ITEM-0092` | items |
 | Seeded item group | `Top Sellers Q1` | catalog |

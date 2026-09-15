@@ -1,0 +1,15 @@
+{# Household card link/unlink error region (LRA-210). Swapped into
+   #household-link-error by HouseholdLinkController on a 422 validation or
+   domain-exception failure; success responses never touch this element —
+   they carry an HX-Redirect instead. _card_household.html.twig renders the
+   same id, empty, as the initial (non-error) state.
+
+   Expects:
+     - message: string
+#}
+<div
+    id="household-link-error"
+    data-testid="household-link-error"
+    role="alert"
+    class="mb-3 rounded-card bg-danger-bg p-2 text-sm font-semibold text-danger-fg"
+>{{ message }}</div>

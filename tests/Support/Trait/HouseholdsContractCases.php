@@ -44,6 +44,9 @@ trait HouseholdsContractCases
     private const SECOND_MEMBER_ID     = '019571bf-5d51-7000-b500-000000000003';
     private const PRIMARY_MEMBER_CODE  = 'M000001';
     private const SECOND_MEMBER_CODE   = 'M000002';
+    private const MINOR_MEMBER_ID      = '019571bf-5d51-7000-b500-000000000004';
+    private const MINOR_MEMBER_CODE    = 'M000003';
+    private const TARGET_HOUSEHOLD_ID  = '019571bf-5d51-7000-b500-000000000005';
 
     abstract protected function households(): Households;
 
@@ -355,6 +358,71 @@ trait HouseholdsContractCases
         $this->expectException(MemberAlreadyMerged::class);
 
         $this->households()->lockUnmergedMember($householdId, $duplicateId);
+    }
+
+    #[Test]
+    #[TestDox('save(): a member share round-trips through findById(), and a follow-up withdrawal persists.')]
+    public function member_affiliation_round_trips_through_save_and_find(): void
+    {
+        $household = $this->buildHouseholdWithTwoMembers();
+        $household->addMember(
+            MemberId::fromString(self::MINOR_MEMBER_ID),
+            MemberCode::of(self::MINOR_MEMBER_CODE),
+            PersonName::of('Charlie', 'Smith'),
+            DateOfBirth::of(new DateTimeImmutable('2015-01-01'), $this->clock()),
+            Gender::Male,
+            null,
+            null,
+            ResidencyStatus::Resident,
+            false,
+            $this->clock(),
+        );
+        $this->households()->save($household);
+        $this->households()->save($this->buildTargetHousehold());
+
+        $loaded = $this->households()->findById(HouseholdId::fromString(self::HOUSEHOLD_ID));
+        $loaded->shareMemberWithHousehold(
+            MemberId::fromString(self::MINOR_MEMBER_ID),
+            HouseholdId::fromString(self::TARGET_HOUSEHOLD_ID),
+            $this->clock(),
+        );
+        $this->households()->save($loaded);
+
+        $reloaded = $this->households()->findById(HouseholdId::fromString(self::HOUSEHOLD_ID));
+        $minor = $this->memberById($reloaded, self::MINOR_MEMBER_ID);
+        self::assertTrue($minor->isSharedWith(HouseholdId::fromString(self::TARGET_HOUSEHOLD_ID)));
+        self::assertEquals(
+            [HouseholdId::fromString(self::TARGET_HOUSEHOLD_ID)],
+            $minor->sharedHouseholdIds(),
+        );
+
+        $reloaded->withdrawMemberFromHousehold(
+            MemberId::fromString(self::MINOR_MEMBER_ID),
+            HouseholdId::fromString(self::TARGET_HOUSEHOLD_ID),
+            $this->clock(),
+        );
+        $this->households()->save($reloaded);
+
+        $final = $this->households()->findById(HouseholdId::fromString(self::HOUSEHOLD_ID));
+        self::assertSame([], $this->memberById($final, self::MINOR_MEMBER_ID)->sharedHouseholdIds());
+    }
+
+    private function buildTargetHousehold(): Household
+    {
+        return Household::register(
+            HouseholdId::fromString(self::TARGET_HOUSEHOLD_ID),
+            HouseholdName::of('Jones Family'),
+            Address::of('500 Pine St', null, 'Tacoma', 'WA', '98402', 'US'),
+            MemberId::fromString('019571bf-5d51-7000-b500-000000000006'),
+            MemberCode::of('M000004'),
+            PersonName::of('Dana', 'Jones'),
+            DateOfBirth::of(new DateTimeImmutable('1978-01-01'), $this->clock()),
+            Gender::Female,
+            EmailAddress::of('dana@example.com'),
+            null,
+            ResidencyStatus::Resident,
+            $this->clock(),
+        );
     }
 
     private function buildHouseholdWithTwoMembers(): Household

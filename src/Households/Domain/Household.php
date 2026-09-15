@@ -17,11 +17,17 @@ use App\Households\Domain\Event\MemberProfileUpdated;
 use App\Households\Domain\Event\MemberReactivated;
 use App\Households\Domain\Event\MemberRemovedFromHousehold;
 use App\Households\Domain\Event\MemberResidencyChanged;
+use App\Households\Domain\Event\MemberSharedWithHousehold;
+use App\Households\Domain\Event\MemberSharingWithdrawn;
 use App\Households\Domain\Event\MemberSplitOff;
 use App\Households\Domain\Exception\CannotMergeMemberIntoItself;
+use App\Households\Domain\Exception\CannotShareWithHomeHousehold;
 use App\Households\Domain\Exception\DuplicateMemberCode;
 use App\Households\Domain\Exception\DuplicateMemberId;
+use App\Households\Domain\Exception\HouseholdAlreadyLinked;
+use App\Households\Domain\Exception\InvariantViolation;
 use App\Households\Domain\Exception\MemberAlreadyMerged;
+use App\Households\Domain\Exception\MemberNotAMinor;
 use App\Households\Domain\Exception\MemberNotFound;
 use App\Households\Domain\Exception\SplitSelectionEmpty;
 use App\Households\Domain\ValueObject\Address;
@@ -569,6 +575,71 @@ final class Household
         $now = $clock->now();
         $this->recordThat(new MemberPhotoRemoved($this->id, $memberId, $now));
         $this->recordThat(new MemberPhotoReleased($previous->storageKey, $now));
+    }
+
+    /**
+     * Shares $memberId — who must be a minor and must belong to this (their
+     * home) household — with another household (LRA-210, e.g. shared
+     * custody). The member's identity data keeps a single owner (this
+     * aggregate); $target is loaded only by the caller to confirm it
+     * exists, never mutated here — a single transaction touches at most one
+     * aggregate.
+     *
+     * @throws MemberNotFound when $memberId does not belong to this household
+     * @throws InvariantViolation when the member is deactivated
+     * @throws CannotShareWithHomeHousehold when $target is this household
+     * @throws MemberNotAMinor when the member is not under 18 on the current date
+     * @throws HouseholdAlreadyLinked when the member is already shared with $target
+     */
+    public function shareMemberWithHousehold(
+        MemberId $memberId,
+        HouseholdId $target,
+        ClockInterface $clock,
+    ): void {
+        $member = $this->memberById($memberId);
+        $this->assertNotMerged($member);
+
+        if (!$member->isActive()) {
+            throw InvariantViolation::with('An inactive member cannot be shared with another household.');
+        }
+
+        if ($target->equals($this->id)) {
+            throw CannotShareWithHomeHousehold::for($memberId, $target);
+        }
+
+        $now = $clock->now();
+        if (!$member->dateOfBirth()->isMinorOn($now)) {
+            throw MemberNotAMinor::for($memberId);
+        }
+
+        if ($member->isSharedWith($target)) {
+            throw HouseholdAlreadyLinked::for($memberId, $target);
+        }
+
+        $member->shareWith($target, $now);
+        $this->recordThat(new MemberSharedWithHousehold($this->id, $memberId, $target, $now));
+    }
+
+    /**
+     * Withdraws a previously-created share (LRA-210). A no-op — mirroring
+     * the existing idempotent style of {@see self::deactivateMember()} —
+     * when the member is not currently shared with $target.
+     *
+     * @throws MemberNotFound when $memberId does not belong to this household
+     */
+    public function withdrawMemberFromHousehold(
+        MemberId $memberId,
+        HouseholdId $target,
+        ClockInterface $clock,
+    ): void {
+        $member = $this->memberById($memberId);
+
+        if (!$member->isSharedWith($target)) {
+            return;
+        }
+
+        $member->withdrawFrom($target);
+        $this->recordThat(new MemberSharingWithdrawn($this->id, $memberId, $target, $clock->now()));
     }
 
     private function memberById(MemberId $id): HouseholdMember
