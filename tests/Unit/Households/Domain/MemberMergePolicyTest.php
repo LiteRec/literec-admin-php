@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Unit\Households\Domain;
 
+use App\Households\Domain\Exception\InactiveSurvivorCannotAcceptMerge;
 use App\Households\Domain\Exception\MemberAlreadyMerged;
 use App\Households\Domain\Exception\MemberNotFound;
 use App\Households\Domain\Household;
@@ -78,6 +79,19 @@ final class MemberMergePolicyTest extends TestCase
         );
 
         $this->expectException(MemberAlreadyMerged::class);
+
+        $this->policy->assertSurvivorAccepts($household, $survivorId);
+    }
+
+    #[Test]
+    #[TestDox('::assertSurvivorAccepts() throws InactiveSurvivorCannotAcceptMerge when the survivor is deactivated.')]
+    public function rejects_a_deactivated_survivor(): void
+    {
+        $household = $this->registerHousehold();
+        $survivorId = MemberId::fromString(self::SURVIVOR_ID);
+        $household->deactivateMember($survivorId, 'moved away', $this->clock);
+
+        $this->expectException(InactiveSurvivorCannotAcceptMerge::class);
 
         $this->policy->assertSurvivorAccepts($household, $survivorId);
     }

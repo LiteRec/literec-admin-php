@@ -22,6 +22,15 @@ use Symfony\Component\Messenger\Stamp\DispatchAfterCurrentBusStamp;
  * the survivor's aggregate via {@see MemberMergePolicy} before the
  * duplicate's aggregate is touched, keeping this handler to a single
  * aggregate transaction.
+ *
+ * That read-only check alone is not enough to rule out a race: two
+ * concurrent merges naming each other as survivor (X→Y and Y→X) could
+ * both pass it before either commits, producing a merge cycle. Households::
+ * lockUnmergedMember() closes that window by taking a row lock on the
+ * survivor and re-asserting the same premise inside this handler's
+ * transaction, immediately before the duplicate's row is written — so the
+ * second writer either blocks and then observes the row already merged,
+ * or is chosen as the deadlock victim.
  */
 #[AsMessageHandler(bus: 'command.bus')]
 final class MergeMembersHandler
@@ -44,6 +53,9 @@ final class MergeMembersHandler
 
         $duplicateHousehold = $this->households->findByMemberId($duplicateId);
         $duplicateHousehold->mergeMemberInto($duplicateId, $survivorHousehold->id(), $survivorId, $this->clock);
+        // Re-assert the survivor premise under a row lock, in the same
+        // transaction as the write below — see the class docblock.
+        $this->households->lockUnmergedMember($survivorHousehold->id(), $survivorId);
         $this->households->save($duplicateHousehold);
 
         foreach ($duplicateHousehold->releaseEvents() as $event) {

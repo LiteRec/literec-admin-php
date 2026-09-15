@@ -12,6 +12,7 @@ use App\Households\Domain\Exception\MemberAlreadyMerged;
 use App\Households\Domain\Exception\MemberNotFound;
 use App\Households\Domain\Household;
 use App\Households\Domain\HouseholdMember;
+use App\Households\Domain\Households;
 use App\Households\Domain\MemberMergePolicy;
 use App\Households\Domain\ValueObject\Address;
 use App\Households\Domain\ValueObject\DateOfBirth;
@@ -169,6 +170,50 @@ final class MergeMembersHandlerTest extends TestCase
             self::SURVIVOR_ID,
             self::SURVIVOR_ID,
         ));
+    }
+
+    #[Test]
+    #[TestDox('Throws MemberAlreadyMerged when the survivor is merged concurrently before the write-time lock.')]
+    public function rejects_survivor_merged_concurrently_between_read_check_and_lock(): void
+    {
+        $this->seedSurvivorHousehold();
+        $this->seedDuplicateHousehold();
+        $interloperHouseholdId = HouseholdId::fromString('019571bf-5d54-7000-b500-000000000e97');
+        $interloperId = MemberId::fromString('019571bf-5d54-7000-b500-000000000e96');
+        $interloper = Household::register(
+            $interloperHouseholdId,
+            HouseholdName::of('Interloper Family'),
+            Address::of('300 Pine St', null, 'Tacoma', 'WA', '98402', 'US'),
+            $interloperId,
+            MemberCode::of('M000E05'),
+            PersonName::of('Ian', 'Interloper'),
+            DateOfBirth::of(new DateTimeImmutable('1993-03-03'), $this->clock),
+            Gender::Male,
+            null,
+            null,
+            ResidencyStatus::Resident,
+            $this->clock,
+        );
+        $interloper->releaseEvents();
+        $this->households->save($interloper);
+
+        $racyHandler = new MergeMembersHandler(
+            new SimulatesConcurrentMergeHouseholds(
+                $this->households,
+                HouseholdId::fromString(self::SURVIVOR_HOUSEHOLD_ID),
+                MemberId::fromString(self::SURVIVOR_ID),
+                $interloperHouseholdId,
+                $interloperId,
+                $this->clock,
+            ),
+            new MemberMergePolicy(),
+            $this->clock,
+            $this->eventBus,
+        );
+
+        $this->expectException(MemberAlreadyMerged::class);
+
+        $racyHandler(new MergeMembers(self::SURVIVOR_HOUSEHOLD_ID, self::SURVIVOR_ID, self::DUPLICATE_ID));
     }
 
     private function seedSurvivorHousehold(): Household

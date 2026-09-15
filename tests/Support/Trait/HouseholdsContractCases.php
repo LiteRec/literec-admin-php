@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Tests\Support\Trait;
 
 use App\Households\Domain\Exception\HouseholdNotFound;
+use App\Households\Domain\Exception\MemberAlreadyMerged;
+use App\Households\Domain\Exception\MemberNotFound;
 use App\Households\Domain\Household;
 use App\Households\Domain\Households;
 use App\Households\Domain\MemberCodeAllocator;
@@ -303,6 +305,56 @@ trait HouseholdsContractCases
         self::assertMatchesRegularExpression('/^M\d{6}$/', $first->value);
         self::assertMatchesRegularExpression('/^M\d{6}$/', $second->value);
         self::assertNotSame($first->value, $second->value);
+    }
+
+    #[Test]
+    #[TestDox('lockUnmergedMember(): does not throw for an unmerged member.')]
+    public function lock_unmerged_member_passes_for_an_unmerged_member(): void
+    {
+        $household = $this->buildHouseholdWithTwoMembers();
+        $repository = $this->households();
+        $repository->save($household);
+
+        $repository->lockUnmergedMember(
+            HouseholdId::fromString(self::HOUSEHOLD_ID),
+            MemberId::fromString(self::PRIMARY_MEMBER_ID),
+        );
+
+        // Reaching here without an exception is the point; also confirm the
+        // lock did not itself mutate the member's merged state.
+        $reloaded = $repository->findById(HouseholdId::fromString(self::HOUSEHOLD_ID));
+        self::assertFalse($this->memberById($reloaded, self::PRIMARY_MEMBER_ID)->isMerged());
+    }
+
+    #[Test]
+    #[TestDox('lockUnmergedMember(): throws MemberNotFound for an unknown member id.')]
+    public function lock_unmerged_member_throws_for_unknown_member(): void
+    {
+        $household = $this->buildHouseholdWithTwoMembers();
+        $this->households()->save($household);
+
+        $this->expectException(MemberNotFound::class);
+
+        $this->households()->lockUnmergedMember(
+            HouseholdId::fromString(self::HOUSEHOLD_ID),
+            MemberId::fromString('019571bf-5d51-7000-b500-0000000000ff'),
+        );
+    }
+
+    #[Test]
+    #[TestDox('lockUnmergedMember(): throws MemberAlreadyMerged for an already-merged member.')]
+    public function lock_unmerged_member_throws_for_an_already_merged_member(): void
+    {
+        $household = $this->buildHouseholdWithTwoMembers();
+        $survivorId = MemberId::fromString(self::PRIMARY_MEMBER_ID);
+        $duplicateId = MemberId::fromString(self::SECOND_MEMBER_ID);
+        $householdId = HouseholdId::fromString(self::HOUSEHOLD_ID);
+        $household->mergeMemberInto($duplicateId, $householdId, $survivorId, $this->clock());
+        $this->households()->save($household);
+
+        $this->expectException(MemberAlreadyMerged::class);
+
+        $this->households()->lockUnmergedMember($householdId, $duplicateId);
     }
 
     private function buildHouseholdWithTwoMembers(): Household

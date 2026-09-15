@@ -235,6 +235,7 @@ final class Household
         if ($removed === null) {
             throw MemberNotFound::inHousehold($this->id, $memberId);
         }
+        $this->assertNotMerged($removed);
 
         $this->members->removeElement($removed);
         $this->recordThat(new MemberRemovedFromHousehold($this->id, $memberId, $clock->now()));
@@ -472,6 +473,7 @@ final class Household
     public function attachMemberPhoto(MemberId $memberId, ProfilePhoto $photo, ClockInterface $clock): void
     {
         $member = $this->memberById($memberId);
+        $this->assertNotMerged($member);
         $previous = $member->photo();
 
         $member->attachPhoto($photo);
@@ -488,6 +490,7 @@ final class Household
     public function removeMemberPhoto(MemberId $memberId, ClockInterface $clock): void
     {
         $member = $this->memberById($memberId);
+        $this->assertNotMerged($member);
         $previous = $member->photo();
 
         if ($previous === null) {

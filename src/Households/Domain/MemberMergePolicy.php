@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Households\Domain;
 
+use App\Households\Domain\Exception\InactiveSurvivorCannotAcceptMerge;
 use App\Households\Domain\Exception\MemberAlreadyMerged;
 use App\Households\Domain\Exception\MemberNotFound;
 use App\Households\Domain\ValueObject\MemberId;
@@ -15,8 +16,13 @@ use App\Households\Domain\ValueObject\MemberId;
  * The survivor and the duplicate belong to two independent
  * {@see Household} aggregates (possibly the same one). {@see Household::mergeMemberInto()}
  * only has access to the duplicate's aggregate, so the survivor-side
- * check — the survivor id resolves to a real, not-already-merged member —
- * lives here rather than becoming an `if` inside the application service.
+ * checks — the survivor id resolves to a real, not-already-merged, active
+ * member — live here rather than becoming an `if` inside the application
+ * service.
+ *
+ * @throws MemberNotFound when $survivorId does not belong to $survivorHousehold
+ * @throws MemberAlreadyMerged when the survivor is itself already merged
+ * @throws InactiveSurvivorCannotAcceptMerge when the survivor is deactivated
  */
 final class MemberMergePolicy
 {
@@ -29,6 +35,10 @@ final class MemberMergePolicy
 
             if ($member->isMerged()) {
                 throw MemberAlreadyMerged::for($survivorId);
+            }
+
+            if (!$member->isActive()) {
+                throw InactiveSurvivorCannotAcceptMerge::for($survivorId);
             }
 
             return;

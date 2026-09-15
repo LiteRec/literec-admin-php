@@ -448,6 +448,20 @@ final class HouseholdTest extends TestCase
         yield 'reactivateMember' => ['mutate' => static function (Household $h, MemberId $id, MockClock $clock): void {
             $h->reactivateMember($id, $clock);
         }];
+        yield 'removeMember' => ['mutate' => static function (Household $h, MemberId $id, MockClock $clock): void {
+            $h->removeMember($id, $clock);
+        }];
+        yield 'attachMemberPhoto' => ['mutate' => static function (Household $h, MemberId $id, MockClock $clock): void {
+            $photo = ProfilePhoto::of(
+                $id->value . '/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.jpg',
+                ImageFormat::Jpeg,
+                $clock->now(),
+            );
+            $h->attachMemberPhoto($id, $photo, $clock);
+        }];
+        yield 'removeMemberPhoto' => ['mutate' => static function (Household $h, MemberId $id, MockClock $clock): void {
+            $h->removeMemberPhoto($id, $clock);
+        }];
     }
 
     #[Test]
