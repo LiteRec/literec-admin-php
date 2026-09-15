@@ -23,6 +23,12 @@
                 </p>
             {% endif %}
 
+            {% for message in app.flashes('success') %}
+                <p role="alert" class="mt-4 text-sm font-semibold text-success">
+                    {{ message }}
+                </p>
+            {% endfor %}
+
             <form
                 method="post"
                 action="{{ path('app_login') }}"

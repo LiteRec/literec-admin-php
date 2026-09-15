@@ -5,14 +5,19 @@ declare(strict_types=1);
 namespace App\Tests\Unit\Users\Domain;
 
 use App\Tests\Support\Fake\SequenceIdentityGenerator;
+use App\Users\Domain\Event\OneTimePasswordConsumed;
+use App\Users\Domain\Event\OneTimePasswordIssued;
 use App\Users\Domain\Event\PasswordChanged;
 use App\Users\Domain\Event\RoleGranted;
 use App\Users\Domain\Event\RoleRevoked;
 use App\Users\Domain\Event\UserDeactivated;
 use App\Users\Domain\Event\UserReactivated;
 use App\Users\Domain\Event\UserRegistered;
+use App\Users\Domain\Exception\NoOneTimePasswordToConsume;
+use App\Users\Domain\Exception\OneTimePasswordNotAllowed;
 use App\Users\Domain\User;
 use App\Users\Domain\ValueObject\HashedPassword;
+use App\Users\Domain\ValueObject\PasswordState;
 use App\Users\Domain\ValueObject\Role;
 use App\Users\Domain\ValueObject\UserId;
 use App\Users\Domain\ValueObject\Username;
@@ -224,6 +229,126 @@ final class UserTest extends TestCase
 
         self::assertSame([], $user->releaseEvents());
         self::assertTrue($user->isActive());
+    }
+
+    #[Test]
+    #[TestDox('::issueOneTimePassword() records OneTimePasswordIssued, replaces the hash, and moves to OneTimeIssued.')]
+    public function issue_one_time_password_records_one_time_password_issued(): void
+    {
+        $user = $this->register();
+        $user->releaseEvents();
+
+        $newHash = '$2y$10$zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz0';
+        $user->issueOneTimePassword(HashedPassword::fromHash($newHash), $this->clock);
+
+        $events = $user->releaseEvents();
+        self::assertCount(1, $events);
+        self::assertInstanceOf(OneTimePasswordIssued::class, $events[0]);
+        self::assertTrue($events[0]->userId->equals($user->id()));
+        self::assertEquals($this->clock->now(), $events[0]->occurredAt);
+        self::assertSame($newHash, $user->passwordHash()->value);
+        self::assertSame(PasswordState::OneTimeIssued, $user->passwordState());
+    }
+
+    #[Test]
+    #[TestDox('::issueOneTimePassword() throws OneTimePasswordNotAllowed for an inactive user.')]
+    public function issue_one_time_password_throws_for_inactive_user(): void
+    {
+        $user = $this->register();
+        $user->deactivate('superseded', $this->clock);
+        $user->releaseEvents();
+
+        $this->expectException(OneTimePasswordNotAllowed::class);
+
+        $user->issueOneTimePassword(HashedPassword::fromHash(self::SAMPLE_HASH), $this->clock);
+    }
+
+    #[Test]
+    #[TestDox('::consumeOneTimePassword() records OneTimePasswordConsumed and moves to OneTimeConsumed.')]
+    public function consume_one_time_password_records_one_time_password_consumed(): void
+    {
+        $user = $this->register();
+        $user->issueOneTimePassword(HashedPassword::fromHash(self::SAMPLE_HASH), $this->clock);
+        $user->releaseEvents();
+
+        $user->consumeOneTimePassword($this->clock);
+
+        $events = $user->releaseEvents();
+        self::assertCount(1, $events);
+        self::assertInstanceOf(OneTimePasswordConsumed::class, $events[0]);
+        self::assertTrue($events[0]->userId->equals($user->id()));
+        self::assertEquals($this->clock->now(), $events[0]->occurredAt);
+        self::assertSame(PasswordState::OneTimeConsumed, $user->passwordState());
+    }
+
+    #[Test]
+    #[TestDox('::consumeOneTimePassword() throws NoOneTimePasswordToConsume when no credential is issued.')]
+    public function consume_one_time_password_throws_when_none_is_issued(): void
+    {
+        $user = $this->register();
+        $user->releaseEvents();
+
+        $this->expectException(NoOneTimePasswordToConsume::class);
+
+        $user->consumeOneTimePassword($this->clock);
+    }
+
+    #[Test]
+    #[TestDox('::consumeOneTimePassword() throws when the credential was already consumed.')]
+    public function consume_one_time_password_throws_when_already_consumed(): void
+    {
+        $user = $this->register();
+        $user->issueOneTimePassword(HashedPassword::fromHash(self::SAMPLE_HASH), $this->clock);
+        $user->consumeOneTimePassword($this->clock);
+        $user->releaseEvents();
+
+        $this->expectException(NoOneTimePasswordToConsume::class);
+
+        $user->consumeOneTimePassword($this->clock);
+    }
+
+    #[Test]
+    #[TestDox('::establishPassword() records PasswordChanged and returns to Established.')]
+    public function establish_password_returns_to_established(): void
+    {
+        $user = $this->register();
+        $user->issueOneTimePassword(HashedPassword::fromHash(self::SAMPLE_HASH), $this->clock);
+        $user->consumeOneTimePassword($this->clock);
+        $user->releaseEvents();
+
+        $newHash = '$2y$10$zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz0';
+        $user->establishPassword(HashedPassword::fromHash($newHash), $this->clock);
+
+        $events = $user->releaseEvents();
+        self::assertCount(1, $events);
+        self::assertInstanceOf(PasswordChanged::class, $events[0]);
+        self::assertTrue($events[0]->userId->equals($user->id()));
+        self::assertEquals($this->clock->now(), $events[0]->occurredAt);
+        self::assertSame($newHash, $user->passwordHash()->value);
+        self::assertSame(PasswordState::Established, $user->passwordState());
+    }
+
+    #[Test]
+    #[TestDox('::changePassword() (hash-upgrade path) leaves passwordState untouched.')]
+    public function change_password_leaves_password_state_untouched(): void
+    {
+        $user = $this->register();
+        $user->issueOneTimePassword(HashedPassword::fromHash(self::SAMPLE_HASH), $this->clock);
+        $user->releaseEvents();
+
+        $newHash = '$2y$10$zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz0';
+        $user->changePassword(HashedPassword::fromHash($newHash), $this->clock);
+
+        self::assertSame(PasswordState::OneTimeIssued, $user->passwordState());
+    }
+
+    #[Test]
+    #[TestDox('::register() starts a new user in the Established password state.')]
+    public function register_starts_in_the_established_password_state(): void
+    {
+        $user = $this->register();
+
+        self::assertSame(PasswordState::Established, $user->passwordState());
     }
 
     #[Test]

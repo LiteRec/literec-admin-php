@@ -51,6 +51,11 @@ services:
             - '../src/Users/Domain/AggregateRoot.php'
             - '../src/Users/Application/Command/RegisterUser.php'
             - '../src/Users/Application/Command/ChangeUserPassword.php'
+            # LRA-213: primitive-only command DTOs for the one-time-password
+            # use cases, same treatment as RegisterUser/ChangeUserPassword above.
+            - '../src/Users/Application/Command/IssueOneTimePassword.php'
+            - '../src/Users/Application/Command/ConsumeOneTimePassword.php'
+            - '../src/Users/Application/Command/EstablishPassword.php'
             - '../src/Users/Infrastructure/Persistence/Doctrine/Type/'
             - '../src/Households/Infrastructure/Persistence/Doctrine/Type/'
             - '../src/Households/Domain/Household.php'
@@ -100,6 +105,10 @@ services:
 
     # Bind the Users\Domain Users repository port to its Doctrine adapter.
     App\Users\Domain\Users: '@App\Users\Infrastructure\Persistence\Doctrine\DoctrineUsers'
+
+    # LRA-213: bind the Users\Domain OneTimePasswordGenerator port to its
+    # Symfony String adapter.
+    App\Users\Domain\OneTimePasswordGenerator: '@App\Users\Infrastructure\Security\Base58OneTimePasswordGenerator'
 
     # Bind the Households\Domain ports to their production adapters.
     # UUID v7 generation is provided by the Uuid7IdentityGenerator; the

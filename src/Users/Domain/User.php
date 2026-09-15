@@ -4,14 +4,19 @@ declare(strict_types=1);
 
 namespace App\Users\Domain;
 
+use App\Users\Domain\Event\OneTimePasswordConsumed;
+use App\Users\Domain\Event\OneTimePasswordIssued;
 use App\Users\Domain\Event\PasswordChanged;
 use App\Users\Domain\Event\RoleGranted;
 use App\Users\Domain\Event\RoleRevoked;
 use App\Users\Domain\Event\UserDeactivated;
 use App\Users\Domain\Event\UserReactivated;
 use App\Users\Domain\Event\UserRegistered;
+use App\Users\Domain\Exception\NoOneTimePasswordToConsume;
+use App\Users\Domain\Exception\OneTimePasswordNotAllowed;
 use App\Users\Domain\Exception\PasswordNotSet;
 use App\Users\Domain\ValueObject\HashedPassword;
+use App\Users\Domain\ValueObject\PasswordState;
 use App\Users\Domain\ValueObject\Role;
 use App\Users\Domain\ValueObject\UserId;
 use App\Users\Domain\ValueObject\Username;
@@ -34,6 +39,7 @@ final class User
     private UserId $id;
     private Username $username;
     private HashedPassword $password;
+    private PasswordState $passwordState;
     /** @var list<Role> */
     private array $roles;
     private bool $isActive;
@@ -60,6 +66,7 @@ final class User
         $user->id = $id;
         $user->username = $username;
         $user->password = $password;
+        $user->passwordState = PasswordState::Established;
         $user->roles = self::deduplicate($roles);
         $user->isActive = true;
         $user->createdAt = $clock->now();
@@ -101,6 +108,17 @@ final class User
         return $this->createdAt;
     }
 
+    public function passwordState(): PasswordState
+    {
+        return $this->passwordState;
+    }
+
+    /**
+     * Symfony's hash-upgrade path (rehashing on login when the algorithm's
+     * cost parameters have changed). Deliberately leaves passwordState
+     * untouched: an upgrade is not a credential issuance or consumption
+     * event, so it must not affect the one-time-password lifecycle.
+     */
     public function changePassword(HashedPassword $password, ClockInterface $clock): void
     {
         if ($this->password->equals($password)) {
@@ -108,6 +126,57 @@ final class User
         }
 
         $this->password = $password;
+        $this->recordThat(new PasswordChanged($this->id, $clock->now()));
+    }
+
+    /**
+     * Issues a temporary credential a staff member reads out once. The next
+     * successful sign-in with it is forced to set a new password; a second
+     * attempt to sign in with the same credential is rejected outright
+     * (enforced by {@see \App\Users\Infrastructure\Security\UserChecker}
+     * once consumeOneTimePassword() moves the state to OneTimeConsumed).
+     *
+     * @throws OneTimePasswordNotAllowed when the account is deactivated.
+     */
+    public function issueOneTimePassword(HashedPassword $hash, ClockInterface $clock): void
+    {
+        if (!$this->isActive) {
+            throw OneTimePasswordNotAllowed::forInactiveUser($this->id->value);
+        }
+
+        $this->password = $hash;
+        $this->passwordState = PasswordState::OneTimeIssued;
+        $this->recordThat(new OneTimePasswordIssued($this->id, $clock->now()));
+    }
+
+    /**
+     * Marks the currently issued one-time password as used. Called once,
+     * on the first successful authentication with it; the account is then
+     * forced through the "establish a new password" flow before any other
+     * request is allowed to proceed.
+     *
+     * @throws NoOneTimePasswordToConsume when no one-time password is
+     *         currently issued (state is not OneTimeIssued).
+     */
+    public function consumeOneTimePassword(ClockInterface $clock): void
+    {
+        if ($this->passwordState !== PasswordState::OneTimeIssued) {
+            throw NoOneTimePasswordToConsume::for($this->id->value);
+        }
+
+        $this->passwordState = PasswordState::OneTimeConsumed;
+        $this->recordThat(new OneTimePasswordConsumed($this->id, $clock->now()));
+    }
+
+    /**
+     * The user-initiated password change that closes out a one-time
+     * credential (or an ordinary voluntary password change once self-service
+     * exists): returns the account to the Established state.
+     */
+    public function establishPassword(HashedPassword $password, ClockInterface $clock): void
+    {
+        $this->password = $password;
+        $this->passwordState = PasswordState::Established;
         $this->recordThat(new PasswordChanged($this->id, $clock->now()));
     }
 
