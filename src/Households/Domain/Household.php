@@ -456,8 +456,13 @@ final class Household
         }
 
         $now = $clock->now();
+        $previousPhoto = $member->photo();
         $member->anonymize($profile, $now);
         $this->recordThat(new MemberAnonymized($this->id, $memberId, $now));
+
+        if ($previousPhoto !== null) {
+            $this->recordThat(new MemberPhotoReleased($previousPhoto->storageKey, $now));
+        }
 
         if ($this->everyMemberAnonymized()) {
             $this->name = $profile->householdName;
@@ -741,9 +746,19 @@ final class Household
         }
     }
 
+    /**
+     * Merged members are skipped: {@see self::mergeMemberInto()} keeps the
+     * duplicate record in {@see self::$members} (marked merged, never
+     * anonymized) so its history stays attributable, and that record
+     * would otherwise block the household-level scrub forever.
+     */
     private function everyMemberAnonymized(): bool
     {
         foreach ($this->members as $member) {
+            if ($member->isMerged()) {
+                continue;
+            }
+
             if (!$member->isAnonymized()) {
                 return false;
             }

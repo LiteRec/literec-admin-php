@@ -27,6 +27,9 @@ final readonly class AnonymizedProfile
         public Gender $gender,
         public HouseholdName $householdName,
         public Address $address,
+        public ?Salutation $salutation,
+        public ?Height $height,
+        public ?Weight $weight,
     ) {
     }
 
@@ -38,6 +41,13 @@ final readonly class AnonymizedProfile
             Gender::Unspecified,
             HouseholdName::of('Anonymized Household'),
             Address::of('Anonymized', null, 'Anonymized', 'NA', 'N/A', 'ZZ'),
+            // No placeholder value carries meaning for these (LRA-205):
+            // unlike name/date-of-birth/gender/address, the scrub is
+            // simply clearing them, so they are always null rather than
+            // replaced with a substitute.
+            null,
+            null,
+            null,
         );
     }
 }

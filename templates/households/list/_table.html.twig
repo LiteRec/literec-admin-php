@@ -145,7 +145,7 @@
                                     >
                                         View
                                     </a>
-                                    {% if not item.isAnonymized %}
+                                    {% if not item.isAnonymized and not item.isMerged %}
                                         <button
                                             type="button"
                                             class="lr-btn lr-btn-ghost lr-btn-block text-danger-fg"
