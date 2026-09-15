@@ -11,6 +11,7 @@ use App\Households\Domain\Household;
 use App\Households\Domain\Households;
 use App\Households\Domain\MemberCodeAllocator;
 use App\Households\Domain\ValueObject\Address;
+use App\Households\Domain\ValueObject\AnonymizedProfile;
 use App\Households\Domain\ValueObject\DateOfBirth;
 use App\Shared\Domain\ValueObject\EmailAddress;
 use App\Households\Domain\ValueObject\Gender;
@@ -294,6 +295,36 @@ trait HouseholdsContractCases
         self::assertNotNull($merge);
         self::assertTrue($merge->intoMemberId->equals($survivorId));
         self::assertInstanceOf(DateTimeImmutable::class, $merge->at);
+    }
+
+    #[Test]
+    #[TestDox('save(): an anonymized member round-trips through findById() with placeholder fields and anonymizedAt.')]
+    public function anonymized_member_round_trips_with_placeholders_and_anonymized_at(): void
+    {
+        $household = $this->buildHouseholdWithTwoMembers();
+        $this->households()->save($household);
+
+        $loaded = $this->households()->findById(HouseholdId::fromString(self::HOUSEHOLD_ID));
+        $loaded->anonymizeMember(
+            MemberId::fromString(self::SECOND_MEMBER_ID),
+            AnonymizedProfile::placeholder(),
+            $this->clock(),
+        );
+        $this->households()->save($loaded);
+
+        $reloaded = $this->households()->findById(HouseholdId::fromString(self::HOUSEHOLD_ID));
+        $anonymized = $this->memberById($reloaded, self::SECOND_MEMBER_ID);
+        self::assertTrue($anonymized->isAnonymized());
+        self::assertInstanceOf(DateTimeImmutable::class, $anonymized->anonymizedAt());
+        self::assertSame('Anonymized', $anonymized->name()->firstName);
+        self::assertSame('Member', $anonymized->name()->lastName);
+        self::assertNull($anonymized->email());
+        self::assertNull($anonymized->phone());
+        self::assertFalse($anonymized->isActive());
+
+        // Alice (the primary) is untouched, and remains — the household is
+        // not scrubbed while a non-anonymized member remains.
+        self::assertTrue($reloaded->name()->equals(HouseholdName::of('Smith Family')));
     }
 
     #[Test]

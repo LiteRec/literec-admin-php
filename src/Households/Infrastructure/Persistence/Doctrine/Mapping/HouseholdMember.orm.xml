@@ -57,6 +57,7 @@
         </field>
         <field name="deactivatedReason" type="string"                     nullable="true"  length="255" column="deactivated_reason"/>
         <field name="deactivatedAt"     type="datetime_immutable"         nullable="true"  column="deactivated_at"/>
+        <field name="anonymizedAt"      type="datetime_immutable"         nullable="true"  column="anonymized_at"/>
         <field name="mergedIntoMemberId" type="households_member_id"      nullable="true"  column="merged_into_member_id"/>
         <field name="mergedAt"          type="datetime_immutable"         nullable="true"  column="merged_at"/>
         <field name="photoStorageKey"   type="string"                     nullable="true"  length="255" column="photo_storage_key"/>

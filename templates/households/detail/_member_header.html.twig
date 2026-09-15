@@ -63,6 +63,8 @@
     <div class="flex flex-wrap items-center gap-2">
         {% if detail.profile.mergedIntoMemberId is not null %}
             {% include 'components/_badge.html.twig' with { label: 'Merged', variant: 'neutral', testid: 'badge-merged' } only %}
+        {% elseif detail.profile.anonymizedAtIso is not null %}
+            {% include 'components/_badge.html.twig' with { label: 'Anonymized', variant: 'neutral', testid: 'badge-anonymized' } only %}
         {% elseif detail.profile.isActive %}
             {% include 'components/_badge.html.twig' with { label: 'Active', variant: 'success', testid: 'badge-active' } only %}
         {% else %}

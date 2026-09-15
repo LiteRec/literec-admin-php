@@ -129,6 +129,7 @@ the migration review checklist for changes that must be safe over seeded data.
 | `combo-component-row` | `templates/inventory/combos/_form.html.twig` | S7 (LRA-169) |
 | `po-detail-vendor-id` | `templates/inventory/purchase-orders/_detail_body.html.twig` | S9 (LRA-178) |
 | `merge-member`, `merged-banner`, `merge-confirm-submit`, `merge-confirm-cancel`, `merge-survivor-summary`, `merge-duplicate-summary` | `templates/households/detail/_member_header.html.twig`, `templates/households/detail/_merge_confirm_dialog.html.twig` | LRA-208 |
+| `anonymize-open`, `anonymize-confirmation`, `anonymize-acknowledge`, `anonymize-submit`, `anonymize-cancel`, `anonymize-already-done`, `badge-anonymized`, `profile-anonymized-at` | `templates/households/detail/_card_profile_read.html.twig`, `templates/households/detail/_anonymize_dialog.html.twig`, `templates/households/detail/_member_header.html.twig` | LRA-212 |
 
 ## Layout
 

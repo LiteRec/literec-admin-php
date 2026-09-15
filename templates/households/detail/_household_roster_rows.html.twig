@@ -54,7 +54,9 @@
                 {% if m.isPrimary %}
                     {% include 'components/_badge.html.twig' with { label: 'Primary', variant: 'info' } only %}
                 {% endif %}
-                {% if not m.isActive %}
+                {% if m.isAnonymized %}
+                    {% include 'components/_badge.html.twig' with { label: 'Anonymized', variant: 'neutral', testid: 'badge-anonymized', class: 'ml-1' } only %}
+                {% elseif not m.isActive %}
                     {% include 'components/_badge.html.twig' with { label: 'Deactivated', variant: 'neutral', class: 'ml-1' } only %}
                 {% endif %}
                 {% if m.isMerged %}

@@ -10,6 +10,7 @@ use App\Households\Application\Query\Port\SearchMembersCriteria;
 use App\Households\Domain\Exception\MemberNotFound;
 use App\Households\Domain\Household;
 use App\Households\Domain\ValueObject\Address;
+use App\Households\Domain\ValueObject\AnonymizedProfile;
 use App\Households\Domain\ValueObject\DateOfBirth;
 use App\Shared\Domain\ValueObject\EmailAddress;
 use App\Households\Domain\ValueObject\Gender;
@@ -567,6 +568,42 @@ trait MemberReadModelContractCases
         }
         self::assertNotNull($deactivated, 'Deactivated member should still appear in the household roster.');
         self::assertFalse($deactivated->isActive);
+    }
+
+    #[Test]
+    #[TestDox('memberDetail(): exposes anonymizedAtIso on the profile and isAnonymized on the household roster.')]
+    public function member_detail_exposes_anonymized_at_and_placeholder_profile(): void
+    {
+        $household = $this->buildHouseholdA();
+        $household->anonymizeMember(
+            MemberId::fromString(self::A_THIRD_ID),
+            AnonymizedProfile::placeholder(),
+            $this->clock(),
+        );
+        $this->seedHouseholds([$household]);
+
+        $anonymizedDetail = $this->readModel()->memberDetail(
+            HouseholdId::fromString(self::HOUSEHOLD_A),
+            MemberId::fromString(self::A_THIRD_ID),
+        );
+        self::assertNotNull($anonymizedDetail->profile->anonymizedAtIso);
+        self::assertFalse($anonymizedDetail->profile->isActive);
+
+        $primaryDetail = $this->readModel()->memberDetail(
+            HouseholdId::fromString(self::HOUSEHOLD_A),
+            MemberId::fromString(self::A_PRIMARY_ID),
+        );
+        self::assertNull($primaryDetail->profile->anonymizedAtIso);
+
+        $anonymizedRosterItem = null;
+        foreach ($primaryDetail->householdMembers as $item) {
+            if ($item->memberId === self::A_THIRD_ID) {
+                $anonymizedRosterItem = $item;
+                break;
+            }
+        }
+        self::assertNotNull($anonymizedRosterItem, 'Anonymized member should still appear in the household roster.');
+        self::assertTrue($anonymizedRosterItem->isAnonymized);
     }
 
     #[Test]

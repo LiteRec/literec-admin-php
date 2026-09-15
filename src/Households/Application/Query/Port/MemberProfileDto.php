@@ -35,6 +35,7 @@ final readonly class MemberProfileDto
         public ?string $mergedIntoMemberId,
         public ?string $mergedIntoHouseholdId,
         public ?string $mergedAtIso,
+        public ?string $anonymizedAtIso,
     ) {
     }
 }

@@ -1,6 +1,7 @@
 import type { Page } from '@playwright/test';
 import { test, expect } from '../support/fixtures';
 import { ANCHORS } from '../support/anchors';
+import { createHousehold } from '../support/households';
 
 /**
  * S5 (LRA-167): Users & Households. Read assertions reach curated seeded
@@ -27,31 +28,6 @@ const COMING_SOON_HISTORY_VIEWS = [
   'equipment-rentals',
   'pos-purchases',
 ] as const;
-
-async function createHousehold(page: Page, firstName: string, lastName: string): Promise<void> {
-  await page.goto('/admin/users');
-  await page.getByTestId('open-new-household').click();
-  const dialog = page.locator('#register-household-modal');
-  await expect(dialog).toBeVisible();
-
-  await dialog.getByLabel('Household name').fill(`${lastName} Household`);
-  await dialog.getByLabel('First name').fill(firstName);
-  await dialog.getByLabel('Last name').fill(lastName);
-  await dialog.getByLabel('Date of birth').fill('1990-01-01');
-  await dialog.getByLabel('Gender').selectOption({ label: 'Unspecified' });
-  await dialog.getByLabel('Email').fill(`${firstName}.${lastName}@example.com`.toLowerCase());
-  await dialog.getByLabel('Phone').fill('+1-555-0199');
-  await dialog.getByLabel('Residency status').selectOption({ label: 'Resident' });
-  await dialog.getByLabel('Street').fill('1 Test St');
-  await dialog.getByLabel('City').fill('Testville');
-  await dialog.getByLabel('State / Province').fill('CA');
-  await dialog.getByLabel('Postal code').fill('94000');
-  await dialog.getByLabel('Country (ISO 3166-1 alpha-2)').fill('US');
-
-  const submit = page.getByTestId('register-household-submit');
-  await submit.scrollIntoViewIfNeeded();
-  await submit.click();
-}
 
 const ENSURE_HISTORY_MAX_ATTEMPTS = 5;
 
