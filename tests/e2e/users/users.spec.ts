@@ -269,6 +269,28 @@ test.describe('member detail', () => {
     await expect(page.getByTestId('member-header')).toContainText(FRANK.name);
     await expect(frankRow).toBeFocused();
   });
+
+  test('rejects a non-image photo upload with an inline error (LRA-207)', async ({ page }) => {
+    await page.goto('/admin/users');
+    await page.getByTestId('more-filters-toggle').click();
+    await page.locator('#filter-email').fill(ALICE.email);
+    await page.getByRole('link', { name: ALICE.name }).click();
+    await expect(page.getByTestId('member-header')).toContainText(ALICE.name);
+
+    await page.getByTestId('photo-input').setInputFiles({
+      name: 'notes.txt',
+      mimeType: 'text/plain',
+      buffer: Buffer.from('just some text, not an image'),
+    });
+    await page.getByTestId('photo-upload').click();
+
+    // The error region is always in the DOM as sr-only, so assert its
+    // text rather than visibility — this also proves the HTTP 422
+    // response actually swapped into the page (htmx:beforeSwap in
+    // assets/app.js opts 422 back into a normal swap).
+    await expect(page.getByTestId('photo-form-error')).toHaveText(/image/i);
+    await expect(page.getByTestId('member-photo-img')).toHaveCount(0);
+  });
 });
 
 test.describe('create and edit', () => {
