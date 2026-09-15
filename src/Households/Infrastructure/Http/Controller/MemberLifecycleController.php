@@ -10,12 +10,15 @@ use App\Households\Application\Query\Port\MemberDetail;
 use App\Households\Domain\Exception\HouseholdNotFound;
 use App\Households\Domain\Exception\InvalidHouseholdId;
 use App\Households\Domain\Exception\InvalidMemberId;
+use App\Households\Domain\Exception\MemberAlreadyMerged;
 use App\Households\Domain\Exception\MemberNotFound;
 use App\Households\Infrastructure\Http\Form\DeactivateMemberFormType;
 use App\Households\Infrastructure\Http\Form\DeactivateMemberInput;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Form\FormError;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 
@@ -112,11 +115,19 @@ final class MemberLifecycleController extends AbstractController
                     memberId: $memberId,
                     reason: (string) $input->reason,
                 ));
+
+                return $this->hxRedirectToMemberDetail($householdId, $memberId);
             } catch (MemberNotFound | HouseholdNotFound | InvalidHouseholdId | InvalidMemberId) {
                 throw $this->createNotFoundException(self::MEMBER_NOT_FOUND_MESSAGE);
+            } catch (MemberAlreadyMerged $exception) {
+                // The Profile card only hides the Deactivate button for a
+                // merged member (_card_profile_read.html.twig); it does not
+                // stop a dialog opened before a concurrent merge from being
+                // submitted. Surface it as a form error like
+                // MergeMembersController::submit() does for the same
+                // exception, rather than letting it escape as a 500.
+                $form->addError(new FormError($exception->getMessage()));
             }
-
-            return $this->hxRedirectToMemberDetail($householdId, $memberId);
         }
 
         $detail = $this->findDetailOrFail($householdId, $memberId);
@@ -163,6 +174,11 @@ final class MemberLifecycleController extends AbstractController
             ));
         } catch (MemberNotFound | HouseholdNotFound | InvalidHouseholdId | InvalidMemberId) {
             throw $this->createNotFoundException(self::MEMBER_NOT_FOUND_MESSAGE);
+        } catch (MemberAlreadyMerged $exception) {
+            // No form to re-render here (see deactivateSubmit()'s catch for
+            // the same exception) — surface as 409 so the client sees a
+            // real conflict instead of a 500.
+            throw new ConflictHttpException($exception->getMessage(), $exception);
         }
 
         return $this->hxRedirectToMemberDetail($householdId, $memberId);
