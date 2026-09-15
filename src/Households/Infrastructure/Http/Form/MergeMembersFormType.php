@@ -26,24 +26,26 @@ final class MergeMembersFormType extends AbstractType
     private const string UUID_V7_REGEX
         = '/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/';
 
+    private const string SELECT_DUPLICATE_MESSAGE = 'Select a duplicate member to merge.';
+
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
             ->add('duplicateMemberId', HiddenType::class, [
                 'constraints' => [
-                    new NotBlank(message: 'Select a duplicate member to merge.'),
+                    new NotBlank(message: self::SELECT_DUPLICATE_MESSAGE),
                     new Regex(
                         pattern: self::UUID_V7_REGEX,
-                        message: 'Select a duplicate member to merge.',
+                        message: self::SELECT_DUPLICATE_MESSAGE,
                     ),
                 ],
             ])
             ->add('duplicateHouseholdId', HiddenType::class, [
                 'constraints' => [
-                    new NotBlank(message: 'Select a duplicate member to merge.'),
+                    new NotBlank(message: self::SELECT_DUPLICATE_MESSAGE),
                     new Regex(
                         pattern: self::UUID_V7_REGEX,
-                        message: 'Select a duplicate member to merge.',
+                        message: self::SELECT_DUPLICATE_MESSAGE,
                     ),
                 ],
             ])

@@ -198,15 +198,24 @@ final class InMemoryMemberReadModel implements MemberReadModel
             default => true,
         };
 
-        // Each criterion is satisfied when it is unset (null/false) or the
-        // member matches it. receipt, orgName, gateway, and recentOnly
-        // have no backing data on the in-memory aggregate yet and are
-        // intentionally ignored.
         return ($c->includeMerged || !$member->isMerged())
             && $activeMatches
             && $segmentMatches
             && ($c->q === null || $this->matchesQuery($member, $household, $c->q))
-            && (!$c->primaryOnly || $member->isPrimary())
+            && $this->matchesDetailedFilters($member, $c);
+    }
+
+    /**
+     * The "More filters" fields (LRA-192): each is satisfied when it is
+     * unset (null/false) or the member matches it. receipt, orgName,
+     * gateway, and recentOnly have no backing data on the in-memory
+     * aggregate yet and are intentionally ignored. Split out of
+     * {@see self::matches()} to keep that method's cognitive complexity
+     * under the SonarCloud threshold.
+     */
+    private function matchesDetailedFilters(HouseholdMember $member, SearchMembersCriteria $c): bool
+    {
+        return (!$c->primaryOnly || $member->isPrimary())
             && ($c->memberCode === null || $member->code()->value === $c->memberCode)
             && ($c->lastName === null || stripos($member->name()->lastName, $c->lastName) !== false)
             && ($c->firstName === null || stripos($member->name()->firstName, $c->firstName) !== false)

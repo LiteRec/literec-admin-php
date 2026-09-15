@@ -84,13 +84,7 @@ final class MergeMembersControllerTest extends WebTestCase
         $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
         $this->seedSurvivor();
 
-        $client->request('GET', sprintf(
-            '/admin/users/%s/%s/merge/confirm?duplicateMemberId=%s&duplicateHouseholdId=%s',
-            self::SURVIVOR_HOUSEHOLD_ID,
-            self::SURVIVOR_MEMBER_ID,
-            self::DUPLICATE_MEMBER_ID,
-            self::DUPLICATE_HOUSEHOLD_ID,
-        ));
+        $client->request('GET', $this->confirmUrlFor(self::DUPLICATE_MEMBER_ID, self::DUPLICATE_HOUSEHOLD_ID));
 
         self::assertResponseStatusCodeSame(404);
     }
@@ -162,13 +156,7 @@ final class MergeMembersControllerTest extends WebTestCase
         $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
         $this->seedSurvivor();
 
-        $selfConfirmUrl = sprintf(
-            '/admin/users/%s/%s/merge/confirm?duplicateMemberId=%s&duplicateHouseholdId=%s',
-            self::SURVIVOR_HOUSEHOLD_ID,
-            self::SURVIVOR_MEMBER_ID,
-            self::SURVIVOR_MEMBER_ID,
-            self::SURVIVOR_HOUSEHOLD_ID,
-        );
+        $selfConfirmUrl = $this->confirmUrlFor(self::SURVIVOR_MEMBER_ID, self::SURVIVOR_HOUSEHOLD_ID);
         $crawler = $client->request('GET', $selfConfirmUrl);
         self::assertResponseIsSuccessful();
 
@@ -183,12 +171,17 @@ final class MergeMembersControllerTest extends WebTestCase
 
     private function confirmUrl(): string
     {
+        return $this->confirmUrlFor(self::DUPLICATE_MEMBER_ID, self::DUPLICATE_HOUSEHOLD_ID);
+    }
+
+    private function confirmUrlFor(string $duplicateMemberId, string $duplicateHouseholdId): string
+    {
         return sprintf(
             '/admin/users/%s/%s/merge/confirm?duplicateMemberId=%s&duplicateHouseholdId=%s',
             self::SURVIVOR_HOUSEHOLD_ID,
             self::SURVIVOR_MEMBER_ID,
-            self::DUPLICATE_MEMBER_ID,
-            self::DUPLICATE_HOUSEHOLD_ID,
+            $duplicateMemberId,
+            $duplicateHouseholdId,
         );
     }
 
