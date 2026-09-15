@@ -4,18 +4,12 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Households;
 
-use App\Households\Domain\Household;
 use App\Households\Domain\Households;
-use App\Households\Domain\ValueObject\Address;
-use App\Households\Domain\ValueObject\DateOfBirth;
-use App\Households\Domain\ValueObject\Gender;
 use App\Households\Domain\ValueObject\HouseholdId;
-use App\Households\Domain\ValueObject\HouseholdName;
 use App\Households\Domain\ValueObject\MemberCode;
 use App\Households\Domain\ValueObject\MemberId;
-use App\Households\Domain\ValueObject\PersonName;
-use App\Households\Domain\ValueObject\ResidencyStatus;
-use App\Shared\Domain\ValueObject\EmailAddress;
+use App\Tests\Support\Trait\SeedsAliceSmithHousehold;
+use App\Tests\Support\Trait\SeedsSmithHouseholdForUi;
 use App\Tests\Support\Trait\SignsInUsers;
 use DateTimeImmutable;
 use PHPUnit\Framework\Attributes\Group;
@@ -37,7 +31,11 @@ use Symfony\Component\Clock\MockClock;
 #[Group('database')]
 final class MemberLifecycleTest extends WebTestCase
 {
+    use SeedsAliceSmithHousehold;
+    use SeedsSmithHouseholdForUi;
     use SignsInUsers;
+
+    private const string PRIMARY_DOB_ISO = '1990-01-01';
 
     private const string TEST_USERNAME = 'member_lifecycle_e2e';
 
@@ -269,23 +267,19 @@ final class MemberLifecycleTest extends WebTestCase
         return (string) $tokenField->attr('value');
     }
 
-    private function memberById(Household $household, string $memberId): \App\Households\Domain\HouseholdMember
-    {
-        $needle = MemberId::fromString($memberId);
-        foreach ($household->members() as $member) {
-            if ($member->id()->equals($needle)) {
-                return $member;
-            }
-        }
-        self::fail(sprintf('Member %s not found in household.', $memberId));
-    }
-
     private function seedHousehold(): void
     {
         $repo = static::getContainer()->get(Households::class);
         self::assertInstanceOf(Households::class, $repo);
 
-        $repo->save($this->buildHousehold());
+        $this->seedSmithHousehold(
+            $repo,
+            HouseholdId::fromString(self::HOUSEHOLD_ID),
+            MemberId::fromString(self::PRIMARY_ID),
+            MemberCode::of(self::PRIMARY_CODE),
+            self::PRIMARY_DOB_ISO,
+            $this->clock,
+        );
     }
 
     private function seedDeactivatedHousehold(): void
@@ -293,26 +287,15 @@ final class MemberLifecycleTest extends WebTestCase
         $repo = static::getContainer()->get(Households::class);
         self::assertInstanceOf(Households::class, $repo);
 
-        $household = $this->buildHousehold();
-        $household->deactivateMember(MemberId::fromString(self::PRIMARY_ID), self::DEACTIVATION_REASON, $this->clock);
-        $repo->save($household);
-    }
-
-    private function buildHousehold(): Household
-    {
-        return Household::register(
+        $household = $this->seedSmithHousehold(
+            $repo,
             HouseholdId::fromString(self::HOUSEHOLD_ID),
-            HouseholdName::of('Lifecycle Family'),
-            Address::of('100 Main St', null, 'Seattle', 'WA', '98101', 'US'),
             MemberId::fromString(self::PRIMARY_ID),
             MemberCode::of(self::PRIMARY_CODE),
-            PersonName::of('Lee', 'Lifecycle'),
-            DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
-            Gender::Female,
-            EmailAddress::of('lee@example.com'),
-            null,
-            ResidencyStatus::Resident,
+            self::PRIMARY_DOB_ISO,
             $this->clock,
         );
+        $household->deactivateMember(MemberId::fromString(self::PRIMARY_ID), self::DEACTIVATION_REASON, $this->clock);
+        $repo->save($household);
     }
 }
