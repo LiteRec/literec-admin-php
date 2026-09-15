@@ -8,6 +8,7 @@ use App\Households\Application\Command\MergeMembers;
 use App\Households\Application\Query\Port\MemberDetail;
 use App\Households\Domain\Exception\CannotMergeMemberIntoItself;
 use App\Households\Domain\Exception\HouseholdNotFound;
+use App\Households\Domain\Exception\InactiveSurvivorCannotAcceptMerge;
 use App\Households\Domain\Exception\InvalidHouseholdId;
 use App\Households\Domain\Exception\InvalidMemberId;
 use App\Households\Domain\Exception\MemberAlreadyMerged;
@@ -99,7 +100,7 @@ final class MergeMembersController extends AbstractController
             ));
         } catch (MemberNotFound | HouseholdNotFound | InvalidHouseholdId | InvalidMemberId) {
             throw $this->createNotFoundException(self::MEMBER_NOT_FOUND_MESSAGE);
-        } catch (CannotMergeMemberIntoItself | MemberAlreadyMerged $exception) {
+        } catch (CannotMergeMemberIntoItself | MemberAlreadyMerged | InactiveSurvivorCannotAcceptMerge $exception) {
             $form->addError(new FormError($exception->getMessage()));
 
             return $this->reRenderConfirm($householdId, $memberId, $input, $form);

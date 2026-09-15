@@ -26,45 +26,47 @@
             size: 'md',
         } only %}
         <div class="flex-1">
-            <div
-                role="alert"
-                data-testid="photo-form-error"
-                class="{{ photoError is not null ? 'mb-2 rounded-card bg-danger-bg p-2 text-sm font-semibold text-danger-fg' : 'sr-only' }}"
-            >{{ photoError ?? '' }}</div>
-            <form
-                hx-post="{{ path('member_photo_upload', { householdId: detail.household.householdId, memberId: detail.profile.memberId }) }}"
-                hx-target="#card-profile-body"
-                hx-swap="outerHTML"
-                hx-encoding="multipart/form-data"
-                class="flex flex-wrap items-center gap-2"
-            >
-                <input type="hidden" name="upload_member_photo[_token]" value="{{ csrf_token('upload_member_photo') }}">
-                <label class="sr-only" for="profile-photo-input">Photo</label>
-                <input
-                    id="profile-photo-input"
-                    type="file"
-                    name="upload_member_photo[photo]"
-                    accept="image/jpeg,image/png,image/webp"
-                    data-testid="photo-input"
-                    class="text-sm text-litrec-text-muted"
-                >
-                <button type="submit" data-testid="photo-upload" class="lr-btn lr-btn-secondary">
-                    Upload photo
-                </button>
-            </form>
-            {% if detail.profile.photoVersion is not null %}
+            {% if detail.profile.mergedIntoMemberId is null %}
+                <div
+                    role="alert"
+                    data-testid="photo-form-error"
+                    class="{{ photoError is not null ? 'mb-2 rounded-card bg-danger-bg p-2 text-sm font-semibold text-danger-fg' : 'sr-only' }}"
+                >{{ photoError ?? '' }}</div>
                 <form
-                    hx-post="{{ path('member_photo_remove', { householdId: detail.household.householdId, memberId: detail.profile.memberId }) }}"
+                    hx-post="{{ path('member_photo_upload', { householdId: detail.household.householdId, memberId: detail.profile.memberId }) }}"
                     hx-target="#card-profile-body"
                     hx-swap="outerHTML"
-                    hx-confirm="Remove this member's photo?"
-                    class="mt-1"
+                    hx-encoding="multipart/form-data"
+                    class="flex flex-wrap items-center gap-2"
                 >
-                    <input type="hidden" name="remove_member_photo[_token]" value="{{ csrf_token('remove_member_photo') }}">
-                    <button type="submit" data-testid="photo-remove" class="lr-btn lr-btn-ghost">
-                        Remove photo
+                    <input type="hidden" name="upload_member_photo[_token]" value="{{ csrf_token('upload_member_photo') }}">
+                    <label class="sr-only" for="profile-photo-input">Photo</label>
+                    <input
+                        id="profile-photo-input"
+                        type="file"
+                        name="upload_member_photo[photo]"
+                        accept="image/jpeg,image/png,image/webp"
+                        data-testid="photo-input"
+                        class="text-sm text-litrec-text-muted"
+                    >
+                    <button type="submit" data-testid="photo-upload" class="lr-btn lr-btn-secondary">
+                        Upload photo
                     </button>
                 </form>
+                {% if detail.profile.photoVersion is not null %}
+                    <form
+                        hx-post="{{ path('member_photo_remove', { householdId: detail.household.householdId, memberId: detail.profile.memberId }) }}"
+                        hx-target="#card-profile-body"
+                        hx-swap="outerHTML"
+                        hx-confirm="Remove this member's photo?"
+                        class="mt-1"
+                    >
+                        <input type="hidden" name="remove_member_photo[_token]" value="{{ csrf_token('remove_member_photo') }}">
+                        <button type="submit" data-testid="photo-remove" class="lr-btn lr-btn-ghost">
+                            Remove photo
+                        </button>
+                    </form>
+                {% endif %}
             {% endif %}
         </div>
     </div>

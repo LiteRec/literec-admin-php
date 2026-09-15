@@ -6,6 +6,8 @@ namespace App\Households\Infrastructure\Persistence\Doctrine;
 
 use App\Households\Domain\Exception\DuplicateMemberCode;
 use App\Households\Domain\Exception\HouseholdNotFound;
+use App\Households\Domain\Exception\MemberAlreadyMerged;
+use App\Households\Domain\Exception\MemberNotFound;
 use App\Households\Domain\Household;
 use App\Households\Domain\HouseholdMember;
 use App\Households\Domain\Households;
@@ -97,6 +99,26 @@ final class DoctrineHouseholds implements Households
         }
 
         return $household;
+    }
+
+    public function lockUnmergedMember(HouseholdId $householdId, MemberId $memberId): void
+    {
+        // Raw DBAL, not the EntityManager: FOR UPDATE needs to run inside
+        // the current transaction against the latest committed row, which
+        // an EntityManager::find() would instead serve from its identity
+        // map without re-reading the database.
+        $row = $this->em->getConnection()->fetchAssociative(
+            'SELECT merged_into_member_id FROM household_members WHERE id = :id FOR UPDATE',
+            ['id' => $memberId->value],
+        );
+
+        if ($row === false) {
+            throw MemberNotFound::inHousehold($householdId, $memberId);
+        }
+
+        if ($row['merged_into_member_id'] !== null) {
+            throw MemberAlreadyMerged::for($memberId);
+        }
     }
 
     /**
