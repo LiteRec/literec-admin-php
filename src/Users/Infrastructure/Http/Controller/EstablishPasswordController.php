@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace App\Users\Infrastructure\Http\Controller;
 
 use App\Users\Application\Command\EstablishPassword;
+use App\Users\Domain\Exception\UserNotFound;
 use App\Users\Infrastructure\Http\Form\EstablishPasswordFormType;
 use App\Users\Infrastructure\Http\Form\EstablishPasswordInput;
 use App\Users\Infrastructure\Security\SecurityUser;
 use LogicException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Bundle\SecurityBundle\Security;
-use Symfony\Component\Form\FormError;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -22,9 +22,13 @@ use Throwable;
 
 /**
  * The forced "set a new password" page a one-time-password holder lands on
- * after signing in (LRA-213). Reachable by any authenticated user (not just
- * ones with a one-time password pending) so it also serves as the future
- * voluntary "change my password" entry point.
+ * after signing in (LRA-213). Gated to accounts whose password must be
+ * replaced ({@see \App\Users\Domain\ValueObject\PasswordState::mustBeReplaced()});
+ * an Established account is redirected to the dashboard instead, because
+ * voluntarily rotating a password without confirming the current one would
+ * let a hijacked or unattended session lock the real owner out. Voluntary
+ * self-service password changes (with current-password confirmation) are
+ * Part B (LRA-213 follow-up), not this ticket's scope.
  */
 final class EstablishPasswordController extends AbstractController
 {
@@ -39,6 +43,11 @@ final class EstablishPasswordController extends AbstractController
     #[Route('/account/password', name: 'app_password_establish', methods: ['GET', 'POST'])]
     public function __invoke(Request $request): Response
     {
+        $user = $this->getUser();
+        if ($user instanceof SecurityUser && !$user->passwordState->mustBeReplaced()) {
+            return $this->redirectToRoute('app_dashboard');
+        }
+
         $form = $this->createForm(EstablishPasswordFormType::class, new EstablishPasswordInput());
         $form->handleRequest($request);
 
@@ -70,7 +79,11 @@ final class EstablishPasswordController extends AbstractController
                 userId: $user->id,
                 plaintextPassword: (string) $input->newPassword,
             ));
-        } catch (Throwable) {
+        } catch (UserNotFound) {
+            // The account was deleted mid-session (e.g. by another
+            // operator). Any other failure is unexpected and propagates
+            // as a 5xx so real incidents stay visible instead of being
+            // swallowed behind a generic flash.
             $this->addFlash('error', self::GENERIC_FAILURE);
 
             return null;
