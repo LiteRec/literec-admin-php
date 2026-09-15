@@ -588,6 +588,14 @@ trait MemberReadModelContractCases
         );
         self::assertNotNull($anonymizedDetail->profile->anonymizedAtIso);
         self::assertFalse($anonymizedDetail->profile->isActive);
+        // The read model must actually project the placeholder values —
+        // not merely stop erroring — and the member code must survive
+        // untouched so downstream references keep resolving.
+        self::assertSame(self::A_THIRD_CODE, $anonymizedDetail->profile->memberCode);
+        self::assertSame('Anonymized', $anonymizedDetail->profile->firstName);
+        self::assertSame('Member', $anonymizedDetail->profile->lastName);
+        self::assertSame('1900-01-01', substr((string) $anonymizedDetail->profile->dobIso, 0, 10));
+        self::assertSame(Gender::Unspecified->value, $anonymizedDetail->profile->genderCode);
 
         $primaryDetail = $this->readModel()->memberDetail(
             HouseholdId::fromString(self::HOUSEHOLD_A),

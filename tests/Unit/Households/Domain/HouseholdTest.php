@@ -359,7 +359,7 @@ final class HouseholdTest extends TestCase
     #[TestDox('::anonymizeMember() replaces PII with placeholder values and keeps the member\'s id and code.')]
     public function anonymize_member_replaces_pii_with_placeholders_and_keeps_id_and_code(): void
     {
-        $household = $this->register();
+        $household = $this->registerWithSalutationHeightAndWeight();
         $household->releaseEvents();
         $memberId = MemberId::fromString(self::PRIMARY_MEMBER_ID);
         $originalCode = $this->memberById($household, $memberId)->code();
@@ -375,6 +375,28 @@ final class HouseholdTest extends TestCase
         self::assertSame(Gender::Unspecified, $member->gender());
         self::assertNull($member->email());
         self::assertNull($member->phone());
+        self::assertNull($member->salutation());
+        self::assertNull($member->height());
+        self::assertNull($member->weight());
+    }
+
+    #[Test]
+    #[TestDox('::anonymizeMember() releases an attached photo, recording MemberPhotoReleased for its storage key.')]
+    public function anonymize_member_releases_attached_photo(): void
+    {
+        $household = $this->register();
+        $memberId = MemberId::fromString(self::PRIMARY_MEMBER_ID);
+        $photo = $this->photo('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.jpg');
+        $household->attachMemberPhoto($memberId, $photo, $this->clock);
+        $household->releaseEvents();
+
+        $household->anonymizeMember($memberId, AnonymizedProfile::placeholder(), $this->clock);
+
+        $events = $household->releaseEvents();
+        self::assertInstanceOf(MemberAnonymized::class, $events[0]);
+        self::assertInstanceOf(MemberPhotoReleased::class, $events[1]);
+        self::assertSame($photo->storageKey, $events[1]->storageKey);
+        self::assertNull($this->memberById($household, $memberId)->photo());
     }
 
     #[Test]
@@ -468,6 +490,40 @@ final class HouseholdTest extends TestCase
 
         self::assertSame('Smith Family', $household->name()->value);
         self::assertSame('US', $household->address()->country);
+    }
+
+    #[Test]
+    #[TestDox('::anonymizeMember() scrubs the household when the only other member is merged, not anonymized.')]
+    public function anonymize_member_scrubs_household_when_remaining_member_is_merged(): void
+    {
+        $household = $this->register();
+        $household->addMember(
+            MemberId::fromString(self::SECOND_MEMBER_ID),
+            MemberCode::of('M0002'),
+            PersonName::of('Bob', 'Smith'),
+            DateOfBirth::of(new DateTimeImmutable('1992-01-01'), $this->clock),
+            Gender::Male,
+            null,
+            null,
+            ResidencyStatus::Resident,
+            false,
+            $this->clock,
+        );
+        $household->mergeMemberInto(
+            MemberId::fromString(self::SECOND_MEMBER_ID),
+            HouseholdId::fromString('019571bf-5d51-7000-b500-000000000099'),
+            MemberId::fromString('019571bf-5d51-7000-b500-000000000098'),
+            $this->clock,
+        );
+
+        $household->anonymizeMember(
+            MemberId::fromString(self::PRIMARY_MEMBER_ID),
+            AnonymizedProfile::placeholder(),
+            $this->clock,
+        );
+
+        self::assertSame('Anonymized Household', $household->name()->value);
+        self::assertSame('ZZ', $household->address()->country);
     }
 
     /**
@@ -1332,6 +1388,33 @@ final class HouseholdTest extends TestCase
             PhoneNumber::of('5550001'),
             ResidencyStatus::Resident,
             $this->clock,
+        );
+    }
+
+    /**
+     * Same fixture as {@see self::register()}, with the primary member's
+     * salutation, height, and weight (LRA-205) populated so anonymization
+     * tests can assert those fields are cleared rather than trivially
+     * staying null.
+     */
+    private function registerWithSalutationHeightAndWeight(): Household
+    {
+        return Household::register(
+            HouseholdId::fromString(self::HOUSEHOLD_ID),
+            HouseholdName::of('Smith Family'),
+            Address::of('123 Main St', 'Apt 4B', 'Springfield', 'IL', '62701', 'US'),
+            MemberId::fromString(self::PRIMARY_MEMBER_ID),
+            MemberCode::of('M0001'),
+            PersonName::of('Alice', 'Smith'),
+            DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
+            Gender::Female,
+            EmailAddress::of('alice@example.com'),
+            PhoneNumber::of('5550001'),
+            ResidencyStatus::Resident,
+            $this->clock,
+            Salutation::Ms,
+            Height::ofInches(65),
+            Weight::ofPounds(140),
         );
     }
 }

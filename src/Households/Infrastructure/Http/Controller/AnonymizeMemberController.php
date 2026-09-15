@@ -9,6 +9,7 @@ use App\Households\Application\Query\Port\MemberDetail;
 use App\Households\Domain\Exception\HouseholdNotFound;
 use App\Households\Domain\Exception\InvalidHouseholdId;
 use App\Households\Domain\Exception\InvalidMemberId;
+use App\Households\Domain\Exception\MemberAlreadyMerged;
 use App\Households\Domain\Exception\MemberIsAnonymized;
 use App\Households\Domain\Exception\MemberNotFound;
 use App\Households\Infrastructure\Http\Form\AnonymizeMemberFormType;
@@ -146,6 +147,15 @@ final class AnonymizeMemberController extends AbstractController
                     $this->dialogContext($householdId, $memberId, $detail, $form),
                     new Response(null, Response::HTTP_CONFLICT),
                 );
+            } catch (MemberAlreadyMerged $exception) {
+                // The Users list and Profile card only hide the Anonymize
+                // action for an already-merged member; neither stops a
+                // dialog opened before a concurrent merge from being
+                // submitted. Surface it as a form error like
+                // MemberLifecycleController::deactivateSubmit() does for
+                // the same exception, rather than letting it escape as a
+                // 500.
+                $form->addError(new FormError($exception->getMessage()));
             }
         }
 

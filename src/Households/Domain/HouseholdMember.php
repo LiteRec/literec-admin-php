@@ -336,8 +336,13 @@ final class HouseholdMember
      * Replaces every scrubbed identity field with {@see AnonymizedProfile}'s
      * placeholder values and deactivates the member in the same call, with
      * the fixed {@see self::ANONYMIZED_DEACTIVATION_REASON} — never
-     * operator-typed text — as the deactivation reason. Irreversible: there
-     * is no `unanonymize()`; {@see Household} refuses every further
+     * operator-typed text — as the deactivation reason. Also clears
+     * salutation, height, weight, and any attached profile photo (the
+     * photo's storage key must still be read by the caller beforehand —
+     * {@see self::photo()} — to release the file via
+     * {@see \App\Households\Domain\Event\MemberPhotoReleased}, the same
+     * two-step split {@see Household::removeMemberPhoto()} uses). Irreversible:
+     * there is no `unanonymize()`; {@see Household} refuses every further
      * mutator against this member once {@see self::$anonymizedAt} is set.
      *
      * @internal Mutation must be triggered via {@see Household} aggregate.
@@ -349,6 +354,10 @@ final class HouseholdMember
         $this->gender = $profile->gender;
         $this->email = null;
         $this->phone = null;
+        $this->salutation = $profile->salutation;
+        $this->height = $profile->height;
+        $this->weight = $profile->weight;
+        $this->removePhoto();
         $this->isActive = false;
         $this->deactivatedReason = self::ANONYMIZED_DEACTIVATION_REASON;
         $this->deactivatedAt = $at;
