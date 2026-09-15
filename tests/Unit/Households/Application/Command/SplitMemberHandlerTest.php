@@ -8,6 +8,7 @@ use App\Households\Application\Command\SplitMember;
 use App\Households\Application\Command\SplitMemberHandler;
 use App\Households\Domain\Event\MemberAddedToHousehold;
 use App\Households\Domain\Event\MemberSplitOff;
+use App\Households\Domain\Exception\MemberAlreadyMerged;
 use App\Households\Domain\Exception\SplitSelectionEmpty;
 use App\Households\Domain\Household;
 use App\Households\Domain\ValueObject\Address;
@@ -98,6 +99,48 @@ final class SplitMemberHandlerTest extends TestCase
         $this->expectException(SplitSelectionEmpty::class);
 
         ($this->handler)($command);
+    }
+
+    #[Test]
+    #[TestDox('Locks and re-asserts the source is not merged, with the source member id, before saving.')]
+    public function locks_unmerged_source_before_saving(): void
+    {
+        $spy = new RecordsLockUnmergedMemberCalls($this->households);
+        $handler = new SplitMemberHandler(
+            $spy,
+            new HouseholdSequenceIdentityGenerator([], [MemberId::fromString(self::NEW_MEMBER_ID)]),
+            new InMemoryMemberCodeAllocator(),
+            $this->clock,
+            $this->eventBus,
+        );
+
+        $handler($this->validCommand());
+
+        self::assertCount(1, $spy->lockCalls);
+        self::assertTrue($spy->lockCalls[0]['householdId']->equals(HouseholdId::fromString(self::HOUSEHOLD_ID)));
+        self::assertTrue($spy->lockCalls[0]['memberId']->equals(MemberId::fromString(self::SOURCE_ID)));
+    }
+
+    #[Test]
+    #[TestDox('Propagates MemberAlreadyMerged and never saves when the source was merged concurrently.')]
+    public function propagates_lock_failure_and_never_saves(): void
+    {
+        $spy = new ThrowsOnLockHouseholds($this->households);
+        $handler = new SplitMemberHandler(
+            $spy,
+            new HouseholdSequenceIdentityGenerator([], [MemberId::fromString(self::NEW_MEMBER_ID)]),
+            new InMemoryMemberCodeAllocator(),
+            $this->clock,
+            $this->eventBus,
+        );
+
+        $this->expectException(MemberAlreadyMerged::class);
+
+        try {
+            $handler($this->validCommand());
+        } finally {
+            self::assertSame(0, $spy->saveCalls);
+        }
     }
 
     /**
