@@ -427,6 +427,7 @@ test.describe('merge members', () => {
     await page
       .locator('[data-testid^="member-row-"]', { hasText: `Dana ${duplicateLastName}` })
       .first()
+      .getByRole('link')
       .click();
     await expect(page.getByTestId('merged-banner')).toBeVisible();
 
