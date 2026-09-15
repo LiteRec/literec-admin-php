@@ -40,6 +40,18 @@ document.body.addEventListener('htmx:configRequest', (event) => {
     }
 });
 
+// Validation failures re-render the calling form/card inline at HTTP 422,
+// but htmx 2's default responseHandling treats every 4xx as a non-swapping
+// error, so the browser never shows it. Opt 422 back into a normal swap —
+// every 422 response in this app is a "here's your form again, with
+// errors" partial, never a page the user shouldn't see.
+document.body.addEventListener('htmx:beforeSwap', (event) => {
+    if (event.detail.xhr?.status === 422) {
+        event.detail.shouldSwap = true;
+        event.detail.isError = false;
+    }
+});
+
 document.body.addEventListener('htmx:afterRequest', (event) => {
     const target = event.detail.target;
 

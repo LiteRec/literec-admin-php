@@ -14,6 +14,7 @@ use Psr\Clock\ClockInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\DispatchAfterCurrentBusStamp;
+use Throwable;
 
 #[AsMessageHandler(bus: 'command.bus')]
 final class AttachMemberPhotoHandler
@@ -33,10 +34,19 @@ final class AttachMemberPhotoHandler
 
         $format = ImageFormat::fromMimeType($command->mimeType);
         $storageKey = $this->storage->store($memberId, $format, $command->sourcePath);
-        $photo = ProfilePhoto::of($storageKey, $format, $this->clock->now());
 
-        $household->attachMemberPhoto($memberId, $photo, $this->clock);
-        $this->households->save($household);
+        try {
+            $photo = ProfilePhoto::of($storageKey, $format, $this->clock->now());
+            $household->attachMemberPhoto($memberId, $photo, $this->clock);
+            $this->households->save($household);
+        } catch (Throwable $failure) {
+            // The aggregate never took ownership of the key (MemberNotFound,
+            // or save() failed after it did), so no MemberPhotoReleased will
+            // ever clean it up — remove the orphaned file ourselves.
+            $this->storage->remove($storageKey);
+
+            throw $failure;
+        }
 
         foreach ($household->releaseEvents() as $event) {
             $this->eventBus->dispatch($event, [new DispatchAfterCurrentBusStamp()]);

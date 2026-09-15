@@ -10,7 +10,9 @@ use App\Households\Domain\Event\MemberPhotoAttached;
 use App\Households\Domain\Event\MemberPhotoReleased;
 use App\Households\Domain\Exception\MemberNotFound;
 use App\Households\Domain\Exception\UnsupportedImageFormat;
+use App\Households\Domain\MemberPhotoStorage;
 use App\Households\Domain\ValueObject\HouseholdId;
+use App\Households\Domain\ValueObject\ImageFormat;
 use App\Households\Domain\ValueObject\MemberCode;
 use App\Households\Domain\ValueObject\MemberId;
 use App\Households\Infrastructure\Persistence\InMemory\InMemoryHouseholds;
@@ -147,5 +149,45 @@ final class AttachMemberPhotoHandlerTest extends TestCase
             sourcePath: $this->sourcePath,
             mimeType: 'image/jpeg',
         ));
+    }
+
+    #[Test]
+    #[TestDox('Removes the just-stored file when the member is not found, so no orphaned file is left behind.')]
+    public function removes_stored_file_when_member_not_found(): void
+    {
+        $recordingStorage = new class implements MemberPhotoStorage {
+            /** @var list<string> */
+            public array $removedKeys = [];
+
+            public function store(MemberId $memberId, ImageFormat $format, string $sourcePath): string
+            {
+                return sprintf('%s/deadbeefdeadbeefdeadbeefdeadbeef.%s', $memberId->value, $format->extension());
+            }
+
+            public function readable(string $storageKey): \SplFileInfo
+            {
+                throw new \LogicException('Not exercised by this test.');
+            }
+
+            public function remove(string $storageKey): void
+            {
+                $this->removedKeys[] = $storageKey;
+            }
+        };
+        $handler = new AttachMemberPhotoHandler($this->households, $recordingStorage, $this->clock, $this->eventBus);
+
+        try {
+            $handler(new AttachMemberPhoto(
+                householdId: self::HOUSEHOLD_ID,
+                memberId: self::UNKNOWN_ID,
+                sourcePath: $this->sourcePath,
+                mimeType: 'image/jpeg',
+            ));
+            self::fail('Expected MemberNotFound to be thrown.');
+        } catch (MemberNotFound) {
+            // Expected — assert the compensating cleanup below.
+        }
+
+        self::assertSame([self::UNKNOWN_ID . '/deadbeefdeadbeefdeadbeefdeadbeef.jpg'], $recordingStorage->removedKeys);
     }
 }
