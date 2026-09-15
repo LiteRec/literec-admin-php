@@ -40,10 +40,24 @@ final class User
     private Username $username;
     private HashedPassword $password;
     private PasswordState $passwordState;
+    private ?DateTimeImmutable $oneTimePasswordIssuedAt = null;
     /** @var list<Role> */
     private array $roles;
     private bool $isActive;
     private DateTimeImmutable $createdAt;
+
+    /**
+     * Doctrine optimistic-lock version (LRA-213). Maintained by the ORM;
+     * never mutated by domain code. Concurrent saves — most notably two
+     * logins racing to consume the same one-time password — surface as
+     * {@see \Doctrine\ORM\OptimisticLockException}, which
+     * {@see \App\Users\Infrastructure\Persistence\Doctrine\DoctrineUsers::save()}
+     * translates into {@see \App\Users\Domain\Exception\ConcurrentUserModification}.
+     *
+     * Exposed via {@see version()} so tests can pin the increment across
+     * save operations and so PHPStan sees the property used.
+     */
+    private int $version = 0;
 
     private function __construct()
     {
@@ -114,6 +128,21 @@ final class User
     }
 
     /**
+     * When the currently or most-recently issued one-time password was
+     * issued. Null once the account is back in the Established state
+     * (establishPassword() clears it) or if none has ever been issued.
+     */
+    public function oneTimePasswordIssuedAt(): ?DateTimeImmutable
+    {
+        return $this->oneTimePasswordIssuedAt;
+    }
+
+    public function version(): int
+    {
+        return $this->version;
+    }
+
+    /**
      * Symfony's hash-upgrade path (rehashing on login when the algorithm's
      * cost parameters have changed). Deliberately leaves passwordState
      * untouched: an upgrade is not a credential issuance or consumption
@@ -146,6 +175,7 @@ final class User
 
         $this->password = $hash;
         $this->passwordState = PasswordState::OneTimeIssued;
+        $this->oneTimePasswordIssuedAt = $clock->now();
         $this->recordThat(new OneTimePasswordIssued($this->id, $clock->now()));
     }
 
@@ -177,6 +207,7 @@ final class User
     {
         $this->password = $password;
         $this->passwordState = PasswordState::Established;
+        $this->oneTimePasswordIssuedAt = null;
         $this->recordThat(new PasswordChanged($this->id, $clock->now()));
     }
 
