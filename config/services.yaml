@@ -110,6 +110,12 @@ services:
     App\Households\Domain\Households: '@App\Households\Infrastructure\Persistence\Doctrine\DoctrineHouseholds'
     App\Households\Domain\MemberCodeAllocator: '@App\Households\Infrastructure\Persistence\Doctrine\DoctrineMemberCodeAllocator'
 
+    # LRA-212: bind the free-text-reason scrub port (residency-history and
+    # split/merge-lineage reasons) to the Doctrine adapter. Called
+    # synchronously from AnonymizeMemberHandler, inside the same
+    # command.bus transaction as the aggregate write.
+    App\Households\Domain\MemberFreeTextReasons: '@App\Households\Infrastructure\Persistence\Doctrine\DoctrineMemberFreeTextReasons'
+
     # LRA-207: bind the member photo storage port to the local-filesystem
     # adapter, rooted at app.member_photo_dir (var/uploads/member-photos
     # by default, overridable via MEMBER_PHOTO_DIR). An S3-backed adapter

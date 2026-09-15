@@ -364,6 +364,11 @@ final class Household
         $this->recordThat(new HouseholdAddressUpdated($this->id, $address, $clock->now()));
     }
 
+    /**
+     * @throws MemberNotFound when $memberId does not belong to this household
+     * @throws MemberAlreadyMerged when the member has already been merged into another record
+     * @throws MemberIsAnonymized when the member has been anonymized (LRA-212)
+     */
     public function setResidencyStatus(
         MemberId $memberId,
         ResidencyStatus $status,
@@ -373,6 +378,7 @@ final class Household
     ): void {
         $member = $this->memberById($memberId);
         $this->assertNotMerged($member);
+        $this->assertNotAnonymized($member, MemberIsAnonymized::cannotBeModified(...));
 
         if ($member->residencyStatus() === $status) {
             return;

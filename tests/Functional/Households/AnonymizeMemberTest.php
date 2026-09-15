@@ -45,6 +45,11 @@ final class AnonymizeMemberTest extends WebTestCase
     private const string PRIMARY_CODE = 'M000800';
 
     private const string UNKNOWN_MEMBER_ID = '019571bf-5d57-7000-b500-0000000000fe';
+    /** Stand-in survivor id: Household::mergeMemberInto() does not require it to exist. */
+    private const string SURVIVOR_ID = '019571bf-5d57-7000-b500-00000000ee03';
+    private const string TOKEN_HOUSEHOLD_ID = '019571bf-5d57-7000-b500-00000000ee04';
+    private const string TOKEN_MEMBER_ID = '019571bf-5d57-7000-b500-00000000ee05';
+    private const string TOKEN_MEMBER_CODE = 'M000802';
 
     private const string ROUTE_MEMBER_DETAIL = '/admin/users/%s/%s';
     private const string ROUTE_ANONYMIZE = '/admin/users/%s/%s/anonymize';
@@ -223,6 +228,67 @@ final class AnonymizeMemberTest extends WebTestCase
     }
 
     #[Test]
+    #[TestDox('The anonymize form for a merged member returns 409 with a no-form notice instead of throwing.')]
+    public function anonymize_form_for_merged_member_returns_409(): void
+    {
+        $client = static::createClient();
+        $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
+        $this->seedHouseholdWithMergedMember();
+
+        $client->request('GET', sprintf(self::ROUTE_ANONYMIZE, self::HOUSEHOLD_ID, self::PRIMARY_ID));
+
+        self::assertResponseStatusCodeSame(409);
+        self::assertSelectorExists('[data-testid="anonymize-already-done"]');
+        self::assertSelectorTextContains('[data-testid="anonymize-already-done"]', 'merged');
+        self::assertSelectorNotExists('[data-testid="anonymize-confirmation"]');
+    }
+
+    #[Test]
+    #[TestDox('Submitting anonymize for a merged member surfaces a form error instead of a 500.')]
+    public function anonymize_submit_for_merged_member_returns_422(): void
+    {
+        $client = static::createClient();
+        $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
+        $this->seedHouseholdWithMergedMember();
+
+        // The Profile card and Users list only hide the Anonymize action
+        // for an already-merged member, and this controller's own GET now
+        // returns the no-form 409 notice for one too — so there is no
+        // rendered form on THIS member's page to pull a token from. The
+        // 'anonymize_member' CSRF token is scoped per-session (a fixed
+        // token_id, not per-member — see AnonymizeMemberFormType), so a
+        // token harvested from a throwaway member's anonymize page in the
+        // same session is equally valid here. Mirrors
+        // MemberLifecycleTest::reactivate_merged_member_returns_409...'s
+        // identical workaround for the same CSRF-scoping reason.
+        $this->seedSmithHousehold(
+            $this->repo(),
+            HouseholdId::fromString(self::TOKEN_HOUSEHOLD_ID),
+            MemberId::fromString(self::TOKEN_MEMBER_ID),
+            MemberCode::of(self::TOKEN_MEMBER_CODE),
+            self::PRIMARY_DOB_ISO,
+            $this->clock,
+        );
+        $token = $this->csrfTokenFromAnonymizeForm($client, self::TOKEN_HOUSEHOLD_ID, self::TOKEN_MEMBER_ID);
+
+        $client->request(
+            'POST',
+            sprintf(self::ROUTE_ANONYMIZE, self::HOUSEHOLD_ID, self::PRIMARY_ID),
+            [
+                'anonymize_member' => [
+                    'confirmation' => self::PRIMARY_FULL_NAME,
+                    'acknowledged' => '1',
+                    '_token' => $token,
+                ],
+            ],
+        );
+
+        self::assertResponseStatusCodeSame(422);
+        $household = $this->repo()->findById(HouseholdId::fromString(self::HOUSEHOLD_ID));
+        self::assertFalse($this->memberById($household, self::PRIMARY_ID)->isAnonymized());
+    }
+
+    #[Test]
     #[TestDox('An anonymize POST without a CSRF token returns 422.')]
     public function anonymize_without_csrf_returns_422(): void
     {
@@ -271,9 +337,15 @@ final class AnonymizeMemberTest extends WebTestCase
         self::assertStringContainsString('/login', (string) $client->getResponse()->headers->get('Location'));
     }
 
-    private function csrfTokenFromAnonymizeForm(KernelBrowser $client): string
-    {
-        $crawler = $client->request('GET', sprintf(self::ROUTE_ANONYMIZE, self::HOUSEHOLD_ID, self::PRIMARY_ID));
+    private function csrfTokenFromAnonymizeForm(
+        KernelBrowser $client,
+        ?string $householdId = null,
+        ?string $memberId = null,
+    ): string {
+        $crawler = $client->request(
+            'GET',
+            sprintf(self::ROUTE_ANONYMIZE, $householdId ?? self::HOUSEHOLD_ID, $memberId ?? self::PRIMARY_ID),
+        );
         self::assertResponseIsSuccessful();
 
         $tokenField = $crawler->filter('input[name="anonymize_member[_token]"]');
@@ -333,6 +405,26 @@ final class AnonymizeMemberTest extends WebTestCase
         $household->anonymizeMember(
             MemberId::fromString(self::PRIMARY_ID),
             AnonymizedProfile::placeholder(),
+            $this->clock,
+        );
+        $repo->save($household);
+    }
+
+    private function seedHouseholdWithMergedMember(): void
+    {
+        $repo = $this->repo();
+        $household = $this->seedSmithHousehold(
+            $repo,
+            HouseholdId::fromString(self::HOUSEHOLD_ID),
+            MemberId::fromString(self::PRIMARY_ID),
+            MemberCode::of(self::PRIMARY_CODE),
+            self::PRIMARY_DOB_ISO,
+            $this->clock,
+        );
+        $household->mergeMemberInto(
+            MemberId::fromString(self::PRIMARY_ID),
+            HouseholdId::fromString(self::HOUSEHOLD_ID),
+            MemberId::fromString(self::SURVIVOR_ID),
             $this->clock,
         );
         $repo->save($household);
