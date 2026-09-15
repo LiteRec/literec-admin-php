@@ -48,8 +48,12 @@ final class MemberLifecycleTest extends WebTestCase
     private const string UNKNOWN_MEMBER_ID = '019571bf-5d56-7000-b500-0000000000fe';
     private const string UNKNOWN_HOUSEHOLD_ID = '019571bf-5d56-7000-b500-0000000000ff';
 
+    private const string ROUTE_MEMBER_DETAIL = '/admin/users/%s/%s';
     private const string ROUTE_DEACTIVATE = '/admin/users/%s/%s/deactivate';
     private const string ROUTE_REACTIVATE = '/admin/users/%s/%s/reactivate';
+
+    /** Reused literal (SonarCloud php:S1192). */
+    private const string DEACTIVATION_REASON = 'Moved out of state';
 
     private MockClock $clock;
 
@@ -90,7 +94,7 @@ final class MemberLifecycleTest extends WebTestCase
             sprintf(self::ROUTE_DEACTIVATE, self::HOUSEHOLD_ID, self::PRIMARY_ID),
             [
                 'deactivate_member' => [
-                    'reason' => 'Moved out of state',
+                    'reason' => self::DEACTIVATION_REASON,
                     '_token' => $token,
                 ],
             ],
@@ -99,7 +103,7 @@ final class MemberLifecycleTest extends WebTestCase
         self::assertResponseStatusCodeSame(200);
         self::assertTrue($client->getResponse()->headers->has('HX-Redirect'));
         self::assertStringContainsString(
-            sprintf('/admin/users/%s/%s', self::HOUSEHOLD_ID, self::PRIMARY_ID),
+            sprintf(self::ROUTE_MEMBER_DETAIL, self::HOUSEHOLD_ID, self::PRIMARY_ID),
             (string) $client->getResponse()->headers->get('HX-Redirect'),
         );
 
@@ -108,7 +112,7 @@ final class MemberLifecycleTest extends WebTestCase
         $household = $repo->findById(HouseholdId::fromString(self::HOUSEHOLD_ID));
         $member = $this->memberById($household, self::PRIMARY_ID);
         self::assertFalse($member->isActive());
-        self::assertSame('Moved out of state', $member->deactivation()?->reason);
+        self::assertSame(self::DEACTIVATION_REASON, $member->deactivation()?->reason);
     }
 
     #[Test]
@@ -154,7 +158,7 @@ final class MemberLifecycleTest extends WebTestCase
             sprintf(self::ROUTE_DEACTIVATE, self::HOUSEHOLD_ID, self::PRIMARY_ID),
             [
                 'deactivate_member' => [
-                    'reason' => 'Moved out of state',
+                    'reason' => self::DEACTIVATION_REASON,
                     // No _token.
                 ],
             ],
@@ -197,11 +201,11 @@ final class MemberLifecycleTest extends WebTestCase
         $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
         $this->seedDeactivatedHousehold();
 
-        $client->request('GET', sprintf('/admin/users/%s/%s', self::HOUSEHOLD_ID, self::PRIMARY_ID));
+        $client->request('GET', sprintf(self::ROUTE_MEMBER_DETAIL, self::HOUSEHOLD_ID, self::PRIMARY_ID));
 
         self::assertResponseIsSuccessful();
         self::assertSelectorExists('[data-testid="badge-deactivated"]');
-        self::assertSelectorTextContains('[data-testid="profile-deactivated-reason"]', 'Moved out of state');
+        self::assertSelectorTextContains('[data-testid="profile-deactivated-reason"]', self::DEACTIVATION_REASON);
         self::assertSelectorExists('[data-testid="profile-reactivate"]');
         self::assertSelectorNotExists('[data-testid="profile-deactivate"]');
     }
@@ -214,7 +218,7 @@ final class MemberLifecycleTest extends WebTestCase
         $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
         $this->seedDeactivatedHousehold();
 
-        $crawler = $client->request('GET', sprintf('/admin/users/%s/%s', self::HOUSEHOLD_ID, self::PRIMARY_ID));
+        $crawler = $client->request('GET', sprintf(self::ROUTE_MEMBER_DETAIL, self::HOUSEHOLD_ID, self::PRIMARY_ID));
         self::assertResponseIsSuccessful();
         $reactivateForm = $crawler->filter('[data-testid="profile-reactivate"]')->closest('form');
         $tokenField = $reactivateForm?->filter('input[name="_token"]');
@@ -290,7 +294,7 @@ final class MemberLifecycleTest extends WebTestCase
         self::assertInstanceOf(Households::class, $repo);
 
         $household = $this->buildHousehold();
-        $household->deactivateMember(MemberId::fromString(self::PRIMARY_ID), 'Moved out of state', $this->clock);
+        $household->deactivateMember(MemberId::fromString(self::PRIMARY_ID), self::DEACTIVATION_REASON, $this->clock);
         $repo->save($household);
     }
 
