@@ -8,6 +8,7 @@ use App\Users\Application\Command\IssueOneTimePassword;
 use App\Users\Domain\Exception\InvalidUsername;
 use App\Users\Domain\Exception\OneTimePasswordNotAllowed;
 use App\Users\Domain\Exception\UserNotFound;
+use App\Users\Domain\User;
 use App\Users\Domain\Users;
 use App\Users\Domain\ValueObject\OneTimePassword;
 use App\Users\Domain\ValueObject\Username;
@@ -50,19 +51,9 @@ final class IssueOneTimePasswordCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
 
-        $username = $input->getArgument('username');
-        if (!is_string($username) || $username === '') {
-            $io->error('The username argument must be a non-empty string.');
-
-            return Command::INVALID;
-        }
-
-        try {
-            $user = $this->users->byUsername(Username::of($username));
-        } catch (UserNotFound | InvalidUsername $e) {
-            $io->error($e->getMessage());
-
-            return Command::FAILURE;
+        $user = $this->resolveUser($input, $io);
+        if (!$user instanceof User) {
+            return $user;
         }
 
         try {
@@ -71,10 +62,28 @@ final class IssueOneTimePasswordCommand extends Command
             return $this->reportHandlerFailure($e, $io);
         }
 
-        return $this->reportResult($envelope, $username, $io);
+        return $this->reportResult($envelope, $user, $io);
     }
 
-    private function reportResult(Envelope $envelope, string $username, SymfonyStyle $io): int
+    private function resolveUser(InputInterface $input, SymfonyStyle $io): User|int
+    {
+        $username = $input->getArgument('username');
+        if (!is_string($username) || $username === '') {
+            $io->error('The username argument must be a non-empty string.');
+
+            return Command::INVALID;
+        }
+
+        try {
+            return $this->users->byUsername(Username::of($username));
+        } catch (UserNotFound | InvalidUsername $e) {
+            $io->error($e->getMessage());
+
+            return Command::FAILURE;
+        }
+    }
+
+    private function reportResult(Envelope $envelope, User $user, SymfonyStyle $io): int
     {
         $otp = $envelope->last(HandledStamp::class)?->getResult();
 
@@ -87,7 +96,7 @@ final class IssueOneTimePasswordCommand extends Command
             return Command::FAILURE;
         }
 
-        $io->success(sprintf('One-time password for "%s": %s', $username, $otp->value));
+        $io->success(sprintf('One-time password for "%s": %s', $user->username(), $otp->value));
         $io->note('This credential is shown once and is not stored anywhere in plaintext.');
 
         return Command::SUCCESS;

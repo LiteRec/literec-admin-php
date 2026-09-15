@@ -32,6 +32,10 @@ final class OneTimePasswordLoginTest extends WebTestCase
 
     private const string NEW_PASSWORD = 'a-brand-new-password'; // NOSONAR test fixture
 
+    private const string LOGIN_ROUTE = '/login';
+
+    private const string ACCOUNT_PASSWORD_ROUTE = '/account/password';
+
     #[Test]
     #[TestDox('Signing in with a one-time password forces a password change before any other page loads.')]
     public function one_time_password_forces_a_password_change_then_works_exactly_once(): void
@@ -42,24 +46,24 @@ final class OneTimePasswordLoginTest extends WebTestCase
         // 1. Signing in with the one-time password redirects to the forced
         //    "set a new password" page rather than the dashboard.
         $this->submitLogin($client, self::USERNAME, $otp->value);
-        self::assertResponseRedirects('/account/password');
+        self::assertResponseRedirects(self::ACCOUNT_PASSWORD_ROUTE);
         $client->followRedirect();
         self::assertResponseIsSuccessful();
 
         // 2. Any other authenticated route redirects back to that page
         //    until the password is replaced.
         $client->request('GET', '/dashboard');
-        self::assertResponseRedirects('/account/password');
+        self::assertResponseRedirects(self::ACCOUNT_PASSWORD_ROUTE);
 
         // 3. Setting a new password logs the user out and sends them back
         //    to /login with a success flash.
-        $crawler = $client->request('GET', '/account/password');
+        $crawler = $client->request('GET', self::ACCOUNT_PASSWORD_ROUTE);
         $form = $crawler->selectButton('Set password')->form([
             'establish_password[newPassword][first]' => self::NEW_PASSWORD,
             'establish_password[newPassword][second]' => self::NEW_PASSWORD,
         ]);
         $client->submit($form);
-        self::assertResponseRedirects('/login');
+        self::assertResponseRedirects(self::LOGIN_ROUTE);
         $crawler = $client->followRedirect();
         self::assertSelectorExists('p[role="alert"]');
 
@@ -77,7 +81,7 @@ final class OneTimePasswordLoginTest extends WebTestCase
         //    after logging out of the freshly-established session.
         $client->request('GET', '/logout');
         $this->submitLogin($client, self::USERNAME, $otp->value);
-        self::assertResponseRedirects('/login');
+        self::assertResponseRedirects(self::LOGIN_ROUTE);
         $client->followRedirect();
         self::assertSelectorExists('p[role="alert"]');
     }
@@ -103,7 +107,7 @@ final class OneTimePasswordLoginTest extends WebTestCase
 
     private function submitLogin(KernelBrowser $client, string $username, string $password): void
     {
-        $crawler = $client->request('GET', '/login');
+        $crawler = $client->request('GET', self::LOGIN_ROUTE);
         $form = $crawler->selectButton('Login')->form([
             '_username' => $username,
             '_password' => $password,
