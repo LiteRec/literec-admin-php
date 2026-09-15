@@ -58,6 +58,12 @@ final class AnonymizeMemberController extends AbstractController
 
     private const string TEMPLATE_ANONYMIZE_DIALOG = 'households/detail/_anonymize_dialog.html.twig';
 
+    // Values passed to the dialog template as `blockedReason` when the GET
+    // route finds the member already in a terminal state the action
+    // cannot apply to — neither has a form to render.
+    private const string BLOCKED_ANONYMIZED = 'anonymized';
+    private const string BLOCKED_MERGED = 'merged';
+
     public function __construct(
         // Consumed by the DispatchesHouseholdMessages trait at $this->queryBus.
         private readonly MessageBusInterface $queryBus, // NOSONAR
@@ -71,8 +77,11 @@ final class AnonymizeMemberController extends AbstractController
      * Renders the Anonymize Member confirmation dialog, pre-populated
      * with the member's current full name so {@see AnonymizeMemberFormType}
      * can check the typed confirmation against it. Returns 409 with a
-     * notice (no form) when the member is already anonymized — there is
-     * no undo path to offer.
+     * notice (no form) when the member is already anonymized, or already
+     * merged into another record — neither has an undo/anonymize path to
+     * offer, and a merged record would otherwise reach
+     * {@see \App\Households\Domain\Household::anonymizeMember()} and
+     * throw {@see MemberAlreadyMerged}.
      */
     #[Route(
         '/admin/users/{householdId}/{memberId}/anonymize',
@@ -91,7 +100,15 @@ final class AnonymizeMemberController extends AbstractController
         if ($detail->profile->anonymizedAtIso !== null) {
             return $this->render(
                 self::TEMPLATE_ANONYMIZE_DIALOG,
-                ['alreadyAnonymized' => true],
+                ['blockedReason' => self::BLOCKED_ANONYMIZED],
+                new Response(null, Response::HTTP_CONFLICT),
+            );
+        }
+
+        if ($detail->profile->mergedIntoMemberId !== null) {
+            return $this->render(
+                self::TEMPLATE_ANONYMIZE_DIALOG,
+                ['blockedReason' => self::BLOCKED_MERGED],
                 new Response(null, Response::HTTP_CONFLICT),
             );
         }
@@ -179,7 +196,7 @@ final class AnonymizeMemberController extends AbstractController
     /**
      * @param FormInterface<AnonymizeMemberInput> $form
      *
-     * @return array{alreadyAnonymized: bool, form: mixed, householdId: string, memberId: string, memberName: string}
+     * @return array{blockedReason: null, form: mixed, householdId: string, memberId: string, memberName: string}
      */
     private function dialogContext(
         string $householdId,
@@ -188,7 +205,7 @@ final class AnonymizeMemberController extends AbstractController
         FormInterface $form,
     ): array {
         return [
-            'alreadyAnonymized' => false,
+            'blockedReason' => null,
             'form' => $form->createView(),
             'householdId' => $householdId,
             'memberId' => $memberId,

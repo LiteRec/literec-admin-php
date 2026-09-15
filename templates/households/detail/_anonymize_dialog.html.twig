@@ -7,19 +7,26 @@
        failure, or (409) when a concurrent anonymize beat this submission
 
    Expected variables:
-     - alreadyAnonymized: bool    True renders the no-form notice only.
+     - blockedReason: 'anonymized'|'merged'|null   Non-null renders the
+                      no-form notice only, one of AnonymizeMemberController's
+                      BLOCKED_* constants.
      - form:       Symfony FormView built from AnonymizeMemberFormType.
-                   Not present when alreadyAnonymized is true.
+                   Not present when blockedReason is non-null.
      - householdId: home household UUID v7 string (identity data lives on
                     the home aggregate — LRA-210)
      - memberId:    UUID v7 string of the member being anonymized
      - memberName:  the member's current full name — also the value the
                     operator must type to confirm
 #}
-{% if alreadyAnonymized %}
+{% if blockedReason is not null %}
     {% set body %}
         <p class="text-sm text-litrec-text-muted" data-testid="anonymize-already-done">
-            This member has already been anonymized. There is no way to undo it.
+            {% if blockedReason == 'merged' %}
+                This member has been merged into another record and cannot be anonymized directly.
+                Anonymize the surviving record instead.
+            {% else %}
+                This member has already been anonymized. There is no way to undo it.
+            {% endif %}
         </p>
         <div class="mt-6 flex items-center justify-end">
             <button type="button" class="lr-btn lr-btn-secondary" @click="dismiss()">Close</button>

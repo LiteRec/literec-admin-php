@@ -554,6 +554,13 @@ final class HouseholdTest extends TestCase
         yield 'reactivateMember' => ['mutate' => static function (Household $h, MemberId $id, MockClock $clock): void {
             $h->reactivateMember($id, $clock);
         }];
+        yield 'setResidencyStatus' => ['mutate' => static function (
+            Household $h,
+            MemberId $id,
+            MockClock $clock,
+        ): void {
+            $h->setResidencyStatus($id, ResidencyStatus::NonResident, $clock->now(), $clock);
+        }];
     }
 
     #[Test]

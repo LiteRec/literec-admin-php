@@ -14,6 +14,7 @@ use App\Households\Domain\ValueObject\HouseholdId;
 use App\Households\Domain\ValueObject\MemberCode;
 use App\Households\Domain\ValueObject\MemberId;
 use App\Households\Infrastructure\Persistence\InMemory\InMemoryHouseholds;
+use App\Households\Infrastructure\Persistence\InMemory\InMemoryMemberFreeTextReasons;
 use App\Tests\Support\Fake\RecordingMessageBus;
 use App\Tests\Support\Trait\SeedsAliceSmithHousehold;
 use DateTimeImmutable;
@@ -36,6 +37,7 @@ final class AnonymizeMemberHandlerTest extends TestCase
 
     private MockClock $clock;
     private InMemoryHouseholds $households;
+    private InMemoryMemberFreeTextReasons $freeTextReasons;
     private RecordingMessageBus $eventBus;
     private AnonymizeMemberHandler $handler;
 
@@ -54,9 +56,11 @@ final class AnonymizeMemberHandlerTest extends TestCase
         $seed->releaseEvents();
         $this->households->save($seed);
 
+        $this->freeTextReasons = new InMemoryMemberFreeTextReasons();
         $this->eventBus = new RecordingMessageBus();
         $this->handler = new AnonymizeMemberHandler(
             $this->households,
+            $this->freeTextReasons,
             $this->clock,
             $this->eventBus,
         );
@@ -80,6 +84,13 @@ final class AnonymizeMemberHandlerTest extends TestCase
         $messages = $this->eventBus->dispatchedMessages();
         self::assertCount(1, $messages);
         self::assertInstanceOf(MemberAnonymized::class, $messages[0]);
+
+        // Scrubbed synchronously by the handler itself (LRA-212), not left
+        // to a post-commit event subscriber.
+        self::assertCount(1, $this->freeTextReasons->scrubbedMemberIds());
+        self::assertTrue($this->freeTextReasons->scrubbedMemberIds()[0]->equals(
+            MemberId::fromString(self::PRIMARY_ID),
+        ));
     }
 
     #[Test]
