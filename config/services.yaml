@@ -65,6 +65,7 @@ services:
             - '../src/Households/Application/Command/UpdateHouseholdAddress.php'
             - '../src/Households/Application/Command/ChangeMemberResidency.php'
             - '../src/Households/Application/Command/DeactivateMember.php'
+            - '../src/Households/Application/Command/ReactivateMember.php'
             - '../src/Households/Application/Command/AttachMemberPhoto.php'
             - '../src/Households/Application/Command/RemoveMemberPhoto.php'
             - '../src/Households/Application/Command/MergeMembers.php'

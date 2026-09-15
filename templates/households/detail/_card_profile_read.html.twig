@@ -72,12 +72,39 @@
     </div>
 
     {% if detail.profile.mergedIntoMemberId is null %}
-        <div class="mb-3 flex items-center justify-end">
+        <div class="mb-3 flex items-center justify-end gap-2">
             {# Routed through homeHouseholdId (LRA-210), not the viewed
                household: identity data lives only on the home aggregate, so
                edits made while viewing a shared minor from a linked
                household still land on the aggregate that owns the member
-               row. #}
+               row. Deactivate/Reactivate follow the same routing (LRA-211). #}
+            {% if detail.profile.isActive %}
+                <button
+                    type="button"
+                    data-testid="profile-deactivate"
+                    hx-get="{{ path('member_deactivate_form', { householdId: detail.homeHouseholdId, memberId: detail.profile.memberId }) }}"
+                    hx-target="body"
+                    hx-swap="beforeend"
+                    aria-haspopup="dialog"
+                    class="lr-btn lr-btn-secondary"
+                >
+                    Deactivate
+                </button>
+            {% else %}
+                <form
+                    method="post"
+                    hx-post="{{ path('member_reactivate', { householdId: detail.homeHouseholdId, memberId: detail.profile.memberId }) }}"
+                >
+                    <input type="hidden" name="_token" value="{{ csrf_token('reactivate_member') }}">
+                    <button
+                        type="submit"
+                        data-testid="profile-reactivate"
+                        class="lr-btn lr-btn-secondary"
+                    >
+                        Reactivate
+                    </button>
+                </form>
+            {% endif %}
             <button
                 type="button"
                 data-testid="profile-edit"
@@ -145,8 +172,20 @@
             <dd data-testid="profile-primary" class="mt-1 text-litrec-text">{{ detail.profile.isPrimary ? 'Yes' : 'No' }}</dd>
         </div>
         <div>
-            <dt class="text-xs font-semibold uppercase tracking-wide text-litrec-text-muted">Active</dt>
-            <dd data-testid="profile-active" class="mt-1 text-litrec-text">{{ detail.profile.isActive ? 'Yes' : 'No' }}</dd>
+            <dt class="text-xs font-semibold uppercase tracking-wide text-litrec-text-muted">Status</dt>
+            <dd data-testid="profile-active" class="mt-1 text-litrec-text">
+                {% if detail.profile.isActive %}
+                    Active
+                {% else %}
+                    Deactivated {{ detail.profile.deactivatedAtIso is not null ? detail.profile.deactivatedAtIso|date('M j, Y') : '' }}
+                {% endif %}
+            </dd>
         </div>
+        {% if not detail.profile.isActive %}
+            <div>
+                <dt class="text-xs font-semibold uppercase tracking-wide text-litrec-text-muted">Deactivation reason</dt>
+                <dd data-testid="profile-deactivated-reason" class="mt-1 text-litrec-text">{{ detail.profile.deactivatedReason ?? '—' }}</dd>
+            </div>
+        {% endif %}
     </dl>
 </div>

@@ -50,6 +50,7 @@ final class AddHouseholdController extends AbstractController
     use HandleTrait {
         handle as private dispatchCommand;
     }
+    use RedirectsToMemberDetail;
 
     private const string UUID_V7_REGEX = '[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}';
 
@@ -276,15 +277,7 @@ final class AddHouseholdController extends AbstractController
 
     private function hxRedirectTo(HouseholdId $householdId, MemberId $memberId): Response
     {
-        $target = $this->generateUrl('member_detail', [
-            'householdId' => $householdId->value,
-            'memberId'    => $memberId->value,
-        ]);
-
-        $response = new Response(null, Response::HTTP_OK);
-        $response->headers->set('HX-Redirect', $target);
-
-        return $response;
+        return $this->hxRedirectToMemberDetail($householdId->value, $memberId->value);
     }
 
     /**
