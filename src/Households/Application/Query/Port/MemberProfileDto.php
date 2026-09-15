@@ -30,6 +30,8 @@ final readonly class MemberProfileDto
         public bool $isActive,
         public ?string $deactivatedReason,
         public ?string $deactivatedAtIso,
+        public ?string $photoVersion,
+        public ?string $photoMimeType,
     ) {
     }
 }

@@ -52,6 +52,8 @@ final class DoctrineMemberReadModel implements MemberReadModel
 
     private const string COL_LIST_ITEM_EXTRA = 'm.email, h.name AS household_name, ';
 
+    private const string COL_PHOTO = 'm.photo_storage_key, ';
+
     private const string FROM_MEMBERS = 'FROM household_members m ';
 
     public function __construct(private readonly Connection $connection)
@@ -74,6 +76,7 @@ final class DoctrineMemberReadModel implements MemberReadModel
             self::SQL_SELECT
             . self::COL_MEMBER_CORE
             . self::COL_LIST_ITEM_EXTRA
+            . self::COL_PHOTO
             . 'm.last_name, m.suffix, m.date_of_birth, m.phone, m.residency_status, '
             . 'm.is_primary, m.is_active, '
             . 'h.street, h.city, h.state '
@@ -112,6 +115,7 @@ final class DoctrineMemberReadModel implements MemberReadModel
             . 'm.salutation, m.height_inches, m.weight_pounds, '
             . 'm.residency_status, m.is_primary, m.is_active, '
             . 'm.deactivated_reason, m.deactivated_at, '
+            . 'm.photo_storage_key, m.photo_format, '
             . 'h.name AS household_name, '
             . 'h.street, h.unit, h.city, h.state, h.postal_code, h.country '
             . self::FROM_MEMBERS
@@ -181,6 +185,7 @@ final class DoctrineMemberReadModel implements MemberReadModel
         $sql = self::SQL_SELECT
             . self::COL_MEMBER_CORE
             . self::COL_LIST_ITEM_EXTRA
+            . self::COL_PHOTO
             . 'm.last_name, m.suffix, m.date_of_birth, m.phone, m.residency_status, '
             . 'm.is_primary, m.is_active, '
             . 'h.street, h.city, h.state '
@@ -375,7 +380,28 @@ final class DoctrineMemberReadModel implements MemberReadModel
             $this->rowString($row, 'residency_status'),
             $this->rowBool($row, 'is_primary'),
             $this->rowBool($row, 'is_active'),
+            $this->photoVersion($this->rowNullableString($row, 'photo_storage_key')),
         );
+    }
+
+    /**
+     * The persisted photo storage key's basename without its extension,
+     * mirroring {@see \App\Households\Domain\ValueObject\ProfilePhoto::version()}.
+     * Computed directly from the row rather than constructing the domain
+     * value object: this read-side adapter deliberately never re-hydrates
+     * domain types (CQRS-lite), and the key alone is sufficient to derive
+     * the cache-busting version segment.
+     */
+    private function photoVersion(?string $storageKey): ?string
+    {
+        if ($storageKey === null) {
+            return null;
+        }
+
+        $basename = basename($storageKey);
+        $dot = strrpos($basename, '.');
+
+        return $dot === false ? $basename : substr($basename, 0, $dot);
     }
 
     /**
@@ -408,6 +434,8 @@ final class DoctrineMemberReadModel implements MemberReadModel
             $this->rowBool($row, 'is_active'),
             $this->rowNullableString($row, 'deactivated_reason'),
             $this->normalizeDateTime($row['deactivated_at'] ?? null),
+            $this->photoVersion($this->rowNullableString($row, 'photo_storage_key')),
+            $this->rowNullableString($row, 'photo_format'),
         );
     }
 

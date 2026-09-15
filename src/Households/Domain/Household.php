@@ -9,6 +9,9 @@ use App\Households\Domain\Event\MemberAddedToHousehold;
 use App\Households\Domain\Event\HouseholdAddressUpdated;
 use App\Households\Domain\Event\MemberContactUpdated;
 use App\Households\Domain\Event\MemberDeactivated;
+use App\Households\Domain\Event\MemberPhotoAttached;
+use App\Households\Domain\Event\MemberPhotoReleased;
+use App\Households\Domain\Event\MemberPhotoRemoved;
 use App\Households\Domain\Event\MemberProfileUpdated;
 use App\Households\Domain\Event\MemberReactivated;
 use App\Households\Domain\Event\MemberRemovedFromHousehold;
@@ -25,6 +28,7 @@ use App\Households\Domain\ValueObject\HouseholdName;
 use App\Households\Domain\ValueObject\MemberCode;
 use App\Households\Domain\ValueObject\MemberId;
 use App\Households\Domain\ValueObject\PersonName;
+use App\Households\Domain\ValueObject\ProfilePhoto;
 use App\Households\Domain\ValueObject\ResidencyStatus;
 use App\Households\Domain\ValueObject\Salutation;
 use App\Households\Domain\ValueObject\Weight;
@@ -381,6 +385,44 @@ final class Household
 
         $member->reactivate();
         $this->recordThat(new MemberReactivated($this->id, $memberId, $clock->now()));
+    }
+
+    /**
+     * Attaches (or replaces) a member's profile photo. When a previous
+     * photo existed, its storage key is released via
+     * {@see MemberPhotoReleased} in the same call so the superseded file
+     * is cleaned up — the caller never has to orchestrate the two steps
+     * itself.
+     */
+    public function attachMemberPhoto(MemberId $memberId, ProfilePhoto $photo, ClockInterface $clock): void
+    {
+        $member = $this->memberById($memberId);
+        $previous = $member->photo();
+
+        $member->attachPhoto($photo);
+        $this->recordThat(new MemberPhotoAttached($this->id, $memberId, $photo->storageKey, $clock->now()));
+
+        if ($previous !== null) {
+            $this->recordThat(new MemberPhotoReleased($previous->storageKey, $clock->now()));
+        }
+    }
+
+    /**
+     * Removes a member's profile photo. A no-op when the member has none.
+     */
+    public function removeMemberPhoto(MemberId $memberId, ClockInterface $clock): void
+    {
+        $member = $this->memberById($memberId);
+        $previous = $member->photo();
+
+        if ($previous === null) {
+            return;
+        }
+
+        $member->removePhoto();
+        $now = $clock->now();
+        $this->recordThat(new MemberPhotoRemoved($this->id, $memberId, $now));
+        $this->recordThat(new MemberPhotoReleased($previous->storageKey, $now));
     }
 
     private function memberById(MemberId $id): HouseholdMember

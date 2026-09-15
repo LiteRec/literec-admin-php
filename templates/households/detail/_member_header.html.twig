@@ -16,10 +16,13 @@
     class="mb-6 flex flex-wrap items-center justify-between gap-x-4 gap-y-3 border-b border-litrec-border pb-4"
 >
     <div class="flex items-center gap-4">
-        <span
-            aria-hidden="true"
-            class="flex h-14 w-14 flex-none items-center justify-center rounded-full bg-litrec-sage-200 text-lg font-bold text-litrec-sage-800"
-        >{{ detail.profile.firstName|slice(0, 1) }}{{ detail.profile.lastName|slice(0, 1) }}</span>
+        {% include 'households/detail/_member_avatar.html.twig' with {
+            photoVersion: detail.profile.photoVersion,
+            initials: detail.profile.firstName|slice(0, 1) ~ detail.profile.lastName|slice(0, 1),
+            photoRouteParams: { householdId: detail.household.householdId, memberId: detail.profile.memberId, version: detail.profile.photoVersion },
+            size: 'lg',
+            id: 'member-avatar',
+        } only %}
         <div>
             <h2 class="font-heading text-2xl font-bold text-litrec-text [font-synthesis-weight:none]">{{ detail.profile.fullName }}</h2>
             <p class="mt-1 text-sm text-litrec-text-muted">{{ detail.household.householdName }}</p>

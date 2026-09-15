@@ -9,6 +9,9 @@ use App\Households\Domain\Event\HouseholdRegistered;
 use App\Households\Domain\Event\MemberAddedToHousehold;
 use App\Households\Domain\Event\MemberContactUpdated;
 use App\Households\Domain\Event\MemberDeactivated;
+use App\Households\Domain\Event\MemberPhotoAttached;
+use App\Households\Domain\Event\MemberPhotoReleased;
+use App\Households\Domain\Event\MemberPhotoRemoved;
 use App\Households\Domain\Event\MemberProfileUpdated;
 use App\Households\Domain\Event\MemberReactivated;
 use App\Households\Domain\Event\MemberRemovedFromHousehold;
@@ -24,9 +27,11 @@ use App\Households\Domain\ValueObject\Gender;
 use App\Households\Domain\ValueObject\Height;
 use App\Households\Domain\ValueObject\HouseholdId;
 use App\Households\Domain\ValueObject\HouseholdName;
+use App\Households\Domain\ValueObject\ImageFormat;
 use App\Households\Domain\ValueObject\MemberCode;
 use App\Households\Domain\ValueObject\MemberId;
 use App\Households\Domain\ValueObject\PersonName;
+use App\Households\Domain\ValueObject\ProfilePhoto;
 use App\Shared\Domain\ValueObject\PhoneNumber;
 use App\Households\Domain\ValueObject\ResidencyStatus;
 use App\Households\Domain\ValueObject\Salutation;
@@ -329,6 +334,119 @@ final class HouseholdTest extends TestCase
         $events = $household->releaseEvents();
         self::assertCount(1, $events);
         self::assertInstanceOf(MemberReactivated::class, $events[0]);
+    }
+
+    #[Test]
+    #[TestDox('::attachMemberPhoto() records MemberPhotoAttached and attaches the photo to the member.')]
+    public function attach_member_photo_records_event_and_attaches_photo(): void
+    {
+        $household = $this->register();
+        $household->releaseEvents();
+        $memberId = MemberId::fromString(self::PRIMARY_MEMBER_ID);
+        $photo = $this->photo('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.jpg');
+
+        $household->attachMemberPhoto($memberId, $photo, $this->clock);
+
+        $events = $household->releaseEvents();
+        self::assertCount(1, $events);
+        self::assertInstanceOf(MemberPhotoAttached::class, $events[0]);
+        self::assertSame($photo->storageKey, $events[0]->storageKey);
+
+        $member = $this->memberById($household, $memberId);
+        self::assertNotNull($member->photo());
+        self::assertTrue($member->photo()->equals($photo));
+    }
+
+    #[Test]
+    #[TestDox('::attachMemberPhoto() replacing a photo also records MemberPhotoReleased for the superseded key.')]
+    public function attach_member_photo_replacing_releases_previous_key(): void
+    {
+        $household = $this->register();
+        $memberId = MemberId::fromString(self::PRIMARY_MEMBER_ID);
+        $first = $this->photo('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.jpg');
+        $household->attachMemberPhoto($memberId, $first, $this->clock);
+        $household->releaseEvents();
+
+        $second = $this->photo('bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.png');
+        $household->attachMemberPhoto($memberId, $second, $this->clock);
+
+        $events = $household->releaseEvents();
+        self::assertCount(2, $events);
+        self::assertInstanceOf(MemberPhotoAttached::class, $events[0]);
+        self::assertSame($second->storageKey, $events[0]->storageKey);
+        self::assertInstanceOf(MemberPhotoReleased::class, $events[1]);
+        self::assertSame($first->storageKey, $events[1]->storageKey);
+
+        $member = $this->memberById($household, $memberId);
+        self::assertNotNull($member->photo());
+        self::assertTrue($member->photo()->equals($second));
+    }
+
+    #[Test]
+    #[TestDox('::removeMemberPhoto() is a no-op when the member has no photo.')]
+    public function remove_member_photo_is_no_op_without_photo(): void
+    {
+        $household = $this->register();
+        $household->releaseEvents();
+
+        $household->removeMemberPhoto(MemberId::fromString(self::PRIMARY_MEMBER_ID), $this->clock);
+
+        self::assertSame([], $household->releaseEvents());
+    }
+
+    #[Test]
+    #[TestDox('::removeMemberPhoto() records MemberPhotoRemoved and MemberPhotoReleased and clears the photo.')]
+    public function remove_member_photo_records_events_and_clears_photo(): void
+    {
+        $household = $this->register();
+        $memberId = MemberId::fromString(self::PRIMARY_MEMBER_ID);
+        $photo = $this->photo('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.jpg');
+        $household->attachMemberPhoto($memberId, $photo, $this->clock);
+        $household->releaseEvents();
+
+        $household->removeMemberPhoto($memberId, $this->clock);
+
+        $events = $household->releaseEvents();
+        self::assertCount(2, $events);
+        self::assertInstanceOf(MemberPhotoRemoved::class, $events[0]);
+        self::assertInstanceOf(MemberPhotoReleased::class, $events[1]);
+        self::assertSame($photo->storageKey, $events[1]->storageKey);
+
+        self::assertNull($this->memberById($household, $memberId)->photo());
+    }
+
+    #[Test]
+    #[TestDox('members() clones carry the photo alongside every other member field.')]
+    public function members_clone_carries_photo(): void
+    {
+        $household = $this->register();
+        $memberId = MemberId::fromString(self::PRIMARY_MEMBER_ID);
+        $photo = $this->photo('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.jpg');
+        $household->attachMemberPhoto($memberId, $photo, $this->clock);
+
+        $clone = $this->memberById($household, $memberId);
+
+        self::assertNotNull($clone->photo());
+        self::assertTrue($clone->photo()->equals($photo));
+    }
+
+    private function photo(string $basename): ProfilePhoto
+    {
+        return ProfilePhoto::of(
+            self::PRIMARY_MEMBER_ID . '/' . $basename,
+            ImageFormat::fromMimeType('image/' . (str_ends_with($basename, '.png') ? 'png' : 'jpeg')),
+            $this->clock->now(),
+        );
+    }
+
+    private function memberById(Household $household, MemberId $memberId): \App\Households\Domain\HouseholdMember
+    {
+        foreach ($household->members() as $member) {
+            if ($member->id()->equals($memberId)) {
+                return $member;
+            }
+        }
+        self::fail('Member not found in household.');
     }
 
     #[Test]

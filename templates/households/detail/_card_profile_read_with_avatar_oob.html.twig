@@ -1,0 +1,21 @@
+{# Photo upload/remove response (LRA-207): the Profile card's read-mode
+   body (the swap target for both POST /photo and POST /photo/remove)
+   plus an out-of-band update of the page header's #member-avatar, so a
+   photo change is reflected in both places from a single response
+   without a full page reload — mirrors the LRA-203 OOB pattern used by
+   _member_context_oob.html.twig for the member-switch flow.
+
+   Expects:
+     - detail:     App\Households\Application\Query\Port\MemberDetail
+     - photoError: string|null  See _card_profile_read.html.twig.
+#}
+{% include 'households/detail/_card_profile_read.html.twig' with { detail: detail, photoError: photoError } only %}
+
+{% include 'households/detail/_member_avatar.html.twig' with {
+    photoVersion: detail.profile.photoVersion,
+    initials: detail.profile.firstName|slice(0, 1) ~ detail.profile.lastName|slice(0, 1),
+    photoRouteParams: { householdId: detail.household.householdId, memberId: detail.profile.memberId, version: detail.profile.photoVersion },
+    size: 'lg',
+    id: 'member-avatar',
+    oob: true,
+} only %}

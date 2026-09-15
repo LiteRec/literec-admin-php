@@ -9,7 +9,6 @@ use App\Households\Application\Command\UpdateHouseholdAddress;
 use App\Households\Application\Command\UpdateMemberContact;
 use App\Households\Application\Command\UpdateMemberProfile;
 use App\Households\Application\Port\MemberTransactionHistory;
-use App\Households\Application\Query\GetMemberDetail;
 use App\Households\Application\Query\Port\MemberDetail;
 use App\Households\Domain\Exception\HouseholdNotFound;
 use App\Households\Domain\Exception\InvalidAddress;
@@ -33,7 +32,6 @@ use App\Households\Infrastructure\Http\Form\UpdateMemberProfileInput;
 use App\Shared\Domain\Exception\InvalidEmailAddress;
 use App\Shared\Domain\Exception\InvalidPhoneNumber;
 use App\Shared\Domain\Exception\SharedDomainException;
-use LogicException;
 use Psr\Clock\ClockInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormError;
@@ -41,12 +39,8 @@ use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
-use Symfony\Component\Messenger\Envelope;
-use Symfony\Component\Messenger\Exception\HandlerFailedException;
 use Symfony\Component\Messenger\MessageBusInterface;
-use Symfony\Component\Messenger\Stamp\HandledStamp;
 use Symfony\Component\Routing\Attribute\Route;
-use Throwable;
 
 /**
  * HTTP adapter for the member detail page (LRA-41) and the in-card
@@ -62,7 +56,7 @@ use Throwable;
  * target nested inside the Profile card, so an in-progress identity edit
  * and an in-progress contact edit never clobber each other.
  *
- * The controller stays thin: dispatches {@see GetMemberDetail} via the
+ * The controller stays thin: dispatches {@see \App\Households\Application\Query\GetMemberDetail} via the
  * `query.bus` and {@see UpdateMemberProfile} via the `command.bus`, catches
  * the domain exceptions that bubble out of either bus, and translates them
  * to HTTP status codes (404 for missing aggregates, 422 with inline form
@@ -73,6 +67,8 @@ use Throwable;
  */
 final class MemberDetailController extends AbstractController
 {
+    use DispatchesHouseholdMessages;
+
     private const string UUID_V7_REGEX
         = '[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}';
 
@@ -238,7 +234,7 @@ final class MemberDetailController extends AbstractController
     /**
      * Handles the Profile card edit submission. On validation failure or a
      * domain exception re-renders the edit partial at HTTP 422 with inline
-     * form errors. On success re-dispatches {@see GetMemberDetail} and
+     * form errors. On success re-dispatches {@see \App\Households\Application\Query\GetMemberDetail} and
      * returns the read-mode partial at HTTP 200, so the card swaps back to
      * read mode with the updated values.
      */
@@ -392,7 +388,7 @@ final class MemberDetailController extends AbstractController
     /**
      * Handles the Contact sub-card edit submission. On validation failure
      * or a domain exception re-renders the edit partial at HTTP 422 with
-     * inline form errors. On success re-dispatches {@see GetMemberDetail}
+     * inline form errors. On success re-dispatches {@see \App\Households\Application\Query\GetMemberDetail}
      * and returns the read-mode partial at HTTP 200, so the sub-card swaps
      * back to read mode with the updated values.
      */
@@ -721,78 +717,6 @@ final class MemberDetailController extends AbstractController
             'memberId' => $memberId,
             'page' => $pageDto,
         ]);
-    }
-
-    /**
-     * Dispatches the GetMemberDetail query and unwraps Messenger's
-     * HandlerFailedException so the original domain exceptions reach the
-     * caller. Domain exceptions cannot leak through Messenger's bus in
-     * their raw form because handler failures are always wrapped.
-     */
-    private function runQuery(string $householdId, string $memberId): MemberDetail
-    {
-        try {
-            $envelope = $this->queryBus->dispatch(new GetMemberDetail($householdId, $memberId));
-        } catch (HandlerFailedException $wrapper) {
-            $nested = $wrapper->getPrevious();
-            if ($nested instanceof Throwable) {
-                throw $nested;
-            }
-            throw $wrapper;
-        }
-
-        $result = $this->resultOf($envelope);
-
-        if (!$result instanceof MemberDetail) {
-            throw new LogicException(sprintf(
-                'GetMemberDetail handler returned %s, expected %s.',
-                get_debug_type($result),
-                MemberDetail::class,
-            ));
-        }
-
-        return $result;
-    }
-
-    /**
-     * Dispatch a command through the command bus and unwrap
-     * HandlerFailedException so domain exceptions surface to the caller.
-     */
-    private function dispatchCommandUnwrapping(object $command): void
-    {
-        try {
-            $this->commandBus->dispatch($command);
-        } catch (HandlerFailedException $wrapper) {
-            $nested = $wrapper->getPrevious();
-            if ($nested instanceof Throwable) {
-                throw $nested;
-            }
-            throw $wrapper;
-        }
-    }
-
-    /**
-     * Extract the single handler result from a dispatched Envelope. Mirrors
-     * Messenger's HandleTrait behaviour without coupling the controller to
-     * the trait (the controller uses both the query bus and the command
-     * bus, which the trait cannot multiplex).
-     */
-    private function resultOf(Envelope $envelope): mixed
-    {
-        $stamps = $envelope->all(HandledStamp::class);
-
-        if ($stamps === []) {
-            throw new LogicException('Dispatched message produced no HandledStamp.');
-        }
-
-        if (count($stamps) > 1) {
-            throw new LogicException('Dispatched message produced more than one HandledStamp.');
-        }
-
-        /** @var HandledStamp $stamp */
-        $stamp = $stamps[0];
-
-        return $stamp->getResult();
     }
 
     /**

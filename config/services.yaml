@@ -23,6 +23,14 @@ parameters:
     # Default Faker seed for fixture loads. Override via FIXTURE_SEED env
     # to switch to a different but still stable dataset.
     default_fixture_seed: 1
+    # LRA-207: root directory member profile photos are written under.
+    # Only /app/var is writable in production, so this defaults under
+    # var/ rather than public/ — photos are never served as static
+    # files, only streamed through the authenticated MemberPhotoController.
+    # Override via MEMBER_PHOTO_DIR for deployments that mount a
+    # different writable path.
+    app.member_photo_dir: '%env(default:default_member_photo_dir:string:MEMBER_PHOTO_DIR)%'
+    default_member_photo_dir: '%kernel.project_dir%/var/uploads/member-photos'
 
 services:
     # default configuration for services in *this* file
@@ -57,6 +65,8 @@ services:
             - '../src/Households/Application/Command/UpdateHouseholdAddress.php'
             - '../src/Households/Application/Command/ChangeMemberResidency.php'
             - '../src/Households/Application/Command/DeactivateMember.php'
+            - '../src/Households/Application/Command/AttachMemberPhoto.php'
+            - '../src/Households/Application/Command/RemoveMemberPhoto.php'
             - '../src/Households/Application/Query/Port/'
             - '../src/Households/Application/Query/SearchMembers.php'
             - '../src/Households/Application/Query/GetMemberDetail.php'
@@ -96,6 +106,15 @@ services:
     App\Households\Domain\IdentityGenerator: '@App\Households\Infrastructure\Identity\Uuid7IdentityGenerator'
     App\Households\Domain\Households: '@App\Households\Infrastructure\Persistence\Doctrine\DoctrineHouseholds'
     App\Households\Domain\MemberCodeAllocator: '@App\Households\Infrastructure\Persistence\Doctrine\DoctrineMemberCodeAllocator'
+
+    # LRA-207: bind the member photo storage port to the local-filesystem
+    # adapter, rooted at app.member_photo_dir (var/uploads/member-photos
+    # by default, overridable via MEMBER_PHOTO_DIR). An S3-backed adapter
+    # is out of scope for this port's first implementation.
+    App\Households\Domain\MemberPhotoStorage: '@App\Households\Infrastructure\Storage\LocalMemberPhotoStorage'
+    App\Households\Infrastructure\Storage\LocalMemberPhotoStorage:
+        arguments:
+            $rootDir: '%app.member_photo_dir%'
 
     # Bind the Catalog ports to their production adapters. Command
     # handlers auto-register through #[AsMessageHandler]; the event bus
@@ -223,6 +242,17 @@ services:
             $commandBus: '@command.bus'
         tags: ['controller.service_arguments']
 
+    # LRA-207: wire the MemberPhotoController onto both buses (query for
+    # re-fetching MemberDetail after a mutation, command for
+    # AttachMemberPhoto/RemoveMemberPhoto). The MemberPhotoStorage port
+    # is autowired by interface and resolves to the local-filesystem
+    # adapter via the binding above (or the in-memory test binding).
+    App\Households\Infrastructure\Http\Controller\MemberPhotoController:
+        arguments:
+            $queryBus: '@query.bus'
+            $commandBus: '@command.bus'
+        tags: ['controller.service_arguments']
+
     # LRA-92: InventoryPurchaseOrdersFixtures needs both buses (command
     # to dispatch the lifecycle commands, query to fetch generated line
     # ids via GetPurchaseOrderDetail). The default `MessageBusInterface`
@@ -285,6 +315,19 @@ when@test:
             public: true
         App\Households\Application\Port\MemberTransactionHistory:
             alias: App\Households\Infrastructure\Acl\Stub\StubMemberTransactionHistory
+            public: true
+        # LRA-207: override the production local-filesystem binding with
+        # the in-memory adapter so unit/functional tests never write
+        # under the real var/uploads/member-photos directory. The real
+        # adapter stays available under a named alias for the
+        # LocalMemberPhotoStorage integration contract test.
+        App\Households\Domain\MemberPhotoStorage:
+            alias: App\Households\Infrastructure\Storage\InMemoryMemberPhotoStorage
+            public: true
+        App\Households\Infrastructure\Storage\InMemoryMemberPhotoStorage:
+            public: true
+        households.local_member_photo_storage:
+            alias: App\Households\Infrastructure\Storage\LocalMemberPhotoStorage
             public: true
         # Catalog (LRA-66). Production binding stays on the Doctrine
         # adapter; the in-memory adapter is wired behind a named alias so
