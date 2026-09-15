@@ -3,7 +3,8 @@
    Returns one of two shapes depending on `page.page`:
 
    - page.page == 1: the full body — either the empty-state, or a
-     div#card-history-body wrapping a table with header, the page-1
+     div#card-history-body wrapping a #history-split-form which in
+     turn wraps the split toolbar and a table with header, the page-1
      rows, and an optional "Load more" placeholder row at the end.
      This is what replaces the lazy-load shim in _card_history.
 
@@ -11,14 +12,22 @@
      more pages remain) by the "Load more" placeholder row. The bag
      of rows replaces the previous "Load more" row via HTMX
      hx-swap=outerHTML, so the new rows slot into the existing tbody
-     and the new "Load more" placeholder ends up at the bottom — no
-     extra thead ever appears.
+     — still inside #history-split-form — and the new "Load more"
+     placeholder ends up at the bottom — no extra thead ever appears,
+     and appended rows' checkboxes are automatically covered by the
+     form's hx-include (LRA-209).
 
    The "Load more" button is wrapped in its own row tagged
    js-history-loadmore so HTMX outerHTML against that row drops in
    the next page's rows plus a fresh placeholder. When page.hasMore
    is false, no placeholder is emitted and the button simply
    disappears.
+
+   The split toolbar (LRA-209) submits no form itself — its button
+   hx-gets the split dialog with hx-include="#history-split-form" so
+   every checked transactionIds[] checkbox (across all loaded pages)
+   rides along, and hx-target="body" / hx-swap="beforeend" appends the
+   dialog fragment for components/_modal.html.twig to take over.
 
    Expects:
      - householdId: string (UUID v7)
@@ -43,36 +52,57 @@
                 No transactions on file.
             </p>
         {% else %}
-            <div class="overflow-x-auto">
-                <table data-testid="history-table" class="lr-table">
-                    <thead>
-                        <tr>
-                            <th scope="col">Date</th>
-                            <th scope="col">Kind</th>
-                            <th scope="col">Description</th>
-                            <th scope="col" class="text-right">Amount</th>
-                            <th scope="col">Status</th>
-                            <th scope="col">Payment method</th>
-                        </tr>
-                    </thead>
-                    <tbody data-testid="history-tbody">
-                        {% for row in page.items %}
-                            {% include 'households/detail/_card_history_row.html.twig' with {
-                                row: row,
-                                kindBadgeMap: kindBadgeMap,
-                            } only %}
-                        {% endfor %}
-                        {% if page.hasMore %}
-                            {% include 'households/detail/_card_history_loadmore.html.twig' with {
-                                householdId: householdId,
-                                memberId: memberId,
-                                nextPage: page.page + 1,
-                                pageSize: page.pageSize,
-                            } only %}
-                        {% endif %}
-                    </tbody>
-                </table>
-            </div>
+            <form
+                id="history-split-form"
+                x-data="{ anySelected: false }"
+                @change="anySelected = Array.from($el.querySelectorAll('input[name=\'transactionIds[]\']')).some((cb) => cb.checked)"
+            >
+                <div class="mb-2 flex items-center justify-end">
+                    <button
+                        type="button"
+                        data-testid="history-split-open"
+                        :disabled="!anySelected"
+                        hx-get="{{ path('member_split_form', { householdId: householdId, memberId: memberId }) }}"
+                        hx-include="#history-split-form"
+                        hx-target="body"
+                        hx-swap="beforeend"
+                        class="lr-btn lr-btn-secondary disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        Split selected to new member…
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table data-testid="history-table" class="lr-table">
+                        <thead>
+                            <tr>
+                                <th scope="col"><span class="sr-only">Select</span></th>
+                                <th scope="col">Date</th>
+                                <th scope="col">Kind</th>
+                                <th scope="col">Description</th>
+                                <th scope="col" class="text-right">Amount</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Payment method</th>
+                            </tr>
+                        </thead>
+                        <tbody data-testid="history-tbody">
+                            {% for row in page.items %}
+                                {% include 'households/detail/_card_history_row.html.twig' with {
+                                    row: row,
+                                    kindBadgeMap: kindBadgeMap,
+                                } only %}
+                            {% endfor %}
+                            {% if page.hasMore %}
+                                {% include 'households/detail/_card_history_loadmore.html.twig' with {
+                                    householdId: householdId,
+                                    memberId: memberId,
+                                    nextPage: page.page + 1,
+                                    pageSize: page.pageSize,
+                                } only %}
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </form>
         {% endif %}
     </div>
 {% else %}

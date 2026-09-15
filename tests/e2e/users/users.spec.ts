@@ -53,6 +53,55 @@ async function createHousehold(page: Page, firstName: string, lastName: string):
   await submit.click();
 }
 
+/**
+ * The Transaction History stub (LRA-45) synthesises `crc32(memberId) % 26`
+ * rows, so a freshly created member has a 1-in-26 chance of an empty
+ * history. Expects the caller to already be on a member detail page;
+ * expands the History card (which lazily loads the default Transactions
+ * view) and, on the unlucky empty case, adds a second member via the Add
+ * Member dialog and checks that one instead — so a split test never
+ * depends on the odds coming up in its favour (LRA-209).
+ */
+async function ensureMemberWithHistory(page: Page): Promise<void> {
+  await page.getByTestId('card-history').locator('summary').click();
+  // The pre-load shim and the HTMX-swapped content share the
+  // `card-history-body` testid, so waiting on that alone resolves against
+  // the shim before the lazy-load request completes. Wait for the actual
+  // loaded state (either the table or the empty-state paragraph) instead.
+  await page
+    .locator('[data-testid="history-empty-state"], [data-testid="history-table"]')
+    .first()
+    .waitFor();
+
+  if ((await page.getByTestId('history-empty-state').count()) === 0) {
+    return;
+  }
+
+  await page.getByTestId('add-member').click();
+  const dialog = page.locator('#add-member-modal');
+  await expect(dialog).toBeVisible();
+
+  const suffix = `${Date.now()}`;
+  await dialog.getByLabel('First name').fill('Sibling');
+  await dialog.getByLabel('Last name').fill(`HasHistory${suffix}`);
+  await dialog.getByLabel('Date of birth').fill('2001-05-05');
+  await dialog.getByLabel('Gender').selectOption({ label: 'Unspecified' });
+  await dialog.getByLabel('Email').fill(`sibling.hashistory${suffix}@example.com`);
+  await dialog.getByLabel('Phone').fill('+1-555-0197');
+  await dialog.getByLabel('Residency status').selectOption({ label: 'Resident' });
+
+  const submit = page.getByTestId('add-member-submit');
+  await submit.scrollIntoViewIfNeeded();
+  await submit.click();
+
+  await expect(page.getByTestId('member-header')).toContainText('Sibling');
+  await page.getByTestId('card-history').locator('summary').click();
+  await page
+    .locator('[data-testid="history-empty-state"], [data-testid="history-table"]')
+    .first()
+    .waitFor();
+}
+
 test.describe('directory', () => {
   test('finds a seeded member via the primary search field', async ({ page }) => {
     await page.goto('/admin/users');
@@ -440,6 +489,65 @@ test.describe('merge members', () => {
     await expect(
       page.locator('[data-testid^="member-row-"]', { hasText: `Dana ${duplicateLastName}` }),
     ).toBeVisible();
+  });
+});
+
+test.describe('split members', () => {
+  test('splits selected transactions off to a newly created member (LRA-209)', async ({ page }) => {
+    const lastName = `Split${RUN}`;
+    await createHousehold(page, 'Sam', lastName);
+    await expect(page.getByTestId('member-header')).toContainText(`Sam ${lastName}`);
+
+    await ensureMemberWithHistory(page);
+    const sourceUrl = page.url();
+    const sourceFirstName = (await page.getByTestId('profile-first-name').textContent())?.trim() ?? '';
+    const sourceLastName = (await page.getByTestId('profile-last-name').textContent())?.trim() ?? '';
+    const sourceName = `${sourceFirstName} ${sourceLastName}`;
+
+    const rows = page.getByTestId('history-row');
+    await rows.nth(0).getByTestId('history-row-select').check();
+    await rows.nth(1).getByTestId('history-row-select').check();
+
+    const splitOpen = page.getByTestId('history-split-open');
+    await expect(splitOpen).toBeEnabled();
+    await splitOpen.click();
+
+    const splitDialog = page.locator('#split-member-modal');
+    await expect(splitDialog).toBeVisible();
+    await expect(page.getByTestId('split-selected-count')).toContainText('2 transactions');
+
+    await splitDialog.getByLabel('First name').fill('Split');
+    await splitDialog.getByLabel('Last name').fill(`Off${lastName}`);
+    await splitDialog.getByLabel('Email').fill(`split.off.${lastName}@example.com`.toLowerCase());
+    await splitDialog.getByLabel('Phone').fill('+1-555-0196');
+
+    await page.getByTestId('split-member-submit').click();
+
+    // Success lands (via HX-Redirect) on the newly created member, not the source.
+    await expect(page).not.toHaveURL(sourceUrl);
+    await expect(page.getByTestId('member-header')).toContainText(`Split Off${lastName}`);
+
+    // The Household card roster lists both the source and the new member.
+    await expect(
+      page.locator('[data-testid^="household-member-row-"]', { hasText: sourceName }),
+    ).toBeVisible();
+    await expect(
+      page.locator('[data-testid^="household-member-row-"]', { hasText: `Split Off${lastName}` }),
+    ).toBeVisible();
+
+    // The source member is unchanged: still on its own page under its own name.
+    await page.goto(sourceUrl);
+    await expect(page.getByTestId('member-header')).toContainText(sourceName);
+  });
+
+  test('the split button is disabled until at least one transaction is checked (LRA-209)', async ({ page }) => {
+    const lastName = `SplitDisabled${RUN}`;
+    await createHousehold(page, 'Sam', lastName);
+    await ensureMemberWithHistory(page);
+
+    await expect(page.getByTestId('history-split-open')).toBeDisabled();
+    await page.getByTestId('history-row-select').first().check();
+    await expect(page.getByTestId('history-split-open')).toBeEnabled();
   });
 });
 

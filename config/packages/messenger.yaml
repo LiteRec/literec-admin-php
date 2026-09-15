@@ -51,6 +51,12 @@ framework:
             # yet) to repoint their own member_id-carrying rows.
             App\Households\Integration\Event\MemberMerged: async
 
+            # LRA-209: route the Households MemberTransactionsSplitOff
+            # integration event to the async transport, same contract as
+            # MemberMerged above — published post-commit for the future
+            # Transactions context to reassign transaction attribution.
+            App\Households\Integration\Event\MemberTransactionsSplitOff: async
+
 when@test:
     framework:
         messenger:

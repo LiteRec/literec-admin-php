@@ -1,0 +1,104 @@
+{# Split-member dialog (LRA-209).
+
+   Server returns this fragment via either:
+     - GET  /admin/users/{h}/{m}/split?transactionIds[]=…            — initial render
+     - POST /admin/users/{h}/{m}/split (422)                          — re-render on validation failure
+
+   Splits the checked Transaction History rows off the currently-viewed
+   member ("source") into a newly created member in the same household.
+   The source is never mutated; on success the POST endpoint returns 200
+   with HX-Redirect to the new member's member_detail page.
+
+   Expects:
+     - source:           App\Households\Application\Query\Port\MemberDetail
+     - form:              Symfony FormView bound to SplitMemberInput
+     - transactionCount: int number of selected transactions
+#}
+{% set body %}
+    <p class="mb-4 text-sm text-litrec-text-muted" data-testid="split-selected-count">
+        Selected {{ transactionCount }} transaction{{ transactionCount == 1 ? '' : 's' }} from
+        <strong>{{ source.profile.fullName }}</strong>. This creates a new member record in the same household and
+        moves the selected transactions to it. The source member is not changed.
+    </p>
+
+    <form
+        method="post"
+        action="{{ path('member_split', { householdId: source.household.householdId, memberId: source.profile.memberId }) }}"
+        hx-post="{{ path('member_split', { householdId: source.household.householdId, memberId: source.profile.memberId }) }}"
+        hx-target="closest .modal-root"
+        hx-swap="outerHTML"
+        novalidate
+    >
+        {% include 'components/_form_error_summary.html.twig' with { form: form, testid: 'split-form-error' } only %}
+
+        {% for transactionIdField in form.transactionIds %}
+            {{ form_widget(transactionIdField) }}
+        {% endfor %}
+
+        <div class="space-y-3">
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div class="lr-field">
+                    {{ form_label(form.firstName) }}
+                    {{ form_widget(form.firstName) }}
+                    {{ form_errors(form.firstName) }}
+                </div>
+                <div class="lr-field">
+                    {{ form_label(form.lastName) }}
+                    {{ form_widget(form.lastName) }}
+                    {{ form_errors(form.lastName) }}
+                </div>
+                <div class="lr-field">
+                    {{ form_label(form.middleName) }}
+                    {{ form_widget(form.middleName) }}
+                    {{ form_errors(form.middleName) }}
+                </div>
+                <div class="lr-field">
+                    {{ form_label(form.suffix) }}
+                    {{ form_widget(form.suffix) }}
+                    {{ form_errors(form.suffix) }}
+                </div>
+                <div class="lr-field">
+                    {{ form_label(form.email) }}
+                    {{ form_widget(form.email) }}
+                    {{ form_errors(form.email) }}
+                </div>
+                <div class="lr-field">
+                    {{ form_label(form.phone) }}
+                    {{ form_widget(form.phone) }}
+                    {{ form_errors(form.phone) }}
+                </div>
+            </div>
+            <div class="lr-field">
+                {{ form_label(form.reason) }}
+                {{ form_widget(form.reason) }}
+                {{ form_errors(form.reason) }}
+            </div>
+        </div>
+
+        {{ form_widget(form._token) }}
+
+        <div class="mt-6 flex items-center justify-end gap-2">
+            <button
+                type="button"
+                data-testid="split-member-cancel"
+                class="lr-btn lr-btn-secondary"
+                @click="dismiss()"
+            >
+                Cancel
+            </button>
+            <button
+                type="submit"
+                data-testid="split-member-submit"
+                class="lr-btn lr-btn-primary"
+            >
+                Split off new member
+            </button>
+        </div>
+    </form>
+{% endset %}
+
+{% include 'components/_modal.html.twig' with {
+    id: 'split-member-modal',
+    title: 'Split transactions to a new member',
+    body: body,
+} only %}

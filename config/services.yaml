@@ -264,6 +264,14 @@ services:
             $commandBus: '@command.bus'
         tags: ['controller.service_arguments']
 
+    # LRA-209: wire the SplitMemberController onto both buses (query to
+    # prefill the dialog from GetMemberDetail, command for SplitMember).
+    App\Households\Infrastructure\Http\Controller\SplitMemberController:
+        arguments:
+            $queryBus: '@query.bus'
+            $commandBus: '@command.bus'
+        tags: ['controller.service_arguments']
+
     # LRA-92: InventoryPurchaseOrdersFixtures needs both buses (command
     # to dispatch the lifecycle commands, query to fetch generated line
     # ids via GetPurchaseOrderDetail). The default `MessageBusInterface`
