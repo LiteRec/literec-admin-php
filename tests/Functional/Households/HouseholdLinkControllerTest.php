@@ -53,6 +53,8 @@ final class HouseholdLinkControllerTest extends WebTestCase
 
     private const string LINKED_HOUSEHOLDS_SELECTOR = '[data-testid="linked-households"]';
 
+    private const string LINK_ERROR_SELECTOR = '[data-testid="household-link-error"]';
+
     private MockClock $clock;
 
     protected function setUp(): void
@@ -134,7 +136,7 @@ final class HouseholdLinkControllerTest extends WebTestCase
         $this->postLink($client, self::MINOR_ID);
 
         self::assertResponseStatusCodeSame(422);
-        self::assertSelectorExists('[data-testid="household-link-error"]');
+        self::assertSelectorExists(self::LINK_ERROR_SELECTOR);
     }
 
     #[Test]
@@ -149,7 +151,7 @@ final class HouseholdLinkControllerTest extends WebTestCase
         $this->postLink($client, self::PRIMARY_ID);
 
         self::assertResponseStatusCodeSame(422);
-        self::assertSelectorExists('[data-testid="household-link-error"]');
+        self::assertSelectorExists(self::LINK_ERROR_SELECTOR);
     }
 
     #[Test]
@@ -167,7 +169,7 @@ final class HouseholdLinkControllerTest extends WebTestCase
         $this->postLink($client, self::MINOR_ID);
 
         self::assertResponseStatusCodeSame(422);
-        self::assertSelectorExists('[data-testid="household-link-error"]');
+        self::assertSelectorExists(self::LINK_ERROR_SELECTOR);
     }
 
     #[Test]
