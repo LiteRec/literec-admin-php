@@ -4,18 +4,11 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional\Households;
 
-use App\Households\Domain\Household;
 use App\Households\Domain\Households;
-use App\Households\Domain\ValueObject\Address;
-use App\Households\Domain\ValueObject\DateOfBirth;
-use App\Households\Domain\ValueObject\Gender;
 use App\Households\Domain\ValueObject\HouseholdId;
-use App\Households\Domain\ValueObject\HouseholdName;
 use App\Households\Domain\ValueObject\MemberCode;
 use App\Households\Domain\ValueObject\MemberId;
-use App\Households\Domain\ValueObject\PersonName;
-use App\Households\Domain\ValueObject\ResidencyStatus;
-use App\Shared\Domain\ValueObject\EmailAddress;
+use App\Tests\Support\Trait\SeedsSmithHouseholdForUi;
 use App\Tests\Support\Trait\SignsInUsers;
 use DateTimeImmutable;
 use PHPUnit\Framework\Attributes\Group;
@@ -38,6 +31,7 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
 #[Group('database')]
 final class MemberPhotoControllerTest extends WebTestCase
 {
+    use SeedsSmithHouseholdForUi;
     use SignsInUsers;
 
     private const string TEST_USERNAME = 'member_photo_e2e';
@@ -301,21 +295,13 @@ final class MemberPhotoControllerTest extends WebTestCase
         $repo = static::getContainer()->get(Households::class);
         self::assertInstanceOf(Households::class, $repo);
 
-        $household = Household::register(
+        $this->seedSmithHousehold(
+            $repo,
             HouseholdId::fromString(self::HOUSEHOLD_A),
-            HouseholdName::of('Smith Family'),
-            Address::of('100 Main St', 'Apt 2B', 'Seattle', 'WA', '98101', 'US'),
             MemberId::fromString(self::A_PRIMARY_ID),
             MemberCode::of(self::A_PRIMARY_CODE),
-            PersonName::of('Alice', 'Smith'),
-            DateOfBirth::of(new DateTimeImmutable(self::DOB), $this->clock),
-            Gender::Female,
-            EmailAddress::of('alice@example.com'),
-            null,
-            ResidencyStatus::Resident,
+            self::DOB,
             $this->clock,
         );
-
-        $repo->save($household);
     }
 }

@@ -11,20 +11,13 @@ use App\Households\Application\Command\RemoveMemberPhotoHandler;
 use App\Households\Domain\Event\MemberPhotoReleased;
 use App\Households\Domain\Event\MemberPhotoRemoved;
 use App\Households\Domain\Exception\MemberNotFound;
-use App\Households\Domain\Household;
-use App\Households\Domain\ValueObject\Address;
-use App\Households\Domain\ValueObject\DateOfBirth;
-use App\Households\Domain\ValueObject\Gender;
 use App\Households\Domain\ValueObject\HouseholdId;
-use App\Households\Domain\ValueObject\HouseholdName;
 use App\Households\Domain\ValueObject\MemberCode;
 use App\Households\Domain\ValueObject\MemberId;
-use App\Households\Domain\ValueObject\PersonName;
-use App\Households\Domain\ValueObject\ResidencyStatus;
 use App\Households\Infrastructure\Persistence\InMemory\InMemoryHouseholds;
 use App\Households\Infrastructure\Storage\InMemoryMemberPhotoStorage;
-use App\Shared\Domain\ValueObject\EmailAddress;
 use App\Tests\Support\Fake\RecordingMessageBus;
+use App\Tests\Support\Trait\SeedsAliceSmithHousehold;
 use DateTimeImmutable;
 use PHPUnit\Framework\Attributes\Small;
 use PHPUnit\Framework\Attributes\Test;
@@ -35,6 +28,8 @@ use Symfony\Component\Clock\MockClock;
 #[Small]
 final class RemoveMemberPhotoHandlerTest extends TestCase
 {
+    use SeedsAliceSmithHousehold;
+
     private const string HOUSEHOLD_ID = '019571bf-5d54-7000-b500-000000000f01';
     private const string PRIMARY_ID   = '019571bf-5d54-7000-b500-000000000f02';
     private const string PRIMARY_CODE = 'M000500';
@@ -50,7 +45,12 @@ final class RemoveMemberPhotoHandlerTest extends TestCase
     {
         $this->clock = new MockClock(new DateTimeImmutable('2026-05-24 12:00:00'));
         $this->households = new InMemoryHouseholds();
-        $seed = $this->seedHousehold();
+        $seed = $this->seedAliceSmithHousehold(
+            HouseholdId::fromString(self::HOUSEHOLD_ID),
+            MemberId::fromString(self::PRIMARY_ID),
+            MemberCode::of(self::PRIMARY_CODE),
+            $this->clock,
+        );
         $seed->releaseEvents();
         $this->households->save($seed);
 
@@ -115,34 +115,5 @@ final class RemoveMemberPhotoHandlerTest extends TestCase
             sourcePath: $sourcePath,
             mimeType: 'image/jpeg',
         ));
-    }
-
-    private function memberById(Household $household, string $memberId): \App\Households\Domain\HouseholdMember
-    {
-        $needle = MemberId::fromString($memberId);
-        foreach ($household->members() as $member) {
-            if ($member->id()->equals($needle)) {
-                return $member;
-            }
-        }
-        self::fail(sprintf('Member %s not found in household.', $memberId));
-    }
-
-    private function seedHousehold(): Household
-    {
-        return Household::register(
-            HouseholdId::fromString(self::HOUSEHOLD_ID),
-            HouseholdName::of('Smith Family'),
-            Address::of('100 Main St', null, 'Seattle', 'WA', '98101', 'US'),
-            MemberId::fromString(self::PRIMARY_ID),
-            MemberCode::of(self::PRIMARY_CODE),
-            PersonName::of('Alice', 'Smith'),
-            DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
-            Gender::Female,
-            EmailAddress::of('alice@example.com'),
-            null,
-            ResidencyStatus::Resident,
-            $this->clock,
-        );
     }
 }
