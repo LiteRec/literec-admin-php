@@ -48,6 +48,7 @@ trait HouseholdsContractCases
     private const MINOR_MEMBER_ID      = '019571bf-5d51-7000-b500-000000000004';
     private const MINOR_MEMBER_CODE    = 'M000003';
     private const TARGET_HOUSEHOLD_ID  = '019571bf-5d51-7000-b500-000000000005';
+    private const HOUSEHOLD_NAME       = 'Smith Family';
 
     abstract protected function households(): Households;
 
@@ -65,7 +66,7 @@ trait HouseholdsContractCases
         $loaded = $this->households()->findById(HouseholdId::fromString(self::HOUSEHOLD_ID));
 
         self::assertTrue($loaded->id()->equals(HouseholdId::fromString(self::HOUSEHOLD_ID)));
-        self::assertTrue($loaded->name()->equals(HouseholdName::of('Smith Family')));
+        self::assertTrue($loaded->name()->equals(HouseholdName::of(self::HOUSEHOLD_NAME)));
         self::assertTrue($loaded->address()->equals($this->address()));
 
         $members = $loaded->members();
@@ -324,7 +325,7 @@ trait HouseholdsContractCases
 
         // Alice (the primary) is untouched, and remains — the household is
         // not scrubbed while a non-anonymized member remains.
-        self::assertTrue($reloaded->name()->equals(HouseholdName::of('Smith Family')));
+        self::assertTrue($reloaded->name()->equals(HouseholdName::of(self::HOUSEHOLD_NAME)));
     }
 
     #[Test]
@@ -460,7 +461,7 @@ trait HouseholdsContractCases
     {
         $household = Household::register(
             HouseholdId::fromString(self::HOUSEHOLD_ID),
-            HouseholdName::of('Smith Family'),
+            HouseholdName::of(self::HOUSEHOLD_NAME),
             $this->address(),
             MemberId::fromString(self::PRIMARY_MEMBER_ID),
             MemberCode::of(self::PRIMARY_MEMBER_CODE),
