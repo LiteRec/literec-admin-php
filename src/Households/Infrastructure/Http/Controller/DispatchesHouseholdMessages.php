@@ -74,6 +74,26 @@ trait DispatchesHouseholdMessages
     }
 
     /**
+     * Same contract as {@see self::dispatchCommandUnwrapping()}, for a
+     * command handler whose return value the caller needs (LRA-209's
+     * SplitMember returns the new MemberId to redirect to).
+     */
+    private function dispatchCommandUnwrappingWithResult(object $command): mixed
+    {
+        try {
+            $envelope = $this->commandBus->dispatch($command);
+        } catch (HandlerFailedException $wrapper) {
+            $nested = $wrapper->getPrevious();
+            if ($nested instanceof Throwable) {
+                throw $nested;
+            }
+            throw $wrapper;
+        }
+
+        return $this->resultOf($envelope);
+    }
+
+    /**
      * Extract the single handler result from a dispatched Envelope. Mirrors
      * Messenger's HandleTrait behaviour without coupling the controller to
      * the trait (controllers use both the query bus and the command bus,

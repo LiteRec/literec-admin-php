@@ -1,10 +1,26 @@
 {# Single row of the Transaction History card (LRA-45).
 
+   The leading checkbox column (LRA-209) feeds the split-selection toolbar
+   in _card_history_rows.html.twig via hx-include="#history-split-form" —
+   including a non-input element includes every enclosed input, so rows
+   appended by "Load more" are picked up automatically without any extra
+   wiring here.
+
    Expects:
      - row:          App\Households\Application\Port\MemberTransactionRow
      - kindBadgeMap: map<string, string>  badge variant per kind code
 #}
 <tr data-testid="history-row" data-row-id="{{ row.transactionId }}">
+    <td class="whitespace-nowrap">
+        <input
+            type="checkbox"
+            name="transactionIds[]"
+            value="{{ row.transactionId }}"
+            data-testid="history-row-select"
+            aria-label="Select transaction {{ row.description }}"
+            class="h-4 w-4"
+        >
+    </td>
     <td class="whitespace-nowrap text-litrec-text">
         {{ row.occurredAt.format('Y-m-d') }}
     </td>

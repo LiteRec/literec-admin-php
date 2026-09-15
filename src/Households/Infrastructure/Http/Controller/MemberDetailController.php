@@ -21,6 +21,7 @@ use App\Households\Domain\Exception\InvalidWeight;
 use App\Households\Domain\Exception\MemberNotFound;
 use App\Households\Domain\ValueObject\HouseholdId as HouseholdIdVo;
 use App\Households\Domain\ValueObject\MemberId as MemberIdVo;
+use App\Households\Infrastructure\Http\Form\AppliesPersonNameErrors;
 use App\Households\Infrastructure\Http\Form\ChangeMemberResidencyFormType;
 use App\Households\Infrastructure\Http\Form\ChangeMemberResidencyInput;
 use App\Households\Infrastructure\Http\Form\UpdateHouseholdAddressFormType;
@@ -67,6 +68,7 @@ use Symfony\Component\Routing\Attribute\Route;
  */
 final class MemberDetailController extends AbstractController
 {
+    use AppliesPersonNameErrors;
     use DispatchesHouseholdMessages;
 
     private const string UUID_V7_REGEX
@@ -850,36 +852,6 @@ final class MemberDetailController extends AbstractController
 
                 return;
             }
-        }
-
-        $form->addError(new FormError($message));
-    }
-
-    /**
-     * Maps an InvalidPersonName exception onto the appropriate name field
-     * if one is identifiable, otherwise onto the form root. The exception
-     * message is the only signal available — by convention it mentions
-     * "first name" or "last name" — so the mapping stays heuristic and
-     * safely falls back to a form-level error.
-     *
-     * @template TData
-     * @param FormInterface<TData> $form
-     */
-    private function applyNameErrorToForm(FormInterface $form, InvalidPersonName $exception): void
-    {
-        $message = $exception->getMessage();
-        $lower = strtolower($message);
-
-        if (str_contains($lower, 'first name') && $form->has('firstName')) {
-            $form->get('firstName')->addError(new FormError($message));
-
-            return;
-        }
-
-        if (str_contains($lower, 'last name') && $form->has('lastName')) {
-            $form->get('lastName')->addError(new FormError($message));
-
-            return;
         }
 
         $form->addError(new FormError($message));

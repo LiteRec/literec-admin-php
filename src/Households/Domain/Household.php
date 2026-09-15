@@ -17,11 +17,13 @@ use App\Households\Domain\Event\MemberProfileUpdated;
 use App\Households\Domain\Event\MemberReactivated;
 use App\Households\Domain\Event\MemberRemovedFromHousehold;
 use App\Households\Domain\Event\MemberResidencyChanged;
+use App\Households\Domain\Event\MemberSplitOff;
 use App\Households\Domain\Exception\CannotMergeMemberIntoItself;
 use App\Households\Domain\Exception\DuplicateMemberCode;
 use App\Households\Domain\Exception\DuplicateMemberId;
 use App\Households\Domain\Exception\MemberAlreadyMerged;
 use App\Households\Domain\Exception\MemberNotFound;
+use App\Households\Domain\Exception\SplitSelectionEmpty;
 use App\Households\Domain\ValueObject\Address;
 use App\Households\Domain\ValueObject\DateOfBirth;
 use App\Households\Domain\ValueObject\Gender;
@@ -34,6 +36,7 @@ use App\Households\Domain\ValueObject\PersonName;
 use App\Households\Domain\ValueObject\ProfilePhoto;
 use App\Households\Domain\ValueObject\ResidencyStatus;
 use App\Households\Domain\ValueObject\Salutation;
+use App\Households\Domain\ValueObject\TransactionReferences;
 use App\Households\Domain\ValueObject\Weight;
 use App\Shared\Domain\ValueObject\EmailAddress;
 use App\Shared\Domain\ValueObject\PhoneNumber;
@@ -461,6 +464,71 @@ final class Household
             $member->phone() ?? $phone,
             $clock,
         );
+    }
+
+    /**
+     * Splits transaction attribution off the source member onto a newly
+     * created member in this same household (LRA-209): the source is
+     * never mutated or deleted. The new member copies date of birth,
+     * gender, and residency status from the source (name and contact are
+     * entered fresh, since the two are distinct people) and is added via
+     * {@see self::addMember()} so the existing duplicate-id/duplicate-code
+     * guard and {@see Event\MemberAddedToHousehold} are reused rather than
+     * duplicated. Splitting a deactivated source is allowed — history
+     * clean-up is a legitimate reason to touch an archived record.
+     *
+     * Physical reassignment of the selected transactions happens
+     * out-of-process in the (not-yet-existing) Transactions context,
+     * which will subscribe to the published
+     * {@see \App\Households\Integration\Event\MemberTransactionsSplitOff}
+     * integration event.
+     *
+     * @throws MemberNotFound when $sourceMemberId does not belong to this household
+     * @throws MemberAlreadyMerged when the source is already merged into another member
+     * @throws SplitSelectionEmpty when $transactions is empty
+     * @throws DuplicateMemberId when $newMemberId already exists in this household
+     * @throws DuplicateMemberCode when $newMemberCode already exists in this household
+     */
+    public function splitMember( // NOSONAR php:S107 — mirrors addMember()'s equally wide constructor
+        MemberId $sourceMemberId,
+        MemberId $newMemberId,
+        MemberCode $newMemberCode,
+        PersonName $name,
+        ?EmailAddress $email,
+        ?PhoneNumber $phone,
+        TransactionReferences $transactions,
+        ?string $reason,
+        ClockInterface $clock,
+    ): void {
+        $source = $this->memberById($sourceMemberId);
+        $this->assertNotMerged($source);
+
+        if ($transactions->count() === 0) {
+            throw SplitSelectionEmpty::forMember($sourceMemberId);
+        }
+
+        $this->addMember(
+            $newMemberId,
+            $newMemberCode,
+            $name,
+            $source->dateOfBirth(),
+            $source->gender(),
+            $email,
+            $phone,
+            $source->residencyStatus(),
+            false,
+            $clock,
+        );
+
+        $this->recordThat(new MemberSplitOff(
+            $this->id,
+            $sourceMemberId,
+            $newMemberId,
+            $newMemberCode,
+            $transactions,
+            $reason,
+            $clock->now(),
+        ));
     }
 
     /**
