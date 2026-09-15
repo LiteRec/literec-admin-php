@@ -100,11 +100,7 @@ final class InMemoryMemberReadModel implements MemberReadModel
 
         foreach ($this->households as $household) {
             foreach ($household->members() as $member) {
-                if ($member->isMerged()) {
-                    continue;
-                }
-
-                if ($q !== null && !$this->matchesQuery($member, $household, $q)) {
+                if ($this->excludedFromSegmentCounts($member, $household, $q)) {
                     continue;
                 }
 
@@ -123,6 +119,17 @@ final class InMemoryMemberReadModel implements MemberReadModel
         }
 
         return new MemberSegmentCounts($all, $residents, $nonResidents, $inactive);
+    }
+
+    /**
+     * Merged members are always excluded from the segment counts; the
+     * remainder are narrowed to the free-text `q` term when supplied.
+     * Split out of {@see self::segmentCounts()} to keep that method's
+     * nesting (and cognitive complexity) under the SonarCloud threshold.
+     */
+    private function excludedFromSegmentCounts(HouseholdMember $member, Household $household, ?string $q): bool
+    {
+        return $member->isMerged() || ($q !== null && !$this->matchesQuery($member, $household, $q));
     }
 
     public function memberDetail(HouseholdId $householdId, MemberId $memberId): MemberDetail
