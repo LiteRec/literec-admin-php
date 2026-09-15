@@ -6,6 +6,7 @@ namespace App\Households\Domain;
 
 use App\Households\Domain\Event\HouseholdRegistered;
 use App\Households\Domain\Event\MemberAddedToHousehold;
+use App\Households\Domain\Event\MemberAnonymized;
 use App\Households\Domain\Event\HouseholdAddressUpdated;
 use App\Households\Domain\Event\MemberContactUpdated;
 use App\Households\Domain\Event\MemberDeactivated;
@@ -27,10 +28,12 @@ use App\Households\Domain\Exception\DuplicateMemberId;
 use App\Households\Domain\Exception\HouseholdAlreadyLinked;
 use App\Households\Domain\Exception\InvariantViolation;
 use App\Households\Domain\Exception\MemberAlreadyMerged;
+use App\Households\Domain\Exception\MemberIsAnonymized;
 use App\Households\Domain\Exception\MemberNotAMinor;
 use App\Households\Domain\Exception\MemberNotFound;
 use App\Households\Domain\Exception\SplitSelectionEmpty;
 use App\Households\Domain\ValueObject\Address;
+use App\Households\Domain\ValueObject\AnonymizedProfile;
 use App\Households\Domain\ValueObject\DateOfBirth;
 use App\Households\Domain\ValueObject\Gender;
 use App\Households\Domain\ValueObject\Height;
@@ -258,6 +261,10 @@ final class Household
      * meaningless grouping rather than a domain concept, and this mirrors
      * {@see self::register()}'s existing wide constructor for the same
      * reason.
+     *
+     * @throws MemberNotFound when $memberId does not belong to this household
+     * @throws MemberAlreadyMerged when the member has already been merged into another record
+     * @throws MemberIsAnonymized when the member has been anonymized (LRA-212)
      */
     public function updateMemberProfile( // NOSONAR php:S107 — see docblock
         MemberId $memberId,
@@ -271,6 +278,7 @@ final class Household
     ): void {
         $member = $this->memberById($memberId);
         $this->assertNotMerged($member);
+        $this->assertNotAnonymized($member, MemberIsAnonymized::cannotBeModified(...));
 
         $heightChanged = !self::optionalEquals(
             $member->height(),
@@ -303,6 +311,11 @@ final class Household
         $this->recordThat(new MemberProfileUpdated($this->id, $memberId, $clock->now()));
     }
 
+    /**
+     * @throws MemberNotFound when $memberId does not belong to this household
+     * @throws MemberAlreadyMerged when the member has already been merged into another record
+     * @throws MemberIsAnonymized when the member has been anonymized (LRA-212)
+     */
     public function updateMemberContact(
         MemberId $memberId,
         ?EmailAddress $email,
@@ -311,6 +324,7 @@ final class Household
     ): void {
         $member = $this->memberById($memberId);
         $this->assertNotMerged($member);
+        $this->assertNotAnonymized($member, MemberIsAnonymized::cannotBeModified(...));
 
         $currentEmail = $member->email();
         $currentPhone = $member->phone();
@@ -392,10 +406,16 @@ final class Household
         $this->recordThat(new MemberDeactivated($this->id, $memberId, $reason, $now));
     }
 
+    /**
+     * @throws MemberNotFound when $memberId does not belong to this household
+     * @throws MemberAlreadyMerged when the member has already been merged into another record
+     * @throws MemberIsAnonymized when the member has been anonymized (LRA-212)
+     */
     public function reactivateMember(MemberId $memberId, ClockInterface $clock): void
     {
         $member = $this->memberById($memberId);
         $this->assertNotMerged($member);
+        $this->assertNotAnonymized($member, MemberIsAnonymized::cannotBeReactivated(...));
 
         if ($member->isActive()) {
             return;
@@ -403,6 +423,46 @@ final class Household
 
         $member->reactivate();
         $this->recordThat(new MemberReactivated($this->id, $memberId, $clock->now()));
+    }
+
+    /**
+     * Irreversibly scrubs a member's PII (LRA-212): replaces name, date of
+     * birth, gender, email, and phone with {@see AnonymizedProfile}'s
+     * placeholder values, and deactivates the member in the same call. The
+     * member keeps its MemberId and MemberCode so downstream references
+     * (transaction history, residency history, future Memberships/
+     * Transactions contexts) stay referentially intact — nothing is
+     * deleted.
+     *
+     * When $memberId was the last non-anonymized member of this household,
+     * the household's own name and address — which would otherwise still
+     * identify the person — are replaced with the same placeholder set.
+     *
+     * Unlike {@see self::deactivateMember()}, a second call is refused
+     * rather than silently ignored: an operator retrying an anonymize
+     * action must know nothing happened, not believe it succeeded again.
+     *
+     * @throws MemberNotFound when $memberId does not belong to this household
+     * @throws MemberAlreadyMerged when the member has already been merged into another record
+     * @throws MemberIsAnonymized when the member has already been anonymized
+     */
+    public function anonymizeMember(MemberId $memberId, AnonymizedProfile $profile, ClockInterface $clock): void
+    {
+        $member = $this->memberById($memberId);
+        $this->assertNotMerged($member);
+
+        if ($member->isAnonymized()) {
+            throw MemberIsAnonymized::cannotBeAnonymizedAgain($memberId);
+        }
+
+        $now = $clock->now();
+        $member->anonymize($profile, $now);
+        $this->recordThat(new MemberAnonymized($this->id, $memberId, $now));
+
+        if ($this->everyMemberAnonymized()) {
+            $this->name = $profile->householdName;
+            $this->address = $profile->address;
+        }
     }
 
     /**
@@ -664,6 +724,32 @@ final class Household
         if ($member->isMerged()) {
             throw MemberAlreadyMerged::for($member->id());
         }
+    }
+
+    /**
+     * @param callable(MemberId): MemberIsAnonymized $exceptionFactory One of
+     *        {@see MemberIsAnonymized}'s named constructors, bound to the
+     *        call site so the thrown exception's message matches the
+     *        refused operation.
+     *
+     * @throws MemberIsAnonymized when $member has been anonymized (LRA-212)
+     */
+    private function assertNotAnonymized(HouseholdMember $member, callable $exceptionFactory): void
+    {
+        if ($member->isAnonymized()) {
+            throw $exceptionFactory($member->id());
+        }
+    }
+
+    private function everyMemberAnonymized(): bool
+    {
+        foreach ($this->members as $member) {
+            if (!$member->isAnonymized()) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**

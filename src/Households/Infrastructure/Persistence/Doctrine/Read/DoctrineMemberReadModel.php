@@ -58,6 +58,8 @@ final class DoctrineMemberReadModel implements MemberReadModel
 
     private const string COL_MERGED = 'm.merged_into_member_id, ';
 
+    private const string COL_ANONYMIZED = 'm.anonymized_at, ';
+
     private const string FROM_MEMBERS = 'FROM household_members m ';
 
     public function __construct(private readonly Connection $connection)
@@ -82,6 +84,7 @@ final class DoctrineMemberReadModel implements MemberReadModel
             . self::COL_LIST_ITEM_EXTRA
             . self::COL_PHOTO
             . self::COL_MERGED
+            . self::COL_ANONYMIZED
             . 'm.last_name, m.suffix, m.date_of_birth, m.phone, m.residency_status, '
             . 'm.is_primary, m.is_active, '
             . 'h.street, h.city, h.state, FALSE AS is_shared '
@@ -130,7 +133,7 @@ final class DoctrineMemberReadModel implements MemberReadModel
             . 'm.last_name, m.suffix, m.nickname, m.date_of_birth, m.gender, m.email, m.phone, '
             . 'm.salutation, m.height_inches, m.weight_pounds, '
             . 'm.residency_status, m.is_primary, m.is_active, '
-            . 'm.deactivated_reason, m.deactivated_at, '
+            . 'm.deactivated_reason, m.deactivated_at, m.anonymized_at, '
             . 'm.photo_storage_key, m.photo_format, '
             . 'm.merged_into_member_id, m.merged_at, s.household_id AS merged_into_household_id, '
             . 'h.name AS household_name, '
@@ -247,6 +250,7 @@ final class DoctrineMemberReadModel implements MemberReadModel
             . self::COL_LIST_ITEM_EXTRA
             . self::COL_PHOTO
             . self::COL_MERGED
+            . self::COL_ANONYMIZED
             . 'm.last_name, m.suffix, m.date_of_birth, m.phone, m.residency_status, '
             . 'm.is_primary, m.is_active, '
             . 'h.street, h.city, h.state';
@@ -456,6 +460,7 @@ final class DoctrineMemberReadModel implements MemberReadModel
             $this->photoVersion($this->rowNullableString($row, 'photo_storage_key')),
             $this->rowNullableString($row, 'merged_into_member_id') !== null,
             $this->rowBool($row, 'is_shared'),
+            $this->rowNullableString($row, 'anonymized_at') !== null,
         );
     }
 
@@ -514,6 +519,7 @@ final class DoctrineMemberReadModel implements MemberReadModel
             $this->rowNullableString($row, 'merged_into_member_id'),
             $this->rowNullableString($row, 'merged_into_household_id'),
             $this->normalizeDateTime($row['merged_at'] ?? null),
+            $this->normalizeDateTime($row['anonymized_at'] ?? null),
         );
     }
 

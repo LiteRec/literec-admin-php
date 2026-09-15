@@ -1,0 +1,105 @@
+{# HTMX fragment: Anonymize Member confirmation dialog (LRA-212).
+
+   Server returns this fragment via either:
+     - GET  /admin/users/{h}/{m}/anonymize        — initial render (or a
+       no-form 409 notice when the member is already anonymized)
+     - POST /admin/users/{h}/{m}/anonymize (422)  — re-render on validation
+       failure, or (409) when a concurrent anonymize beat this submission
+
+   Expected variables:
+     - alreadyAnonymized: bool    True renders the no-form notice only.
+     - form:       Symfony FormView built from AnonymizeMemberFormType.
+                   Not present when alreadyAnonymized is true.
+     - householdId: home household UUID v7 string (identity data lives on
+                    the home aggregate — LRA-210)
+     - memberId:    UUID v7 string of the member being anonymized
+     - memberName:  the member's current full name — also the value the
+                    operator must type to confirm
+#}
+{% if alreadyAnonymized %}
+    {% set body %}
+        <p class="text-sm text-litrec-text-muted" data-testid="anonymize-already-done">
+            This member has already been anonymized. There is no way to undo it.
+        </p>
+        <div class="mt-6 flex items-center justify-end">
+            <button type="button" class="lr-btn lr-btn-secondary" @click="dismiss()">Close</button>
+        </div>
+    {% endset %}
+    {% include 'components/_modal.html.twig' with {
+        id: 'anonymize-member-modal',
+        title: 'Anonymize member',
+        body: body,
+    } only %}
+{% else %}
+    {% set body %}
+        <form
+            id="anonymize-member-form"
+            method="post"
+            action="{{ path('member_anonymize_submit', { householdId: householdId, memberId: memberId }) }}"
+            hx-post="{{ path('member_anonymize_submit', { householdId: householdId, memberId: memberId }) }}"
+            hx-target="closest .modal-root"
+            hx-swap="outerHTML"
+            novalidate
+            x-data="{ typed: '', acknowledged: false, expectedName: {{ memberName|json_encode }} }"
+        >
+            {% include 'components/_form_error_summary.html.twig' with { form: form, testid: 'anonymize-form-error' } only %}
+
+            <div class="rounded-card-sm border border-danger-fg/30 bg-danger-bg p-3">
+                <p class="mb-2 text-sm font-semibold text-danger-fg">This cannot be undone.</p>
+                <p class="mb-2 text-sm text-danger-fg">
+                    Anonymizing <strong>{{ memberName }}</strong> permanently replaces their name, date of
+                    birth, gender, email, phone, and deactivation reason with placeholder values, and
+                    deactivates the member. Their member code and transaction history are kept, and the
+                    household name and address are scrubbed too if no other member remains.
+                </p>
+            </div>
+
+            <div class="mt-4 lr-field">
+                {{ form_label(form.confirmation, null, { label_attr: { class: 'lr-label' } }) }}
+                {{ form_widget(form.confirmation, {
+                    attr: {
+                        class: 'litrec-input',
+                        'data-testid': 'anonymize-confirmation',
+                        'x-model': 'typed',
+                        autocomplete: 'off',
+                    },
+                }) }}
+                {{ form_errors(form.confirmation) }}
+            </div>
+
+            <div class="mt-4 flex items-center gap-2">
+                {{ form_widget(form.acknowledged, { attr: { class: 'h-4 w-4', 'data-testid': 'anonymize-acknowledge', 'x-model': 'acknowledged' } }) }}
+                {{ form_label(form.acknowledged, null, { label_attr: { class: 'text-sm text-litrec-text' } }) }}
+                {{ form_errors(form.acknowledged) }}
+            </div>
+
+            {{ form_widget(form._token) }}
+
+            <div class="mt-6 flex items-center justify-end gap-2">
+                <button
+                    type="button"
+                    data-testid="anonymize-cancel"
+                    class="lr-btn lr-btn-secondary"
+                    @click="dismiss()"
+                >
+                    Cancel
+                </button>
+                <button
+                    type="submit"
+                    data-testid="anonymize-submit"
+                    class="lr-btn lr-btn-danger"
+                    :disabled="typed.trim() !== expectedName || !acknowledged"
+                    hx-disabled-elt="this"
+                >
+                    Anonymize
+                </button>
+            </div>
+        </form>
+    {% endset %}
+
+    {% include 'components/_modal.html.twig' with {
+        id: 'anonymize-member-modal',
+        title: 'Anonymize member',
+        body: body,
+    } only %}
+{% endif %}

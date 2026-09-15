@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Households\Domain;
 
+use App\Households\Domain\ValueObject\AnonymizedProfile;
 use App\Households\Domain\ValueObject\DateOfBirth;
 use App\Households\Domain\ValueObject\Deactivation;
 use App\Households\Domain\ValueObject\Gender;
@@ -34,6 +35,15 @@ use Doctrine\Common\Collections\Collection;
  */
 final class HouseholdMember
 {
+    /**
+     * Fixed reason recorded on {@see self::$deactivatedReason} when
+     * anonymization also deactivates the member (LRA-212) — never
+     * operator-typed text, since {@see self::deactivate()}'s reason
+     * parameter is exactly the kind of free text anonymization exists to
+     * scrub.
+     */
+    private const string ANONYMIZED_DEACTIVATION_REASON = 'Anonymized';
+
     private MemberId $id;
     private MemberCode $code;
     private PersonName $name;
@@ -49,6 +59,7 @@ final class HouseholdMember
     private bool $isActive;
     private ?string $deactivatedReason;
     private ?DateTimeImmutable $deactivatedAt;
+    private ?DateTimeImmutable $anonymizedAt;
     private ?MemberId $mergedIntoMemberId;
     private ?DateTimeImmutable $mergedAt;
     private ?string $photoStorageKey;
@@ -108,6 +119,7 @@ final class HouseholdMember
         $this->isActive = true;
         $this->deactivatedReason = null;
         $this->deactivatedAt = null;
+        $this->anonymizedAt = null;
         $this->mergedIntoMemberId = null;
         $this->mergedAt = null;
         $this->salutation = $salutation;
@@ -182,6 +194,16 @@ final class HouseholdMember
     public function isActive(): bool
     {
         return $this->isActive;
+    }
+
+    public function isAnonymized(): bool
+    {
+        return $this->anonymizedAt !== null;
+    }
+
+    public function anonymizedAt(): ?DateTimeImmutable
+    {
+        return $this->anonymizedAt;
     }
 
     /**
@@ -308,6 +330,29 @@ final class HouseholdMember
         $this->isActive = true;
         $this->deactivatedReason = null;
         $this->deactivatedAt = null;
+    }
+
+    /**
+     * Replaces every scrubbed identity field with {@see AnonymizedProfile}'s
+     * placeholder values and deactivates the member in the same call, with
+     * the fixed {@see self::ANONYMIZED_DEACTIVATION_REASON} — never
+     * operator-typed text — as the deactivation reason. Irreversible: there
+     * is no `unanonymize()`; {@see Household} refuses every further
+     * mutator against this member once {@see self::$anonymizedAt} is set.
+     *
+     * @internal Mutation must be triggered via {@see Household} aggregate.
+     */
+    public function anonymize(AnonymizedProfile $profile, DateTimeImmutable $at): void
+    {
+        $this->name = $profile->name;
+        $this->dateOfBirth = $profile->dateOfBirth;
+        $this->gender = $profile->gender;
+        $this->email = null;
+        $this->phone = null;
+        $this->isActive = false;
+        $this->deactivatedReason = self::ANONYMIZED_DEACTIVATION_REASON;
+        $this->deactivatedAt = $at;
+        $this->anonymizedAt = $at;
     }
 
     /**

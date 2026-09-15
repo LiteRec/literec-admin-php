@@ -7,6 +7,7 @@ namespace App\Tests\Unit\Households\Domain;
 use App\Households\Domain\Event\HouseholdAddressUpdated;
 use App\Households\Domain\Event\HouseholdRegistered;
 use App\Households\Domain\Event\MemberAddedToHousehold;
+use App\Households\Domain\Event\MemberAnonymized;
 use App\Households\Domain\Event\MemberContactUpdated;
 use App\Households\Domain\Event\MemberDeactivated;
 use App\Households\Domain\Event\MemberMergedInto;
@@ -27,11 +28,13 @@ use App\Households\Domain\Exception\DuplicateMemberId;
 use App\Households\Domain\Exception\HouseholdAlreadyLinked;
 use App\Households\Domain\Exception\InvariantViolation;
 use App\Households\Domain\Exception\MemberAlreadyMerged;
+use App\Households\Domain\Exception\MemberIsAnonymized;
 use App\Households\Domain\Exception\MemberNotAMinor;
 use App\Households\Domain\Exception\MemberNotFound;
 use App\Households\Domain\Exception\SplitSelectionEmpty;
 use App\Households\Domain\Household;
 use App\Households\Domain\ValueObject\Address;
+use App\Households\Domain\ValueObject\AnonymizedProfile;
 use App\Households\Domain\ValueObject\DateOfBirth;
 use App\Shared\Domain\ValueObject\EmailAddress;
 use App\Households\Domain\ValueObject\Gender;
@@ -350,6 +353,166 @@ final class HouseholdTest extends TestCase
         $events = $household->releaseEvents();
         self::assertCount(1, $events);
         self::assertInstanceOf(MemberReactivated::class, $events[0]);
+    }
+
+    #[Test]
+    #[TestDox('::anonymizeMember() replaces PII with placeholder values and keeps the member\'s id and code.')]
+    public function anonymize_member_replaces_pii_with_placeholders_and_keeps_id_and_code(): void
+    {
+        $household = $this->register();
+        $household->releaseEvents();
+        $memberId = MemberId::fromString(self::PRIMARY_MEMBER_ID);
+        $originalCode = $this->memberById($household, $memberId)->code();
+
+        $household->anonymizeMember($memberId, AnonymizedProfile::placeholder(), $this->clock);
+
+        $member = $this->memberById($household, $memberId);
+        self::assertTrue($member->id()->equals($memberId));
+        self::assertTrue($member->code()->equals($originalCode));
+        self::assertSame('Anonymized', $member->name()->firstName);
+        self::assertSame('Member', $member->name()->lastName);
+        self::assertSame('1900-01-01', $member->dateOfBirth()->value->format('Y-m-d'));
+        self::assertSame(Gender::Unspecified, $member->gender());
+        self::assertNull($member->email());
+        self::assertNull($member->phone());
+    }
+
+    #[Test]
+    #[TestDox('::anonymizeMember() records MemberAnonymized carrying only ids and a timestamp, never PII.')]
+    public function anonymize_member_records_member_anonymized_without_pii(): void
+    {
+        $household = $this->register();
+        $household->releaseEvents();
+        $memberId = MemberId::fromString(self::PRIMARY_MEMBER_ID);
+
+        $household->anonymizeMember($memberId, AnonymizedProfile::placeholder(), $this->clock);
+
+        $events = $household->releaseEvents();
+        self::assertCount(1, $events);
+        self::assertInstanceOf(MemberAnonymized::class, $events[0]);
+        self::assertTrue($events[0]->householdId->equals(HouseholdId::fromString(self::HOUSEHOLD_ID)));
+        self::assertTrue($events[0]->memberId->equals($memberId));
+        self::assertEquals($this->clock->now(), $events[0]->occurredAt);
+        // Exactly the three declared public properties exist on the event —
+        // no name, email, phone, or other free text could have been
+        // smuggled in.
+        self::assertSame(['householdId', 'memberId', 'occurredAt'], array_keys(get_object_vars($events[0])));
+    }
+
+    #[Test]
+    #[TestDox('::anonymizeMember() throws MemberIsAnonymized when called a second time.')]
+    public function anonymize_member_throws_when_already_anonymized(): void
+    {
+        $household = $this->register();
+        $memberId = MemberId::fromString(self::PRIMARY_MEMBER_ID);
+        $household->anonymizeMember($memberId, AnonymizedProfile::placeholder(), $this->clock);
+        $household->releaseEvents();
+
+        $this->expectException(MemberIsAnonymized::class);
+
+        $household->anonymizeMember($memberId, AnonymizedProfile::placeholder(), $this->clock);
+    }
+
+    #[Test]
+    #[TestDox('::anonymizeMember() also deactivates the member, recording the fixed "Anonymized" reason.')]
+    public function anonymize_member_deactivates_the_member_with_fixed_reason(): void
+    {
+        $household = $this->register();
+        $memberId = MemberId::fromString(self::PRIMARY_MEMBER_ID);
+
+        $household->anonymizeMember($memberId, AnonymizedProfile::placeholder(), $this->clock);
+
+        $member = $this->memberById($household, $memberId);
+        self::assertFalse($member->isActive());
+        self::assertSame('Anonymized', $member->deactivation()?->reason);
+        self::assertTrue($member->isAnonymized());
+        self::assertEquals($this->clock->now(), $member->anonymizedAt());
+    }
+
+    #[Test]
+    #[TestDox('::anonymizeMember() scrubs the household name and address when the member was the last one remaining.')]
+    public function anonymize_member_scrubs_household_name_and_address_when_last_member(): void
+    {
+        $household = $this->register();
+        $memberId = MemberId::fromString(self::PRIMARY_MEMBER_ID);
+
+        $household->anonymizeMember($memberId, AnonymizedProfile::placeholder(), $this->clock);
+
+        self::assertSame('Anonymized Household', $household->name()->value);
+        self::assertSame('ZZ', $household->address()->country);
+    }
+
+    #[Test]
+    #[TestDox('::anonymizeMember() keeps the household name and address when other non-anonymized members remain.')]
+    public function anonymize_member_keeps_household_name_when_other_members_remain(): void
+    {
+        $household = $this->register();
+        $household->addMember(
+            MemberId::fromString(self::SECOND_MEMBER_ID),
+            MemberCode::of('M0002'),
+            PersonName::of('Bob', 'Smith'),
+            DateOfBirth::of(new DateTimeImmutable('1992-01-01'), $this->clock),
+            Gender::Male,
+            null,
+            null,
+            ResidencyStatus::Resident,
+            false,
+            $this->clock,
+        );
+
+        $household->anonymizeMember(
+            MemberId::fromString(self::PRIMARY_MEMBER_ID),
+            AnonymizedProfile::placeholder(),
+            $this->clock,
+        );
+
+        self::assertSame('Smith Family', $household->name()->value);
+        self::assertSame('US', $household->address()->country);
+    }
+
+    /**
+     * @return Generator<string, array{mutate: callable(Household, MemberId, MockClock): void}>
+     */
+    public static function anonymizedMemberMutatorCases(): Generator
+    {
+        yield 'updateMemberProfile' => ['mutate' => static function (
+            Household $h,
+            MemberId $id,
+            MockClock $clock,
+        ): void {
+            $h->updateMemberProfile(
+                $id,
+                PersonName::of('Changed', 'Name'),
+                DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $clock),
+                Gender::Male,
+                $clock,
+            );
+        }];
+        yield 'updateMemberContact' => ['mutate' => static function (
+            Household $h,
+            MemberId $id,
+            MockClock $clock,
+        ): void {
+            $h->updateMemberContact($id, EmailAddress::of('new@example.com'), null, $clock);
+        }];
+        yield 'reactivateMember' => ['mutate' => static function (Household $h, MemberId $id, MockClock $clock): void {
+            $h->reactivateMember($id, $clock);
+        }];
+    }
+
+    #[Test]
+    #[DataProvider('anonymizedMemberMutatorCases')]
+    #[TestDox('every other mutator throws MemberIsAnonymized when the target member is anonymized.')]
+    public function mutators_throw_member_is_anonymized_on_anonymized_member(callable $mutate): void
+    {
+        $household = $this->register();
+        $memberId = MemberId::fromString(self::PRIMARY_MEMBER_ID);
+        $household->anonymizeMember($memberId, AnonymizedProfile::placeholder(), $this->clock);
+        $household->releaseEvents();
+
+        $this->expectException(MemberIsAnonymized::class);
+
+        $mutate($household, $memberId, $this->clock);
     }
 
     #[Test]

@@ -342,6 +342,7 @@ final class InMemoryMemberReadModel implements MemberReadModel
             $member->photo()?->version(),
             $member->isMerged(),
             $isShared,
+            $member->isAnonymized(),
         );
     }
 
@@ -432,6 +433,7 @@ final class InMemoryMemberReadModel implements MemberReadModel
             $merge?->intoMemberId->value,
             $merge !== null ? $this->householdIdFor($merge->intoMemberId) : null,
             $merge?->at->format(\DateTimeInterface::ATOM),
+            $member->anonymizedAt()?->format(\DateTimeInterface::ATOM),
         );
     }
 

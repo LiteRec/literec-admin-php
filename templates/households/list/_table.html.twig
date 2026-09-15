@@ -145,6 +145,19 @@
                                     >
                                         View
                                     </a>
+                                    {% if not item.isAnonymized %}
+                                        <button
+                                            type="button"
+                                            class="lr-btn lr-btn-ghost lr-btn-block text-danger-fg"
+                                            data-testid="member-row-anonymize-{{ item.memberId }}"
+                                            hx-get="{{ path('member_anonymize_form', { householdId: item.householdId, memberId: item.memberId }) }}"
+                                            hx-target="body"
+                                            hx-swap="beforeend"
+                                            aria-haspopup="dialog"
+                                        >
+                                            Anonymize…
+                                        </button>
+                                    {% endif %}
                                     {# Sell/Message have no backing feature yet (no sale-from-list
                                        or messaging flow exists) — rendered disabled rather than as
                                        dead-end tab stops, matching the header Notifications button

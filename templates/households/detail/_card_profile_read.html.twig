@@ -71,7 +71,7 @@
         </div>
     </div>
 
-    {% if detail.profile.mergedIntoMemberId is null %}
+    {% if detail.profile.mergedIntoMemberId is null and detail.profile.anonymizedAtIso is null %}
         <div class="mb-3 flex items-center justify-end gap-2">
             {# Routed through homeHouseholdId (LRA-210), not the viewed
                household: identity data lives only on the home aggregate, so
@@ -188,4 +188,32 @@
             </div>
         {% endif %}
     </dl>
+
+    {% if detail.profile.mergedIntoMemberId is null %}
+        {% if detail.profile.anonymizedAtIso is not null %}
+            <div class="mt-4 border-t border-litrec-border pt-4">
+                <p data-testid="profile-anonymized-at" class="text-sm text-litrec-text-muted">
+                    Anonymized on {{ detail.profile.anonymizedAtIso|date('M j, Y') }}
+                </p>
+            </div>
+        {% else %}
+            {# Danger zone (LRA-212): irreversible, so kept visually and
+               spatially apart from the ordinary Edit/Deactivate actions
+               above rather than grouped with them. #}
+            <div class="mt-4 flex items-center justify-between border-t border-litrec-border pt-4">
+                <span class="text-xs font-semibold uppercase tracking-wide text-litrec-text-muted">Danger zone</span>
+                <button
+                    type="button"
+                    data-testid="anonymize-open"
+                    hx-get="{{ path('member_anonymize_form', { householdId: detail.homeHouseholdId, memberId: detail.profile.memberId }) }}"
+                    hx-target="body"
+                    hx-swap="beforeend"
+                    aria-haspopup="dialog"
+                    class="lr-btn lr-btn-ghost text-danger-fg"
+                >
+                    Anonymize member…
+                </button>
+            </div>
+        {% endif %}
+    {% endif %}
 </div>
