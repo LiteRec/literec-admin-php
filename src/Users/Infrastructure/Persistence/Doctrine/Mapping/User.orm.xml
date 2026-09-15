@@ -20,6 +20,14 @@
         <field name="username" type="users_username" nullable="false"/>
         <field name="roles"    type="users_roles"   nullable="false"/>
         <field name="password" type="users_hashed_password" nullable="false"/>
+        <!-- LRA-213: one-time-password lifecycle state, defaulted to
+             'established' so every pre-existing row remains valid. -->
+        <field name="passwordState" type="string" length="32" column="password_state"
+               nullable="false" enum-type="App\Users\Domain\ValueObject\PasswordState">
+            <options>
+                <option name="default">established</option>
+            </options>
+        </field>
         <field name="isActive" type="boolean" nullable="false">
             <options>
                 <option name="default">true</option>

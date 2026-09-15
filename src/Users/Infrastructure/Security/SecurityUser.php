@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Users\Infrastructure\Security;
 
 use App\Users\Domain\User;
+use App\Users\Domain\ValueObject\PasswordState;
 use App\Users\Domain\ValueObject\Role;
 use Symfony\Component\Security\Core\User\EquatableInterface;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
@@ -29,6 +30,7 @@ final readonly class SecurityUser implements UserInterface, PasswordAuthenticate
         public string $hashedPassword,
         public array $roles,
         public bool $isActive,
+        public PasswordState $passwordState,
     ) {
     }
 
@@ -43,6 +45,7 @@ final readonly class SecurityUser implements UserInterface, PasswordAuthenticate
             hashedPassword: $user->passwordHash()->value,
             roles: array_values(array_unique($roleValues)),
             isActive: $user->isActive(),
+            passwordState: $user->passwordState(),
         );
     }
 
@@ -78,6 +81,16 @@ final readonly class SecurityUser implements UserInterface, PasswordAuthenticate
         // No-op: the projection stores only the hashed password.
     }
 
+    /**
+     * Deliberately excludes passwordState. Symfony's ContextListener calls
+     * this on every request to decide whether to drop the session token;
+     * including passwordState would invalidate the token the instant
+     * consumeOneTimePassword() flips it to OneTimeConsumed, logging the
+     * user out mid-flow instead of letting
+     * {@see RequirePasswordEstablishmentListener} redirect them to the
+     * "set a new password" page. The unchanged hashedPassword is what
+     * keeps the session alive across that transition.
+     */
     public function isEqualTo(UserInterface $user): bool
     {
         return $user instanceof self
