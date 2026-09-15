@@ -106,6 +106,31 @@ final class SplitMemberController extends AbstractController
             return $this->reRenderForm($householdId, $memberId, $splitForm);
         }
 
+        $newMemberId = $this->trySplit($householdId, $memberId, $input, $splitForm);
+
+        if ($newMemberId === null) {
+            return $this->reRenderForm($householdId, $memberId, $splitForm);
+        }
+
+        return $this->hxRedirectTo($householdId, $newMemberId);
+    }
+
+    /**
+     * Dispatches {@see SplitMember} and returns the new member's id, or
+     * null after populating $form with a field/form-level error. Split
+     * out of {@see self::submit()} to keep that method's return count
+     * under SonarCloud's php:S1142 threshold.
+     *
+     * @template TData
+     *
+     * @param FormInterface<TData> $form
+     */
+    private function trySplit(
+        string $householdId,
+        string $memberId,
+        SplitMemberInput $input,
+        FormInterface $form,
+    ): ?MemberId {
         try {
             $newMemberId = $this->dispatchCommandUnwrappingWithResult(new SplitMember(
                 householdId: $householdId,
@@ -123,17 +148,13 @@ final class SplitMemberController extends AbstractController
         } catch (MemberNotFound | HouseholdNotFound | InvalidHouseholdId | InvalidMemberId) {
             throw $this->createNotFoundException(self::MEMBER_NOT_FOUND_MESSAGE);
         } catch (InvalidPersonName $exception) {
-            $this->applyNameErrorToForm($splitForm, $exception);
+            $this->applyNameErrorToForm($form, $exception);
 
-            return $this->reRenderForm($householdId, $memberId, $splitForm);
-        } catch (SplitSelectionEmpty $exception) {
-            $splitForm->addError(new FormError($exception->getMessage()));
+            return null;
+        } catch (SplitSelectionEmpty | SharedDomainException $exception) {
+            $form->addError(new FormError($exception->getMessage()));
 
-            return $this->reRenderForm($householdId, $memberId, $splitForm);
-        } catch (SharedDomainException $exception) {
-            $splitForm->addError(new FormError($exception->getMessage()));
-
-            return $this->reRenderForm($householdId, $memberId, $splitForm);
+            return null;
         }
 
         if (!$newMemberId instanceof MemberId) {
@@ -144,6 +165,11 @@ final class SplitMemberController extends AbstractController
             ));
         }
 
+        return $newMemberId;
+    }
+
+    private function hxRedirectTo(string $householdId, MemberId $newMemberId): Response
+    {
         $response = new Response(null, Response::HTTP_OK);
         $response->headers->set('HX-Redirect', $this->generateUrl('member_detail', [
             'householdId' => $householdId,
