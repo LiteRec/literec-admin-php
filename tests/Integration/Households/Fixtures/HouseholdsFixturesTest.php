@@ -24,7 +24,7 @@ final class HouseholdsFixturesTest extends KernelTestCase
 
     #[Test]
     #[TestDox(
-        'Loads four curated households + a small bulk batch via the command bus, '
+        'Loads five curated households + a small bulk batch via the command bus, '
         . 'including a residency change and a deactivation transition.',
     )]
     public function loads_curated_households_and_bulk_batch_through_the_command_bus(): void
@@ -53,9 +53,9 @@ final class HouseholdsFixturesTest extends KernelTestCase
             $fixture->load($em);
 
             self::assertSame(
-                6,
+                7,
                 $this->countOne($connection, 'SELECT COUNT(*) FROM households'),
-                '4 curated + 2 bulk households expected.',
+                '5 curated + 2 bulk households expected.',
             );
 
             self::assertSame(
@@ -69,13 +69,14 @@ final class HouseholdsFixturesTest extends KernelTestCase
 
             $curated = $connection->fetchFirstColumn(
                 "SELECT name FROM households "
-                . "WHERE name IN ('Smith Single', 'Jones Family', 'Miller Senior', 'Brown Inactive') "
-                . 'ORDER BY name'
+                . "WHERE name IN ("
+                . "'Smith Single', 'Jones Family', 'Jones Second Home', 'Miller Senior', 'Brown Inactive'"
+                . ") ORDER BY name"
             );
             self::assertSame(
-                ['Brown Inactive', 'Jones Family', 'Miller Senior', 'Smith Single'],
+                ['Brown Inactive', 'Jones Family', 'Jones Second Home', 'Miller Senior', 'Smith Single'],
                 $curated,
-                'All four curated households should be present.',
+                'All five curated households should be present.',
             );
 
             self::assertSame(
@@ -87,6 +88,17 @@ final class HouseholdsFixturesTest extends KernelTestCase
                     . "WHERE h.name = 'Jones Family'",
                 ),
                 'Jones Family should have 4 members.',
+            );
+
+            self::assertSame(
+                1,
+                $this->countOne(
+                    $connection,
+                    'SELECT COUNT(*) FROM household_member_affiliations aff '
+                    . 'JOIN households h ON h.id = aff.household_id '
+                    . "WHERE h.name = 'Jones Second Home'",
+                ),
+                'Jones Second Home should have exactly one shared-in member (Dylan Jones).',
             );
 
             self::assertGreaterThanOrEqual(
