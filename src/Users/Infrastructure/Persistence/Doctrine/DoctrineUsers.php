@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Users\Infrastructure\Persistence\Doctrine;
 
+use App\Users\Domain\Exception\ConcurrentUserModification;
 use App\Users\Domain\Exception\UserNotFound;
 use App\Users\Domain\Exception\UsernameAlreadyTaken;
 use App\Users\Domain\User;
@@ -12,6 +13,7 @@ use App\Users\Domain\ValueObject\UserId;
 use App\Users\Domain\ValueObject\Username;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\OptimisticLockException;
 
 /**
  * Doctrine adapter for the {@see Users} port. The only class under
@@ -35,7 +37,11 @@ final class DoctrineUsers implements Users
 
     public function save(User $user): void
     {
-        $this->em->flush();
+        try {
+            $this->em->flush();
+        } catch (OptimisticLockException $e) {
+            throw ConcurrentUserModification::forUser($user->id()->value, $e);
+        }
     }
 
     public function byId(UserId $id): User

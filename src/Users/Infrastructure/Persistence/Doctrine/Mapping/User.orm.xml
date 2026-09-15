@@ -28,12 +28,26 @@
                 <option name="default">established</option>
             </options>
         </field>
+        <!-- LRA-213: when the currently-issued one-time password was
+             issued, so UserChecker can reject one past its TTL. Null for
+             Established accounts. -->
+        <field name="oneTimePasswordIssuedAt" type="datetime_immutable"
+               column="one_time_password_issued_at" nullable="true"/>
         <field name="isActive" type="boolean" nullable="false">
             <options>
                 <option name="default">true</option>
             </options>
         </field>
         <field name="createdAt" type="datetime_immutable" nullable="false"/>
+        <!-- LRA-213: optimistic lock so two concurrent logins racing to
+             consume the same one-time password cannot both succeed —
+             DoctrineUsers::save() translates the resulting
+             OptimisticLockException into ConcurrentUserModification. -->
+        <field name="version" type="integer" version="true" nullable="false">
+            <options>
+                <option name="default">0</option>
+            </options>
+        </field>
 
         <lifecycle-callbacks>
             <lifecycle-callback type="prePersist" method="assertPasswordIsSet"/>

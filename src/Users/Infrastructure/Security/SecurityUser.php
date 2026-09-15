@@ -7,6 +7,7 @@ namespace App\Users\Infrastructure\Security;
 use App\Users\Domain\User;
 use App\Users\Domain\ValueObject\PasswordState;
 use App\Users\Domain\ValueObject\Role;
+use DateTimeImmutable;
 use Symfony\Component\Security\Core\User\EquatableInterface;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
@@ -31,6 +32,7 @@ final readonly class SecurityUser implements UserInterface, PasswordAuthenticate
         public array $roles,
         public bool $isActive,
         public PasswordState $passwordState,
+        public ?DateTimeImmutable $oneTimePasswordIssuedAt = null,
     ) {
     }
 
@@ -46,6 +48,7 @@ final readonly class SecurityUser implements UserInterface, PasswordAuthenticate
             roles: array_values(array_unique($roleValues)),
             isActive: $user->isActive(),
             passwordState: $user->passwordState(),
+            oneTimePasswordIssuedAt: $user->oneTimePasswordIssuedAt(),
         );
     }
 
