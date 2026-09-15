@@ -69,18 +69,20 @@
         </div>
     </div>
 
-    <div class="mb-3 flex items-center justify-end">
-        <button
-            type="button"
-            data-testid="profile-edit"
-            hx-get="{{ path('member_profile_edit_form', { householdId: detail.household.householdId, memberId: detail.profile.memberId }) }}"
-            hx-target="#card-profile-body"
-            hx-swap="outerHTML"
-            class="lr-btn lr-btn-secondary"
-        >
-            Edit
-        </button>
-    </div>
+    {% if detail.profile.mergedIntoMemberId is null %}
+        <div class="mb-3 flex items-center justify-end">
+            <button
+                type="button"
+                data-testid="profile-edit"
+                hx-get="{{ path('member_profile_edit_form', { householdId: detail.household.householdId, memberId: detail.profile.memberId }) }}"
+                hx-target="#card-profile-body"
+                hx-swap="outerHTML"
+                class="lr-btn lr-btn-secondary"
+            >
+                Edit
+            </button>
+        </div>
+    {% endif %}
 
     <dl class="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
         <div>

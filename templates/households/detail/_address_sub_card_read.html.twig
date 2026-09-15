@@ -11,16 +11,18 @@
 <div id="address-sub-card-body" data-testid="address-sub-card-body" class="rounded-card-sm border border-litrec-border bg-litrec-surface p-4">
     <div class="mb-3 flex items-center justify-between">
         <h3 class="text-xs font-semibold uppercase tracking-wide text-litrec-text-muted">Mailing address</h3>
-        <button
-            type="button"
-            data-testid="address-edit"
-            hx-get="{{ path('member_address_edit_form', { householdId: detail.household.householdId, memberId: detail.profile.memberId }) }}"
-            hx-target="#address-sub-card-body"
-            hx-swap="outerHTML"
-            class="lr-btn lr-btn-secondary"
-        >
-            Edit Address
-        </button>
+        {% if detail.profile.mergedIntoMemberId is null %}
+            <button
+                type="button"
+                data-testid="address-edit"
+                hx-get="{{ path('member_address_edit_form', { householdId: detail.household.householdId, memberId: detail.profile.memberId }) }}"
+                hx-target="#address-sub-card-body"
+                hx-swap="outerHTML"
+                class="lr-btn lr-btn-secondary"
+            >
+                Edit Address
+            </button>
+        {% endif %}
     </div>
 
     {% if detail.address.country == 'US' %}

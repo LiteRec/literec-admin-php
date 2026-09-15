@@ -18,10 +18,14 @@ use InvalidArgumentException;
  * backing data is not yet present:
  *   - orgName       — no organization-name column exists on members yet.
  *   - gateway       — no membership-gateway column exists yet.
- *   - includeMerged — household_members has no merged flag yet.
  *   - recentOnly    — household_members has no modified_at timestamp yet.
  * Accepting these now means the call sites in LRA-39 / LRA-46 do not have
  * to be re-shaped when the backing data lands.
+ *
+ * includeMerged (LRA-208): when false (the default), merged members are
+ * excluded from every adapter's results — both the Users list and the
+ * Member Lookup dialog. Set true to include them (the Users list's
+ * "Include merged" checkbox).
  *
  * `q` and `segment` (LRA-192) are the Users list's quick-filter pair: `q`
  * is a single free-text term matched (OR) against last name, first name,

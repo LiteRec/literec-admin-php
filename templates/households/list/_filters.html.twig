@@ -10,7 +10,7 @@
    active — e.g. the "Households" page action links to ?primaryOnly=1 — so
    the operator can see (and clear) the field narrowing the list instead of
    finding a shorter table with no visible cause (LRA-192 review). #}
-{% set detailedFilterFields = ['memberCode', 'lastName', 'firstName', 'phone', 'email', 'primaryOnly', 'includeDeleted'] %}
+{% set detailedFilterFields = ['memberCode', 'lastName', 'firstName', 'phone', 'email', 'primaryOnly', 'includeDeleted', 'includeMerged'] %}
 {% set hasDetailedFilter = detailedFilterFields|filter(name => q.get(name, '') != '')|length > 0 %}
 <div
     x-data="{ open: {{ hasDetailedFilter ? 'true' : 'false' }} || window.location.hash === '#more-filters' }"
@@ -35,7 +35,7 @@
            popovers cross-wired (opening every row's popover instead of just
            the clicked one) — this keeps text fields on the single debounced
            trigger and checkboxes on their own immediate one. #}
-        hx-trigger="input changed delay:500ms, change from:#filter-primaryOnly, change from:#filter-includeDeleted"
+        hx-trigger="input changed delay:500ms, change from:#filter-primaryOnly, change from:#filter-includeDeleted, change from:#filter-includeMerged"
         hx-sync="this:replace"
         aria-label="Filter users"
         class="lr-card lr-card-body"
@@ -166,6 +166,17 @@
                     >
                     <span class="box">{{ ui.icon('check', 11, 3) }}</span>
                     Include deactivated
+                </label>
+                <label class="lr-check">
+                    <input
+                        type="checkbox"
+                        id="filter-includeMerged"
+                        name="includeMerged"
+                        value="1"
+                        {% if q.get('includeMerged') in ['1', 'true', 'on', 'yes', true] %}checked{% endif %}
+                    >
+                    <span class="box">{{ ui.icon('check', 11, 3) }}</span>
+                    Include merged
                 </label>
             </div>
         </div>

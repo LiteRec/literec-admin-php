@@ -269,6 +269,29 @@ trait HouseholdsContractCases
     }
 
     #[Test]
+    #[TestDox('save(): a merged member round-trips through findById() with its survivor pointer intact.')]
+    public function merged_member_round_trips_through_save_and_find(): void
+    {
+        $household = $this->buildHouseholdWithTwoMembers();
+        $this->households()->save($household);
+
+        $loaded = $this->households()->findById(HouseholdId::fromString(self::HOUSEHOLD_ID));
+        $duplicateId = MemberId::fromString(self::SECOND_MEMBER_ID);
+        $survivorId = MemberId::fromString(self::PRIMARY_MEMBER_ID);
+        $survivorHouseholdId = HouseholdId::fromString(self::HOUSEHOLD_ID);
+        $loaded->mergeMemberInto($duplicateId, $survivorHouseholdId, $survivorId, $this->clock());
+        $this->households()->save($loaded);
+
+        $reloaded = $this->households()->findById(HouseholdId::fromString(self::HOUSEHOLD_ID));
+        $merged = $this->memberById($reloaded, self::SECOND_MEMBER_ID);
+        self::assertTrue($merged->isMerged());
+        $merge = $merged->merge();
+        self::assertNotNull($merge);
+        self::assertTrue($merge->intoMemberId->equals($survivorId));
+        self::assertInstanceOf(DateTimeImmutable::class, $merge->at);
+    }
+
+    #[Test]
     #[TestDox('MemberCodeAllocator::next(): codes match ^M\d{6}$ and consecutive calls return distinct values.')]
     public function member_code_allocator_returns_distinct_well_formed_codes(): void
     {

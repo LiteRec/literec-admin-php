@@ -45,6 +45,12 @@ framework:
             # post-commit dispatch.
             App\Catalog\Integration\Event\LineSold: async
 
+            # LRA-208: route the Households MemberMerged integration event
+            # to the async transport, same contract as LineSold above —
+            # published post-commit for downstream contexts (none exist
+            # yet) to repoint their own member_id-carrying rows.
+            App\Households\Integration\Event\MemberMerged: async
+
 when@test:
     framework:
         messenger:

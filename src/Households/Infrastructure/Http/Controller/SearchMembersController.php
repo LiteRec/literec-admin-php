@@ -154,6 +154,7 @@ final class SearchMembersController extends AbstractController
             q: self::stringOrNull($query->get('q')),
             segment: MembersSegment::fromRequestValue(self::stringOrNull($query->get('segment'))),
             primaryOnly: self::boolish($query->get('primaryOnly')),
+            includeMerged: self::boolish($query->get('includeMerged')),
             includeDeleted: self::boolish($query->get('includeDeleted')),
             page: max(1, $query->getInt('page', 1)),
             pageSize: $query->getInt('pageSize', 20),

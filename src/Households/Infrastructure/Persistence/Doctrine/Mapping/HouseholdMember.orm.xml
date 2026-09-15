@@ -23,6 +23,7 @@
 
         <indexes>
             <index name="IDX_household_members_household" columns="household_id"/>
+            <index name="IDX_household_members_merged_into" columns="merged_into_member_id"/>
         </indexes>
 
         <unique-constraints>
@@ -56,6 +57,8 @@
         </field>
         <field name="deactivatedReason" type="string"                     nullable="true"  length="255" column="deactivated_reason"/>
         <field name="deactivatedAt"     type="datetime_immutable"         nullable="true"  column="deactivated_at"/>
+        <field name="mergedIntoMemberId" type="households_member_id"      nullable="true"  column="merged_into_member_id"/>
+        <field name="mergedAt"          type="datetime_immutable"         nullable="true"  column="merged_at"/>
         <field name="photoStorageKey"   type="string"                     nullable="true"  length="255" column="photo_storage_key"/>
         <field name="photoFormat"       type="string"                     nullable="true"  length="16"  column="photo_format" enum-type="App\Households\Domain\ValueObject\ImageFormat"/>
         <field name="photoUploadedAt"   type="datetime_immutable"         nullable="true"  column="photo_uploaded_at"/>

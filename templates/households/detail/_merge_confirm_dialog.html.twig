@@ -1,0 +1,94 @@
+{# Merge-members confirmation dialog (LRA-208).
+
+   Server returns this fragment via either:
+     - GET  /admin/users/{h}/{m}/merge/confirm?duplicateMemberId=…&duplicateHouseholdId=…  — initial render
+     - POST /admin/users/{h}/{m}/merge (422)                                                — re-render on validation failure
+
+   Shows the survivor (currently-viewed member, from the route) side by
+   side with the duplicate (picked via Member Lookup) so staff can
+   confirm before an irreversible merge. On success the POST endpoint
+   returns 200 with HX-Redirect to the survivor's member_detail — a full
+   reload so the gap-filled contact fields show.
+
+   Expects:
+     - survivor:  App\Households\Application\Query\Port\MemberDetail
+     - duplicate: App\Households\Application\Query\Port\MemberDetail
+     - form:      Symfony FormView bound to MergeMembersInput
+#}
+{% set body %}
+    <p class="mb-4 text-sm text-litrec-text-muted">
+        This merges the duplicate record into the record you are viewing. The
+        duplicate is kept for history but hidden from the Users list, and this
+        cannot be undone.
+    </p>
+
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div class="rounded-card-sm border border-litrec-border bg-litrec-surface p-4">
+            <h3 class="mb-2 text-xs font-semibold uppercase tracking-wide text-litrec-text-muted">Keeping (survivor)</h3>
+            <dl class="space-y-1 text-sm text-litrec-text" data-testid="merge-survivor-summary">
+                <div><dt class="inline font-semibold">Name:</dt> <dd class="inline">{{ survivor.profile.fullName }}</dd></div>
+                <div><dt class="inline font-semibold">Code:</dt> <dd class="inline font-mono">{{ survivor.profile.memberCode }}</dd></div>
+                <div><dt class="inline font-semibold">Household:</dt> <dd class="inline">{{ survivor.household.householdName }}</dd></div>
+                <div><dt class="inline font-semibold">DOB:</dt> <dd class="inline">{{ survivor.profile.dobIso ?? '—' }}</dd></div>
+                <div><dt class="inline font-semibold">Email:</dt> <dd class="inline">{{ survivor.profile.email ?? '—' }}</dd></div>
+                <div><dt class="inline font-semibold">Phone:</dt> <dd class="inline">{{ survivor.profile.phone ?? '—' }}</dd></div>
+            </dl>
+        </div>
+        <div class="rounded-card-sm border border-litrec-border bg-litrec-surface p-4">
+            <h3 class="mb-2 text-xs font-semibold uppercase tracking-wide text-litrec-text-muted">Merging (duplicate)</h3>
+            <dl class="space-y-1 text-sm text-litrec-text" data-testid="merge-duplicate-summary">
+                <div><dt class="inline font-semibold">Name:</dt> <dd class="inline">{{ duplicate.profile.fullName }}</dd></div>
+                <div><dt class="inline font-semibold">Code:</dt> <dd class="inline font-mono">{{ duplicate.profile.memberCode }}</dd></div>
+                <div><dt class="inline font-semibold">Household:</dt> <dd class="inline">{{ duplicate.household.householdName }}</dd></div>
+                <div><dt class="inline font-semibold">DOB:</dt> <dd class="inline">{{ duplicate.profile.dobIso ?? '—' }}</dd></div>
+                <div><dt class="inline font-semibold">Email:</dt> <dd class="inline">{{ duplicate.profile.email ?? '—' }}</dd></div>
+                <div><dt class="inline font-semibold">Phone:</dt> <dd class="inline">{{ duplicate.profile.phone ?? '—' }}</dd></div>
+            </dl>
+        </div>
+    </div>
+
+    <form
+        method="post"
+        action="{{ path('member_merge_submit', { householdId: survivor.household.householdId, memberId: survivor.profile.memberId }) }}"
+        hx-post="{{ path('member_merge_submit', { householdId: survivor.household.householdId, memberId: survivor.profile.memberId }) }}"
+        hx-target="closest .modal-root"
+        hx-swap="outerHTML"
+        novalidate
+    >
+        {% include 'components/_form_error_summary.html.twig' with { form: form, testid: 'merge-form-error' } only %}
+
+        {{ form_widget(form.duplicateMemberId) }}
+        {{ form_widget(form.duplicateHouseholdId) }}
+
+        <div class="mt-4 rounded-card-sm border border-danger-fg/30 bg-danger-bg p-3">
+            <p class="mb-2 text-sm font-semibold text-danger-fg">This cannot be undone.</p>
+            {{ form_row(form.acknowledged, { row_attr: { class: 'lr-check' }, label_attr: { class: '' } }) }}
+        </div>
+
+        {{ form_widget(form._token) }}
+
+        <div class="mt-6 flex items-center justify-end gap-2">
+            <button
+                type="button"
+                data-testid="merge-confirm-cancel"
+                class="lr-btn lr-btn-secondary"
+                @click="dismiss()"
+            >
+                Cancel
+            </button>
+            <button
+                type="submit"
+                data-testid="merge-confirm-submit"
+                class="lr-btn lr-btn-primary"
+            >
+                Merge
+            </button>
+        </div>
+    </form>
+{% endset %}
+
+{% include 'components/_modal.html.twig' with {
+    id: 'merge-confirm-modal',
+    title: 'Merge duplicate member',
+    body: body,
+} only %}
