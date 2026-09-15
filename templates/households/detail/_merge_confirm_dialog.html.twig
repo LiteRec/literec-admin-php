@@ -62,7 +62,11 @@
 
         <div class="mt-4 rounded-card-sm border border-danger-fg/30 bg-danger-bg p-3">
             <p class="mb-2 text-sm font-semibold text-danger-fg">This cannot be undone.</p>
-            {{ form_row(form.acknowledged, { row_attr: { class: 'lr-check' }, label_attr: { class: '' } }) }}
+            <div class="flex items-center gap-2">
+                {{ form_widget(form.acknowledged, { attr: { class: 'h-4 w-4' } }) }}
+                {{ form_label(form.acknowledged, null, { label_attr: { class: 'text-sm text-danger-fg' } }) }}
+            </div>
+            {{ form_errors(form.acknowledged) }}
         </div>
 
         {{ form_widget(form._token) }}
