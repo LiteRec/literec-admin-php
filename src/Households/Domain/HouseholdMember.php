@@ -8,9 +8,11 @@ use App\Households\Domain\ValueObject\DateOfBirth;
 use App\Households\Domain\ValueObject\Deactivation;
 use App\Households\Domain\ValueObject\Gender;
 use App\Households\Domain\ValueObject\Height;
+use App\Households\Domain\ValueObject\ImageFormat;
 use App\Households\Domain\ValueObject\MemberCode;
 use App\Households\Domain\ValueObject\MemberId;
 use App\Households\Domain\ValueObject\PersonName;
+use App\Households\Domain\ValueObject\ProfilePhoto;
 use App\Households\Domain\ValueObject\ResidencyStatus;
 use App\Households\Domain\ValueObject\Salutation;
 use App\Households\Domain\ValueObject\Weight;
@@ -43,6 +45,9 @@ final class HouseholdMember
     private bool $isActive;
     private ?string $deactivatedReason;
     private ?DateTimeImmutable $deactivatedAt;
+    private ?string $photoStorageKey;
+    private ?ImageFormat $photoFormat;
+    private ?DateTimeImmutable $photoUploadedAt;
     /**
      * Back-reference to the owning {@see Household}. Required by the
      * Doctrine persistence mapping (many-to-one inverse) so that adding a
@@ -90,6 +95,9 @@ final class HouseholdMember
         $this->salutation = $salutation;
         $this->height = $height;
         $this->weight = $weight;
+        $this->photoStorageKey = null;
+        $this->photoFormat = null;
+        $this->photoUploadedAt = null;
     }
 
     public function id(): MemberId
@@ -172,6 +180,21 @@ final class HouseholdMember
     }
 
     /**
+     * The member's uploaded profile photo, or null when none has been
+     * uploaded. Materialized from the persisted scalar fields the same
+     * way {@see self::deactivation()} projects {@see Deactivation} — this
+     * is a read of already-validated state, not re-validation.
+     */
+    public function photo(): ?ProfilePhoto
+    {
+        if ($this->photoStorageKey === null || $this->photoFormat === null || $this->photoUploadedAt === null) {
+            return null;
+        }
+
+        return new ProfilePhoto($this->photoStorageKey, $this->photoFormat, $this->photoUploadedAt);
+    }
+
+    /**
      * @internal Mutation must be triggered via {@see Household} aggregate.
      */
     public function rename(PersonName $name): void
@@ -247,6 +270,26 @@ final class HouseholdMember
         $this->isActive = true;
         $this->deactivatedReason = null;
         $this->deactivatedAt = null;
+    }
+
+    /**
+     * @internal Mutation must be triggered via {@see Household} aggregate.
+     */
+    public function attachPhoto(ProfilePhoto $photo): void
+    {
+        $this->photoStorageKey = $photo->storageKey;
+        $this->photoFormat = $photo->format;
+        $this->photoUploadedAt = $photo->uploadedAt;
+    }
+
+    /**
+     * @internal Mutation must be triggered via {@see Household} aggregate.
+     */
+    public function removePhoto(): void
+    {
+        $this->photoStorageKey = null;
+        $this->photoFormat = null;
+        $this->photoUploadedAt = null;
     }
 
     /**

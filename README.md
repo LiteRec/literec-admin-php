@@ -156,6 +156,7 @@ Every curated user is registered with the shared password
 | `FIXTURE_SEED` | `1` | Seeds FakerPHP (and the per-iteration re-seed inside each fixture) so the bulk dataset is byte-identical across runs. Change to generate a different but still stable dataset. |
 | `FIXTURE_USER_COUNT` | `25` | Number of Faker-generated bulk users (capped at `UsersFixtures::MAX_BULK_COUNT` = 5000). Set to `0` to skip the bulk loop. |
 | `FIXTURE_HOUSEHOLD_COUNT` | `25` | Number of Faker-generated bulk households (capped at `HouseholdsFixtures::MAX_BULK_COUNT` = 1000). Set to `0` to skip the bulk loop. |
+| `MEMBER_PHOTO_DIR` | `%kernel.project_dir%/var/uploads/member-photos` | Root directory member profile photos (LRA-207) are written under. Only `/app/var` is writable in production; never point this at `public/` — photos are streamed through the authenticated `MemberPhotoController`, never served as static files. |
 
 Determinism guarantee: with the same `FIXTURE_SEED` and the same
 counts, every non-identity column (usernames, names, emails, gender,

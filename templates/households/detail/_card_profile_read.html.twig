@@ -7,13 +7,68 @@
    "Edit" button stays inside the swappable region.
 
    Expects:
-     - detail: App\Households\Application\Query\Port\MemberDetail
+     - detail:     App\Households\Application\Query\Port\MemberDetail
+     - photoError: string|null  Set by MemberPhotoController on a 422
+                   re-render (LRA-207); fills the persistent photo-form
+                   error region. Defaults to null.
 #}
 {% set genderLabelMap = { 'F': 'Female', 'M': 'Male', 'O': 'Other', 'U': 'Unspecified' } %}
 {% set genderLabel = genderLabelMap[detail.profile.genderCode] ?? detail.profile.genderCode %}
 {% set salutationLabelMap = { 'MR': 'Mr.', 'MRS': 'Mrs.', 'MS': 'Ms.', 'MX': 'Mx.', 'DR': 'Dr.', 'REV': 'Rev.' } %}
 {% set salutationLabel = detail.profile.salutationCode is not null ? (salutationLabelMap[detail.profile.salutationCode] ?? detail.profile.salutationCode) : null %}
+{% set photoError = photoError|default(null) %}
 <div id="card-profile-body" data-testid="card-profile-body" class="border-t border-litrec-border px-5 py-4">
+    <div class="mb-4 flex items-center gap-4 border-b border-litrec-border pb-4">
+        {% include 'households/detail/_member_avatar.html.twig' with {
+            photoVersion: detail.profile.photoVersion,
+            initials: detail.profile.firstName|slice(0, 1) ~ detail.profile.lastName|slice(0, 1),
+            photoRouteParams: { householdId: detail.household.householdId, memberId: detail.profile.memberId, version: detail.profile.photoVersion },
+            size: 'md',
+        } only %}
+        <div class="flex-1">
+            <div
+                role="alert"
+                data-testid="photo-form-error"
+                class="{{ photoError is not null ? 'mb-2 rounded-card bg-danger-bg p-2 text-sm font-semibold text-danger-fg' : 'sr-only' }}"
+            >{{ photoError ?? '' }}</div>
+            <form
+                hx-post="{{ path('member_photo_upload', { householdId: detail.household.householdId, memberId: detail.profile.memberId }) }}"
+                hx-target="#card-profile-body"
+                hx-swap="outerHTML"
+                hx-encoding="multipart/form-data"
+                class="flex flex-wrap items-center gap-2"
+            >
+                <input type="hidden" name="upload_member_photo[_token]" value="{{ csrf_token('upload_member_photo') }}">
+                <label class="sr-only" for="profile-photo-input">Photo</label>
+                <input
+                    id="profile-photo-input"
+                    type="file"
+                    name="upload_member_photo[photo]"
+                    accept="image/jpeg,image/png,image/webp"
+                    data-testid="photo-input"
+                    class="text-sm text-litrec-text-muted"
+                >
+                <button type="submit" data-testid="photo-upload" class="lr-btn lr-btn-secondary">
+                    Upload photo
+                </button>
+            </form>
+            {% if detail.profile.photoVersion is not null %}
+                <form
+                    hx-post="{{ path('member_photo_remove', { householdId: detail.household.householdId, memberId: detail.profile.memberId }) }}"
+                    hx-target="#card-profile-body"
+                    hx-swap="outerHTML"
+                    hx-confirm="Remove this member's photo?"
+                    class="mt-1"
+                >
+                    <input type="hidden" name="remove_member_photo[_token]" value="{{ csrf_token('remove_member_photo') }}">
+                    <button type="submit" data-testid="photo-remove" class="lr-btn lr-btn-ghost">
+                        Remove photo
+                    </button>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+
     <div class="mb-3 flex items-center justify-end">
         <button
             type="button"

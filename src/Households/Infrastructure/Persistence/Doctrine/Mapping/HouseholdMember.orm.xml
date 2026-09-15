@@ -56,6 +56,9 @@
         </field>
         <field name="deactivatedReason" type="string"                     nullable="true"  length="255" column="deactivated_reason"/>
         <field name="deactivatedAt"     type="datetime_immutable"         nullable="true"  column="deactivated_at"/>
+        <field name="photoStorageKey"   type="string"                     nullable="true"  length="255" column="photo_storage_key"/>
+        <field name="photoFormat"       type="string"                     nullable="true"  length="16"  column="photo_format" enum-type="App\Households\Domain\ValueObject\ImageFormat"/>
+        <field name="photoUploadedAt"   type="datetime_immutable"         nullable="true"  column="photo_uploaded_at"/>
 
         <embedded name="name" class="App\Households\Domain\ValueObject\PersonName" use-column-prefix="false"/>
 

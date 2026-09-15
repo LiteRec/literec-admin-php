@@ -15,9 +15,11 @@ use App\Households\Domain\ValueObject\Gender;
 use App\Households\Domain\ValueObject\Height;
 use App\Households\Domain\ValueObject\HouseholdId;
 use App\Households\Domain\ValueObject\HouseholdName;
+use App\Households\Domain\ValueObject\ImageFormat;
 use App\Households\Domain\ValueObject\MemberCode;
 use App\Households\Domain\ValueObject\MemberId;
 use App\Households\Domain\ValueObject\PersonName;
+use App\Households\Domain\ValueObject\ProfilePhoto;
 use App\Shared\Domain\ValueObject\PhoneNumber;
 use App\Households\Domain\ValueObject\ResidencyStatus;
 use App\Households\Domain\ValueObject\Salutation;
@@ -239,6 +241,34 @@ trait HouseholdsContractCases
     }
 
     #[Test]
+    #[TestDox('save(): a member photo round-trips through findById() and a follow-up removal persists.')]
+    public function member_photo_round_trips_through_save_and_find(): void
+    {
+        $household = $this->buildHouseholdWithTwoMembers();
+        $this->households()->save($household);
+
+        $loaded = $this->households()->findById(HouseholdId::fromString(self::HOUSEHOLD_ID));
+        $photo = ProfilePhoto::of(
+            self::PRIMARY_MEMBER_ID . '/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.jpg',
+            ImageFormat::Jpeg,
+            $this->clock()->now(),
+        );
+        $loaded->attachMemberPhoto(MemberId::fromString(self::PRIMARY_MEMBER_ID), $photo, $this->clock());
+        $this->households()->save($loaded);
+
+        $withPhoto = $this->households()->findById(HouseholdId::fromString(self::HOUSEHOLD_ID));
+        $memberWithPhoto = $this->memberById($withPhoto, self::PRIMARY_MEMBER_ID);
+        self::assertNotNull($memberWithPhoto->photo());
+        self::assertTrue($memberWithPhoto->photo()->equals($photo));
+
+        $withPhoto->removeMemberPhoto(MemberId::fromString(self::PRIMARY_MEMBER_ID), $this->clock());
+        $this->households()->save($withPhoto);
+
+        $withoutPhoto = $this->households()->findById(HouseholdId::fromString(self::HOUSEHOLD_ID));
+        self::assertNull($this->memberById($withoutPhoto, self::PRIMARY_MEMBER_ID)->photo());
+    }
+
+    #[Test]
     #[TestDox('MemberCodeAllocator::next(): codes match ^M\d{6}$ and consecutive calls return distinct values.')]
     public function member_code_allocator_returns_distinct_well_formed_codes(): void
     {
@@ -291,5 +321,16 @@ trait HouseholdsContractCases
     private function address(): Address
     {
         return Address::of('100 Main St', 'Apt 2B', 'Seattle', 'WA', '98101', 'US');
+    }
+
+    private function memberById(Household $household, string $memberId): \App\Households\Domain\HouseholdMember
+    {
+        $needle = MemberId::fromString($memberId);
+        foreach ($household->members() as $member) {
+            if ($member->id()->equals($needle)) {
+                return $member;
+            }
+        }
+        self::fail(sprintf('Member %s not found in household.', $memberId));
     }
 }

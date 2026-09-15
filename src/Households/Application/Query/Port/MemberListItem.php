@@ -26,6 +26,7 @@ final readonly class MemberListItem
         public string $residencyStatus,
         public bool $isPrimary,
         public bool $isActive,
+        public ?string $photoVersion,
     ) {
     }
 }

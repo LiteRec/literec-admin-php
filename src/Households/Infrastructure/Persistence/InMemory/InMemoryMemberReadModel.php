@@ -249,6 +249,7 @@ final class InMemoryMemberReadModel implements MemberReadModel
             $member->residencyStatus()->value,
             $member->isPrimary(),
             $member->isActive(),
+            $member->photo()?->version(),
         );
     }
 
@@ -292,6 +293,7 @@ final class InMemoryMemberReadModel implements MemberReadModel
     private function profile(HouseholdMember $member): MemberProfileDto
     {
         $deactivation = $member->deactivation();
+        $photo = $member->photo();
 
         return new MemberProfileDto(
             $member->id()->value,
@@ -313,6 +315,8 @@ final class InMemoryMemberReadModel implements MemberReadModel
             $member->isActive(),
             $deactivation?->reason,
             $deactivation?->at->format(\DateTimeInterface::ATOM),
+            $photo?->version(),
+            $photo?->format->value,
         );
     }
 

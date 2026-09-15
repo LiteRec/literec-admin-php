@@ -16,9 +16,11 @@ use App\Households\Domain\ValueObject\Gender;
 use App\Households\Domain\ValueObject\Height;
 use App\Households\Domain\ValueObject\HouseholdId;
 use App\Households\Domain\ValueObject\HouseholdName;
+use App\Households\Domain\ValueObject\ImageFormat;
 use App\Households\Domain\ValueObject\MemberCode;
 use App\Households\Domain\ValueObject\MemberId;
 use App\Households\Domain\ValueObject\PersonName;
+use App\Households\Domain\ValueObject\ProfilePhoto;
 use App\Shared\Domain\ValueObject\PhoneNumber;
 use App\Households\Domain\ValueObject\ResidencyStatus;
 use App\Households\Domain\ValueObject\Salutation;
@@ -485,6 +487,44 @@ trait MemberReadModelContractCases
         self::assertSame('MS', $detail->profile->salutationCode);
         self::assertSame(65, $detail->profile->heightInches);
         self::assertSame(140, $detail->profile->weightPounds);
+    }
+
+    #[Test]
+    #[TestDox('memberDetail(): exposes photoVersion + photoMimeType on the profile and photoVersion on roster items.')]
+    public function member_detail_exposes_photo_version(): void
+    {
+        $household = $this->buildHouseholdA();
+        $photo = ProfilePhoto::of(
+            self::A_PRIMARY_ID . '/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.png',
+            ImageFormat::Png,
+            $this->clock()->now(),
+        );
+        $household->attachMemberPhoto(MemberId::fromString(self::A_PRIMARY_ID), $photo, $this->clock());
+        $this->seedHouseholds([$household]);
+
+        $detail = $this->readModel()->memberDetail(
+            HouseholdId::fromString(self::HOUSEHOLD_A),
+            MemberId::fromString(self::A_PRIMARY_ID),
+        );
+
+        self::assertSame($photo->version(), $detail->profile->photoVersion);
+        self::assertSame('image/png', $detail->profile->photoMimeType);
+
+        $primaryRosterItem = null;
+        $secondRosterItem = null;
+        foreach ($detail->householdMembers as $item) {
+            if ($item->memberId === self::A_PRIMARY_ID) {
+                $primaryRosterItem = $item;
+            }
+            if ($item->memberId === self::A_SECOND_ID) {
+                $secondRosterItem = $item;
+            }
+        }
+
+        self::assertNotNull($primaryRosterItem);
+        self::assertSame($photo->version(), $primaryRosterItem->photoVersion);
+        self::assertNotNull($secondRosterItem);
+        self::assertNull($secondRosterItem->photoVersion);
     }
 
     #[Test]
