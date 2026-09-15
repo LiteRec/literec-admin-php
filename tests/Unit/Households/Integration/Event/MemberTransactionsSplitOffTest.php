@@ -54,12 +54,13 @@ final class MemberTransactionsSplitOffTest extends TestCase
     ): void {
         $this->expectException(InvalidArgumentException::class);
 
-        new MemberTransactionsSplitOff(
+        $event = new MemberTransactionsSplitOff(
             householdId: $householdId,
             sourceMemberId: $sourceMemberId,
             newMemberId: $newMemberId,
             transactionIds: $transactionIds,
             occurredAt: new DateTimeImmutable('2026-05-24 12:00:00'),
         );
+        self::fail(sprintf('Expected an exception; got a valid %s instance.', $event::class));
     }
 }
