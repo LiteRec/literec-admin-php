@@ -43,7 +43,7 @@
         </summary>
         <div class="border-t border-litrec-border px-5 py-4" x-data="{ view: 'transactions' }">
             {% include 'households/detail/_card_history_tabs.html.twig' with {
-                householdId: detail.household.householdId,
+                householdId: detail.homeHouseholdId,
                 memberId: detail.profile.memberId,
             } only %}
 
@@ -65,7 +65,7 @@
                                 id="card-history-body"
                                 data-testid="card-history-body"
                                 hx-get="{{ path('member_history_page', {
-                                    householdId: detail.household.householdId,
+                                    householdId: detail.homeHouseholdId,
                                     memberId: detail.profile.memberId,
                                 }) }}"
                                 hx-trigger="toggle once from:closest details"

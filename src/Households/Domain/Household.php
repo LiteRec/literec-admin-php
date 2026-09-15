@@ -586,6 +586,7 @@ final class Household
      * aggregate.
      *
      * @throws MemberNotFound when $memberId does not belong to this household
+     * @throws MemberAlreadyMerged when the member has already been merged into another record
      * @throws InvariantViolation when the member is deactivated
      * @throws CannotShareWithHomeHousehold when $target is this household
      * @throws MemberNotAMinor when the member is not under 18 on the current date

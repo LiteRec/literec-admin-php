@@ -12,6 +12,7 @@ use App\Households\Domain\Exception\HouseholdNotFound;
 use App\Households\Domain\Exception\InvalidHouseholdId;
 use App\Households\Domain\Exception\InvalidMemberId;
 use App\Households\Domain\Exception\InvariantViolation;
+use App\Households\Domain\Exception\MemberAlreadyMerged;
 use App\Households\Domain\Exception\MemberNotAMinor;
 use App\Households\Domain\Exception\MemberNotFound;
 use App\Households\Domain\Households;
@@ -93,6 +94,7 @@ final class HouseholdLinkController extends AbstractController
             MemberNotAMinor
             | HouseholdAlreadyLinked
             | CannotShareWithHomeHousehold
+            | MemberAlreadyMerged
             | InvariantViolation $exception
         ) {
             return $this->errorResponse($exception->getMessage());

@@ -86,7 +86,7 @@
                 class="lr-btn lr-btn-secondary"
                 onclick="window.openMemberLookup({
                     onSelected: function (payload) {
-                        var confirmUrl = '{{ path('member_merge_confirm_form', { householdId: detail.household.householdId, memberId: detail.profile.memberId }) }}';
+                        var confirmUrl = '{{ path('member_merge_confirm_form', { householdId: detail.homeHouseholdId, memberId: detail.profile.memberId }) }}';
                         window.htmx.ajax('GET', confirmUrl + '?duplicateMemberId=' + encodeURIComponent(payload.memberId) + '&duplicateHouseholdId=' + encodeURIComponent(payload.householdId), { target: 'body', swap: 'beforeend' });
                     }
                 })"

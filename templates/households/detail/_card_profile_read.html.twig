@@ -33,7 +33,7 @@
                     class="{{ photoError is not null ? 'mb-2 rounded-card bg-danger-bg p-2 text-sm font-semibold text-danger-fg' : 'sr-only' }}"
                 >{{ photoError ?? '' }}</div>
                 <form
-                    hx-post="{{ path('member_photo_upload', { householdId: detail.household.householdId, memberId: detail.profile.memberId }) }}"
+                    hx-post="{{ path('member_photo_upload', { householdId: detail.homeHouseholdId, memberId: detail.profile.memberId }) }}"
                     hx-target="#card-profile-body"
                     hx-swap="outerHTML"
                     hx-encoding="multipart/form-data"
@@ -55,7 +55,7 @@
                 </form>
                 {% if detail.profile.photoVersion is not null %}
                     <form
-                        hx-post="{{ path('member_photo_remove', { householdId: detail.household.householdId, memberId: detail.profile.memberId }) }}"
+                        hx-post="{{ path('member_photo_remove', { householdId: detail.homeHouseholdId, memberId: detail.profile.memberId }) }}"
                         hx-target="#card-profile-body"
                         hx-swap="outerHTML"
                         hx-confirm="Remove this member's photo?"

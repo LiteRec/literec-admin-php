@@ -58,7 +58,10 @@ final class MemberIdType extends Type
         }
 
         if (is_string($value)) {
-            return $value;
+            // Route the already-converted scalar back through the value
+            // object rather than returning it verbatim, so a malformed
+            // id still fails loudly here instead of reaching Postgres.
+            return MemberId::fromString($value)->value;
         }
 
         throw new \UnexpectedValueException(sprintf(
