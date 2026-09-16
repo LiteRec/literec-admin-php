@@ -191,6 +191,27 @@ fixtures that need to order themselves after another context's
 fixture reference the dependency by FQCN string in
 `getDependencies()`.
 
+### Static architecture checks
+
+`composer stan` also runs [PHPat](https://github.com/carlosas/phpat), a
+PHPStan extension, against four class-design rules registered in
+`phpat.neon`. They ratchet the current class-design baseline — nothing
+in `src/` had to change to add them — so any future violation fails
+CI rather than waiting for code review to catch it:
+
+| Rule class | `tests/Architecture/` file | Enforces |
+|---|---|---|
+| `classesInAppAreFinal` | `EverythingIsFinalRule.php` | Every concrete `App` class is `final` (interfaces, enums, traits, abstract classes, and `App\Kernel` are exempt). |
+| `classesDoNotExtendAConcreteAppClass` | `NoConcreteInheritanceRule.php` | No `App` class extends another concrete (non-abstract, non-interface) `App` class; SPL/framework parents are unaffected. |
+| `controllersDoNotDependOnDoctrine` | `ControllersStayThinRule.php` | Controllers under a context's `Infrastructure\Http` layer never depend on `Doctrine\*` directly. |
+| `handlersHaveOnlyOnePublicMethod` | `HandlersExposeOnePublicMethodRule.php` | Every `*Handler` class exposes exactly one public method, with four documented exceptions. |
+
+To add a rule: create a new class under `tests/Architecture/` with a
+public method tagged `#[PHPat\Test\Attributes\TestRule]` that returns
+`PHPat::rule()->...->because('...')`, then register the class as a
+service tagged `phpat.test` in `phpat.neon`. `show_rule_names: true`
+in that file makes `composer stan` output name the failing rule.
+
 ### Interaction with `dama/doctrine-test-bundle`
 
 `dama/doctrine-test-bundle` wraps every functional test in a database

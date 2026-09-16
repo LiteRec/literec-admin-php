@@ -1,0 +1,21 @@
+parameters:
+    phpat:
+        show_rule_names: true
+
+services:
+    -
+        class: App\Tests\Architecture\EverythingIsFinalRule
+        tags:
+            - phpat.test
+    -
+        class: App\Tests\Architecture\NoConcreteInheritanceRule
+        tags:
+            - phpat.test
+    -
+        class: App\Tests\Architecture\ControllersStayThinRule
+        tags:
+            - phpat.test
+    -
+        class: App\Tests\Architecture\HandlersExposeOnePublicMethodRule
+        tags:
+            - phpat.test
