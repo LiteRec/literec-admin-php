@@ -60,6 +60,7 @@ use PHPUnit\Framework\Attributes\Small;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\TestDox;
 use PHPUnit\Framework\TestCase;
+use ReflectionProperty;
 use Symfony\Component\Clock\MockClock;
 
 #[Small]
@@ -647,6 +648,24 @@ final class HouseholdTest extends TestCase
             $survivorId,
             $this->clock,
         );
+    }
+
+    #[Test]
+    #[TestDox('::lifecycle() throws InvariantViolation when mergedIntoMemberId is set without mergedAt.')]
+    public function lifecycle_throws_when_merged_into_member_id_set_without_merged_at(): void
+    {
+        $household = $this->register();
+        $member = $this->memberById($household, MemberId::fromString(self::PRIMARY_MEMBER_ID));
+
+        // markMergedInto() always writes mergedIntoMemberId and mergedAt
+        // together; force the split state directly to prove lifecycle()
+        // refuses to silently treat it as unmerged.
+        $property = new ReflectionProperty($member, 'mergedIntoMemberId');
+        $property->setValue($member, MemberId::fromString('019571bf-5d51-7000-b500-000000000098'));
+
+        $this->expectException(InvariantViolation::class);
+
+        $member->lifecycle();
     }
 
     /**
