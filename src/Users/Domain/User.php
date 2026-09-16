@@ -16,8 +16,10 @@ use App\Users\Domain\Exception\NoOneTimePasswordToConsume;
 use App\Users\Domain\Exception\OneTimePasswordNotAllowed;
 use App\Users\Domain\Exception\PasswordNotSet;
 use App\Users\Domain\ValueObject\HashedPassword;
+use App\Users\Domain\ValueObject\PasswordCredential;
 use App\Users\Domain\ValueObject\PasswordState;
 use App\Users\Domain\ValueObject\Role;
+use App\Users\Domain\ValueObject\Roles;
 use App\Users\Domain\ValueObject\UserId;
 use App\Users\Domain\ValueObject\Username;
 use DateTimeImmutable;
@@ -41,8 +43,7 @@ final class User
     private HashedPassword $password;
     private PasswordState $passwordState;
     private ?DateTimeImmutable $oneTimePasswordIssuedAt = null;
-    /** @var list<Role> */
-    private array $roles;
+    private Roles $roles;
     private bool $isActive;
     private DateTimeImmutable $createdAt;
 
@@ -66,14 +67,11 @@ final class User
         // constructor exists solely to forbid direct instantiation.
     }
 
-    /**
-     * @param list<Role> $roles
-     */
     public static function register(
         UserId $id,
         Username $username,
         HashedPassword $password,
-        array $roles,
+        Roles $roles,
         ClockInterface $clock,
     ): self {
         $user = new self();
@@ -81,7 +79,7 @@ final class User
         $user->username = $username;
         $user->password = $password;
         $user->passwordState = PasswordState::Established;
-        $user->roles = self::deduplicate($roles);
+        $user->roles = $roles;
         $user->isActive = true;
         $user->createdAt = $clock->now();
         $user->recordThat(new UserRegistered($id, $username, $user->createdAt));
@@ -99,15 +97,16 @@ final class User
         return $this->username;
     }
 
-    public function passwordHash(): HashedPassword
+    /**
+     * Projects the three mapped password scalars into one value object.
+     * See {@see PasswordCredential} for why they stay mapped individually.
+     */
+    public function credential(): PasswordCredential
     {
-        return $this->password;
+        return PasswordCredential::of($this->password, $this->passwordState, $this->oneTimePasswordIssuedAt);
     }
 
-    /**
-     * @return list<Role>
-     */
-    public function roles(): array
+    public function roles(): Roles
     {
         return $this->roles;
     }
@@ -120,21 +119,6 @@ final class User
     public function registeredAt(): DateTimeImmutable
     {
         return $this->createdAt;
-    }
-
-    public function passwordState(): PasswordState
-    {
-        return $this->passwordState;
-    }
-
-    /**
-     * When the currently or most-recently issued one-time password was
-     * issued. Null once the account is back in the Established state
-     * (establishPassword() clears it) or if none has ever been issued.
-     */
-    public function oneTimePasswordIssuedAt(): ?DateTimeImmutable
-    {
-        return $this->oneTimePasswordIssuedAt;
     }
 
     public function version(): int
@@ -213,26 +197,21 @@ final class User
 
     public function grantRole(Role $role, ClockInterface $clock): void
     {
-        if (in_array($role, $this->roles, true)) {
+        if ($this->roles->contains($role)) {
             return;
         }
 
-        $this->roles[] = $role;
+        $this->roles = $this->roles->with($role);
         $this->recordThat(new RoleGranted($this->id, $role, $clock->now()));
     }
 
     public function revokeRole(Role $role, ClockInterface $clock): void
     {
-        $next = array_values(array_filter(
-            $this->roles,
-            static fn(Role $r): bool => $r !== $role,
-        ));
-
-        if (count($next) === count($this->roles)) {
+        if (!$this->roles->contains($role)) {
             return;
         }
 
-        $this->roles = $next;
+        $this->roles = $this->roles->without($role);
         $this->recordThat(new RoleRevoked($this->id, $role, $clock->now()));
     }
 
@@ -266,24 +245,5 @@ final class User
         if ($this->password->value === '') {
             throw PasswordNotSet::throw();
         }
-    }
-
-    /**
-     * @param list<Role> $roles
-     *
-     * @return list<Role>
-     */
-    private static function deduplicate(array $roles): array
-    {
-        $seen = [];
-        $result = [];
-        foreach ($roles as $role) {
-            if (!isset($seen[$role->value])) {
-                $seen[$role->value] = true;
-                $result[] = $role;
-            }
-        }
-
-        return $result;
     }
 }

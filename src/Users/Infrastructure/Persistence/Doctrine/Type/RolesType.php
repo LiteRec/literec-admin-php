@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace App\Users\Infrastructure\Persistence\Doctrine\Type;
 
 use App\Users\Domain\ValueObject\Role;
+use App\Users\Domain\ValueObject\Roles;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Types\JsonType;
 
 /**
- * Stores a list<Role> as a JSON array of enum values (e.g. ["ROLE_ADMIN"])
- * and hydrates the column back into a list<Role>.
+ * Stores a {@see Roles} collection as a JSON array of enum values
+ * (e.g. ["ROLE_ADMIN"]) and hydrates the column back into a Roles instance.
+ * The persisted shape is unchanged by LRA-236: still a JSON array of Role
+ * enum string values, just wrapped for the PHP side.
  */
 final class RolesType extends JsonType
 {
@@ -21,13 +24,10 @@ final class RolesType extends JsonType
         return self::NAME;
     }
 
-    /**
-     * @return list<Role>
-     */
-    public function convertToPHPValue(mixed $value, AbstractPlatform $platform): array
+    public function convertToPHPValue(mixed $value, AbstractPlatform $platform): Roles
     {
         if ($value === null) {
-            return [];
+            return Roles::none();
         }
 
         $decoded = parent::convertToPHPValue($value, $platform);
@@ -47,7 +47,7 @@ final class RolesType extends JsonType
             $roles[] = Role::from($roleValue);
         }
 
-        return $roles;
+        return Roles::of(...$roles);
     }
 
     public function convertToDatabaseValue(mixed $value, AbstractPlatform $platform): ?string
@@ -56,24 +56,13 @@ final class RolesType extends JsonType
             return parent::convertToDatabaseValue(null, $platform);
         }
 
-        if (!is_array($value)) {
+        if (!$value instanceof Roles) {
             throw new \UnexpectedValueException(sprintf(
-                'Expected list<Role> or null, got %s.',
+                'Expected Roles or null, got %s.',
                 get_debug_type($value),
             ));
         }
 
-        $values = [];
-        foreach ($value as $role) {
-            if (!$role instanceof Role) {
-                throw new \UnexpectedValueException(sprintf(
-                    'Roles list entry expected to be Role, got %s.',
-                    get_debug_type($role),
-                ));
-            }
-            $values[] = $role->value;
-        }
-
-        return parent::convertToDatabaseValue($values, $platform);
+        return parent::convertToDatabaseValue($value->toStrings(), $platform);
     }
 }

@@ -19,6 +19,7 @@ use App\Users\Domain\User;
 use App\Users\Domain\ValueObject\HashedPassword;
 use App\Users\Domain\ValueObject\PasswordState;
 use App\Users\Domain\ValueObject\Role;
+use App\Users\Domain\ValueObject\Roles;
 use App\Users\Domain\ValueObject\UserId;
 use App\Users\Domain\ValueObject\Username;
 use DateTimeImmutable;
@@ -53,7 +54,7 @@ final class UserTest extends TestCase
             $id,
             Username::of('alice'),
             HashedPassword::fromHash(self::SAMPLE_HASH),
-            [Role::User],
+            Roles::of(Role::User),
             $this->clock,
         );
 
@@ -91,7 +92,7 @@ final class UserTest extends TestCase
         self::assertInstanceOf(PasswordChanged::class, $events[0]);
         self::assertTrue($events[0]->userId->equals($user->id()));
         self::assertEquals($this->clock->now(), $events[0]->occurredAt);
-        self::assertSame($newHash, $user->passwordHash()->value);
+        self::assertSame($newHash, $user->credential()->hash->value);
     }
 
     #[Test]
@@ -121,7 +122,7 @@ final class UserTest extends TestCase
         self::assertTrue($events[0]->userId->equals($user->id()));
         self::assertSame(Role::Admin, $events[0]->role);
         self::assertEquals($this->clock->now(), $events[0]->occurredAt);
-        self::assertContains(Role::Admin, $user->roles());
+        self::assertTrue($user->roles()->contains(Role::Admin));
     }
 
     #[Test]
@@ -152,7 +153,7 @@ final class UserTest extends TestCase
         self::assertTrue($events[0]->userId->equals($user->id()));
         self::assertSame(Role::Admin, $events[0]->role);
         self::assertEquals($this->clock->now(), $events[0]->occurredAt);
-        self::assertNotContains(Role::Admin, $user->roles());
+        self::assertFalse($user->roles()->contains(Role::Admin));
     }
 
     #[Test]
@@ -165,7 +166,7 @@ final class UserTest extends TestCase
         $user->revokeRole(Role::Admin, $this->clock);
 
         self::assertSame([], $user->releaseEvents());
-        self::assertNotContains(Role::Admin, $user->roles());
+        self::assertFalse($user->roles()->contains(Role::Admin));
     }
 
     #[Test]
@@ -246,19 +247,19 @@ final class UserTest extends TestCase
         self::assertInstanceOf(OneTimePasswordIssued::class, $events[0]);
         self::assertTrue($events[0]->userId->equals($user->id()));
         self::assertEquals($this->clock->now(), $events[0]->occurredAt);
-        self::assertSame($newHash, $user->passwordHash()->value);
-        self::assertSame(PasswordState::OneTimeIssued, $user->passwordState());
+        self::assertSame($newHash, $user->credential()->hash->value);
+        self::assertSame(PasswordState::OneTimeIssued, $user->credential()->state);
     }
 
     #[Test]
-    #[TestDox('::issueOneTimePassword() records the issuance instant, readable via oneTimePasswordIssuedAt().')]
+    #[TestDox('::issueOneTimePassword() records the issuance instant, readable via credential().')]
     public function issue_one_time_password_records_the_issuance_instant(): void
     {
         $user = $this->register();
 
         $user->issueOneTimePassword(HashedPassword::fromHash(self::SAMPLE_HASH), $this->clock);
 
-        self::assertEquals($this->clock->now(), $user->oneTimePasswordIssuedAt());
+        self::assertEquals($this->clock->now(), $user->credential()->oneTimePasswordIssuedAt);
     }
 
     #[Test]
@@ -272,7 +273,7 @@ final class UserTest extends TestCase
         $newHash = '$2y$10$zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz0';
         $user->establishPassword(HashedPassword::fromHash($newHash), $this->clock);
 
-        self::assertNull($user->oneTimePasswordIssuedAt());
+        self::assertNull($user->credential()->oneTimePasswordIssuedAt);
     }
 
     #[Test]
@@ -281,7 +282,7 @@ final class UserTest extends TestCase
     {
         $user = $this->register();
 
-        self::assertNull($user->oneTimePasswordIssuedAt());
+        self::assertNull($user->credential()->oneTimePasswordIssuedAt);
     }
 
     #[Test]
@@ -312,7 +313,7 @@ final class UserTest extends TestCase
         self::assertInstanceOf(OneTimePasswordConsumed::class, $events[0]);
         self::assertTrue($events[0]->userId->equals($user->id()));
         self::assertEquals($this->clock->now(), $events[0]->occurredAt);
-        self::assertSame(PasswordState::OneTimeConsumed, $user->passwordState());
+        self::assertSame(PasswordState::OneTimeConsumed, $user->credential()->state);
     }
 
     #[Test]
@@ -358,8 +359,8 @@ final class UserTest extends TestCase
         self::assertInstanceOf(PasswordChanged::class, $events[0]);
         self::assertTrue($events[0]->userId->equals($user->id()));
         self::assertEquals($this->clock->now(), $events[0]->occurredAt);
-        self::assertSame($newHash, $user->passwordHash()->value);
-        self::assertSame(PasswordState::Established, $user->passwordState());
+        self::assertSame($newHash, $user->credential()->hash->value);
+        self::assertSame(PasswordState::Established, $user->credential()->state);
     }
 
     #[Test]
@@ -373,7 +374,7 @@ final class UserTest extends TestCase
         $newHash = '$2y$10$zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz0';
         $user->changePassword(HashedPassword::fromHash($newHash), $this->clock);
 
-        self::assertSame(PasswordState::OneTimeIssued, $user->passwordState());
+        self::assertSame(PasswordState::OneTimeIssued, $user->credential()->state);
     }
 
     #[Test]
@@ -382,7 +383,7 @@ final class UserTest extends TestCase
     {
         $user = $this->register();
 
-        self::assertSame(PasswordState::Established, $user->passwordState());
+        self::assertSame(PasswordState::Established, $user->credential()->state);
     }
 
     #[Test]
@@ -407,7 +408,7 @@ final class UserTest extends TestCase
             $this->ids->nextUserId(),
             Username::of('alice'),
             HashedPassword::fromHash(self::SAMPLE_HASH),
-            [Role::User],
+            Roles::of(Role::User),
             $this->clock,
         );
     }

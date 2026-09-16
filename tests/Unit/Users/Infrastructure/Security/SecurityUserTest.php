@@ -8,6 +8,7 @@ use App\Users\Domain\User;
 use App\Users\Domain\ValueObject\HashedPassword;
 use App\Users\Domain\ValueObject\PasswordState;
 use App\Users\Domain\ValueObject\Role;
+use App\Users\Domain\ValueObject\Roles;
 use App\Users\Domain\ValueObject\UserId;
 use App\Users\Domain\ValueObject\Username;
 use App\Users\Infrastructure\Security\SecurityUser;
@@ -32,7 +33,7 @@ final class SecurityUserTest extends TestCase
             UserId::fromString('019571bf-5d51-7000-b500-000000000001'),
             Username::of('alice'),
             HashedPassword::fromHash(self::SAMPLE_HASH),
-            [Role::User],
+            Roles::of(Role::User),
             $clock,
         );
         $user->issueOneTimePassword(HashedPassword::fromHash(self::SAMPLE_HASH), $clock);
@@ -51,7 +52,7 @@ final class SecurityUserTest extends TestCase
             UserId::fromString('019571bf-5d51-7000-b500-000000000001'),
             Username::of('alice'),
             HashedPassword::fromHash(self::SAMPLE_HASH),
-            [Role::User],
+            Roles::of(Role::User),
             $clock,
         );
         $user->issueOneTimePassword(HashedPassword::fromHash(self::SAMPLE_HASH), $clock);

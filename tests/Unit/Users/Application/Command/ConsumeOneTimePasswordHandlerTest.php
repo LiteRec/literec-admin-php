@@ -14,6 +14,7 @@ use App\Users\Domain\User;
 use App\Users\Domain\ValueObject\HashedPassword;
 use App\Users\Domain\ValueObject\PasswordState;
 use App\Users\Domain\ValueObject\Role;
+use App\Users\Domain\ValueObject\Roles;
 use App\Users\Domain\ValueObject\UserId;
 use App\Users\Domain\ValueObject\Username;
 use App\Users\Infrastructure\Persistence\InMemory\InMemoryUsers;
@@ -55,7 +56,7 @@ final class ConsumeOneTimePasswordHandlerTest extends TestCase
         ($this->handler)(new ConsumeOneTimePassword(self::USER_ID));
 
         $user = $this->users->byId(UserId::fromString(self::USER_ID));
-        self::assertSame(PasswordState::OneTimeConsumed, $user->passwordState());
+        self::assertSame(PasswordState::OneTimeConsumed, $user->credential()->state);
 
         $messages = $this->eventBus->dispatchedMessages();
         self::assertCount(1, $messages);
@@ -96,7 +97,7 @@ final class ConsumeOneTimePasswordHandlerTest extends TestCase
             UserId::fromString(self::USER_ID),
             Username::of('alice'),
             HashedPassword::fromHash(self::SAMPLE_HASH),
-            [Role::User],
+            Roles::of(Role::User),
             $this->clock,
         );
         $user->releaseEvents();

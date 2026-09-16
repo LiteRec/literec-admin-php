@@ -50,7 +50,7 @@ final class UsersFixturesTest extends KernelTestCase
             $users = $container->get(Users::class);
 
             $admin = $users->byUsername(Username::of(UsersFixtures::ADMIN_USERNAME));
-            self::assertContains(Role::Admin, $admin->roles(), 'Admin persona must carry ROLE_ADMIN.');
+            self::assertTrue($admin->roles()->contains(Role::Admin), 'Admin persona must carry ROLE_ADMIN.');
 
             foreach (UsersFixtures::CURATED_MEMBER_USERNAMES as $username) {
                 self::assertTrue(
