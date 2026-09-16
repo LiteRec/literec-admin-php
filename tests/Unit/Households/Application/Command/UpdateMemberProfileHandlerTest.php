@@ -16,7 +16,9 @@ use App\Households\Domain\ValueObject\Gender;
 use App\Households\Domain\ValueObject\HouseholdId;
 use App\Households\Domain\ValueObject\HouseholdName;
 use App\Households\Domain\ValueObject\MemberCode;
+use App\Households\Domain\ValueObject\MemberContact;
 use App\Households\Domain\ValueObject\MemberId;
+use App\Households\Domain\ValueObject\MemberProfile;
 use App\Households\Domain\ValueObject\PersonName;
 use App\Households\Domain\ValueObject\ResidencyStatus;
 use App\Households\Domain\ValueObject\Salutation;
@@ -78,11 +80,11 @@ final class UpdateMemberProfileHandlerTest extends TestCase
         ($this->handler)($command);
 
         $stored = $this->households->findById(HouseholdId::fromString(self::HOUSEHOLD_ID));
-        $member = $this->memberById($stored, self::PRIMARY_ID);
-        self::assertSame('Alicia', $member->name()->firstName);
-        self::assertSame('Smith-Jones', $member->name()->lastName);
-        self::assertSame('Renee', $member->name()->middleName);
-        self::assertSame('1990-02-02', $member->dateOfBirth()->value()->format('Y-m-d'));
+        $profile = $this->memberById($stored, self::PRIMARY_ID)->profile();
+        self::assertSame('Alicia', $profile->name->firstName);
+        self::assertSame('Smith-Jones', $profile->name->lastName);
+        self::assertSame('Renee', $profile->name->middleName);
+        self::assertSame('1990-02-02', $profile->dateOfBirth->value()->format('Y-m-d'));
 
         $messages = $this->eventBus->dispatchedMessages();
         self::assertCount(1, $messages);
@@ -111,11 +113,11 @@ final class UpdateMemberProfileHandlerTest extends TestCase
         ($this->handler)($command);
 
         $stored = $this->households->findById(HouseholdId::fromString(self::HOUSEHOLD_ID));
-        $member = $this->memberById($stored, self::PRIMARY_ID);
-        self::assertSame('Al', $member->name()->nickname);
-        self::assertSame(Salutation::Ms, $member->salutation());
-        self::assertSame(65, $member->height()?->inches);
-        self::assertSame(140, $member->weight()?->pounds);
+        $profile = $this->memberById($stored, self::PRIMARY_ID)->profile();
+        self::assertSame('Al', $profile->name->nickname);
+        self::assertSame(Salutation::Ms, $profile->salutation);
+        self::assertSame(65, $profile->height?->inches);
+        self::assertSame(140, $profile->weight?->pounds);
     }
 
     #[Test]
@@ -149,11 +151,11 @@ final class UpdateMemberProfileHandlerTest extends TestCase
         ));
 
         $stored = $this->households->findById(HouseholdId::fromString(self::HOUSEHOLD_ID));
-        $member = $this->memberById($stored, self::PRIMARY_ID);
-        self::assertNull($member->name()->nickname);
-        self::assertNull($member->salutation());
-        self::assertNull($member->height());
-        self::assertNull($member->weight());
+        $profile = $this->memberById($stored, self::PRIMARY_ID)->profile();
+        self::assertNull($profile->name->nickname);
+        self::assertNull($profile->salutation);
+        self::assertNull($profile->height);
+        self::assertNull($profile->weight);
     }
 
     #[Test]
@@ -215,11 +217,12 @@ final class UpdateMemberProfileHandlerTest extends TestCase
             Address::of('100 Main St', null, 'Seattle', 'WA', '98101', 'US'),
             MemberId::fromString(self::PRIMARY_ID),
             MemberCode::of(self::PRIMARY_CODE),
-            PersonName::of('Alice', 'Smith'),
-            DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
-            Gender::Female,
-            EmailAddress::of('alice@example.com'),
-            null,
+            MemberProfile::of(
+                PersonName::of('Alice', 'Smith'),
+                DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
+                Gender::Female,
+            ),
+            MemberContact::of(EmailAddress::of('alice@example.com'), null),
             ResidencyStatus::Resident,
             $this->clock,
         );

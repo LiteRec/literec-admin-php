@@ -10,6 +10,7 @@ use App\Households\Domain\ValueObject\Gender;
 use App\Households\Domain\ValueObject\Height;
 use App\Households\Domain\ValueObject\HouseholdId;
 use App\Households\Domain\ValueObject\MemberId;
+use App\Households\Domain\ValueObject\MemberProfile;
 use App\Households\Domain\ValueObject\PersonName;
 use App\Households\Domain\ValueObject\Salutation;
 use App\Households\Domain\ValueObject\Weight;
@@ -46,7 +47,8 @@ final class UpdateMemberProfileHandler
         $height = $command->heightInches !== null ? Height::ofInches($command->heightInches) : null;
         $weight = $command->weightPounds !== null ? Weight::ofPounds($command->weightPounds) : null;
 
-        $household->updateMemberProfile($memberId, $name, $dob, $gender, $this->clock, $salutation, $height, $weight);
+        $profile = MemberProfile::of($name, $dob, $gender, $salutation, $height, $weight);
+        $household->updateMemberProfile($memberId, $profile, $this->clock);
         $this->households->save($household);
 
         foreach ($household->releaseEvents() as $event) {

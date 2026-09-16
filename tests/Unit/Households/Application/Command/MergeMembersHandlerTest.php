@@ -20,7 +20,9 @@ use App\Households\Domain\ValueObject\Gender;
 use App\Households\Domain\ValueObject\HouseholdId;
 use App\Households\Domain\ValueObject\HouseholdName;
 use App\Households\Domain\ValueObject\MemberCode;
+use App\Households\Domain\ValueObject\MemberContact;
 use App\Households\Domain\ValueObject\MemberId;
+use App\Households\Domain\ValueObject\MemberProfile;
 use App\Households\Domain\ValueObject\PersonName;
 use App\Households\Domain\ValueObject\ResidencyStatus;
 use App\Households\Infrastructure\Persistence\InMemory\InMemoryHouseholds;
@@ -82,7 +84,7 @@ final class MergeMembersHandlerTest extends TestCase
 
         $reloadedDuplicate = $this->households->findById(HouseholdId::fromString(self::DUPLICATE_HOUSEHOLD_ID));
         $duplicateMember = $this->memberById($reloadedDuplicate, self::DUPLICATE_ID);
-        self::assertTrue($duplicateMember->isMerged());
+        self::assertTrue($duplicateMember->lifecycle()->isMerged());
         unset($duplicateHousehold);
     }
 
@@ -94,11 +96,12 @@ final class MergeMembersHandlerTest extends TestCase
         $household->addMember(
             MemberId::fromString(self::DUPLICATE_ID),
             MemberCode::of('M000E02'),
-            PersonName::of('Dana', 'Duplicate'),
-            DateOfBirth::of(new DateTimeImmutable('1991-02-02'), $this->clock),
-            Gender::Female,
-            null,
-            null,
+            MemberProfile::of(
+                PersonName::of('Dana', 'Duplicate'),
+                DateOfBirth::of(new DateTimeImmutable('1991-02-02'), $this->clock),
+                Gender::Female,
+            ),
+            MemberContact::none(),
             ResidencyStatus::Resident,
             false,
             $this->clock,
@@ -114,7 +117,7 @@ final class MergeMembersHandlerTest extends TestCase
 
         $reloaded = $this->households->findById(HouseholdId::fromString(self::SURVIVOR_HOUSEHOLD_ID));
         $duplicateMember = $this->memberById($reloaded, self::DUPLICATE_ID);
-        self::assertTrue($duplicateMember->isMerged());
+        self::assertTrue($duplicateMember->lifecycle()->isMerged());
     }
 
     #[Test]
@@ -186,11 +189,12 @@ final class MergeMembersHandlerTest extends TestCase
             Address::of('300 Pine St', null, 'Tacoma', 'WA', '98402', 'US'),
             $interloperId,
             MemberCode::of('M000E05'),
-            PersonName::of('Ian', 'Interloper'),
-            DateOfBirth::of(new DateTimeImmutable('1993-03-03'), $this->clock),
-            Gender::Male,
-            null,
-            null,
+            MemberProfile::of(
+                PersonName::of('Ian', 'Interloper'),
+                DateOfBirth::of(new DateTimeImmutable('1993-03-03'), $this->clock),
+                Gender::Male,
+            ),
+            MemberContact::none(),
             ResidencyStatus::Resident,
             $this->clock,
         );
@@ -224,11 +228,12 @@ final class MergeMembersHandlerTest extends TestCase
             Address::of('100 Main St', null, 'Seattle', 'WA', '98101', 'US'),
             MemberId::fromString(self::SURVIVOR_ID),
             MemberCode::of('M000E01'),
-            PersonName::of('Sam', 'Survivor'),
-            DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
-            Gender::Male,
-            null,
-            null,
+            MemberProfile::of(
+                PersonName::of('Sam', 'Survivor'),
+                DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
+                Gender::Male,
+            ),
+            MemberContact::none(),
             ResidencyStatus::Resident,
             $this->clock,
         );
@@ -246,11 +251,12 @@ final class MergeMembersHandlerTest extends TestCase
             Address::of('200 Oak Ave', null, 'Portland', 'OR', '97201', 'US'),
             MemberId::fromString(self::DUPLICATE_ID),
             MemberCode::of('M000E03'),
-            PersonName::of('Dana', 'Duplicate'),
-            DateOfBirth::of(new DateTimeImmutable('1991-02-02'), $this->clock),
-            Gender::Female,
-            EmailAddress::of('dana@example.com'),
-            PhoneNumber::of('5559998'),
+            MemberProfile::of(
+                PersonName::of('Dana', 'Duplicate'),
+                DateOfBirth::of(new DateTimeImmutable('1991-02-02'), $this->clock),
+                Gender::Female,
+            ),
+            MemberContact::of(EmailAddress::of('dana@example.com'), PhoneNumber::of('5559998')),
             ResidencyStatus::Resident,
             $this->clock,
         );

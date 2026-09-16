@@ -12,7 +12,9 @@ use App\Households\Domain\ValueObject\Gender;
 use App\Households\Domain\ValueObject\HouseholdId;
 use App\Households\Domain\ValueObject\HouseholdName;
 use App\Households\Domain\ValueObject\MemberCode;
+use App\Households\Domain\ValueObject\MemberContact;
 use App\Households\Domain\ValueObject\MemberId;
+use App\Households\Domain\ValueObject\MemberProfile;
 use App\Households\Domain\ValueObject\PersonName;
 use App\Households\Domain\ValueObject\ResidencyStatus;
 use App\Shared\Domain\ValueObject\EmailAddress;
@@ -118,8 +120,8 @@ final class MergeMembersControllerTest extends WebTestCase
         self::assertInstanceOf(Households::class, $repo);
         $survivorHousehold = $repo->findById(HouseholdId::fromString(self::SURVIVOR_HOUSEHOLD_ID));
         $survivor = $survivorHousehold->members()[0];
-        self::assertNotNull($survivor->phone());
-        self::assertSame('5559999', $survivor->phone()->value);
+        self::assertNotNull($survivor->contact()->phone);
+        self::assertSame('5559999', $survivor->contact()->phone->value);
 
         // Duplicate's detail page shows the merged banner and is read-only.
         $client->request('GET', sprintf(
@@ -211,11 +213,12 @@ final class MergeMembersControllerTest extends WebTestCase
             Address::of('100 Main St', 'Apt 2B', 'Seattle', 'WA', '98101', 'US'),
             MemberId::fromString(self::DUPLICATE_MEMBER_ID),
             MemberCode::of(self::DUPLICATE_MEMBER_CODE),
-            PersonName::of('Alice', 'Smith'),
-            DateOfBirth::of(new DateTimeImmutable(self::DOB), $this->clock),
-            Gender::Female,
-            EmailAddress::of('alice.dup@example.com'),
-            $phone,
+            MemberProfile::of(
+                PersonName::of('Alice', 'Smith'),
+                DateOfBirth::of(new DateTimeImmutable(self::DOB), $this->clock),
+                Gender::Female,
+            ),
+            MemberContact::of(EmailAddress::of('alice.dup@example.com'), $phone),
             ResidencyStatus::Resident,
             $this->clock,
         );

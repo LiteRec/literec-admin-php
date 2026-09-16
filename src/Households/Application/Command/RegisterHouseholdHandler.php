@@ -14,6 +14,8 @@ use App\Households\Domain\ValueObject\Gender;
 use App\Households\Domain\ValueObject\HouseholdId;
 use App\Households\Domain\ValueObject\HouseholdName;
 use App\Households\Domain\ValueObject\MemberCode;
+use App\Households\Domain\ValueObject\MemberContact;
+use App\Households\Domain\ValueObject\MemberProfile;
 use App\Households\Domain\ValueObject\PersonName;
 use App\Households\Domain\ValueObject\ResidencyStatus;
 use App\Shared\Domain\ValueObject\EmailAddress;
@@ -72,11 +74,8 @@ final class RegisterHouseholdHandler
             $address,
             $memberId,
             $code,
-            $personName,
-            $dob,
-            $gender,
-            $email,
-            $phone,
+            MemberProfile::of($personName, $dob, $gender),
+            MemberContact::of($email, $phone),
             $residency,
             $this->clock,
         );

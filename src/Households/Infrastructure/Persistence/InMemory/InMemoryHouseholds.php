@@ -79,7 +79,7 @@ final class InMemoryHouseholds implements Households
                 continue;
             }
 
-            if ($member->isMerged()) {
+            if ($member->lifecycle()->isMerged()) {
                 throw MemberAlreadyMerged::for($memberId);
             }
 

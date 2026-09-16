@@ -76,7 +76,7 @@ final class ReactivateMemberHandlerTest extends TestCase
 
         $stored = $this->households->findById(HouseholdId::fromString(self::HOUSEHOLD_ID));
         $member = $this->memberById($stored, self::PRIMARY_ID);
-        self::assertTrue($member->isActive());
+        self::assertTrue($member->lifecycle()->isActive);
 
         $messages = $this->eventBus->dispatchedMessages();
         self::assertCount(1, $messages);

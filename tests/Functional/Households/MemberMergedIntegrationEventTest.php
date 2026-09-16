@@ -13,7 +13,9 @@ use App\Households\Domain\ValueObject\Gender;
 use App\Households\Domain\ValueObject\HouseholdId;
 use App\Households\Domain\ValueObject\HouseholdName;
 use App\Households\Domain\ValueObject\MemberCode;
+use App\Households\Domain\ValueObject\MemberContact;
 use App\Households\Domain\ValueObject\MemberId;
+use App\Households\Domain\ValueObject\MemberProfile;
 use App\Households\Domain\ValueObject\PersonName;
 use App\Households\Domain\ValueObject\ResidencyStatus;
 use App\Households\Integration\Event\MemberMerged;
@@ -96,11 +98,12 @@ final class MemberMergedIntegrationEventTest extends KernelTestCase
             Address::of('1 Test St', null, 'Seattle', 'WA', '98101', 'US'),
             MemberId::fromString(self::SURVIVOR_MEMBER_ID),
             MemberCode::of('M000810'),
-            PersonName::of('Sam', 'Survivor'),
-            DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $clock),
-            Gender::Male,
-            null,
-            null,
+            MemberProfile::of(
+                PersonName::of('Sam', 'Survivor'),
+                DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $clock),
+                Gender::Male,
+            ),
+            MemberContact::of(null, null),
             ResidencyStatus::Resident,
             $clock,
         );
@@ -112,11 +115,12 @@ final class MemberMergedIntegrationEventTest extends KernelTestCase
             Address::of('2 Test St', null, 'Seattle', 'WA', '98101', 'US'),
             MemberId::fromString(self::DUPLICATE_MEMBER_ID),
             MemberCode::of('M000811'),
-            PersonName::of('Dana', 'Duplicate'),
-            DateOfBirth::of(new DateTimeImmutable('1991-02-02'), $clock),
-            Gender::Female,
-            null,
-            null,
+            MemberProfile::of(
+                PersonName::of('Dana', 'Duplicate'),
+                DateOfBirth::of(new DateTimeImmutable('1991-02-02'), $clock),
+                Gender::Female,
+            ),
+            MemberContact::of(null, null),
             ResidencyStatus::Resident,
             $clock,
         );

@@ -11,7 +11,9 @@ use App\Households\Domain\ValueObject\DateOfBirth;
 use App\Households\Domain\ValueObject\Gender;
 use App\Households\Domain\ValueObject\HouseholdId;
 use App\Households\Domain\ValueObject\MemberCode;
+use App\Households\Domain\ValueObject\MemberContact;
 use App\Households\Domain\ValueObject\MemberId;
+use App\Households\Domain\ValueObject\MemberProfile;
 use App\Households\Domain\ValueObject\PersonName;
 use App\Households\Domain\ValueObject\ResidencyStatus;
 use App\Shared\Domain\ValueObject\EmailAddress;
@@ -58,11 +60,8 @@ final class AddMemberToHouseholdHandler
         $household->addMember(
             $memberId,
             $code,
-            $personName,
-            $dob,
-            $gender,
-            $email,
-            $phone,
+            MemberProfile::of($personName, $dob, $gender),
+            MemberContact::of($email, $phone),
             $residency,
             $command->isPrimary,
             $this->clock,

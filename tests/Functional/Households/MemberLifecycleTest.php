@@ -116,9 +116,9 @@ final class MemberLifecycleTest extends WebTestCase
         $repo = static::getContainer()->get(Households::class);
         self::assertInstanceOf(Households::class, $repo);
         $household = $repo->findById(HouseholdId::fromString(self::HOUSEHOLD_ID));
-        $member = $this->memberById($household, self::PRIMARY_ID);
-        self::assertFalse($member->isActive());
-        self::assertSame(self::DEACTIVATION_REASON, $member->deactivation()?->reason);
+        $lifecycle = $this->memberById($household, self::PRIMARY_ID)->lifecycle();
+        self::assertFalse($lifecycle->isActive);
+        self::assertSame(self::DEACTIVATION_REASON, $lifecycle->deactivation?->reason);
     }
 
     #[Test]
@@ -148,7 +148,7 @@ final class MemberLifecycleTest extends WebTestCase
         $repo = static::getContainer()->get(Households::class);
         self::assertInstanceOf(Households::class, $repo);
         $household = $repo->findById(HouseholdId::fromString(self::HOUSEHOLD_ID));
-        self::assertTrue($this->memberById($household, self::PRIMARY_ID)->isActive());
+        self::assertTrue($this->memberById($household, self::PRIMARY_ID)->lifecycle()->isActive);
     }
 
     #[Test]
@@ -238,7 +238,7 @@ final class MemberLifecycleTest extends WebTestCase
         $repo = static::getContainer()->get(Households::class);
         self::assertInstanceOf(Households::class, $repo);
         $household = $repo->findById(HouseholdId::fromString(self::HOUSEHOLD_ID));
-        self::assertTrue($this->memberById($household, self::PRIMARY_ID)->isActive());
+        self::assertTrue($this->memberById($household, self::PRIMARY_ID)->lifecycle()->isActive);
     }
 
     #[Test]
@@ -286,8 +286,8 @@ final class MemberLifecycleTest extends WebTestCase
         self::assertInstanceOf(Households::class, $repo);
         $household = $repo->findById(HouseholdId::fromString(self::HOUSEHOLD_ID));
         $member = $this->memberById($household, self::PRIMARY_ID);
-        self::assertTrue($member->isActive());
-        self::assertTrue($member->isMerged());
+        self::assertTrue($member->lifecycle()->isActive);
+        self::assertTrue($member->lifecycle()->isMerged());
     }
 
     #[Test]
@@ -320,8 +320,8 @@ final class MemberLifecycleTest extends WebTestCase
         self::assertInstanceOf(Households::class, $repo);
         $household = $repo->findById(HouseholdId::fromString(self::HOUSEHOLD_ID));
         $member = $this->memberById($household, self::PRIMARY_ID);
-        self::assertTrue($member->isActive());
-        self::assertTrue($member->isMerged());
+        self::assertTrue($member->lifecycle()->isActive);
+        self::assertTrue($member->lifecycle()->isMerged());
     }
 
     private function csrfTokenFromDeactivateForm(KernelBrowser $client): string

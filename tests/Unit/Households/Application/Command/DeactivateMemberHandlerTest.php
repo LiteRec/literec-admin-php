@@ -75,9 +75,9 @@ final class DeactivateMemberHandlerTest extends TestCase
         ));
 
         $stored = $this->households->findById(HouseholdId::fromString(self::HOUSEHOLD_ID));
-        $member = $this->memberById($stored, self::PRIMARY_ID);
-        self::assertFalse($member->isActive());
-        self::assertSame(self::DEACTIVATION_REASON, $member->deactivation()?->reason);
+        $lifecycle = $this->memberById($stored, self::PRIMARY_ID)->lifecycle();
+        self::assertFalse($lifecycle->isActive);
+        self::assertSame(self::DEACTIVATION_REASON, $lifecycle->deactivation?->reason);
 
         $messages = $this->eventBus->dispatchedMessages();
         self::assertCount(1, $messages);

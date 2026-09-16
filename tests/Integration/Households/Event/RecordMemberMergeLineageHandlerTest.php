@@ -13,7 +13,9 @@ use App\Households\Domain\ValueObject\Gender;
 use App\Households\Domain\ValueObject\HouseholdId;
 use App\Households\Domain\ValueObject\HouseholdName;
 use App\Households\Domain\ValueObject\MemberCode;
+use App\Households\Domain\ValueObject\MemberContact;
 use App\Households\Domain\ValueObject\MemberId;
+use App\Households\Domain\ValueObject\MemberProfile;
 use App\Households\Domain\ValueObject\ResidencyStatus;
 use App\Households\Domain\ValueObject\PersonName;
 use App\Households\Infrastructure\Persistence\Doctrine\Event\RecordMemberMergeLineageHandler;
@@ -118,11 +120,12 @@ final class RecordMemberMergeLineageHandlerTest extends KernelTestCase
             Address::of('1 Test St', null, 'Seattle', 'WA', '98101', 'US'),
             MemberId::fromString(self::DUPLICATE_MEMBER_ID),
             MemberCode::of(self::DUPLICATE_MEMBER_CODE),
-            PersonName::of('Dup', 'Test'),
-            DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
-            Gender::Unspecified,
-            EmailAddress::of('dup@example.com'),
-            null,
+            MemberProfile::of(
+                PersonName::of('Dup', 'Test'),
+                DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
+                Gender::Unspecified,
+            ),
+            MemberContact::of(EmailAddress::of('dup@example.com'), null),
             ResidencyStatus::Resident,
             $this->clock,
         );
@@ -134,11 +137,12 @@ final class RecordMemberMergeLineageHandlerTest extends KernelTestCase
             Address::of('2 Test St', null, 'Seattle', 'WA', '98101', 'US'),
             MemberId::fromString(self::SURVIVOR_MEMBER_ID),
             MemberCode::of(self::SURVIVOR_MEMBER_CODE),
-            PersonName::of('Surv', 'Test'),
-            DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
-            Gender::Unspecified,
-            null,
-            null,
+            MemberProfile::of(
+                PersonName::of('Surv', 'Test'),
+                DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
+                Gender::Unspecified,
+            ),
+            MemberContact::of(null, null),
             ResidencyStatus::Resident,
             $this->clock,
         );

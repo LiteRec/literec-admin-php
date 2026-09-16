@@ -13,7 +13,9 @@ use App\Households\Domain\ValueObject\Gender;
 use App\Households\Domain\ValueObject\HouseholdId;
 use App\Households\Domain\ValueObject\HouseholdName;
 use App\Households\Domain\ValueObject\MemberCode;
+use App\Households\Domain\ValueObject\MemberContact;
 use App\Households\Domain\ValueObject\MemberId;
+use App\Households\Domain\ValueObject\MemberProfile;
 use App\Households\Domain\ValueObject\PersonName;
 use App\Households\Domain\ValueObject\ResidencyStatus;
 use App\Shared\Domain\ValueObject\EmailAddress;
@@ -131,8 +133,8 @@ final class MemberContactCardTest extends WebTestCase
         self::assertSame('contactSaved', $client->getResponse()->headers->get('HX-Trigger'));
 
         $member = $this->firstMember(self::HOUSEHOLD_A);
-        self::assertSame(self::NEW_EMAIL, (string) $member->email());
-        self::assertSame(self::NEW_PHONE, (string) $member->phone());
+        self::assertSame(self::NEW_EMAIL, (string) $member->contact()->email);
+        self::assertSame(self::NEW_PHONE, (string) $member->contact()->phone);
     }
 
     #[Test]
@@ -153,8 +155,8 @@ final class MemberContactCardTest extends WebTestCase
         self::assertSelectorTextContains(self::SELECTOR_PROFILE_PHONE, '—');
 
         $member = $this->firstMember(self::HOUSEHOLD_A);
-        self::assertNull($member->email());
-        self::assertNull($member->phone());
+        self::assertNull($member->contact()->email);
+        self::assertNull($member->contact()->phone);
     }
 
     #[Test]
@@ -180,7 +182,7 @@ final class MemberContactCardTest extends WebTestCase
         self::assertStringContainsString('valid email address', $body);
 
         $member = $this->firstMember(self::HOUSEHOLD_A);
-        self::assertSame(self::SEEDED_EMAIL, (string) $member->email());
+        self::assertSame(self::SEEDED_EMAIL, (string) $member->contact()->email);
     }
 
     #[Test]
@@ -205,7 +207,7 @@ final class MemberContactCardTest extends WebTestCase
         self::assertStringContainsString('digits and a leading', $body);
 
         $member = $this->firstMember(self::HOUSEHOLD_A);
-        self::assertNull($member->phone());
+        self::assertNull($member->contact()->phone);
     }
 
     #[Test]
@@ -235,7 +237,7 @@ final class MemberContactCardTest extends WebTestCase
         );
 
         $member = $this->firstMember(self::HOUSEHOLD_A);
-        self::assertSame(self::SEEDED_EMAIL, (string) $member->email());
+        self::assertSame(self::SEEDED_EMAIL, (string) $member->contact()->email);
     }
 
     #[Test]
@@ -338,11 +340,8 @@ final class MemberContactCardTest extends WebTestCase
             $address,
             MemberId::fromString(self::A_PRIMARY_ID),
             MemberCode::of(self::A_PRIMARY_CODE),
-            $primaryMemberName,
-            $primaryMemberDob,
-            Gender::Female,
-            EmailAddress::of(self::SEEDED_EMAIL),
-            null,
+            MemberProfile::of($primaryMemberName, $primaryMemberDob, Gender::Female),
+            MemberContact::of(EmailAddress::of(self::SEEDED_EMAIL), null),
             ResidencyStatus::Resident,
             $this->clock,
         );

@@ -129,8 +129,8 @@ final class SplitMemberControllerTest extends WebTestCase
             }
         }
         self::assertNotNull($source);
-        self::assertSame('Alice', $source->name()->firstName);
-        self::assertTrue($source->isActive());
+        self::assertSame('Alice', $source->profile()->name->firstName);
+        self::assertTrue($source->lifecycle()->isActive);
     }
 
     #[Test]

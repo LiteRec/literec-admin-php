@@ -26,7 +26,6 @@ use App\Households\Domain\Exception\CannotShareWithHomeHousehold;
 use App\Households\Domain\Exception\DuplicateMemberCode;
 use App\Households\Domain\Exception\DuplicateMemberId;
 use App\Households\Domain\Exception\HouseholdAlreadyLinked;
-use App\Households\Domain\Exception\HouseholdMemberAlreadyAttached;
 use App\Households\Domain\Exception\InvariantViolation;
 use App\Households\Domain\Exception\MemberAlreadyMerged;
 use App\Households\Domain\Exception\MemberIsAnonymized;
@@ -44,7 +43,9 @@ use App\Households\Domain\ValueObject\HouseholdId;
 use App\Households\Domain\ValueObject\HouseholdName;
 use App\Households\Domain\ValueObject\ImageFormat;
 use App\Households\Domain\ValueObject\MemberCode;
+use App\Households\Domain\ValueObject\MemberContact;
 use App\Households\Domain\ValueObject\MemberId;
+use App\Households\Domain\ValueObject\MemberProfile;
 use App\Households\Domain\ValueObject\PersonName;
 use App\Households\Domain\ValueObject\ProfilePhoto;
 use App\Shared\Domain\ValueObject\PhoneNumber;
@@ -108,11 +109,12 @@ final class HouseholdTest extends TestCase
         $household->addMember(
             MemberId::fromString(self::SECOND_MEMBER_ID),
             MemberCode::of('M0002'),
-            PersonName::of('Bob', 'Smith'),
-            DateOfBirth::of(new DateTimeImmutable('1992-03-04'), $this->clock),
-            Gender::Male,
-            EmailAddress::of('bob@example.com'),
-            PhoneNumber::of('5550002'),
+            MemberProfile::of(
+                PersonName::of('Bob', 'Smith'),
+                DateOfBirth::of(new DateTimeImmutable('1992-03-04'), $this->clock),
+                Gender::Male,
+            ),
+            MemberContact::of(EmailAddress::of('bob@example.com'), PhoneNumber::of('5550002')),
             ResidencyStatus::Resident,
             false,
             $this->clock,
@@ -136,11 +138,12 @@ final class HouseholdTest extends TestCase
         $household->addMember(
             MemberId::fromString(self::SECOND_MEMBER_ID),
             MemberCode::of('M0001'),
-            PersonName::of('Bob', 'Smith'),
-            DateOfBirth::of(new DateTimeImmutable('1992-03-04'), $this->clock),
-            Gender::Male,
-            null,
-            null,
+            MemberProfile::of(
+                PersonName::of('Bob', 'Smith'),
+                DateOfBirth::of(new DateTimeImmutable('1992-03-04'), $this->clock),
+                Gender::Male,
+            ),
+            MemberContact::none(),
             ResidencyStatus::Resident,
             false,
             $this->clock,
@@ -158,27 +161,16 @@ final class HouseholdTest extends TestCase
         $household->addMember(
             MemberId::fromString(self::PRIMARY_MEMBER_ID),
             MemberCode::of('M0002'),
-            PersonName::of('Bob', 'Smith'),
-            DateOfBirth::of(new DateTimeImmutable('1992-03-04'), $this->clock),
-            Gender::Male,
-            null,
-            null,
+            MemberProfile::of(
+                PersonName::of('Bob', 'Smith'),
+                DateOfBirth::of(new DateTimeImmutable('1992-03-04'), $this->clock),
+                Gender::Male,
+            ),
+            MemberContact::none(),
             ResidencyStatus::Resident,
             false,
             $this->clock,
         );
-    }
-
-    #[Test]
-    #[TestDox('HouseholdMember::attachToHousehold() throws HouseholdMemberAlreadyAttached for a second Household.')]
-    public function it_rejects_attaching_a_member_to_a_second_household(): void
-    {
-        $household = $this->register();
-        $other = $this->register();
-
-        $this->expectException(HouseholdMemberAlreadyAttached::class);
-
-        $household->members()[0]->attachToHousehold($other);
     }
 
     #[Test]
@@ -190,9 +182,11 @@ final class HouseholdTest extends TestCase
 
         $household->updateMemberProfile(
             MemberId::fromString(self::PRIMARY_MEMBER_ID),
-            PersonName::of('Alice', 'Smith'),
-            DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
-            Gender::Female,
+            MemberProfile::of(
+                PersonName::of('Alice', 'Smith'),
+                DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
+                Gender::Female,
+            ),
             $this->clock,
         );
 
@@ -208,9 +202,11 @@ final class HouseholdTest extends TestCase
 
         $household->updateMemberProfile(
             MemberId::fromString(self::PRIMARY_MEMBER_ID),
-            PersonName::of('Alice', 'Johnson'),
-            DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
-            Gender::Female,
+            MemberProfile::of(
+                PersonName::of('Alice', 'Johnson'),
+                DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
+                Gender::Female,
+            ),
             $this->clock,
         );
 
@@ -229,13 +225,15 @@ final class HouseholdTest extends TestCase
 
         $household->updateMemberProfile(
             MemberId::fromString(self::PRIMARY_MEMBER_ID),
-            PersonName::of('Alice', 'Smith'),
-            DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
-            Gender::Female,
+            MemberProfile::of(
+                PersonName::of('Alice', 'Smith'),
+                DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
+                Gender::Female,
+                Salutation::Ms,
+                Height::ofInches(65),
+                Weight::ofPounds(140),
+            ),
             $this->clock,
-            Salutation::Ms,
-            Height::ofInches(65),
-            Weight::ofPounds(140),
         );
 
         $events = $household->releaseEvents();
@@ -252,9 +250,11 @@ final class HouseholdTest extends TestCase
 
         $household->updateMemberProfile(
             MemberId::fromString(self::PRIMARY_MEMBER_ID),
-            PersonName::of('Alice', 'Smith', nickname: 'Al'),
-            DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
-            Gender::Female,
+            MemberProfile::of(
+                PersonName::of('Alice', 'Smith', nickname: 'Al'),
+                DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
+                Gender::Female,
+            ),
             $this->clock,
         );
 
@@ -272,13 +272,12 @@ final class HouseholdTest extends TestCase
 
         $household->updateMemberProfile(
             MemberId::fromString(self::PRIMARY_MEMBER_ID),
-            PersonName::of('Alice', 'Smith'),
-            DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
-            Gender::Female,
+            MemberProfile::of(
+                PersonName::of('Alice', 'Smith'),
+                DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
+                Gender::Female,
+            ),
             $this->clock,
-            null,
-            null,
-            null,
         );
 
         self::assertSame([], $household->releaseEvents());
@@ -291,25 +290,29 @@ final class HouseholdTest extends TestCase
         $household = $this->register();
         $household->updateMemberProfile(
             MemberId::fromString(self::PRIMARY_MEMBER_ID),
-            PersonName::of('Alice', 'Smith'),
-            DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
-            Gender::Female,
+            MemberProfile::of(
+                PersonName::of('Alice', 'Smith'),
+                DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
+                Gender::Female,
+                Salutation::Ms,
+                Height::ofInches(65),
+                Weight::ofPounds(140),
+            ),
             $this->clock,
-            Salutation::Ms,
-            Height::ofInches(65),
-            Weight::ofPounds(140),
         );
         $household->releaseEvents();
 
         $household->updateMemberProfile(
             MemberId::fromString(self::PRIMARY_MEMBER_ID),
-            PersonName::of('Alice', 'Smith'),
-            DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
-            Gender::Female,
+            MemberProfile::of(
+                PersonName::of('Alice', 'Smith'),
+                DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
+                Gender::Female,
+                Salutation::Ms,
+                Height::ofInches(65),
+                Weight::ofPounds(140),
+            ),
             $this->clock,
-            Salutation::Ms,
-            Height::ofInches(65),
-            Weight::ofPounds(140),
         );
 
         self::assertSame([], $household->releaseEvents());
@@ -380,17 +383,19 @@ final class HouseholdTest extends TestCase
         $household->anonymizeMember($memberId, AnonymizedProfile::placeholder(), $this->clock);
 
         $member = $this->memberById($household, $memberId);
+        $profile = $member->profile();
+        $contact = $member->contact();
         self::assertTrue($member->id()->equals($memberId));
         self::assertTrue($member->code()->equals($originalCode));
-        self::assertSame('Anonymized', $member->name()->firstName);
-        self::assertSame('Member', $member->name()->lastName);
-        self::assertSame('1900-01-01', $member->dateOfBirth()->value->format('Y-m-d'));
-        self::assertSame(Gender::Unspecified, $member->gender());
-        self::assertNull($member->email());
-        self::assertNull($member->phone());
-        self::assertNull($member->salutation());
-        self::assertNull($member->height());
-        self::assertNull($member->weight());
+        self::assertSame('Anonymized', $profile->name->firstName);
+        self::assertSame('Member', $profile->name->lastName);
+        self::assertSame('1900-01-01', $profile->dateOfBirth->value->format('Y-m-d'));
+        self::assertSame(Gender::Unspecified, $profile->gender);
+        self::assertNull($contact->email);
+        self::assertNull($contact->phone);
+        self::assertNull($profile->salutation);
+        self::assertNull($profile->height);
+        self::assertNull($profile->weight);
     }
 
     #[Test]
@@ -457,11 +462,11 @@ final class HouseholdTest extends TestCase
 
         $household->anonymizeMember($memberId, AnonymizedProfile::placeholder(), $this->clock);
 
-        $member = $this->memberById($household, $memberId);
-        self::assertFalse($member->isActive());
-        self::assertSame('Anonymized', $member->deactivation()?->reason);
-        self::assertTrue($member->isAnonymized());
-        self::assertEquals($this->clock->now(), $member->anonymizedAt());
+        $lifecycle = $this->memberById($household, $memberId)->lifecycle();
+        self::assertFalse($lifecycle->isActive);
+        self::assertSame('Anonymized', $lifecycle->deactivation?->reason);
+        self::assertTrue($lifecycle->isAnonymized());
+        self::assertEquals($this->clock->now(), $lifecycle->anonymizedAt);
     }
 
     #[Test]
@@ -485,11 +490,12 @@ final class HouseholdTest extends TestCase
         $household->addMember(
             MemberId::fromString(self::SECOND_MEMBER_ID),
             MemberCode::of('M0002'),
-            PersonName::of('Bob', 'Smith'),
-            DateOfBirth::of(new DateTimeImmutable('1992-01-01'), $this->clock),
-            Gender::Male,
-            null,
-            null,
+            MemberProfile::of(
+                PersonName::of('Bob', 'Smith'),
+                DateOfBirth::of(new DateTimeImmutable('1992-01-01'), $this->clock),
+                Gender::Male,
+            ),
+            MemberContact::none(),
             ResidencyStatus::Resident,
             false,
             $this->clock,
@@ -513,11 +519,12 @@ final class HouseholdTest extends TestCase
         $household->addMember(
             MemberId::fromString(self::SECOND_MEMBER_ID),
             MemberCode::of('M0002'),
-            PersonName::of('Bob', 'Smith'),
-            DateOfBirth::of(new DateTimeImmutable('1992-01-01'), $this->clock),
-            Gender::Male,
-            null,
-            null,
+            MemberProfile::of(
+                PersonName::of('Bob', 'Smith'),
+                DateOfBirth::of(new DateTimeImmutable('1992-01-01'), $this->clock),
+                Gender::Male,
+            ),
+            MemberContact::none(),
             ResidencyStatus::Resident,
             false,
             $this->clock,
@@ -551,9 +558,11 @@ final class HouseholdTest extends TestCase
         ): void {
             $h->updateMemberProfile(
                 $id,
-                PersonName::of('Changed', 'Name'),
-                DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $clock),
-                Gender::Male,
+                MemberProfile::of(
+                    PersonName::of('Changed', 'Name'),
+                    DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $clock),
+                    Gender::Male,
+                ),
                 $clock,
             );
         }];
@@ -562,7 +571,7 @@ final class HouseholdTest extends TestCase
             MemberId $id,
             MockClock $clock,
         ): void {
-            $h->updateMemberContact($id, EmailAddress::of('new@example.com'), null, $clock);
+            $h->updateMemberContact($id, MemberContact::of(EmailAddress::of('new@example.com'), null), $clock);
         }];
         yield 'reactivateMember' => ['mutate' => static function (Household $h, MemberId $id, MockClock $clock): void {
             $h->reactivateMember($id, $clock);
@@ -616,9 +625,9 @@ final class HouseholdTest extends TestCase
         self::assertTrue($events[0]->phone->equals(PhoneNumber::of('5550001')));
         self::assertEquals($this->clock->now(), $events[0]->occurredAt);
 
-        $merged = $this->memberById($household, $duplicateId);
-        self::assertTrue($merged->isMerged());
-        $merge = $merged->merge();
+        $mergedLifecycle = $this->memberById($household, $duplicateId)->lifecycle();
+        self::assertTrue($mergedLifecycle->isMerged());
+        $merge = $mergedLifecycle->merge;
         self::assertNotNull($merge);
         self::assertTrue($merge->intoMemberId->equals($survivorId));
     }
@@ -672,9 +681,11 @@ final class HouseholdTest extends TestCase
         ): void {
             $h->updateMemberProfile(
                 $id,
-                PersonName::of('Changed', 'Name'),
-                DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $clock),
-                Gender::Male,
+                MemberProfile::of(
+                    PersonName::of('Changed', 'Name'),
+                    DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $clock),
+                    Gender::Male,
+                ),
                 $clock,
             );
         }];
@@ -683,7 +694,7 @@ final class HouseholdTest extends TestCase
             MemberId $id,
             MockClock $clock,
         ): void {
-            $h->updateMemberContact($id, EmailAddress::of('new@example.com'), null, $clock);
+            $h->updateMemberContact($id, MemberContact::of(EmailAddress::of('new@example.com'), null), $clock);
         }];
         yield 'changeMemberResidency' => ['mutate' => static function (
             Household $h,
@@ -788,12 +799,15 @@ final class HouseholdTest extends TestCase
 
         $source = $this->memberById($household, $sourceId);
         $new = $this->memberById($household, $newId);
-        self::assertTrue($new->dateOfBirth()->equals($source->dateOfBirth()));
-        self::assertSame($source->gender(), $new->gender());
+        $sourceProfile = $source->profile();
+        $newProfile = $new->profile();
+        $newContact = $new->contact();
+        self::assertTrue($newProfile->dateOfBirth->equals($sourceProfile->dateOfBirth));
+        self::assertSame($sourceProfile->gender, $newProfile->gender);
         self::assertSame($source->residencyStatus(), $new->residencyStatus());
-        self::assertSame('Bob', $new->name()->firstName);
-        self::assertNotNull($new->email());
-        self::assertTrue($new->email()->equals(EmailAddress::of('bob@example.com')));
+        self::assertSame('Bob', $newProfile->name->firstName);
+        self::assertNotNull($newContact->email);
+        self::assertTrue($newContact->email->equals(EmailAddress::of('bob@example.com')));
     }
 
     #[Test]
@@ -873,11 +887,12 @@ final class HouseholdTest extends TestCase
         $household->addMember(
             MemberId::fromString(self::SECOND_MEMBER_ID),
             MemberCode::of('M0002'),
-            PersonName::of('Bob', 'Smith'),
-            DateOfBirth::of(new DateTimeImmutable('1992-03-04'), $this->clock),
-            Gender::Male,
-            null,
-            null,
+            MemberProfile::of(
+                PersonName::of('Bob', 'Smith'),
+                DateOfBirth::of(new DateTimeImmutable('1992-03-04'), $this->clock),
+                Gender::Male,
+            ),
+            MemberContact::none(),
             ResidencyStatus::Resident,
             false,
             $this->clock,
@@ -895,11 +910,11 @@ final class HouseholdTest extends TestCase
         $events = $household->releaseEvents();
         self::assertCount(1, $events);
         self::assertInstanceOf(MemberContactUpdated::class, $events[0]);
-        $second = $this->memberById($household, $secondId);
-        self::assertNotNull($second->email());
-        self::assertTrue($second->email()->equals(EmailAddress::of('found@example.com')));
-        self::assertNotNull($second->phone());
-        self::assertTrue($second->phone()->equals(PhoneNumber::of('5559999')));
+        $secondContact = $this->memberById($household, $secondId)->contact();
+        self::assertNotNull($secondContact->email);
+        self::assertTrue($secondContact->email->equals(EmailAddress::of('found@example.com')));
+        self::assertNotNull($secondContact->phone);
+        self::assertTrue($secondContact->phone->equals(PhoneNumber::of('5559999')));
     }
 
     #[Test]
@@ -918,11 +933,11 @@ final class HouseholdTest extends TestCase
         );
 
         self::assertSame([], $household->releaseEvents());
-        $primary = $this->memberById($household, $primaryId);
-        self::assertNotNull($primary->email());
-        self::assertTrue($primary->email()->equals(EmailAddress::of('alice@example.com')));
-        self::assertNotNull($primary->phone());
-        self::assertTrue($primary->phone()->equals(PhoneNumber::of('5550001')));
+        $primaryContact = $this->memberById($household, $primaryId)->contact();
+        self::assertNotNull($primaryContact->email);
+        self::assertTrue($primaryContact->email->equals(EmailAddress::of('alice@example.com')));
+        self::assertNotNull($primaryContact->phone);
+        self::assertTrue($primaryContact->phone->equals(PhoneNumber::of('5550001')));
     }
 
     #[Test]
@@ -1098,11 +1113,12 @@ final class HouseholdTest extends TestCase
         $household->addMember(
             $secondMemberId,
             MemberCode::of('M0002'),
-            PersonName::of('Bob', 'Smith'),
-            DateOfBirth::of(new DateTimeImmutable('1992-03-04'), $this->clock),
-            Gender::Male,
-            null,
-            null,
+            MemberProfile::of(
+                PersonName::of('Bob', 'Smith'),
+                DateOfBirth::of(new DateTimeImmutable('1992-03-04'), $this->clock),
+                Gender::Male,
+            ),
+            MemberContact::none(),
             ResidencyStatus::Resident,
             false,
             $this->clock,
@@ -1140,8 +1156,7 @@ final class HouseholdTest extends TestCase
 
         $household->updateMemberContact(
             MemberId::fromString(self::PRIMARY_MEMBER_ID),
-            EmailAddress::of('alice.new@example.com'),
-            PhoneNumber::of('5559999'),
+            MemberContact::of(EmailAddress::of('alice.new@example.com'), PhoneNumber::of('5559999')),
             $this->clock,
         );
 
@@ -1159,8 +1174,7 @@ final class HouseholdTest extends TestCase
 
         $household->updateMemberContact(
             MemberId::fromString(self::PRIMARY_MEMBER_ID),
-            null,
-            null,
+            MemberContact::none(),
             $this->clock,
         );
 
@@ -1180,8 +1194,7 @@ final class HouseholdTest extends TestCase
 
         $household->updateMemberContact(
             MemberId::fromString(self::PRIMARY_MEMBER_ID),
-            EmailAddress::of('alice@example.com'),
-            PhoneNumber::of('5550001'),
+            MemberContact::of(EmailAddress::of('alice@example.com'), PhoneNumber::of('5550001')),
             $this->clock,
         );
 
@@ -1198,9 +1211,11 @@ final class HouseholdTest extends TestCase
 
         $household->updateMemberProfile(
             MemberId::fromString('019571bf-5d51-7000-b500-bbbbbbbbbbbb'),
-            PersonName::of('Ghost', 'User'),
-            DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
-            Gender::Other,
+            MemberProfile::of(
+                PersonName::of('Ghost', 'User'),
+                DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
+                Gender::Other,
+            ),
             $this->clock,
         );
     }
@@ -1236,17 +1251,17 @@ final class HouseholdTest extends TestCase
         self::assertSame(self::TARGET_HOUSEHOLD_ID, $events[0]->sharedHouseholdId->value);
         self::assertEquals($this->clock->now(), $events[0]->occurredAt);
 
-        $minor = $this->memberById($household, MemberId::fromString(self::MINOR_MEMBER_ID));
-        self::assertTrue($minor->isSharedWith(HouseholdId::fromString(self::TARGET_HOUSEHOLD_ID)));
+        $minorLinks = $this->memberById($household, MemberId::fromString(self::MINOR_MEMBER_ID))->householdLinks();
+        self::assertTrue($minorLinks->includes(HouseholdId::fromString(self::TARGET_HOUSEHOLD_ID)));
         self::assertEquals(
             [HouseholdId::fromString(self::TARGET_HOUSEHOLD_ID)],
-            $minor->sharedHouseholdIds(),
+            $minorLinks->householdIds(),
         );
         self::assertEquals(
             $this->clock->now(),
-            $minor->linkedAtFor(HouseholdId::fromString(self::TARGET_HOUSEHOLD_ID)),
+            $minorLinks->linkedAt(HouseholdId::fromString(self::TARGET_HOUSEHOLD_ID)),
         );
-        self::assertNull($minor->linkedAtFor(HouseholdId::fromString(self::HOUSEHOLD_ID)));
+        self::assertNull($minorLinks->linkedAt(HouseholdId::fromString(self::HOUSEHOLD_ID)));
     }
 
     #[Test]
@@ -1353,9 +1368,9 @@ final class HouseholdTest extends TestCase
         self::assertInstanceOf(MemberSharingWithdrawn::class, $events[0]);
         self::assertSame(self::TARGET_HOUSEHOLD_ID, $events[0]->sharedHouseholdId->value);
 
-        $minor = $this->memberById($household, MemberId::fromString(self::MINOR_MEMBER_ID));
-        self::assertFalse($minor->isSharedWith(HouseholdId::fromString(self::TARGET_HOUSEHOLD_ID)));
-        self::assertSame([], $minor->sharedHouseholdIds());
+        $minorLinks = $this->memberById($household, MemberId::fromString(self::MINOR_MEMBER_ID))->householdLinks();
+        self::assertFalse($minorLinks->includes(HouseholdId::fromString(self::TARGET_HOUSEHOLD_ID)));
+        self::assertSame([], $minorLinks->householdIds());
     }
 
     #[Test]
@@ -1379,11 +1394,12 @@ final class HouseholdTest extends TestCase
         $household->addMember(
             MemberId::fromString(self::MINOR_MEMBER_ID),
             MemberCode::of('M0004'),
-            PersonName::of('Timmy', 'Smith'),
-            DateOfBirth::of(new DateTimeImmutable('2015-01-01'), $this->clock),
-            Gender::Male,
-            null,
-            null,
+            MemberProfile::of(
+                PersonName::of('Timmy', 'Smith'),
+                DateOfBirth::of(new DateTimeImmutable('2015-01-01'), $this->clock),
+                Gender::Male,
+            ),
+            MemberContact::none(),
             ResidencyStatus::Resident,
             false,
             $this->clock,
@@ -1401,11 +1417,12 @@ final class HouseholdTest extends TestCase
             Address::of('123 Main St', 'Apt 4B', 'Springfield', 'IL', '62701', 'US'),
             MemberId::fromString(self::PRIMARY_MEMBER_ID),
             MemberCode::of('M0001'),
-            PersonName::of('Alice', 'Smith'),
-            DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
-            Gender::Female,
-            EmailAddress::of('alice@example.com'),
-            PhoneNumber::of('5550001'),
+            MemberProfile::of(
+                PersonName::of('Alice', 'Smith'),
+                DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
+                Gender::Female,
+            ),
+            MemberContact::of(EmailAddress::of('alice@example.com'), PhoneNumber::of('5550001')),
             ResidencyStatus::Resident,
             $this->clock,
         );
@@ -1425,16 +1442,17 @@ final class HouseholdTest extends TestCase
             Address::of('123 Main St', 'Apt 4B', 'Springfield', 'IL', '62701', 'US'),
             MemberId::fromString(self::PRIMARY_MEMBER_ID),
             MemberCode::of('M0001'),
-            PersonName::of('Alice', 'Smith'),
-            DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
-            Gender::Female,
-            EmailAddress::of('alice@example.com'),
-            PhoneNumber::of('5550001'),
+            MemberProfile::of(
+                PersonName::of('Alice', 'Smith'),
+                DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
+                Gender::Female,
+                Salutation::Ms,
+                Height::ofInches(65),
+                Weight::ofPounds(140),
+            ),
+            MemberContact::of(EmailAddress::of('alice@example.com'), PhoneNumber::of('5550001')),
             ResidencyStatus::Resident,
             $this->clock,
-            Salutation::Ms,
-            Height::ofInches(65),
-            Weight::ofPounds(140),
         );
     }
 }
