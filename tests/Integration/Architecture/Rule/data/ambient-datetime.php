@@ -16,12 +16,17 @@ final class ReceivePurchaseOrderLineCommand
 
 final class ReceivePurchaseOrderLineHandler
 {
-    public function __invoke(ReceivePurchaseOrderLineCommand $command): void
+    /**
+     * @return list<DateTime|DateTimeImmutable>
+     */
+    public function __invoke(ReceivePurchaseOrderLineCommand $command): array
     {
         $ambientImmutable = new DateTimeImmutable();
         $ambientMutable = new DateTime('now');
         $ambientNamedArg = new DateTimeImmutable(datetime: 'now');
         $parsedFromCommand = new DateTimeImmutable($command->receivedAtIso);
+
+        return [$ambientImmutable, $ambientMutable, $ambientNamedArg, $parsedFromCommand];
     }
 }
 

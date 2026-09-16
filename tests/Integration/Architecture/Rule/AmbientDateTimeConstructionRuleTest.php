@@ -32,17 +32,17 @@ final class AmbientDateTimeConstructionRuleTest extends RuleTestCase
         $this->analyse([__DIR__ . '/data/ambient-datetime.php'], [
             [
                 'DateTimeImmutable constructs the current moment from the ambient system clock.',
-                21,
+                24,
                 self::AMBIENT_CLOCK_TIP,
             ],
             [
                 'DateTime constructs the current moment from the ambient system clock.',
-                22,
+                25,
                 self::AMBIENT_CLOCK_TIP,
             ],
             [
                 'DateTimeImmutable constructs the current moment from the ambient system clock.',
-                23,
+                26,
                 self::AMBIENT_CLOCK_TIP,
             ],
         ]);
