@@ -23,3 +23,15 @@ services:
         class: App\Tests\Architecture\NoSplExceptionsInDomainOrApplicationRule
         tags:
             - phpat.test
+    -
+        class: App\Tests\Architecture\CommandAndQueryDtoPurityRule
+        tags:
+            - phpat.test
+    -
+        class: App\Tests\Architecture\DomainEventShapeRule
+        tags:
+            - phpat.test
+    -
+        class: App\Tests\Architecture\DoctrineRepositoriesImplementDomainPortRule
+        tags:
+            - phpat.test
