@@ -482,7 +482,7 @@ test.describe('merge members', () => {
     // The duplicate's own detail page is read-only with a merged banner.
     await page.goto('/admin/users?q=' + encodeURIComponent(duplicateLastName) + '&includeMerged=1');
     await page
-      .locator('[data-testid^="member-row-"]', { hasText: `Dana ${duplicateLastName}` })
+      .locator('tr[data-testid^="member-row-"]', { hasText: `Dana ${duplicateLastName}` })
       .first()
       .getByRole('link')
       .click();
@@ -491,11 +491,11 @@ test.describe('merge members', () => {
     // The Users list hides the duplicate by default and shows it with "Include merged".
     await page.goto('/admin/users?q=' + encodeURIComponent(duplicateLastName));
     await expect(page.getByTestId('members-table')).toBeVisible();
-    await expect(page.locator('[data-testid^="member-row-"]')).toHaveCount(0);
+    await expect(page.locator('tr[data-testid^="member-row-"]')).toHaveCount(0);
 
     await page.goto('/admin/users?q=' + encodeURIComponent(duplicateLastName) + '&includeMerged=1');
     await expect(
-      page.locator('[data-testid^="member-row-"]', { hasText: `Dana ${duplicateLastName}` }),
+      page.locator('tr[data-testid^="member-row-"]', { hasText: `Dana ${duplicateLastName}` }),
     ).toBeVisible();
   });
 });
