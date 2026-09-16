@@ -45,11 +45,6 @@ final class MemberLifecycleController extends AbstractController
     use RedirectsToMemberDetail;
     use RendersMemberCardPartials;
 
-    private const string UUID_V7_REGEX
-        = '[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}';
-
-    private const string MEMBER_NOT_FOUND_MESSAGE = 'Member not found.';
-
     private const string TEMPLATE_DEACTIVATE_DIALOG = 'households/detail/_deactivate_dialog.html.twig';
 
     public function __construct(
