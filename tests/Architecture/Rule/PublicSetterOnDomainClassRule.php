@@ -40,18 +40,11 @@ final class PublicSetterOnDomainClassRule implements Rule
      */
     public function processNode(Node $node, Scope $scope): array
     {
-        if (!$this->layers->isDomain($scope->getNamespace())) {
+        if (!$this->isPublicSetter($node, $scope)) {
             return [];
         }
 
         $methodReflection = $node->getMethodReflection();
-        if (!$methodReflection->isPublic()) {
-            return [];
-        }
-
-        if (preg_match(self::SETTER_NAME, $methodReflection->getName()) !== 1) {
-            return [];
-        }
 
         return [
             RuleErrorBuilder::message(sprintf(
@@ -64,5 +57,17 @@ final class PublicSetterOnDomainClassRule implements Rule
                 ->tip('Rename to the domain verb it performs, e.g. Household::changeMemberResidency().')
                 ->build(),
         ];
+    }
+
+    private function isPublicSetter(InClassMethodNode $node, Scope $scope): bool
+    {
+        if (!$this->layers->isDomain($scope->getNamespace())) {
+            return false;
+        }
+
+        $methodReflection = $node->getMethodReflection();
+
+        return $methodReflection->isPublic()
+            && preg_match(self::SETTER_NAME, $methodReflection->getName()) === 1;
     }
 }

@@ -46,20 +46,8 @@ final class AmbientDateTimeConstructionRule implements Rule
      */
     public function processNode(Node $node, Scope $scope): array
     {
-        if (!$node->class instanceof Name) {
-            return [];
-        }
-
-        if (!$this->layers->isDomainOrApplication($scope->getNamespace())) {
-            return [];
-        }
-
-        $resolvedClassName = $scope->resolveName($node->class);
-        if (!in_array(strtolower($resolvedClassName), self::AMBIENT_CLASSES, true)) {
-            return [];
-        }
-
-        if (!$this->constructsAmbientNow($node, $scope)) {
+        $resolvedClassName = $this->ambientClassName($node, $scope);
+        if ($resolvedClassName === null) {
             return [];
         }
 
@@ -72,6 +60,24 @@ final class AmbientDateTimeConstructionRule implements Rule
                 ->tip('Inject Psr\\Clock\\ClockInterface and call ->now() instead.')
                 ->build(),
         ];
+    }
+
+    /**
+     * Resolves the constructed class name only when it is an ambient
+     * DateTime(Immutable) built in Domain or Application; null otherwise.
+     */
+    private function ambientClassName(New_ $node, Scope $scope): ?string
+    {
+        if (!$node->class instanceof Name || !$this->layers->isDomainOrApplication($scope->getNamespace())) {
+            return null;
+        }
+
+        $resolvedClassName = $scope->resolveName($node->class);
+        if (!in_array(strtolower($resolvedClassName), self::AMBIENT_CLASSES, true)) {
+            return null;
+        }
+
+        return $this->constructsAmbientNow($node, $scope) ? $resolvedClassName : null;
     }
 
     private function constructsAmbientNow(New_ $node, Scope $scope): bool
