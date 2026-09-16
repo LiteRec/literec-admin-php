@@ -25,7 +25,7 @@ final class AmbientCallsExample
     {
     }
 
-    public function ambientCalls(): void
+    public function ambientCalls(): mixed
     {
         time();
         \date('Y');
@@ -33,11 +33,13 @@ final class AmbientCallsExample
         mktime(0);
         uniqid();
         random_int(1, 9);
-        array_rand([1]);
+        $randomKey = array_rand([1]);
         now();
         Uuid::v7();
         UuidV7::generate();
         SymfonyClock::get();
+
+        return $randomKey;
     }
 
     public function portCalls(): void
