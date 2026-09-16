@@ -145,14 +145,8 @@ final class MemberResidencyCardController extends AbstractController
             );
         }
 
-        try {
-            $detail = $this->runQuery($householdId, $memberId);
-        } catch (MemberNotFound | HouseholdNotFound | InvalidHouseholdId | InvalidMemberId) {
-            throw $this->createNotFoundException(self::MEMBER_NOT_FOUND_MESSAGE);
-        }
-
         return $this->render('households/detail/_residency_sub_card_read.html.twig', [
-            'detail' => $detail,
+            'detail' => $this->findDetailOrFail($householdId, $memberId),
         ]);
     }
 
