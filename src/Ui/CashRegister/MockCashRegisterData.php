@@ -13,6 +13,12 @@ namespace App\Ui\CashRegister;
  */
 final readonly class MockCashRegisterData
 {
+    /** Reused literal (SonarCloud php:S1192). */
+    private const string ZERO_BALANCE = '$0.00';
+
+    /** Reused literal (SonarCloud php:S1192). */
+    private const string CATEGORY_DAY_PASSES = 'Day Passes';
+
     public function build(): CashRegisterData
     {
         return new CashRegisterData(
@@ -23,7 +29,7 @@ final readonly class MockCashRegisterData
                 household: 'Bocker Household',
                 email: 'm.bocker@example.org',
                 phone: '(317) 555-0142',
-                accountBalance: '$0.00',
+                accountBalance: self::ZERO_BALANCE,
             ),
             participants: [
                 new ParticipantOption('Baby Bocker', 'M-12548', true),
@@ -68,8 +74,8 @@ final readonly class MockCashRegisterData
             ],
             totals: new SaleTotals(
                 subtotal: '$653.00',
-                discounts: '$0.00',
-                tax: '$0.00',
+                discounts: self::ZERO_BALANCE,
+                tax: self::ZERO_BALANCE,
                 total: '$653.00',
             ),
         );
@@ -78,12 +84,12 @@ final readonly class MockCashRegisterData
     public function buildQuickSale(): QuickSaleData
     {
         return new QuickSaleData(
-            categories: ['All', 'Day Passes', 'Concessions', 'Equipment', 'Guest Fees'],
+            categories: ['All', self::CATEGORY_DAY_PASSES, 'Concessions', 'Equipment', 'Guest Fees'],
             tiles: [
                 new QuickSaleTile(
                     id: 'adult-day-pass',
                     name: 'Adult Day Pass',
-                    category: 'Day Passes',
+                    category: self::CATEGORY_DAY_PASSES,
                     price: '$8.00',
                     unitPriceCents: 800,
                     icon: 'ticket',
@@ -92,7 +98,7 @@ final readonly class MockCashRegisterData
                 new QuickSaleTile(
                     id: 'youth-day-pass',
                     name: 'Youth Day Pass',
-                    category: 'Day Passes',
+                    category: self::CATEGORY_DAY_PASSES,
                     price: '$5.00',
                     unitPriceCents: 500,
                     icon: 'ticket',
@@ -101,7 +107,7 @@ final readonly class MockCashRegisterData
                 new QuickSaleTile(
                     id: 'senior-day-pass',
                     name: 'Senior Day Pass',
-                    category: 'Day Passes',
+                    category: self::CATEGORY_DAY_PASSES,
                     price: '$4.00',
                     unitPriceCents: 400,
                     icon: 'ticket',
@@ -110,7 +116,7 @@ final readonly class MockCashRegisterData
                 new QuickSaleTile(
                     id: 'punch-card-10-visit',
                     name: '10-Visit Punch Card',
-                    category: 'Day Passes',
+                    category: self::CATEGORY_DAY_PASSES,
                     price: '$70.00',
                     unitPriceCents: 7000,
                     icon: 'ticket',
