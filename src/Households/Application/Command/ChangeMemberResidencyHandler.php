@@ -38,7 +38,7 @@ final class ChangeMemberResidencyHandler
             throw InvariantViolation::with('Residency effective-from date is not a valid ISO date.');
         }
 
-        $household->setResidencyStatus($memberId, $status, $effectiveFrom, $this->clock, $command->reason);
+        $household->changeMemberResidency($memberId, $status, $effectiveFrom, $this->clock, $command->reason);
         $this->households->save($household);
 
         foreach ($household->releaseEvents() as $event) {

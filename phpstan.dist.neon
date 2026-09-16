@@ -6,7 +6,29 @@ parameters:
     paths:
         - src
         - tests
+    excludePaths:
+        analyse:
+            # Fixtures for the custom architecture rules below contain
+            # deliberate violations and several classes per file; they are
+            # inputs to the RuleTestCase tests, not analysed source.
+            - tests/Integration/Architecture/Rule/data
     symfony:
         containerXmlPath: var/cache/dev/App_KernelDevDebugContainer.xml
     doctrine:
         objectManagerLoader: tests/phpstan-object-manager-loader.php
+
+services:
+    -
+        class: App\Tests\Architecture\Rule\LayerNamespaces
+    -
+        class: App\Tests\Architecture\Rule\AmbientDateTimeConstructionRule
+        tags:
+            - phpstan.rules.rule
+    -
+        class: App\Tests\Architecture\Rule\AmbientClockAndRandomnessCallRule
+        tags:
+            - phpstan.rules.rule
+    -
+        class: App\Tests\Architecture\Rule\PublicSetterOnDomainClassRule
+        tags:
+            - phpstan.rules.rule

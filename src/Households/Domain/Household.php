@@ -369,7 +369,7 @@ final class Household
      * @throws MemberAlreadyMerged when the member has already been merged into another record
      * @throws MemberIsAnonymized when the member has been anonymized (LRA-212)
      */
-    public function setResidencyStatus(
+    public function changeMemberResidency(
         MemberId $memberId,
         ResidencyStatus $status,
         DateTimeImmutable $effectiveFrom,

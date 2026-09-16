@@ -567,12 +567,12 @@ final class HouseholdTest extends TestCase
         yield 'reactivateMember' => ['mutate' => static function (Household $h, MemberId $id, MockClock $clock): void {
             $h->reactivateMember($id, $clock);
         }];
-        yield 'setResidencyStatus' => ['mutate' => static function (
+        yield 'changeMemberResidency' => ['mutate' => static function (
             Household $h,
             MemberId $id,
             MockClock $clock,
         ): void {
-            $h->setResidencyStatus($id, ResidencyStatus::NonResident, $clock->now(), $clock);
+            $h->changeMemberResidency($id, ResidencyStatus::NonResident, $clock->now(), $clock);
         }];
     }
 
@@ -685,12 +685,12 @@ final class HouseholdTest extends TestCase
         ): void {
             $h->updateMemberContact($id, EmailAddress::of('new@example.com'), null, $clock);
         }];
-        yield 'setResidencyStatus' => ['mutate' => static function (
+        yield 'changeMemberResidency' => ['mutate' => static function (
             Household $h,
             MemberId $id,
             MockClock $clock,
         ): void {
-            $h->setResidencyStatus($id, ResidencyStatus::Member, $clock->now(), $clock);
+            $h->changeMemberResidency($id, ResidencyStatus::Member, $clock->now(), $clock);
         }];
         yield 'deactivateMember' => ['mutate' => static function (Household $h, MemberId $id, MockClock $clock): void {
             $h->deactivateMember($id, 'reason', $clock);
@@ -1065,7 +1065,7 @@ final class HouseholdTest extends TestCase
     }
 
     #[Test]
-    #[TestDox('::setResidencyStatus() records MemberResidencyChanged with the effective date.')]
+    #[TestDox('::changeMemberResidency() records MemberResidencyChanged with the effective date.')]
     public function set_residency_status_records_event(): void
     {
         $household = $this->register();
@@ -1073,7 +1073,7 @@ final class HouseholdTest extends TestCase
 
         $effectiveFrom = new DateTimeImmutable('2026-02-01');
 
-        $household->setResidencyStatus(
+        $household->changeMemberResidency(
             MemberId::fromString(self::PRIMARY_MEMBER_ID),
             ResidencyStatus::Staff,
             $effectiveFrom,

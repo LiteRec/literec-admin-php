@@ -20,4 +20,13 @@
     <rule ref="PSR1.Methods.CamelCapsMethodName.NotCamelCaps">
         <exclude-pattern>tests/*</exclude-pattern>
     </rule>
+
+    <!--
+        Fixtures for the custom PHPStan architecture rules (see
+        tests/Architecture/Rule/) hold several namespaces and classes per
+        file on purpose: they are inputs to RuleTestCase, not project code,
+        and splitting them one-class-per-file would scatter each rule's
+        reported/not-reported cases across many files for no benefit.
+    -->
+    <exclude-pattern>tests/Integration/Architecture/Rule/data/*</exclude-pattern>
 </ruleset>
