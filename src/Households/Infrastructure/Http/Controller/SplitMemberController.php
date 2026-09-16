@@ -52,12 +52,12 @@ final class SplitMemberController extends AbstractController
     ) {
     }
 
-    private function queryBus(): MessageBusInterface
+    private function queryBus(): MessageBusInterface // NOSONAR
     {
         return $this->queryBus;
     }
 
-    private function commandBus(): MessageBusInterface
+    private function commandBus(): MessageBusInterface // NOSONAR
     {
         return $this->commandBus;
     }

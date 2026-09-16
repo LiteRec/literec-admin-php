@@ -23,7 +23,7 @@ final class WithdrawMinorFromHouseholdHandler
     ) {
     }
 
-    private function eventBus(): MessageBusInterface
+    private function eventBus(): MessageBusInterface // NOSONAR
     {
         return $this->eventBus;
     }
