@@ -18,6 +18,7 @@ use App\Households\Domain\ValueObject\MemberId;
 use App\Households\Domain\ValueObject\MemberProfile;
 use App\Households\Domain\ValueObject\PersonName;
 use App\Households\Domain\ValueObject\ResidencyStatus;
+use App\Tests\Support\Trait\SeedsSmithHouseholdForUi;
 use App\Tests\Support\Trait\SignsInUsers;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
@@ -40,6 +41,7 @@ use Symfony\Component\Clock\MockClock;
 #[Group('database')]
 final class AddressResidencyCardTest extends WebTestCase
 {
+    use SeedsSmithHouseholdForUi;
     use SignsInUsers;
 
     /** Reused literals (SonarCloud php:S1192). */
@@ -342,23 +344,14 @@ final class AddressResidencyCardTest extends WebTestCase
         $repo = static::getContainer()->get(Households::class);
         self::assertInstanceOf(Households::class, $repo);
 
-        $household = Household::register(
+        $this->seedSmithHousehold(
+            $repo,
             HouseholdId::fromString(self::HOUSEHOLD_US),
-            HouseholdName::of('Smith Family'),
-            Address::of('100 Main St', 'Apt 2B', 'Seattle', 'WA', '98101', 'US'),
             MemberId::fromString(self::US_PRIMARY_ID),
             MemberCode::of(self::US_PRIMARY_CODE),
-            MemberProfile::of(
-                PersonName::of('Alice', 'Smith'),
-                DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
-                Gender::Female,
-            ),
-            MemberContact::of(EmailAddress::of('alice@example.com'), null),
-            ResidencyStatus::Resident,
+            '1990-01-01',
             $this->clock,
         );
-
-        $repo->save($household);
     }
 
     private function seedCaHousehold(): void
