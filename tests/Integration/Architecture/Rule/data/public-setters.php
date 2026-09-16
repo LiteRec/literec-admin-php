@@ -15,12 +15,12 @@ final class DomainWithPublicSetter
 
 final class DomainWithPrivateSetter
 {
-    public function apply(string $status): void
+    public function apply(): void
     {
-        $this->setStatus($status);
+        $this->setStatus();
     }
 
-    private function setStatus(string $status): void
+    private function setStatus(): void
     {
         // Fixture: shape-only stub, called from apply() above so it is not
         // itself dead code — a private setter must not be reported.
