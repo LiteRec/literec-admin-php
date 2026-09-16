@@ -6,7 +6,6 @@ namespace App\Households\Infrastructure\Http\Controller;
 
 use App\Households\Application\Command\DeactivateMember;
 use App\Households\Application\Command\ReactivateMember;
-use App\Households\Application\Query\Port\MemberDetail;
 use App\Households\Domain\Exception\HouseholdNotFound;
 use App\Households\Domain\Exception\InvalidHouseholdId;
 use App\Households\Domain\Exception\InvalidMemberId;
@@ -26,9 +25,9 @@ use Symfony\Component\Routing\Attribute\Route;
  * HTTP adapter for the member activation-state transitions (LRA-211):
  * deactivating an active member via a confirmation dialog that requires a
  * reason, and reactivating a deactivated one. A separate controller from
- * {@see MemberDetailController} because that controller already owns three
- * card flows and is ~900 lines; activation state is a different reason to
- * change.
+ * {@see MemberDetailController} — the page shell and its four per-card
+ * controllers (LRA-235) — because activation state is its own reason to
+ * change, distinct from any single card.
  *
  * Both success paths return an `HX-Redirect` to the member detail page
  * rather than an in-place swap: the Active/Deactivated badge lives in the
@@ -44,6 +43,7 @@ final class MemberLifecycleController extends AbstractController
 {
     use DispatchesHouseholdMessages;
     use RedirectsToMemberDetail;
+    use RendersMemberCardPartials;
 
     private const string UUID_V7_REGEX
         = '[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}';
@@ -190,14 +190,5 @@ final class MemberLifecycleController extends AbstractController
         }
 
         return $this->hxRedirectToMemberDetail($householdId, $memberId);
-    }
-
-    private function findDetailOrFail(string $householdId, string $memberId): MemberDetail
-    {
-        try {
-            return $this->runQuery($householdId, $memberId);
-        } catch (MemberNotFound | HouseholdNotFound | InvalidHouseholdId | InvalidMemberId) {
-            throw $this->createNotFoundException(self::MEMBER_NOT_FOUND_MESSAGE);
-        }
     }
 }

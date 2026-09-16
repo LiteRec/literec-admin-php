@@ -14,7 +14,10 @@ use Symfony\Component\Form\FormInterface;
  * from {@see \App\Households\Infrastructure\Http\Controller\MemberDetailController}
  * (LRA-209) so {@see \App\Households\Infrastructure\Http\Controller\SplitMemberController}
  * does not duplicate the same mapping — the SonarCloud new-code
- * duplication gate is 3%.
+ * duplication gate is 3%. The Profile card edit flow that originally
+ * carried this trait moved to
+ * {@see \App\Households\Infrastructure\Http\Controller\MemberProfileCardController}
+ * (LRA-235), which is now its other consumer.
  */
 trait AppliesPersonNameErrors
 {
