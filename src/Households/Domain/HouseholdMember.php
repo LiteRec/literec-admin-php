@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Households\Domain;
 
+use App\Households\Domain\Exception\InvariantViolation;
 use App\Households\Domain\ValueObject\AnonymizedProfile;
 use App\Households\Domain\ValueObject\DateOfBirth;
 use App\Households\Domain\ValueObject\Deactivation;
@@ -178,13 +179,27 @@ final class HouseholdMember
      * The member's lifecycle state, materialized from the four persisted
      * scalar facts so they are never exposed as six loose getters.
      */
+    /**
+     * @throws InvariantViolation when $mergedIntoMemberId is set without
+     *                            $mergedAt — markMergedInto() always writes
+     *                            both together, so this is a persistence
+     *                            bug, never a legitimately unmerged member.
+     */
     public function lifecycle(): MemberLifecycle
     {
         $deactivation = $this->deactivatedReason !== null && $this->deactivatedAt !== null
             ? new Deactivation($this->deactivatedReason, $this->deactivatedAt)
             : null;
 
-        $merge = $this->mergedIntoMemberId !== null && $this->mergedAt !== null
+        if ($this->mergedIntoMemberId !== null && $this->mergedAt === null) {
+            throw InvariantViolation::with('merged_into_member_id is set without merged_at.');
+        }
+
+        // mergedIntoMemberId is the merge fact — the single source of truth
+        // isMerged() must agree with (DoctrineHouseholds::lockUnmergedMember()
+        // and the read models key on it alone); mergedAt is guaranteed
+        // non-null here by the guard above.
+        $merge = $this->mergedIntoMemberId !== null
             ? new MemberMerge($this->mergedIntoMemberId, $this->mergedAt)
             : null;
 
