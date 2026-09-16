@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Fixture\Domain;
 
+use Symfony\Component\Clock\Clock as SymfonyClock;
 use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Uid\UuidV7;
+use function Symfony\Component\Clock\now;
 
 interface Clock
 {
@@ -27,10 +29,15 @@ final class AmbientCallsExample
     {
         time();
         \date('Y');
+        strtotime('+1 day');
+        mktime(0);
         uniqid();
         random_int(1, 9);
+        array_rand([1]);
+        now();
         Uuid::v7();
         UuidV7::generate();
+        SymfonyClock::get();
     }
 
     public function portCalls(): void

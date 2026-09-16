@@ -24,25 +24,51 @@ final class AmbientDateTimeConstructionRuleTest extends RuleTestCase
 
     #[Test]
     #[TestDox(
-        'Reports DateTime(Immutable) construction with no argument or a "now" argument from Domain or '
-            . 'Application, not the ISO-string carve-out or Infrastructure code.',
+        'Reports DateTime(Immutable)/DatePoint construction with no datetime argument, a "now"-like '
+            . 'or relative one, or a timezone-only call, from Domain or Application, not the ISO-string '
+            . 'carve-out or Infrastructure code.',
     )]
     public function it_reports_ambient_datetime_construction_in_domain_or_application(): void
     {
         $this->analyse([__DIR__ . '/data/ambient-datetime.php'], [
             [
                 'DateTimeImmutable constructs the current moment from the ambient system clock.',
-                24,
+                26,
                 self::AMBIENT_CLOCK_TIP,
             ],
             [
                 'DateTime constructs the current moment from the ambient system clock.',
-                25,
+                27,
                 self::AMBIENT_CLOCK_TIP,
             ],
             [
                 'DateTimeImmutable constructs the current moment from the ambient system clock.',
-                26,
+                28,
+                self::AMBIENT_CLOCK_TIP,
+            ],
+            [
+                'DateTimeImmutable constructs the current moment from the ambient system clock.',
+                29,
+                self::AMBIENT_CLOCK_TIP,
+            ],
+            [
+                'DateTimeImmutable constructs the current moment from the ambient system clock.',
+                30,
+                self::AMBIENT_CLOCK_TIP,
+            ],
+            [
+                'DateTimeImmutable constructs the current moment from the ambient system clock.',
+                31,
+                self::AMBIENT_CLOCK_TIP,
+            ],
+            [
+                'DateTimeImmutable constructs the current moment from the ambient system clock.',
+                32,
+                self::AMBIENT_CLOCK_TIP,
+            ],
+            [
+                'Symfony\\Component\\Clock\\DatePoint constructs the current moment from the ambient system clock.',
+                33,
                 self::AMBIENT_CLOCK_TIP,
             ],
         ]);
