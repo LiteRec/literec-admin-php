@@ -35,12 +35,11 @@
                         type="button"
                         class="lr-iconbtn"
                         data-testid="open-search"
-                        aria-label="Search members"
                         onclick="window.openMemberLookup && window.openMemberLookup({
                             onSelected: function (member) { window.location.assign(member.detailUrl); }
                         })"
                     >
-                        {{ icon.icon('search', 17) }}
+                        <span class="sr-only">Search members</span>{{ icon.icon('search', 17) }}
                     </button>
 
                     {# Presentation-only placeholder, disabled until a real
@@ -52,11 +51,10 @@
                         type="button"
                         class="lr-iconbtn"
                         data-testid="notifications"
-                        aria-label="Notifications"
                         disabled
                         aria-disabled="true"
                     >
-                        {{ icon.icon('bell', 17) }}
+                        <span class="sr-only">Notifications</span>{{ icon.icon('bell', 17) }}
                     </button>
 
                     {% if app.user %}

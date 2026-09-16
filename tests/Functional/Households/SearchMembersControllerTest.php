@@ -242,6 +242,22 @@ final class SearchMembersControllerTest extends WebTestCase
     }
 
     #[Test]
+    #[TestDox('The row actions button names itself from sr-only text, not aria-label (WCAG 2.5.3 / Web:S7927).')]
+    public function row_actions_button_names_itself_from_visually_hidden_text(): void
+    {
+        $client = static::createClient();
+        $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
+        $this->seedTwoHouseholds();
+
+        $client->request('GET', self::ROUTE_MEMBERS);
+
+        self::assertResponseIsSuccessful();
+        $selector = sprintf('[data-testid="member-row-menu-%s"]', self::A_PRIMARY_ID);
+        self::assertSelectorTextContains($selector, 'More actions for Alice Smith');
+        self::assertSelectorNotExists($selector . '[aria-label]');
+    }
+
+    #[Test]
     #[TestDox('Regression: the placeholder "coming soon" stub no longer renders at /admin/users.')]
     public function removed_placeholder_is_gone(): void
     {
