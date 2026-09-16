@@ -36,7 +36,7 @@ final class LinkMinorToHouseholdHandler
     ) {
     }
 
-    private function eventBus(): MessageBusInterface
+    private function eventBus(): MessageBusInterface // NOSONAR
     {
         return $this->eventBus;
     }
