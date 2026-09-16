@@ -176,7 +176,7 @@
                                 <div class="lr-muted font-mono text-xs">{{ line.code }} · Qty {{ line.quantity }}</div>
                             </div>
                             <div class="lr-num font-semibold">{{ line.price }}</div>
-                            <button type="button" class="lr-iconbtn danger" aria-label="Remove {{ line.name }}">{{ ui.icon('trash', 15) }}</button>
+                            <button type="button" class="lr-iconbtn danger"><span class="sr-only">Remove {{ line.name }}</span>{{ ui.icon('trash', 15) }}</button>
                         </div>
                     {% endfor %}
                 </div>

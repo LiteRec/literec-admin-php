@@ -70,10 +70,9 @@
                         @keydown.arrow-down.prevent="openIndex = {{ index }}; $nextTick(() => $el.closest('li').querySelector('[role=menu] a')?.focus())"
                         aria-haspopup="true"
                         :aria-expanded="openIndex === {{ index }} ? 'true' : 'false'"
-                        aria-label="Toggle {{ item.label }} menu"
                         class="lr-navpill-chevron"
                     >
-                        {{ icon.icon('chevron', 14) }}
+                        <span class="sr-only">Toggle {{ item.label }} menu</span>{{ icon.icon('chevron', 14) }}
                     </button>
                 {% endif %}
 

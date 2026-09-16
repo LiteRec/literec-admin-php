@@ -126,10 +126,9 @@
                                     @click="open = !open"
                                     :aria-expanded="open ? 'true' : 'false'"
                                     aria-controls="member-row-actions-{{ item.memberId }}"
-                                    aria-label="More actions for {{ item.fullName }}"
                                     data-testid="member-row-menu-{{ item.memberId }}"
                                 >
-                                    {{ ui.icon('more', 16) }}
+                                    <span class="sr-only">More actions for {{ item.fullName }}</span>{{ ui.icon('more', 16) }}
                                 </button>
                                 <div
                                     id="member-row-actions-{{ item.memberId }}"

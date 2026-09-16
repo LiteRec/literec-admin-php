@@ -74,7 +74,11 @@ see the license text in `_icon.html.twig`'s header comment.
 - Icons inherit color via `stroke="currentColor"` — pass a `text-*` utility in
   the `class` argument to recolor, or a transform utility (e.g. `rotate-90`).
 - They are decorative (`aria-hidden="true"`). When an icon is a control's only
-  visible content, label the control (`aria-label`), not the icon.
+  visible content, name the control from a `<span class="sr-only">` text
+  child, not `aria-label` — sonar-html's `AccessibleNameMatchesLabelCheck`
+  reads the `{{ icon.icon() }}` macro call as the button's visible text and
+  reports Web:S7927 against any `aria-label` on that control, and `sr-only`
+  text is also machine-translatable where `aria-label` often is not.
 - An unknown name renders an empty, invisible `<svg>` instead of erroring.
 - Available names: `search`, `trash`, `plus`, `chevron`, `chevronUp`,
   `chevronR`, `user`, `users`, `cart`, `info`, `bell`, `leaf`, `tree`,

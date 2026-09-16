@@ -73,6 +73,22 @@ final class AppShellTest extends WebTestCase
     }
 
     #[Test]
+    #[TestDox('Header icon buttons name themselves from sr-only text, not aria-label (WCAG 2.5.3 / Web:S7927).')]
+    public function header_icon_buttons_name_themselves_from_visually_hidden_text(): void
+    {
+        $client = static::createClient();
+        $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
+
+        $client->request('GET', '/dashboard');
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('header [data-testid="open-search"]', 'Search members');
+        self::assertSelectorNotExists('header [data-testid="open-search"][aria-label]');
+        self::assertSelectorTextContains('header [data-testid="notifications"]', 'Notifications');
+        self::assertSelectorNotExists('header [data-testid="notifications"][aria-label]');
+    }
+
+    #[Test]
     #[TestDox('The public login page stays on base.html.twig and does not render the authenticated shell.')]
     public function login_page_does_not_render_the_app_shell(): void
     {

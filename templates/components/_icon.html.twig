@@ -5,9 +5,12 @@
   Icons are drawn on a 24x24 grid and inherit their color from the
   surrounding text via stroke="currentColor" — pass a `text-*` utility class
   to recolor. They are decorative (aria-hidden="true"); when an icon is a
-  control's only visible content, label the control itself, not the icon. An
-  unknown name renders an empty (invisible) <svg> rather than raising an
-  error, so a typo degrades quietly instead of breaking the page.
+  control's only visible content, give the control a visually hidden text
+  child (<span class="sr-only">...</span>), not an aria-label — sonar-html
+  reads this macro call as the button's visible text and reports Web:S7927
+  against any aria-label on that control. An unknown name renders an empty
+  (invisible) <svg> rather than raising an error, so a typo degrades quietly
+  instead of breaking the page.
 
   The macro itself has no domain or application dependencies; the optional
   `class` argument simply forwards any caller-supplied utility classes (e.g. a
