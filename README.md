@@ -271,3 +271,9 @@ To add a new fixture for a bounded context:
 - **"Username is already taken" when running the slow tests** — the
   test forgot to call `$this->truncateFixtureTables(...)` before
   loading. See `App\Tests\Support\Trait\TruncatesFixtureTables`.
+
+## License
+
+This project is licensed under the [Elastic License 2.0](https://www.elastic.co/licensing/elastic-license) (SPDX: `Elastic-2.0`). See [LICENSE](LICENSE).
+
+In short: you may use, copy, modify and redistribute the software free of charge, provided you keep all copyright and license notices. You may not provide it to third parties as a managed or hosted service, and you may not remove or circumvent any license-key functionality or licensing notices. Commercial hosting and support are offered by the copyright holder.
