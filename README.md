@@ -203,7 +203,7 @@ CI rather than waiting for code review to catch it:
 |---|---|---|
 | `classesInAppAreFinal` | `EverythingIsFinalRule.php` | Every concrete `App` class is `final` (interfaces, enums, traits, abstract classes, and `App\Kernel` are exempt). |
 | `classesDoNotExtendAConcreteAppClass` | `NoConcreteInheritanceRule.php` | No `App` class extends another concrete (non-abstract, non-interface) `App` class; SPL/framework parents are unaffected. |
-| `controllersDoNotDependOnDoctrine` | `ControllersStayThinRule.php` | Controllers under a context's `Infrastructure\Http` layer never depend on `Doctrine\*` directly. |
+| `controllersDoNotDependOnDoctrine` | `ControllersStayThinRule.php` | Controllers under a context's `Infrastructure\Http` layer, plus the legacy `App\Controller` root controllers, never depend on `Doctrine\*` directly. |
 | `handlersHaveOnlyOnePublicMethod` | `HandlersExposeOnePublicMethodRule.php` | Every `*Handler` class exposes exactly one public method, with four documented exceptions. |
 
 To add a rule: create a new class under `tests/Architecture/` with a
