@@ -19,6 +19,7 @@ use App\Households\Domain\ValueObject\MemberProfile;
 use App\Households\Domain\ValueObject\PersonName;
 use App\Shared\Domain\ValueObject\PhoneNumber;
 use App\Households\Domain\ValueObject\ResidencyStatus;
+use App\Tests\Support\Trait\SeedsAliceSmithSearchableHouseholds;
 use App\Tests\Support\Trait\SignsInUsers;
 use DateTimeImmutable;
 use PHPUnit\Framework\Attributes\Group;
@@ -42,6 +43,7 @@ use Symfony\Component\Clock\MockClock;
 #[Group('database')]
 final class SearchMembersControllerTest extends WebTestCase
 {
+    use SeedsAliceSmithSearchableHouseholds;
     use SignsInUsers;
 
     /** Reused literals (SonarCloud php:S1192). */
@@ -220,7 +222,14 @@ final class SearchMembersControllerTest extends WebTestCase
         $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
         $repo = static::getContainer()->get(Households::class);
         self::assertInstanceOf(Households::class, $repo);
-        $household = $this->buildHouseholdA();
+        $household = $this->buildHouseholdA(
+            HouseholdId::fromString(self::HOUSEHOLD_A),
+            MemberId::fromString(self::A_PRIMARY_ID),
+            MemberCode::of(self::A_PRIMARY_CODE),
+            MemberId::fromString(self::A_SECOND_ID),
+            MemberCode::of(self::A_SECOND_CODE),
+            $this->clock,
+        );
         $household->deactivateMember(MemberId::fromString(self::A_SECOND_ID), 'left the household', $this->clock);
         $repo->save($household);
 
@@ -250,8 +259,20 @@ final class SearchMembersControllerTest extends WebTestCase
         $repo = static::getContainer()->get(Households::class);
         self::assertInstanceOf(Households::class, $repo);
 
-        $repo->save($this->buildHouseholdA());
-        $repo->save($this->buildHouseholdB());
+        $repo->save($this->buildHouseholdA(
+            HouseholdId::fromString(self::HOUSEHOLD_A),
+            MemberId::fromString(self::A_PRIMARY_ID),
+            MemberCode::of(self::A_PRIMARY_CODE),
+            MemberId::fromString(self::A_SECOND_ID),
+            MemberCode::of(self::A_SECOND_CODE),
+            $this->clock,
+        ));
+        $repo->save($this->buildHouseholdB(
+            HouseholdId::fromString(self::HOUSEHOLD_B),
+            MemberId::fromString(self::B_PRIMARY_ID),
+            MemberCode::of(self::B_PRIMARY_CODE),
+            $this->clock,
+        ));
     }
 
     private function seedLargeHousehold(int $memberCount): void
@@ -299,59 +320,5 @@ final class SearchMembersControllerTest extends WebTestCase
         }
 
         $repo->save($household);
-    }
-
-    private function buildHouseholdA(): Household
-    {
-        $household = Household::register(
-            HouseholdId::fromString(self::HOUSEHOLD_A),
-            HouseholdName::of('Smith Family'),
-            Address::of('100 Main St', 'Apt 2B', 'Seattle', 'WA', '98101', 'US'),
-            MemberId::fromString(self::A_PRIMARY_ID),
-            MemberCode::of(self::A_PRIMARY_CODE),
-            MemberProfile::of(
-                PersonName::of('Alice', 'Smith'),
-                DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
-                Gender::Female,
-            ),
-            MemberContact::of(EmailAddress::of('alice@example.com'), null),
-            ResidencyStatus::Resident,
-            $this->clock,
-        );
-
-        $household->addMember(
-            MemberId::fromString(self::A_SECOND_ID),
-            MemberCode::of(self::A_SECOND_CODE),
-            MemberProfile::of(
-                PersonName::of('Bob', 'Brown'),
-                DateOfBirth::of(new DateTimeImmutable('1992-03-04'), $this->clock),
-                Gender::Male,
-            ),
-            MemberContact::of(null, PhoneNumber::of('5550002')),
-            ResidencyStatus::NonResident,
-            false,
-            $this->clock,
-        );
-
-        return $household;
-    }
-
-    private function buildHouseholdB(): Household
-    {
-        return Household::register(
-            HouseholdId::fromString(self::HOUSEHOLD_B),
-            HouseholdName::of('Smith-Lopez Household'),
-            Address::of('200 Oak Ave', null, 'Portland', 'OR', '97201', 'US'),
-            MemberId::fromString(self::B_PRIMARY_ID),
-            MemberCode::of(self::B_PRIMARY_CODE),
-            MemberProfile::of(
-                PersonName::of('Carl', 'Smith'),
-                DateOfBirth::of(new DateTimeImmutable('1985-11-30'), $this->clock),
-                Gender::Male,
-            ),
-            MemberContact::of(EmailAddress::of('carl@example.com'), PhoneNumber::of('5550100')),
-            ResidencyStatus::Member,
-            $this->clock,
-        );
     }
 }
