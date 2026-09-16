@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Tests\Unit\Households\Application\Query\Port;
 
+use App\Households\Application\Exception\InvalidMemberSearchPagination;
 use App\Households\Application\Query\Port\MembersSegment;
 use App\Households\Application\Query\Port\SearchMembersCriteria;
-use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\Small;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\TestDox;
@@ -38,30 +38,30 @@ final class SearchMembersCriteriaTest extends TestCase
     }
 
     #[Test]
-    #[TestDox('Constructor: rejects pageSize = 0 with InvalidArgumentException.')]
+    #[TestDox('Constructor: rejects pageSize = 0 with InvalidMemberSearchPagination.')]
     public function constructor_rejects_zero_page_size(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(InvalidMemberSearchPagination::class);
         $this->expectExceptionMessage('pageSize');
 
         new SearchMembersCriteria(pageSize: 0); // NOSONAR — constructor is expected to throw.
     }
 
     #[Test]
-    #[TestDox('Constructor: rejects pageSize = 101 with InvalidArgumentException.')]
+    #[TestDox('Constructor: rejects pageSize = 101 with InvalidMemberSearchPagination.')]
     public function constructor_rejects_excessive_page_size(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(InvalidMemberSearchPagination::class);
         $this->expectExceptionMessage('pageSize');
 
         new SearchMembersCriteria(pageSize: 101); // NOSONAR — constructor is expected to throw.
     }
 
     #[Test]
-    #[TestDox('Constructor: rejects page = 0 with InvalidArgumentException.')]
+    #[TestDox('Constructor: rejects page = 0 with InvalidMemberSearchPagination.')]
     public function constructor_rejects_zero_page(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(InvalidMemberSearchPagination::class);
         $this->expectExceptionMessage('page');
 
         new SearchMembersCriteria(page: 0); // NOSONAR — constructor is expected to throw.

@@ -13,6 +13,7 @@ use App\Inventory\Domain\Event\InventoryItemRentableChanged;
 use App\Inventory\Domain\Event\InventoryItemReorderThresholdUpdated;
 use App\Inventory\Domain\Event\InventoryItemTrackingChanged;
 use App\Inventory\Domain\Exception\InventoryItemIsArchived;
+use App\Inventory\Domain\Exception\StockBatchAlreadyAttached;
 use App\Inventory\Domain\InventoryItem;
 use App\Inventory\Domain\ValueObject\CostPerUnit;
 use App\Inventory\Domain\ValueObject\FacilityCode;
@@ -98,6 +99,27 @@ final class InventoryItemTest extends TestCase
         self::assertFalse($event->rentable);
         self::assertNull($event->reorderThreshold->units);
         self::assertNull($item->primaryVendorId());
+    }
+
+    #[Test]
+    #[TestDox('StockBatch::attachToItem() throws StockBatchAlreadyAttached for a second InventoryItem.')]
+    public function it_rejects_attaching_a_batch_to_a_second_item(): void
+    {
+        $item = $this->registerWithMinParameters();
+        $other = $this->registerWithMinParameters();
+        $item->receiveBatch(
+            FacilityCode::fromString('MAIN'),
+            Quantity::ofUnits(1),
+            CostPerUnit::zero(),
+            null,
+            null,
+            StockBatchId::fromString('019571bf-5d51-7000-b500-0000000003ff'),
+            $this->clock,
+        );
+
+        $this->expectException(StockBatchAlreadyAttached::class);
+
+        $item->batches()[0]->attachToItem($other);
     }
 
     #[Test]

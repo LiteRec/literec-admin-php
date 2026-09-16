@@ -221,7 +221,7 @@ final class PurchaseOrder
         Quantity $quantity,
         DateTimeImmutable $receivedAt,
         ClockInterface $clock,
-    ): void {
+    ): PurchaseOrderLineReceived {
         if (
             $this->status !== PurchaseOrderStatus::Sent
             && $this->status !== PurchaseOrderStatus::PartiallyReceived
@@ -234,7 +234,7 @@ final class PurchaseOrder
 
         $this->updatedAt = $clock->now();
 
-        $this->recordThat(new PurchaseOrderLineReceived(
+        $lineReceived = new PurchaseOrderLineReceived(
             $this->id,
             $lineId,
             $line->itemId(),
@@ -243,7 +243,8 @@ final class PurchaseOrder
             $line->costPerUnit(),
             $receivedAt,
             $this->updatedAt,
-        ));
+        );
+        $this->recordThat($lineReceived);
 
         if ($this->allLinesFullyReceived()) {
             $this->status = PurchaseOrderStatus::FullyReceived;
@@ -251,6 +252,8 @@ final class PurchaseOrder
         } else {
             $this->status = PurchaseOrderStatus::PartiallyReceived;
         }
+
+        return $lineReceived;
     }
 
     public function verifyDelivery(

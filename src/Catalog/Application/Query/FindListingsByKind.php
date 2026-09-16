@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Catalog\Application\Query;
 
-use InvalidArgumentException;
+use App\Catalog\Application\Exception\InvalidListingsPagination;
 
 final readonly class FindListingsByKind
 {
@@ -14,15 +14,11 @@ final readonly class FindListingsByKind
         public int $limit = 50,
     ) {
         if ($offset < 0) {
-            throw new InvalidArgumentException(
-                sprintf('Pagination offset must be non-negative; got %d.', $offset)
-            );
+            throw InvalidListingsPagination::negativeOffset($offset);
         }
 
         if ($limit < 1) {
-            throw new InvalidArgumentException(
-                sprintf('Pagination limit must be at least 1; got %d.', $limit)
-            );
+            throw InvalidListingsPagination::limitBelowOne($limit);
         }
     }
 }

@@ -26,6 +26,7 @@ use App\Households\Domain\Exception\CannotShareWithHomeHousehold;
 use App\Households\Domain\Exception\DuplicateMemberCode;
 use App\Households\Domain\Exception\DuplicateMemberId;
 use App\Households\Domain\Exception\HouseholdAlreadyLinked;
+use App\Households\Domain\Exception\HouseholdMemberAlreadyAttached;
 use App\Households\Domain\Exception\InvariantViolation;
 use App\Households\Domain\Exception\MemberAlreadyMerged;
 use App\Households\Domain\Exception\MemberIsAnonymized;
@@ -166,6 +167,18 @@ final class HouseholdTest extends TestCase
             false,
             $this->clock,
         );
+    }
+
+    #[Test]
+    #[TestDox('HouseholdMember::attachToHousehold() throws HouseholdMemberAlreadyAttached for a second Household.')]
+    public function it_rejects_attaching_a_member_to_a_second_household(): void
+    {
+        $household = $this->register();
+        $other = $this->register();
+
+        $this->expectException(HouseholdMemberAlreadyAttached::class);
+
+        $household->members()[0]->attachToHousehold($other);
     }
 
     #[Test]

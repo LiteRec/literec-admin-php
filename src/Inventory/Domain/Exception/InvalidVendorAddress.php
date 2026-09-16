@@ -13,6 +13,14 @@ final class InvalidVendorAddress extends DomainException implements InventoryDom
         return new self(sprintf('Vendor address field "%s" must not be empty.', $field));
     }
 
+    public static function missingField(string $field): self
+    {
+        return new self(sprintf(
+            'Vendor address is missing required field "%s" or it is not a string.',
+            $field,
+        ));
+    }
+
     public static function invalidCountry(string $iso): self
     {
         return new self(sprintf(
