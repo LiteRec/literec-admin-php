@@ -291,7 +291,7 @@ final class HouseholdMember
      * photo's storage key must still be read by the caller beforehand —
      * {@see self::photo()} — to release the file via
      * {@see \App\Households\Domain\Event\MemberPhotoReleased}, the same
-     * two-step split {@see Household::removeMemberPhoto()} uses). Irreversible:
+     * two-step split {@see MemberInHousehold::removePhoto()} uses). Irreversible:
      * there is no `unanonymize()`; {@see Household} refuses every further
      * mutator against this member once {@see self::$anonymizedAt} is set.
      *
