@@ -16,8 +16,10 @@ use PHPat\Test\PHPat;
  * place EntityManagerInterface may appear").
  *
  * PHPat cannot backreference "the same context" between the subject and the
- * target selector, so this yields one rule per context — adding a context
- * means adding its name to {@see self::CONTEXTS} below.
+ * target selector, so this yields one rule per context, discovered from
+ * every `src/*\/Infrastructure/Persistence/Doctrine` directory that exists
+ * — a new context is covered the moment its Doctrine persistence namespace
+ * appears, with no edit to this class required.
  *
  * The subject namespace is anchored with a trailing `$` so it selects only
  * `App\<Context>\Infrastructure\Persistence\Doctrine` itself, not its
@@ -35,16 +37,13 @@ use PHPat\Test\PHPat;
  */
 final class DoctrineRepositoriesImplementDomainPortRule
 {
-    /** @var list<string> */
-    private const CONTEXTS = ['Catalog', 'Households', 'Inventory', 'Users'];
-
     /**
      * @return iterable<string, Rule>
      */
     #[TestRule]
     public function doctrine_repositories_implement_their_context_domain_port(): iterable
     {
-        foreach (self::CONTEXTS as $context) {
+        foreach (self::contexts() as $context) {
             yield $context => PHPat::rule()
                 ->classes(Selector::AllOf(
                     Selector::inNamespace(
@@ -58,5 +57,21 @@ final class DoctrineRepositoriesImplementDomainPortRule
                 ->classes(Selector::inNamespace(\sprintf('/^App\\\\%s\\\\Domain(\\\\|$)/', $context), true))
                 ->because('CLAUDE.md: Doctrine repositories implement a port declared by their own context\'s Domain.');
         }
+    }
+
+    /**
+     * Every context that has a Doctrine persistence namespace, discovered
+     * from the tree so a new context is covered the moment it appears.
+     *
+     * @return list<string>
+     */
+    private static function contexts(): array
+    {
+        $directories = \glob(\dirname(__DIR__, 2) . '/src/*/Infrastructure/Persistence/Doctrine', \GLOB_ONLYDIR);
+
+        return \array_map(
+            static fn (string $directory): string => \basename(\dirname($directory, 3)),
+            $directories === false ? [] : $directories,
+        );
     }
 }

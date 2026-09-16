@@ -11,17 +11,17 @@ use PHPat\Test\Builder\Rule;
 use PHPat\Test\PHPat;
 
 /**
- * Command and query DTOs are pure data: no Domain dependency, no mutation
- * (CLAUDE.md: "Forbid framework types inside command/query DTOs ... DTOs
- * carry primitives ... so they are trivially serializable"; the Immutability
- * section: "Every command DTO, query DTO ... must be final with readonly
- * constructor-promoted properties").
+ * Command and query DTOs are pure data: no Domain dependency, no framework
+ * dependency, no mutation (CLAUDE.md: "Forbid framework types inside
+ * command/query DTOs ... DTOs carry primitives ... so they are trivially
+ * serializable"; the Immutability section: "Every command DTO, query DTO
+ * ... must be final with readonly constructor-promoted properties").
  *
  * The subject selector picks the 91 DTOs under a context's
  * `Application\Command` or `Application\Query` namespace (including the
- * `Query\View`, `Query\Port`, and `Query\Report` sub-namespaces — `\w+`
- * cannot cross the trailing `(\\|$)` boundary, so it still anchors on
- * exactly one context segment after `App`) while excluding:
+ * `Query\View`, `Query\Port`, and `Query\Report` sub-namespaces —
+ * `[A-Za-z]+` cannot cross the trailing `(\\|$)` boundary, so it still
+ * anchors on exactly one context segment after `App`) while excluding:
  * - `*Handler` classes, which orchestrate and are allowed to depend on
  *   Domain;
  * - interfaces, enums, and traits, none of which `beReadonly()` can assess
@@ -42,6 +42,12 @@ use PHPat\Test\PHPat;
  * explicit exception to "immutable by default" ("Symfony Form-bound input
  * DTOs ... MUST be final but NOT readonly — the framework writes to
  * properties via reflection during handleRequest").
+ *
+ * Across the 91 subject classes the only import outside their own context's
+ * `Application` namespace is the built-in `DateTimeImmutable` (the
+ * `Symfony\Component\Messenger` imports in this namespace live in the
+ * excluded `ReleasesHouseholdEvents` trait), so the framework-dependency
+ * assertion below is also a zero baseline.
  */
 final class CommandAndQueryDtoPurityRule
 {
@@ -56,6 +62,23 @@ final class CommandAndQueryDtoPurityRule
             ->dependOn()
             ->classes(Selector::inNamespace('/^App\\\\[A-Za-z]+\\\\Domain(\\\\|$)/', true))
             ->because('CLAUDE.md: DTOs carry primitives, not Domain value objects or entities.');
+    }
+
+    #[TestRule]
+    public function command_and_query_dtos_do_not_depend_on_framework_types(): Rule
+    {
+        return PHPat::rule()
+            ->classes($this->dtoSubject())
+            ->shouldNot()
+            ->dependOn()
+            ->classes(
+                Selector::inNamespace('Symfony'),
+                Selector::inNamespace('Doctrine'),
+                Selector::inNamespace('Psr'),
+                Selector::inNamespace('Twig'),
+            )
+            ->because('CLAUDE.md: framework types are forbidden inside command/query DTOs so they stay '
+                . 'trivially serializable.');
     }
 
     #[TestRule]
