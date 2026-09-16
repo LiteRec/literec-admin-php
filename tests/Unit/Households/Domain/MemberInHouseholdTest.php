@@ -24,18 +24,16 @@ use App\Households\Domain\Exception\MemberIsAnonymized;
 use App\Households\Domain\Exception\MemberNotAMinor;
 use App\Households\Domain\Household;
 use App\Households\Domain\HouseholdMember;
-use App\Households\Domain\ValueObject\Address;
 use App\Households\Domain\ValueObject\AnonymizedProfile;
 use App\Households\Domain\ValueObject\DateOfBirth;
 use App\Households\Domain\ValueObject\Gender;
+use App\Households\Domain\ValueObject\Height;
 use App\Households\Domain\ValueObject\HouseholdId;
-use App\Households\Domain\ValueObject\HouseholdName;
 use App\Households\Domain\ValueObject\ImageFormat;
 use App\Households\Domain\ValueObject\MemberCode;
 use App\Households\Domain\ValueObject\MemberContact;
 use App\Households\Domain\ValueObject\MemberId;
 use App\Households\Domain\ValueObject\MemberProfile;
-use App\Households\Domain\ValueObject\Height;
 use App\Households\Domain\ValueObject\PersonName;
 use App\Households\Domain\ValueObject\ProfilePhoto;
 use App\Households\Domain\ValueObject\ResidencyStatus;
@@ -43,6 +41,7 @@ use App\Households\Domain\ValueObject\Salutation;
 use App\Households\Domain\ValueObject\Weight;
 use App\Shared\Domain\ValueObject\EmailAddress;
 use App\Shared\Domain\ValueObject\PhoneNumber;
+use App\Tests\Support\Trait\RegistersSmithHousehold;
 use DateTimeImmutable;
 use Generator;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -60,6 +59,8 @@ use Symfony\Component\Clock\MockClock;
 #[Small]
 final class MemberInHouseholdTest extends TestCase
 {
+    use RegistersSmithHousehold;
+
     private const string HOUSEHOLD_ID = '019571bf-5d51-7000-b500-000000000001';
     private const string PRIMARY_MEMBER_ID = '019571bf-5d51-7000-b500-000000000002';
     private const string MINOR_MEMBER_ID = '019571bf-5d51-7000-b500-000000000004';
@@ -355,11 +356,14 @@ final class MemberInHouseholdTest extends TestCase
     }
 
     /**
-     * @return Generator<string, array{mutate: callable(Household, MemberId, MockClock): void}>
+     * Shared by {@see self::anonymizedMemberMutatorCases()} and
+     * {@see self::mergedMemberMutatorCases()}: both guards refuse
+     * ::updateProfile() the same way, so the two data providers reuse one
+     * mutator instead of duplicating its body.
      */
-    public static function anonymizedMemberMutatorCases(): Generator
+    private static function updateProfileMutator(): callable
     {
-        yield 'updateProfile' => ['mutate' => static function (Household $h, MemberId $id, MockClock $clock): void {
+        return static function (Household $h, MemberId $id, MockClock $clock): void {
             $h->member($id)->updateProfile(
                 MemberProfile::of(
                     PersonName::of('Changed', 'Name'),
@@ -368,10 +372,28 @@ final class MemberInHouseholdTest extends TestCase
                 ),
                 $clock,
             );
-        }];
-        yield 'updateContact' => ['mutate' => static function (Household $h, MemberId $id, MockClock $clock): void {
+        };
+    }
+
+    /**
+     * Shared by {@see self::anonymizedMemberMutatorCases()} and
+     * {@see self::mergedMemberMutatorCases()} for the same reason as
+     * {@see self::updateProfileMutator()}.
+     */
+    private static function updateContactMutator(): callable
+    {
+        return static function (Household $h, MemberId $id, MockClock $clock): void {
             $h->member($id)->updateContact(MemberContact::of(EmailAddress::of('new@example.com'), null), $clock);
-        }];
+        };
+    }
+
+    /**
+     * @return Generator<string, array{mutate: callable(Household, MemberId, MockClock): void}>
+     */
+    public static function anonymizedMemberMutatorCases(): Generator
+    {
+        yield 'updateProfile' => ['mutate' => self::updateProfileMutator()];
+        yield 'updateContact' => ['mutate' => self::updateContactMutator()];
         yield 'reactivate' => ['mutate' => static function (Household $h, MemberId $id, MockClock $clock): void {
             $h->member($id)->reactivate($clock);
         }];
@@ -400,19 +422,8 @@ final class MemberInHouseholdTest extends TestCase
      */
     public static function mergedMemberMutatorCases(): Generator
     {
-        yield 'updateProfile' => ['mutate' => static function (Household $h, MemberId $id, MockClock $clock): void {
-            $h->member($id)->updateProfile(
-                MemberProfile::of(
-                    PersonName::of('Changed', 'Name'),
-                    DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $clock),
-                    Gender::Male,
-                ),
-                $clock,
-            );
-        }];
-        yield 'updateContact' => ['mutate' => static function (Household $h, MemberId $id, MockClock $clock): void {
-            $h->member($id)->updateContact(MemberContact::of(EmailAddress::of('new@example.com'), null), $clock);
-        }];
+        yield 'updateProfile' => ['mutate' => self::updateProfileMutator()];
+        yield 'updateContact' => ['mutate' => self::updateContactMutator()];
         yield 'changeResidency' => ['mutate' => static function (Household $h, MemberId $id, MockClock $clock): void {
             $h->member($id)->changeResidency(ResidencyStatus::Member, $clock->now(), $clock);
         }];
@@ -776,20 +787,6 @@ final class MemberInHouseholdTest extends TestCase
 
     private function register(): Household
     {
-        return Household::register(
-            HouseholdId::fromString(self::HOUSEHOLD_ID),
-            HouseholdName::of('Smith Family'),
-            Address::of('123 Main St', 'Apt 4B', 'Springfield', 'IL', '62701', 'US'),
-            MemberId::fromString(self::PRIMARY_MEMBER_ID),
-            MemberCode::of('M0001'),
-            MemberProfile::of(
-                PersonName::of('Alice', 'Smith'),
-                DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
-                Gender::Female,
-            ),
-            MemberContact::of(EmailAddress::of('alice@example.com'), PhoneNumber::of('5550001')),
-            ResidencyStatus::Resident,
-            $this->clock,
-        );
+        return $this->registerSmithHousehold(self::HOUSEHOLD_ID, self::PRIMARY_MEMBER_ID);
     }
 }
