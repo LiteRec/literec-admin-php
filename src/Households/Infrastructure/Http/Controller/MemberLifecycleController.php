@@ -53,11 +53,19 @@ final class MemberLifecycleController extends AbstractController
     private const string TEMPLATE_DEACTIVATE_DIALOG = 'households/detail/_deactivate_dialog.html.twig';
 
     public function __construct(
-        // Consumed by the DispatchesHouseholdMessages trait at $this->queryBus.
-        private readonly MessageBusInterface $queryBus, // NOSONAR
-        // Consumed by the DispatchesHouseholdMessages trait at $this->commandBus.
-        private readonly MessageBusInterface $commandBus, // NOSONAR
+        private readonly MessageBusInterface $queryBus,
+        private readonly MessageBusInterface $commandBus,
     ) {
+    }
+
+    private function queryBus(): MessageBusInterface
+    {
+        return $this->queryBus;
+    }
+
+    private function commandBus(): MessageBusInterface
+    {
+        return $this->commandBus;
     }
 
     /**

@@ -52,6 +52,16 @@ final class SplitMemberController extends AbstractController
     ) {
     }
 
+    private function queryBus(): MessageBusInterface
+    {
+        return $this->queryBus;
+    }
+
+    private function commandBus(): MessageBusInterface
+    {
+        return $this->commandBus;
+    }
+
     #[Route(
         '/admin/users/{householdId}/{memberId}/split',
         name: 'member_split_form',

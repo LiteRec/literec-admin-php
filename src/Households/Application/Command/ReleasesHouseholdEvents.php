@@ -15,15 +15,18 @@ use Symfony\Component\Messenger\Stamp\DispatchAfterCurrentBusStamp;
  * (LRA-210), which are otherwise near-identical, to keep the SonarCloud
  * new-code duplication gate under threshold.
  *
- * Requires the consuming handler to expose `$this->eventBus` as a
- * {@see MessageBusInterface} property.
+ * Requires the consuming handler to implement {@see self::eventBus()},
+ * returning the bus the handler already holds as a constructor-promoted
+ * property.
  */
 trait ReleasesHouseholdEvents
 {
+    abstract private function eventBus(): MessageBusInterface;
+
     private function releaseAndDispatch(Household $household): void
     {
         foreach ($household->releaseEvents() as $event) {
-            $this->eventBus->dispatch($event, [new DispatchAfterCurrentBusStamp()]);
+            $this->eventBus()->dispatch($event, [new DispatchAfterCurrentBusStamp()]);
         }
     }
 }

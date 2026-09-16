@@ -44,6 +44,16 @@ final class MergeMembersController extends AbstractController
     ) {
     }
 
+    private function queryBus(): MessageBusInterface
+    {
+        return $this->queryBus;
+    }
+
+    private function commandBus(): MessageBusInterface
+    {
+        return $this->commandBus;
+    }
+
     #[Route(
         '/admin/users/{householdId}/{memberId}/merge/confirm',
         name: 'member_merge_confirm_form',

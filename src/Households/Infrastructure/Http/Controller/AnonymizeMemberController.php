@@ -65,12 +65,20 @@ final class AnonymizeMemberController extends AbstractController
     private const string BLOCKED_MERGED = 'merged';
 
     public function __construct(
-        // Consumed by the DispatchesHouseholdMessages trait at $this->queryBus.
-        private readonly MessageBusInterface $queryBus, // NOSONAR
-        // Consumed by the DispatchesHouseholdMessages trait at $this->commandBus.
-        private readonly MessageBusInterface $commandBus, // NOSONAR
+        private readonly MessageBusInterface $queryBus,
+        private readonly MessageBusInterface $commandBus,
         private readonly LoggerInterface $logger,
     ) {
+    }
+
+    private function queryBus(): MessageBusInterface
+    {
+        return $this->queryBus;
+    }
+
+    private function commandBus(): MessageBusInterface
+    {
+        return $this->commandBus;
     }
 
     /**
