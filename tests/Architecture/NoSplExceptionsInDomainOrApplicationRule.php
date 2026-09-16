@@ -16,12 +16,21 @@ use PHPat\Test\PHPat;
  * named constructors"; the Anti-Patterns section extends the same rule to
  * Application).
  *
- * \DomainException is deliberately excluded from the target list: every App
- * domain exception extends it, and PHPat's construct assertion is only
- * documented for `new` expressions, not for the implicit
- * `parent::__construct()` a named constructor makes when building `new
- * self(...)`. Including it would false-positive on every domain exception
- * this rule is meant to protect.
+ * Extending an SPL type is still allowed (every App domain exception extends
+ * \DomainException); only constructing one directly is forbidden. `new
+ * self(...)` inside a subclass resolves to the subclass — PHPat's
+ * `NewExtractor` resolves `self` through the enclosing class scope, and
+ * `Selector::classname()` is an exact-name match, not an inheritance check —
+ * so \DomainException can be listed here without false-positiving on any
+ * existing domain exception's named constructor.
+ *
+ * The `excluding(App\Tests)` below is currently unreachable: the single
+ * `\w+` segment in {@see self::DOMAIN_OR_APPLICATION_NAMESPACE} already
+ * stops `App\Tests\Unit\...\Domain\...` from matching the primary selector
+ * (it has two segments, "Tests" and "Unit", before "Domain"). It is kept
+ * anyway for consistency with every LRA-198 subject selector and as a
+ * guard against a future rename of the test namespace layout, not because
+ * tests are in scope today.
  */
 final class NoSplExceptionsInDomainOrApplicationRule
 {
@@ -37,6 +46,7 @@ final class NoSplExceptionsInDomainOrApplicationRule
             ->construct()
             ->classes(
                 Selector::classname(\Exception::class),
+                Selector::classname(\DomainException::class),
                 Selector::classname(\LogicException::class),
                 Selector::classname(\RuntimeException::class),
                 Selector::classname(\InvalidArgumentException::class),

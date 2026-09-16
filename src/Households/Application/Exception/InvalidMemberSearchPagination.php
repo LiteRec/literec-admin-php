@@ -8,7 +8,13 @@ use InvalidArgumentException;
 
 /**
  * Raised when {@see \App\Households\Application\Query\Port\SearchMembersCriteria}
- * is built with a page or pageSize outside its bounded range.
+ * is built with a page or pageSize outside its bounded range, or when
+ * {@see \App\Households\Infrastructure\Http\Controller\MemberLookupController}
+ * rejects a pageSize above its own dialog-specific cap.
+ *
+ * Messages name the field, not SearchMembersCriteria: the lookup dialog's
+ * cap is narrower than the criteria's own bounds, so a message naming that
+ * class would misattribute the check when this is thrown for the dialog.
  *
  * Application-layer exception, not a Domain one: SearchMembersCriteria is a
  * primitive-only query DTO (CLAUDE.md: DTOs carry primitives and never
@@ -23,11 +29,11 @@ final class InvalidMemberSearchPagination extends InvalidArgumentException
 {
     public static function pageBelowMinimum(int $min): self
     {
-        return new self(sprintf('SearchMembersCriteria: page must be >= %d.', $min));
+        return new self(sprintf('page must be >= %d.', $min));
     }
 
     public static function pageSizeOutOfRange(int $min, int $max): self
     {
-        return new self(sprintf('SearchMembersCriteria: pageSize must be in [%d, %d].', $min, $max));
+        return new self(sprintf('pageSize must be in [%d, %d].', $min, $max));
     }
 }
