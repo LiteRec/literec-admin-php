@@ -10,6 +10,7 @@ use App\Users\Domain\User;
 use App\Users\Domain\Users;
 use App\Users\Domain\ValueObject\HashedPassword;
 use App\Users\Domain\ValueObject\Role;
+use App\Users\Domain\ValueObject\Roles;
 use App\Users\Domain\ValueObject\UserId;
 use App\Users\Domain\ValueObject\Username;
 use Psr\Clock\ClockInterface;
@@ -45,7 +46,7 @@ final class RegisterUserHandler
             ->hash($command->plaintextPassword);
 
         $password = HashedPassword::fromHash($hash);
-        $roles = array_map(static fn(string $r): Role => Role::from($r), $command->roles);
+        $roles = Roles::of(...array_map(static fn(string $r): Role => Role::from($r), $command->roles));
         $id = $this->ids->nextUserId();
 
         $user = User::register($id, $username, $password, $roles, $this->clock);

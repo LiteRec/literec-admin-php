@@ -15,6 +15,7 @@ use App\Users\Domain\User;
 use App\Users\Domain\ValueObject\HashedPassword;
 use App\Users\Domain\ValueObject\PasswordState;
 use App\Users\Domain\ValueObject\Role;
+use App\Users\Domain\ValueObject\Roles;
 use App\Users\Domain\ValueObject\UserId;
 use App\Users\Domain\ValueObject\Username;
 use App\Users\Infrastructure\Persistence\InMemory\InMemoryUsers;
@@ -64,8 +65,8 @@ final class IssueOneTimePasswordHandlerTest extends TestCase
         self::assertSame('aB3dE6fH9jKm', $otp->value);
 
         $user = $this->users->byId(UserId::fromString(self::USER_ID));
-        self::assertSame(PasswordState::OneTimeIssued, $user->passwordState());
-        self::assertNotSame('aB3dE6fH9jKm', $user->passwordHash()->value);
+        self::assertSame(PasswordState::OneTimeIssued, $user->credential()->state);
+        self::assertNotSame('aB3dE6fH9jKm', $user->credential()->hash->value);
 
         $messages = $this->eventBus->dispatchedMessages();
         self::assertCount(1, $messages);
@@ -100,7 +101,7 @@ final class IssueOneTimePasswordHandlerTest extends TestCase
             UserId::fromString(self::USER_ID),
             Username::of('alice'),
             HashedPassword::fromHash('$2y$10$abcdefghijklmnopqrstuuvwxyz0123456789ABCDEFGHIJKLMNOPQR'),
-            [Role::User],
+            Roles::of(Role::User),
             $this->clock,
         );
         $user->releaseEvents();

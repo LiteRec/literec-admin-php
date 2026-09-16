@@ -38,17 +38,19 @@ final readonly class SecurityUser implements UserInterface, PasswordAuthenticate
 
     public static function from(User $user): self
     {
-        $roleValues = array_map(static fn(Role $r): string => $r->value, $user->roles());
+        $roleValues = $user->roles()->toStrings();
         $roleValues[] = Role::User->value;
+
+        $credential = $user->credential();
 
         return new self(
             id: $user->id()->value,
             username: $user->username()->value,
-            hashedPassword: $user->passwordHash()->value,
+            hashedPassword: $credential->hash->value,
             roles: array_values(array_unique($roleValues)),
             isActive: $user->isActive(),
-            passwordState: $user->passwordState(),
-            oneTimePasswordIssuedAt: $user->oneTimePasswordIssuedAt(),
+            passwordState: $credential->state,
+            oneTimePasswordIssuedAt: $credential->oneTimePasswordIssuedAt,
         );
     }
 

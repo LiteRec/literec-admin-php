@@ -13,6 +13,7 @@ use App\Users\Domain\User;
 use App\Users\Domain\ValueObject\HashedPassword;
 use App\Users\Domain\ValueObject\PasswordState;
 use App\Users\Domain\ValueObject\Role;
+use App\Users\Domain\ValueObject\Roles;
 use App\Users\Domain\ValueObject\UserId;
 use App\Users\Domain\ValueObject\Username;
 use App\Users\Infrastructure\Persistence\InMemory\InMemoryUsers;
@@ -61,8 +62,8 @@ final class EstablishPasswordHandlerTest extends TestCase
         ($this->handler)(new EstablishPassword(self::USER_ID, 'a-brand-new-password'));
 
         $user = $this->users->byId(UserId::fromString(self::USER_ID));
-        self::assertSame(PasswordState::Established, $user->passwordState());
-        self::assertNotSame(self::SAMPLE_HASH, $user->passwordHash()->value);
+        self::assertSame(PasswordState::Established, $user->credential()->state);
+        self::assertNotSame(self::SAMPLE_HASH, $user->credential()->hash->value);
 
         $messages = $this->eventBus->dispatchedMessages();
         self::assertCount(1, $messages);
@@ -84,7 +85,7 @@ final class EstablishPasswordHandlerTest extends TestCase
             UserId::fromString(self::USER_ID),
             Username::of('alice'),
             HashedPassword::fromHash(self::SAMPLE_HASH),
-            [Role::User],
+            Roles::of(Role::User),
             $this->clock,
         );
         $user->issueOneTimePassword(HashedPassword::fromHash(self::SAMPLE_HASH), $this->clock);
