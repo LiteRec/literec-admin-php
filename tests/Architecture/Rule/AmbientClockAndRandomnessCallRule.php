@@ -33,6 +33,8 @@ final class AmbientClockAndRandomnessCallRule implements Rule
     private const RANDOMNESS_FUNCTIONS = ['uniqid', 'rand', 'mt_rand', 'random_int', 'random_bytes'];
 
     private const UID_NAMESPACE_PREFIX = 'Symfony\\Component\\Uid\\';
+    private const CLOCK_TIP = 'Inject Psr\\Clock\\ClockInterface and call ->now() instead.';
+    private const RANDOMNESS_TIP = 'Inject the context\'s IdentityGenerator port instead.';
 
     public function __construct(private readonly LayerNamespaces $layers)
     {
@@ -53,15 +55,11 @@ final class AmbientClockAndRandomnessCallRule implements Rule
             return [];
         }
 
-        if ($node instanceof FuncCall) {
-            return $this->processFuncCall($node);
-        }
-
-        if ($node instanceof StaticCall) {
-            return $this->processStaticCall($node, $scope);
-        }
-
-        return [];
+        return match (true) {
+            $node instanceof FuncCall => $this->processFuncCall($node),
+            $node instanceof StaticCall => $this->processStaticCall($node, $scope),
+            default => [],
+        };
     }
 
     /**
@@ -75,23 +73,19 @@ final class AmbientClockAndRandomnessCallRule implements Rule
 
         $functionName = strtolower($node->name->getLast());
 
-        if (in_array($functionName, self::CLOCK_FUNCTIONS, true)) {
-            return [$this->buildError(
+        return match (true) {
+            in_array($functionName, self::CLOCK_FUNCTIONS, true) => [$this->buildError(
                 sprintf('%s() reads the ambient system clock.', $functionName),
                 'literec.ambientClock',
-                'Inject Psr\\Clock\\ClockInterface and call ->now() instead.',
-            )];
-        }
-
-        if (in_array($functionName, self::RANDOMNESS_FUNCTIONS, true)) {
-            return [$this->buildError(
+                self::CLOCK_TIP,
+            )],
+            in_array($functionName, self::RANDOMNESS_FUNCTIONS, true) => [$this->buildError(
                 sprintf('%s() reads an ambient randomness source.', $functionName),
                 'literec.ambientRandomness',
-                'Inject the context\'s IdentityGenerator port instead.',
-            )];
-        }
-
-        return [];
+                self::RANDOMNESS_TIP,
+            )],
+            default => [],
+        };
     }
 
     /**
@@ -111,7 +105,7 @@ final class AmbientClockAndRandomnessCallRule implements Rule
         return [$this->buildError(
             sprintf('%s generates an identifier from an ambient randomness source.', $resolvedClassName),
             'literec.ambientRandomness',
-            'Inject the context\'s IdentityGenerator port instead.',
+            self::RANDOMNESS_TIP,
         )];
     }
 
