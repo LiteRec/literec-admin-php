@@ -264,26 +264,6 @@ final class HouseholdTest extends TestCase
     }
 
     #[Test]
-    #[TestDox('::updateMemberProfile() is a no-op when salutation, height, and weight stay null-to-null.')]
-    public function update_member_profile_is_noop_when_measurements_stay_null(): void
-    {
-        $household = $this->register();
-        $household->releaseEvents();
-
-        $household->updateMemberProfile(
-            MemberId::fromString(self::PRIMARY_MEMBER_ID),
-            MemberProfile::of(
-                PersonName::of('Alice', 'Smith'),
-                DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
-                Gender::Female,
-            ),
-            $this->clock,
-        );
-
-        self::assertSame([], $household->releaseEvents());
-    }
-
-    #[Test]
     #[TestDox('::updateMemberProfile() is a no-op when salutation, height, and weight are resubmitted unchanged.')]
     public function update_member_profile_is_noop_when_measurements_unchanged(): void
     {

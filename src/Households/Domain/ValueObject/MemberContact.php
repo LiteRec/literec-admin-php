@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Households\Domain\ValueObject;
 
+use App\Households\Domain\NullSafeEquality;
 use App\Shared\Domain\ValueObject\EmailAddress;
 use App\Shared\Domain\ValueObject\PhoneNumber;
 
@@ -19,6 +20,8 @@ use App\Shared\Domain\ValueObject\PhoneNumber;
  */
 final readonly class MemberContact
 {
+    use NullSafeEquality;
+
     private function __construct(
         public ?EmailAddress $email,
         public ?PhoneNumber $phone,
@@ -56,25 +59,5 @@ final readonly class MemberContact
             $other->phone,
             static fn(PhoneNumber $a, PhoneNumber $b): bool => $a->equals($b),
         );
-    }
-
-    /**
-     * @template T of object
-     *
-     * @param T|null $a
-     * @param T|null $b
-     * @param callable(T, T): bool $equals
-     */
-    private static function nullSafeEquals(?object $a, ?object $b, callable $equals): bool
-    {
-        if ($a === null && $b === null) {
-            return true;
-        }
-
-        if ($a === null || $b === null) {
-            return false;
-        }
-
-        return $equals($a, $b);
     }
 }
