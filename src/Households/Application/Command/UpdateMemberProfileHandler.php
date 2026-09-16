@@ -48,7 +48,7 @@ final class UpdateMemberProfileHandler
         $weight = $command->weightPounds !== null ? Weight::ofPounds($command->weightPounds) : null;
 
         $profile = MemberProfile::of($name, $dob, $gender, $salutation, $height, $weight);
-        $household->updateMemberProfile($memberId, $profile, $this->clock);
+        $household->member($memberId)->updateProfile($profile, $this->clock);
         $this->households->save($household);
 
         foreach ($household->releaseEvents() as $event) {

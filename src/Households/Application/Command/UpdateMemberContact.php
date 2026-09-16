@@ -7,7 +7,7 @@ namespace App\Households\Application\Command;
 /**
  * Primitive-only command DTO for updating a member's contact channels
  * (email, phone). A null value means "clear this contact channel" —
- * {@see \App\Households\Domain\Household::updateMemberContact()} treats
+ * {@see \App\Households\Domain\MemberInHousehold::updateContact()} treats
  * null as an explicit removal, not "leave unchanged".
  */
 final readonly class UpdateMemberContact

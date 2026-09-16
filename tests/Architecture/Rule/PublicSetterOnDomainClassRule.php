@@ -54,7 +54,7 @@ final class PublicSetterOnDomainClassRule implements Rule
                 $methodReflection->getName(),
             ))
                 ->identifier('literec.publicSetter')
-                ->tip('Rename to the domain verb it performs, e.g. Household::changeMemberResidency().')
+                ->tip('Rename to the domain verb it performs, e.g. MemberInHousehold::changeResidency().')
                 ->build(),
         ];
     }

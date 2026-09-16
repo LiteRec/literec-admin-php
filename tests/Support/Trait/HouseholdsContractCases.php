@@ -206,22 +206,19 @@ trait HouseholdsContractCases
         $newAddress = Address::of('200 Oak Ave', null, 'Portland', 'OR', '97201', 'US');
         $loaded->updateAddress($newAddress, $this->clock());
 
-        $loaded->updateMemberContact(
-            MemberId::fromString(self::PRIMARY_MEMBER_ID),
+        $loaded->member(MemberId::fromString(self::PRIMARY_MEMBER_ID))->updateContact(
             MemberContact::of(EmailAddress::of('alice.new@example.com'), PhoneNumber::of('5550111')),
             $this->clock(),
         );
 
-        $loaded->changeMemberResidency(
-            MemberId::fromString(self::SECOND_MEMBER_ID),
+        $loaded->member(MemberId::fromString(self::SECOND_MEMBER_ID))->changeResidency(
             ResidencyStatus::Member,
             $this->clock()->now(),
             $this->clock(),
             'paid annual membership',
         );
 
-        $loaded->deactivateMember(
-            MemberId::fromString(self::SECOND_MEMBER_ID),
+        $loaded->member(MemberId::fromString(self::SECOND_MEMBER_ID))->deactivate(
             'moved out of state',
             $this->clock(),
         );
@@ -267,7 +264,7 @@ trait HouseholdsContractCases
             ImageFormat::Jpeg,
             $this->clock()->now(),
         );
-        $loaded->attachMemberPhoto(MemberId::fromString(self::PRIMARY_MEMBER_ID), $photo, $this->clock());
+        $loaded->member(MemberId::fromString(self::PRIMARY_MEMBER_ID))->attachPhoto($photo, $this->clock());
         $this->households()->save($loaded);
 
         $withPhoto = $this->households()->findById(HouseholdId::fromString(self::HOUSEHOLD_ID));
@@ -275,7 +272,7 @@ trait HouseholdsContractCases
         self::assertNotNull($memberWithPhoto->photo());
         self::assertTrue($memberWithPhoto->photo()->equals($photo));
 
-        $withPhoto->removeMemberPhoto(MemberId::fromString(self::PRIMARY_MEMBER_ID), $this->clock());
+        $withPhoto->member(MemberId::fromString(self::PRIMARY_MEMBER_ID))->removePhoto($this->clock());
         $this->households()->save($withPhoto);
 
         $withoutPhoto = $this->households()->findById(HouseholdId::fromString(self::HOUSEHOLD_ID));
@@ -293,7 +290,7 @@ trait HouseholdsContractCases
         $duplicateId = MemberId::fromString(self::SECOND_MEMBER_ID);
         $survivorId = MemberId::fromString(self::PRIMARY_MEMBER_ID);
         $survivorHouseholdId = HouseholdId::fromString(self::HOUSEHOLD_ID);
-        $loaded->mergeMemberInto($duplicateId, $survivorHouseholdId, $survivorId, $this->clock());
+        $loaded->member($duplicateId)->mergeInto($survivorHouseholdId, $survivorId, $this->clock());
         $this->households()->save($loaded);
 
         $reloaded = $this->households()->findById(HouseholdId::fromString(self::HOUSEHOLD_ID));
@@ -394,7 +391,7 @@ trait HouseholdsContractCases
         $survivorId = MemberId::fromString(self::PRIMARY_MEMBER_ID);
         $duplicateId = MemberId::fromString(self::SECOND_MEMBER_ID);
         $householdId = HouseholdId::fromString(self::HOUSEHOLD_ID);
-        $household->mergeMemberInto($duplicateId, $householdId, $survivorId, $this->clock());
+        $household->member($duplicateId)->mergeInto($householdId, $survivorId, $this->clock());
         $this->households()->save($household);
 
         $this->expectException(MemberAlreadyMerged::class);
@@ -424,8 +421,7 @@ trait HouseholdsContractCases
         $this->households()->save($this->buildTargetHousehold());
 
         $loaded = $this->households()->findById(HouseholdId::fromString(self::HOUSEHOLD_ID));
-        $loaded->shareMemberWithHousehold(
-            MemberId::fromString(self::MINOR_MEMBER_ID),
+        $loaded->member(MemberId::fromString(self::MINOR_MEMBER_ID))->shareWithHousehold(
             HouseholdId::fromString(self::TARGET_HOUSEHOLD_ID),
             $this->clock(),
         );
@@ -439,8 +435,7 @@ trait HouseholdsContractCases
             $minor->householdLinks()->householdIds(),
         );
 
-        $reloaded->withdrawMemberFromHousehold(
-            MemberId::fromString(self::MINOR_MEMBER_ID),
+        $reloaded->member(MemberId::fromString(self::MINOR_MEMBER_ID))->withdrawFromHousehold(
             HouseholdId::fromString(self::TARGET_HOUSEHOLD_ID),
             $this->clock(),
         );

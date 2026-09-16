@@ -51,7 +51,7 @@ final class LinkMinorToHouseholdHandler
         $memberId = MemberId::fromString($command->memberId);
         $home = $this->households->findByMemberId($memberId);
 
-        $home->shareMemberWithHousehold($memberId, $target, $this->clock);
+        $home->member($memberId)->shareWithHousehold($target, $this->clock);
         // Re-assert the not-merged premise under a row lock, in the same
         // transaction as the write below — see the class docblock.
         $this->households->lockUnmergedMember($home->id(), $memberId);

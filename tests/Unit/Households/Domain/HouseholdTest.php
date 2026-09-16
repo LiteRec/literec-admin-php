@@ -8,28 +8,14 @@ use App\Households\Domain\Event\HouseholdAddressUpdated;
 use App\Households\Domain\Event\HouseholdRegistered;
 use App\Households\Domain\Event\MemberAddedToHousehold;
 use App\Households\Domain\Event\MemberAnonymized;
-use App\Households\Domain\Event\MemberContactUpdated;
-use App\Households\Domain\Event\MemberDeactivated;
-use App\Households\Domain\Event\MemberMergedInto;
-use App\Households\Domain\Event\MemberPhotoAttached;
 use App\Households\Domain\Event\MemberPhotoReleased;
-use App\Households\Domain\Event\MemberPhotoRemoved;
-use App\Households\Domain\Event\MemberProfileUpdated;
-use App\Households\Domain\Event\MemberReactivated;
 use App\Households\Domain\Event\MemberRemovedFromHousehold;
-use App\Households\Domain\Event\MemberResidencyChanged;
-use App\Households\Domain\Event\MemberSharedWithHousehold;
-use App\Households\Domain\Event\MemberSharingWithdrawn;
 use App\Households\Domain\Event\MemberSplitOff;
-use App\Households\Domain\Exception\CannotMergeMemberIntoItself;
-use App\Households\Domain\Exception\CannotShareWithHomeHousehold;
 use App\Households\Domain\Exception\DuplicateMemberCode;
 use App\Households\Domain\Exception\DuplicateMemberId;
-use App\Households\Domain\Exception\HouseholdAlreadyLinked;
 use App\Households\Domain\Exception\InvariantViolation;
 use App\Households\Domain\Exception\MemberAlreadyMerged;
 use App\Households\Domain\Exception\MemberIsAnonymized;
-use App\Households\Domain\Exception\MemberNotAMinor;
 use App\Households\Domain\Exception\MemberNotFound;
 use App\Households\Domain\Exception\SplitSelectionEmpty;
 use App\Households\Domain\Household;
@@ -69,8 +55,6 @@ final class HouseholdTest extends TestCase
     private const string HOUSEHOLD_ID = '019571bf-5d51-7000-b500-000000000001';
     private const string PRIMARY_MEMBER_ID = '019571bf-5d51-7000-b500-000000000002';
     private const string SECOND_MEMBER_ID = '019571bf-5d51-7000-b500-000000000003';
-    private const string MINOR_MEMBER_ID = '019571bf-5d51-7000-b500-000000000004';
-    private const string TARGET_HOUSEHOLD_ID = '019571bf-5d51-7000-b500-000000000005';
 
     private MockClock $clock;
 
@@ -175,181 +159,14 @@ final class HouseholdTest extends TestCase
     }
 
     #[Test]
-    #[TestDox('::updateMemberProfile() is a no-op when nothing changed (no event recorded).')]
-    public function update_member_profile_is_noop_when_unchanged(): void
+    #[TestDox('::member() throws MemberNotFound for an unknown member id.')]
+    public function member_throws_when_member_unknown(): void
     {
         $household = $this->register();
-        $household->releaseEvents();
 
-        $household->updateMemberProfile(
-            MemberId::fromString(self::PRIMARY_MEMBER_ID),
-            MemberProfile::of(
-                PersonName::of('Alice', 'Smith'),
-                DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
-                Gender::Female,
-            ),
-            $this->clock,
-        );
+        $this->expectException(MemberNotFound::class);
 
-        self::assertSame([], $household->releaseEvents());
-    }
-
-    #[Test]
-    #[TestDox('::updateMemberProfile() records MemberProfileUpdated on a real change.')]
-    public function update_member_profile_records_event_on_change(): void
-    {
-        $household = $this->register();
-        $household->releaseEvents();
-
-        $household->updateMemberProfile(
-            MemberId::fromString(self::PRIMARY_MEMBER_ID),
-            MemberProfile::of(
-                PersonName::of('Alice', 'Johnson'),
-                DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
-                Gender::Female,
-            ),
-            $this->clock,
-        );
-
-        $events = $household->releaseEvents();
-        self::assertCount(1, $events);
-        self::assertInstanceOf(MemberProfileUpdated::class, $events[0]);
-        self::assertSame(self::PRIMARY_MEMBER_ID, $events[0]->memberId->value);
-    }
-
-    #[Test]
-    #[TestDox('::updateMemberProfile() records MemberProfileUpdated on a salutation/height/weight-only change.')]
-    public function update_member_profile_records_event_on_measurement_only_change(): void
-    {
-        $household = $this->register();
-        $household->releaseEvents();
-
-        $household->updateMemberProfile(
-            MemberId::fromString(self::PRIMARY_MEMBER_ID),
-            MemberProfile::of(
-                PersonName::of('Alice', 'Smith'),
-                DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
-                Gender::Female,
-                Salutation::Ms,
-                Height::ofInches(65),
-                Weight::ofPounds(140),
-            ),
-            $this->clock,
-        );
-
-        $events = $household->releaseEvents();
-        self::assertCount(1, $events);
-        self::assertInstanceOf(MemberProfileUpdated::class, $events[0]);
-    }
-
-    #[Test]
-    #[TestDox('::updateMemberProfile() records MemberProfileUpdated when only the nickname changes.')]
-    public function update_member_profile_records_event_on_nickname_only_change(): void
-    {
-        $household = $this->register();
-        $household->releaseEvents();
-
-        $household->updateMemberProfile(
-            MemberId::fromString(self::PRIMARY_MEMBER_ID),
-            MemberProfile::of(
-                PersonName::of('Alice', 'Smith', nickname: 'Al'),
-                DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
-                Gender::Female,
-            ),
-            $this->clock,
-        );
-
-        $events = $household->releaseEvents();
-        self::assertCount(1, $events);
-        self::assertInstanceOf(MemberProfileUpdated::class, $events[0]);
-    }
-
-    #[Test]
-    #[TestDox('::updateMemberProfile() is a no-op when salutation, height, and weight are resubmitted unchanged.')]
-    public function update_member_profile_is_noop_when_measurements_unchanged(): void
-    {
-        $household = $this->register();
-        $household->updateMemberProfile(
-            MemberId::fromString(self::PRIMARY_MEMBER_ID),
-            MemberProfile::of(
-                PersonName::of('Alice', 'Smith'),
-                DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
-                Gender::Female,
-                Salutation::Ms,
-                Height::ofInches(65),
-                Weight::ofPounds(140),
-            ),
-            $this->clock,
-        );
-        $household->releaseEvents();
-
-        $household->updateMemberProfile(
-            MemberId::fromString(self::PRIMARY_MEMBER_ID),
-            MemberProfile::of(
-                PersonName::of('Alice', 'Smith'),
-                DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
-                Gender::Female,
-                Salutation::Ms,
-                Height::ofInches(65),
-                Weight::ofPounds(140),
-            ),
-            $this->clock,
-        );
-
-        self::assertSame([], $household->releaseEvents());
-    }
-
-    #[Test]
-    #[TestDox('::deactivateMember() records MemberDeactivated and is idempotent on a second call.')]
-    public function deactivate_member_is_idempotent(): void
-    {
-        $household = $this->register();
-        $household->releaseEvents();
-
-        $household->deactivateMember(
-            MemberId::fromString(self::PRIMARY_MEMBER_ID),
-            'moved away',
-            $this->clock,
-        );
-
-        $events = $household->releaseEvents();
-        self::assertCount(1, $events);
-        self::assertInstanceOf(MemberDeactivated::class, $events[0]);
-        self::assertSame('moved away', $events[0]->reason);
-
-        $household->deactivateMember(
-            MemberId::fromString(self::PRIMARY_MEMBER_ID),
-            'second reason',
-            $this->clock,
-        );
-
-        self::assertSame([], $household->releaseEvents());
-    }
-
-    #[Test]
-    #[TestDox('::reactivateMember() records MemberReactivated only when previously deactivated.')]
-    public function reactivate_member_records_event_only_when_deactivated(): void
-    {
-        $household = $this->register();
-        $household->releaseEvents();
-
-        // No-op when already active.
-        $household->reactivateMember(MemberId::fromString(self::PRIMARY_MEMBER_ID), $this->clock);
-        self::assertSame([], $household->releaseEvents());
-
-        // After deactivation, reactivate records the event.
-        $household->deactivateMember(
-            MemberId::fromString(self::PRIMARY_MEMBER_ID),
-            'pause',
-            $this->clock,
-        );
-        $household->releaseEvents();
-
-        $household->reactivateMember(MemberId::fromString(self::PRIMARY_MEMBER_ID), $this->clock);
-
-        $events = $household->releaseEvents();
-        self::assertCount(1, $events);
-        self::assertInstanceOf(MemberReactivated::class, $events[0]);
+        $household->member(MemberId::fromString('019571bf-5d51-7000-b500-bbbbbbbbbbbb'));
     }
 
     #[Test]
@@ -386,7 +203,7 @@ final class HouseholdTest extends TestCase
         $household = $this->register();
         $memberId = MemberId::fromString(self::PRIMARY_MEMBER_ID);
         $photo = $this->photo('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.jpg');
-        $household->attachMemberPhoto($memberId, $photo, $this->clock);
+        $household->member($memberId)->attachPhoto($photo, $this->clock);
         $household->releaseEvents();
 
         $household->anonymizeMember($memberId, AnonymizedProfile::placeholder(), $this->clock);
@@ -510,8 +327,7 @@ final class HouseholdTest extends TestCase
             false,
             $this->clock,
         );
-        $household->mergeMemberInto(
-            MemberId::fromString(self::SECOND_MEMBER_ID),
+        $household->member(MemberId::fromString(self::SECOND_MEMBER_ID))->mergeInto(
             HouseholdId::fromString('019571bf-5d51-7000-b500-000000000099'),
             MemberId::fromString('019571bf-5d51-7000-b500-000000000098'),
             $this->clock,
@@ -525,129 +341,6 @@ final class HouseholdTest extends TestCase
 
         self::assertSame('Anonymized Household', $household->name()->value);
         self::assertSame('ZZ', $household->address()->country);
-    }
-
-    /**
-     * @return Generator<string, array{mutate: callable(Household, MemberId, MockClock): void}>
-     */
-    public static function anonymizedMemberMutatorCases(): Generator
-    {
-        yield 'updateMemberProfile' => ['mutate' => static function (
-            Household $h,
-            MemberId $id,
-            MockClock $clock,
-        ): void {
-            $h->updateMemberProfile(
-                $id,
-                MemberProfile::of(
-                    PersonName::of('Changed', 'Name'),
-                    DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $clock),
-                    Gender::Male,
-                ),
-                $clock,
-            );
-        }];
-        yield 'updateMemberContact' => ['mutate' => static function (
-            Household $h,
-            MemberId $id,
-            MockClock $clock,
-        ): void {
-            $h->updateMemberContact($id, MemberContact::of(EmailAddress::of('new@example.com'), null), $clock);
-        }];
-        yield 'reactivateMember' => ['mutate' => static function (Household $h, MemberId $id, MockClock $clock): void {
-            $h->reactivateMember($id, $clock);
-        }];
-        yield 'changeMemberResidency' => ['mutate' => static function (
-            Household $h,
-            MemberId $id,
-            MockClock $clock,
-        ): void {
-            $h->changeMemberResidency($id, ResidencyStatus::NonResident, $clock->now(), $clock);
-        }];
-    }
-
-    #[Test]
-    #[DataProvider('anonymizedMemberMutatorCases')]
-    #[TestDox('every other mutator throws MemberIsAnonymized when the target member is anonymized.')]
-    public function mutators_throw_member_is_anonymized_on_anonymized_member(callable $mutate): void
-    {
-        $household = $this->register();
-        $memberId = MemberId::fromString(self::PRIMARY_MEMBER_ID);
-        $household->anonymizeMember($memberId, AnonymizedProfile::placeholder(), $this->clock);
-        $household->releaseEvents();
-
-        $this->expectException(MemberIsAnonymized::class);
-
-        $mutate($household, $memberId, $this->clock);
-    }
-
-    #[Test]
-    #[TestDox('::mergeMemberInto() records MemberMergedInto carrying the duplicate\'s contact and marks it merged.')]
-    public function merge_member_into_records_event_with_contact(): void
-    {
-        $household = $this->register();
-        $household->releaseEvents();
-        $duplicateId = MemberId::fromString(self::PRIMARY_MEMBER_ID);
-        $survivorHouseholdId = HouseholdId::fromString('019571bf-5d51-7000-b500-000000000099');
-        $survivorId = MemberId::fromString('019571bf-5d51-7000-b500-000000000098');
-
-        $household->mergeMemberInto($duplicateId, $survivorHouseholdId, $survivorId, $this->clock);
-
-        $events = $household->releaseEvents();
-        self::assertCount(1, $events);
-        self::assertInstanceOf(MemberMergedInto::class, $events[0]);
-        self::assertTrue($events[0]->householdId->equals(HouseholdId::fromString(self::HOUSEHOLD_ID)));
-        self::assertTrue($events[0]->memberId->equals($duplicateId));
-        self::assertTrue($events[0]->survivorHouseholdId->equals($survivorHouseholdId));
-        self::assertTrue($events[0]->survivorMemberId->equals($survivorId));
-        self::assertNotNull($events[0]->email);
-        self::assertTrue($events[0]->email->equals(EmailAddress::of('alice@example.com')));
-        self::assertNotNull($events[0]->phone);
-        self::assertTrue($events[0]->phone->equals(PhoneNumber::of('5550001')));
-        self::assertEquals($this->clock->now(), $events[0]->occurredAt);
-
-        $mergedLifecycle = $this->memberById($household, $duplicateId)->lifecycle();
-        self::assertTrue($mergedLifecycle->isMerged());
-        $merge = $mergedLifecycle->merge;
-        self::assertNotNull($merge);
-        self::assertTrue($merge->intoMemberId->equals($survivorId));
-    }
-
-    #[Test]
-    #[TestDox('::mergeMemberInto() throws CannotMergeMemberIntoItself when the duplicate and survivor ids match.')]
-    public function merge_member_into_rejects_self_merge(): void
-    {
-        $household = $this->register();
-        $memberId = MemberId::fromString(self::PRIMARY_MEMBER_ID);
-
-        $this->expectException(CannotMergeMemberIntoItself::class);
-
-        $household->mergeMemberInto($memberId, HouseholdId::fromString(self::HOUSEHOLD_ID), $memberId, $this->clock);
-    }
-
-    #[Test]
-    #[TestDox('::mergeMemberInto() throws MemberAlreadyMerged when the duplicate is already merged.')]
-    public function merge_member_into_rejects_already_merged_duplicate(): void
-    {
-        $household = $this->register();
-        $duplicateId = MemberId::fromString(self::PRIMARY_MEMBER_ID);
-        $survivorId = MemberId::fromString('019571bf-5d51-7000-b500-000000000098');
-        $household->mergeMemberInto(
-            $duplicateId,
-            HouseholdId::fromString('019571bf-5d51-7000-b500-000000000099'),
-            $survivorId,
-            $this->clock,
-        );
-        $household->releaseEvents();
-
-        $this->expectException(MemberAlreadyMerged::class);
-
-        $household->mergeMemberInto(
-            $duplicateId,
-            HouseholdId::fromString('019571bf-5d51-7000-b500-000000000099'),
-            $survivorId,
-            $this->clock,
-        );
     }
 
     #[Test]
@@ -673,54 +366,8 @@ final class HouseholdTest extends TestCase
      */
     public static function mergedMemberMutatorCases(): Generator
     {
-        yield 'updateMemberProfile' => ['mutate' => static function (
-            Household $h,
-            MemberId $id,
-            MockClock $clock,
-        ): void {
-            $h->updateMemberProfile(
-                $id,
-                MemberProfile::of(
-                    PersonName::of('Changed', 'Name'),
-                    DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $clock),
-                    Gender::Male,
-                ),
-                $clock,
-            );
-        }];
-        yield 'updateMemberContact' => ['mutate' => static function (
-            Household $h,
-            MemberId $id,
-            MockClock $clock,
-        ): void {
-            $h->updateMemberContact($id, MemberContact::of(EmailAddress::of('new@example.com'), null), $clock);
-        }];
-        yield 'changeMemberResidency' => ['mutate' => static function (
-            Household $h,
-            MemberId $id,
-            MockClock $clock,
-        ): void {
-            $h->changeMemberResidency($id, ResidencyStatus::Member, $clock->now(), $clock);
-        }];
-        yield 'deactivateMember' => ['mutate' => static function (Household $h, MemberId $id, MockClock $clock): void {
-            $h->deactivateMember($id, 'reason', $clock);
-        }];
-        yield 'reactivateMember' => ['mutate' => static function (Household $h, MemberId $id, MockClock $clock): void {
-            $h->reactivateMember($id, $clock);
-        }];
         yield 'removeMember' => ['mutate' => static function (Household $h, MemberId $id, MockClock $clock): void {
             $h->removeMember($id, $clock);
-        }];
-        yield 'attachMemberPhoto' => ['mutate' => static function (Household $h, MemberId $id, MockClock $clock): void {
-            $photo = ProfilePhoto::of(
-                $id->value . '/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.jpg',
-                ImageFormat::Jpeg,
-                $clock->now(),
-            );
-            $h->attachMemberPhoto($id, $photo, $clock);
-        }];
-        yield 'removeMemberPhoto' => ['mutate' => static function (Household $h, MemberId $id, MockClock $clock): void {
-            $h->removeMemberPhoto($id, $clock);
         }];
         yield 'splitMember' => ['mutate' => static function (Household $h, MemberId $id, MockClock $clock): void {
             $h->splitMember(
@@ -739,13 +386,12 @@ final class HouseholdTest extends TestCase
 
     #[Test]
     #[DataProvider('mergedMemberMutatorCases')]
-    #[TestDox('every other mutator throws MemberAlreadyMerged when the target member is merged.')]
+    #[TestDox('removeMember() and splitMember() throw MemberAlreadyMerged when the target member is merged.')]
     public function mutators_throw_member_already_merged_on_merged_member(callable $mutate): void
     {
         $household = $this->register();
         $memberId = MemberId::fromString(self::PRIMARY_MEMBER_ID);
-        $household->mergeMemberInto(
-            $memberId,
+        $household->member($memberId)->mergeInto(
             HouseholdId::fromString('019571bf-5d51-7000-b500-000000000099'),
             MemberId::fromString('019571bf-5d51-7000-b500-000000000098'),
             $this->clock,
@@ -858,7 +504,7 @@ final class HouseholdTest extends TestCase
     {
         $household = $this->register();
         $sourceId = MemberId::fromString(self::PRIMARY_MEMBER_ID);
-        $household->deactivateMember($sourceId, 'moved away', $this->clock);
+        $household->member($sourceId)->deactivate('moved away', $this->clock);
         $household->releaseEvents();
 
         $household->splitMember(
@@ -879,153 +525,13 @@ final class HouseholdTest extends TestCase
     }
 
     #[Test]
-    #[TestDox('::fillMemberContactGaps() fills only blank email/phone and records MemberContactUpdated.')]
-    public function fill_member_contact_gaps_fills_only_blanks(): void
-    {
-        $household = $this->register();
-        $household->addMember(
-            MemberId::fromString(self::SECOND_MEMBER_ID),
-            MemberCode::of('M0002'),
-            MemberProfile::of(
-                PersonName::of('Bob', 'Smith'),
-                DateOfBirth::of(new DateTimeImmutable('1992-03-04'), $this->clock),
-                Gender::Male,
-            ),
-            MemberContact::none(),
-            ResidencyStatus::Resident,
-            false,
-            $this->clock,
-        );
-        $household->releaseEvents();
-        $secondId = MemberId::fromString(self::SECOND_MEMBER_ID);
-
-        $household->fillMemberContactGaps(
-            $secondId,
-            EmailAddress::of('found@example.com'),
-            PhoneNumber::of('5559999'),
-            $this->clock,
-        );
-
-        $events = $household->releaseEvents();
-        self::assertCount(1, $events);
-        self::assertInstanceOf(MemberContactUpdated::class, $events[0]);
-        $secondContact = $this->memberById($household, $secondId)->contact();
-        self::assertNotNull($secondContact->email);
-        self::assertTrue($secondContact->email->equals(EmailAddress::of('found@example.com')));
-        self::assertNotNull($secondContact->phone);
-        self::assertTrue($secondContact->phone->equals(PhoneNumber::of('5559999')));
-    }
-
-    #[Test]
-    #[TestDox('::fillMemberContactGaps() is silent when the survivor already has both fields populated.')]
-    public function fill_member_contact_gaps_is_silent_when_nothing_blank(): void
-    {
-        $household = $this->register();
-        $household->releaseEvents();
-        $primaryId = MemberId::fromString(self::PRIMARY_MEMBER_ID);
-
-        $household->fillMemberContactGaps(
-            $primaryId,
-            EmailAddress::of('duplicate@example.com'),
-            PhoneNumber::of('5551234'),
-            $this->clock,
-        );
-
-        self::assertSame([], $household->releaseEvents());
-        $primaryContact = $this->memberById($household, $primaryId)->contact();
-        self::assertNotNull($primaryContact->email);
-        self::assertTrue($primaryContact->email->equals(EmailAddress::of('alice@example.com')));
-        self::assertNotNull($primaryContact->phone);
-        self::assertTrue($primaryContact->phone->equals(PhoneNumber::of('5550001')));
-    }
-
-    #[Test]
-    #[TestDox('::attachMemberPhoto() records MemberPhotoAttached and attaches the photo to the member.')]
-    public function attach_member_photo_records_event_and_attaches_photo(): void
-    {
-        $household = $this->register();
-        $household->releaseEvents();
-        $memberId = MemberId::fromString(self::PRIMARY_MEMBER_ID);
-        $photo = $this->photo('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.jpg');
-
-        $household->attachMemberPhoto($memberId, $photo, $this->clock);
-
-        $events = $household->releaseEvents();
-        self::assertCount(1, $events);
-        self::assertInstanceOf(MemberPhotoAttached::class, $events[0]);
-        self::assertSame($photo->storageKey, $events[0]->storageKey);
-
-        $member = $this->memberById($household, $memberId);
-        self::assertNotNull($member->photo());
-        self::assertTrue($member->photo()->equals($photo));
-    }
-
-    #[Test]
-    #[TestDox('::attachMemberPhoto() replacing a photo also records MemberPhotoReleased for the superseded key.')]
-    public function attach_member_photo_replacing_releases_previous_key(): void
-    {
-        $household = $this->register();
-        $memberId = MemberId::fromString(self::PRIMARY_MEMBER_ID);
-        $first = $this->photo('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.jpg');
-        $household->attachMemberPhoto($memberId, $first, $this->clock);
-        $household->releaseEvents();
-
-        $second = $this->photo('bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.png');
-        $household->attachMemberPhoto($memberId, $second, $this->clock);
-
-        $events = $household->releaseEvents();
-        self::assertCount(2, $events);
-        self::assertInstanceOf(MemberPhotoAttached::class, $events[0]);
-        self::assertSame($second->storageKey, $events[0]->storageKey);
-        self::assertInstanceOf(MemberPhotoReleased::class, $events[1]);
-        self::assertSame($first->storageKey, $events[1]->storageKey);
-
-        $member = $this->memberById($household, $memberId);
-        self::assertNotNull($member->photo());
-        self::assertTrue($member->photo()->equals($second));
-    }
-
-    #[Test]
-    #[TestDox('::removeMemberPhoto() is a no-op when the member has no photo.')]
-    public function remove_member_photo_is_no_op_without_photo(): void
-    {
-        $household = $this->register();
-        $household->releaseEvents();
-
-        $household->removeMemberPhoto(MemberId::fromString(self::PRIMARY_MEMBER_ID), $this->clock);
-
-        self::assertSame([], $household->releaseEvents());
-    }
-
-    #[Test]
-    #[TestDox('::removeMemberPhoto() records MemberPhotoRemoved and MemberPhotoReleased and clears the photo.')]
-    public function remove_member_photo_records_events_and_clears_photo(): void
-    {
-        $household = $this->register();
-        $memberId = MemberId::fromString(self::PRIMARY_MEMBER_ID);
-        $photo = $this->photo('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.jpg');
-        $household->attachMemberPhoto($memberId, $photo, $this->clock);
-        $household->releaseEvents();
-
-        $household->removeMemberPhoto($memberId, $this->clock);
-
-        $events = $household->releaseEvents();
-        self::assertCount(2, $events);
-        self::assertInstanceOf(MemberPhotoRemoved::class, $events[0]);
-        self::assertInstanceOf(MemberPhotoReleased::class, $events[1]);
-        self::assertSame($photo->storageKey, $events[1]->storageKey);
-
-        self::assertNull($this->memberById($household, $memberId)->photo());
-    }
-
-    #[Test]
     #[TestDox('members() clones carry the photo alongside every other member field.')]
     public function members_clone_carries_photo(): void
     {
         $household = $this->register();
         $memberId = MemberId::fromString(self::PRIMARY_MEMBER_ID);
         $photo = $this->photo('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.jpg');
-        $household->attachMemberPhoto($memberId, $photo, $this->clock);
+        $household->member($memberId)->attachPhoto($photo, $this->clock);
 
         $clone = $this->memberById($household, $memberId);
 
@@ -1079,29 +585,6 @@ final class HouseholdTest extends TestCase
     }
 
     #[Test]
-    #[TestDox('::changeMemberResidency() records MemberResidencyChanged with the effective date.')]
-    public function set_residency_status_records_event(): void
-    {
-        $household = $this->register();
-        $household->releaseEvents();
-
-        $effectiveFrom = new DateTimeImmutable('2026-02-01');
-
-        $household->changeMemberResidency(
-            MemberId::fromString(self::PRIMARY_MEMBER_ID),
-            ResidencyStatus::Staff,
-            $effectiveFrom,
-            $this->clock,
-        );
-
-        $events = $household->releaseEvents();
-        self::assertCount(1, $events);
-        self::assertInstanceOf(MemberResidencyChanged::class, $events[0]);
-        self::assertSame(ResidencyStatus::Staff, $events[0]->status);
-        self::assertEquals($effectiveFrom, $events[0]->effectiveFrom);
-    }
-
-    #[Test]
     #[TestDox('::removeMember() records MemberRemovedFromHousehold for a known member.')]
     public function remove_member_records_event(): void
     {
@@ -1147,79 +630,6 @@ final class HouseholdTest extends TestCase
     }
 
     #[Test]
-    #[TestDox('::updateMemberContact() records MemberContactUpdated on a real change.')]
-    public function update_contact_records_event_on_change(): void
-    {
-        $household = $this->register();
-        $household->releaseEvents();
-
-        $household->updateMemberContact(
-            MemberId::fromString(self::PRIMARY_MEMBER_ID),
-            MemberContact::of(EmailAddress::of('alice.new@example.com'), PhoneNumber::of('5559999')),
-            $this->clock,
-        );
-
-        $events = $household->releaseEvents();
-        self::assertCount(1, $events);
-        self::assertInstanceOf(MemberContactUpdated::class, $events[0]);
-    }
-
-    #[Test]
-    #[TestDox('::updateMemberContact() with (null, null) clears both channels and records the event with null values.')]
-    public function update_contact_clears_both_channels_when_given_null(): void
-    {
-        $household = $this->register();
-        $household->releaseEvents();
-
-        $household->updateMemberContact(
-            MemberId::fromString(self::PRIMARY_MEMBER_ID),
-            MemberContact::none(),
-            $this->clock,
-        );
-
-        $events = $household->releaseEvents();
-        self::assertCount(1, $events);
-        self::assertInstanceOf(MemberContactUpdated::class, $events[0]);
-        self::assertNull($events[0]->email);
-        self::assertNull($events[0]->phone);
-    }
-
-    #[Test]
-    #[TestDox('::updateMemberContact() is a no-op when neither value changed.')]
-    public function update_contact_is_noop_when_unchanged(): void
-    {
-        $household = $this->register();
-        $household->releaseEvents();
-
-        $household->updateMemberContact(
-            MemberId::fromString(self::PRIMARY_MEMBER_ID),
-            MemberContact::of(EmailAddress::of('alice@example.com'), PhoneNumber::of('5550001')),
-            $this->clock,
-        );
-
-        self::assertSame([], $household->releaseEvents());
-    }
-
-    #[Test]
-    #[TestDox('::updateMemberProfile() throws MemberNotFound for an unknown member.')]
-    public function update_profile_throws_when_member_unknown(): void
-    {
-        $household = $this->register();
-
-        $this->expectException(MemberNotFound::class);
-
-        $household->updateMemberProfile(
-            MemberId::fromString('019571bf-5d51-7000-b500-bbbbbbbbbbbb'),
-            MemberProfile::of(
-                PersonName::of('Ghost', 'User'),
-                DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
-                Gender::Other,
-            ),
-            $this->clock,
-        );
-    }
-
-    #[Test]
     #[TestDox('releaseEvents() returns the buffer and clears it.')]
     public function release_events_clears_buffer(): void
     {
@@ -1227,185 +637,6 @@ final class HouseholdTest extends TestCase
 
         self::assertCount(2, $household->releaseEvents());
         self::assertSame([], $household->releaseEvents());
-    }
-
-    #[Test]
-    #[TestDox('::shareMemberWithHousehold() records MemberSharedWithHousehold and updates sharedHouseholdIds().')]
-    public function share_member_with_household_records_event_and_updates_shared_ids(): void
-    {
-        $household = $this->registerWithMinorMember();
-        $household->releaseEvents();
-
-        $household->shareMemberWithHousehold(
-            MemberId::fromString(self::MINOR_MEMBER_ID),
-            HouseholdId::fromString(self::TARGET_HOUSEHOLD_ID),
-            $this->clock,
-        );
-
-        $events = $household->releaseEvents();
-        self::assertCount(1, $events);
-        self::assertInstanceOf(MemberSharedWithHousehold::class, $events[0]);
-        self::assertSame(self::HOUSEHOLD_ID, $events[0]->householdId->value);
-        self::assertSame(self::MINOR_MEMBER_ID, $events[0]->memberId->value);
-        self::assertSame(self::TARGET_HOUSEHOLD_ID, $events[0]->sharedHouseholdId->value);
-        self::assertEquals($this->clock->now(), $events[0]->occurredAt);
-
-        $minorLinks = $this->memberById($household, MemberId::fromString(self::MINOR_MEMBER_ID))->householdLinks();
-        self::assertTrue($minorLinks->includes(HouseholdId::fromString(self::TARGET_HOUSEHOLD_ID)));
-        self::assertEquals(
-            [HouseholdId::fromString(self::TARGET_HOUSEHOLD_ID)],
-            $minorLinks->householdIds(),
-        );
-        self::assertEquals(
-            $this->clock->now(),
-            $minorLinks->linkedAt(HouseholdId::fromString(self::TARGET_HOUSEHOLD_ID)),
-        );
-        self::assertNull($minorLinks->linkedAt(HouseholdId::fromString(self::HOUSEHOLD_ID)));
-    }
-
-    #[Test]
-    #[TestDox('::shareMemberWithHousehold() throws MemberNotFound for an unknown member.')]
-    public function share_member_throws_when_member_unknown(): void
-    {
-        $household = $this->registerWithMinorMember();
-
-        $this->expectException(MemberNotFound::class);
-
-        $household->shareMemberWithHousehold(
-            MemberId::fromString('019571bf-5d51-7000-b500-bbbbbbbbbbbb'),
-            HouseholdId::fromString(self::TARGET_HOUSEHOLD_ID),
-            $this->clock,
-        );
-    }
-
-    #[Test]
-    #[TestDox('::shareMemberWithHousehold() throws InvariantViolation for a deactivated member.')]
-    public function share_member_throws_for_inactive_member(): void
-    {
-        $household = $this->registerWithMinorMember();
-        $household->deactivateMember(MemberId::fromString(self::MINOR_MEMBER_ID), 'moved away', $this->clock);
-
-        $this->expectException(InvariantViolation::class);
-
-        $household->shareMemberWithHousehold(
-            MemberId::fromString(self::MINOR_MEMBER_ID),
-            HouseholdId::fromString(self::TARGET_HOUSEHOLD_ID),
-            $this->clock,
-        );
-    }
-
-    #[Test]
-    #[TestDox('::shareMemberWithHousehold() throws CannotShareWithHomeHousehold when the target is this household.')]
-    public function share_member_throws_when_target_is_home_household(): void
-    {
-        $household = $this->registerWithMinorMember();
-
-        $this->expectException(CannotShareWithHomeHousehold::class);
-
-        $household->shareMemberWithHousehold(
-            MemberId::fromString(self::MINOR_MEMBER_ID),
-            HouseholdId::fromString(self::HOUSEHOLD_ID),
-            $this->clock,
-        );
-    }
-
-    #[Test]
-    #[TestDox('::shareMemberWithHousehold() throws MemberNotAMinor for a member who is 18 or older.')]
-    public function share_member_throws_for_adult_member(): void
-    {
-        $household = $this->registerWithMinorMember();
-
-        $this->expectException(MemberNotAMinor::class);
-
-        $household->shareMemberWithHousehold(
-            MemberId::fromString(self::PRIMARY_MEMBER_ID),
-            HouseholdId::fromString(self::TARGET_HOUSEHOLD_ID),
-            $this->clock,
-        );
-    }
-
-    #[Test]
-    #[TestDox('::shareMemberWithHousehold() throws HouseholdAlreadyLinked when already shared with the target.')]
-    public function share_member_throws_when_already_linked(): void
-    {
-        $household = $this->registerWithMinorMember();
-        $household->shareMemberWithHousehold(
-            MemberId::fromString(self::MINOR_MEMBER_ID),
-            HouseholdId::fromString(self::TARGET_HOUSEHOLD_ID),
-            $this->clock,
-        );
-
-        $this->expectException(HouseholdAlreadyLinked::class);
-
-        $household->shareMemberWithHousehold(
-            MemberId::fromString(self::MINOR_MEMBER_ID),
-            HouseholdId::fromString(self::TARGET_HOUSEHOLD_ID),
-            $this->clock,
-        );
-    }
-
-    #[Test]
-    #[TestDox('::withdrawMemberFromHousehold() records MemberSharingWithdrawn and removes the target link.')]
-    public function withdraw_member_from_household_records_event_and_removes_link(): void
-    {
-        $household = $this->registerWithMinorMember();
-        $household->shareMemberWithHousehold(
-            MemberId::fromString(self::MINOR_MEMBER_ID),
-            HouseholdId::fromString(self::TARGET_HOUSEHOLD_ID),
-            $this->clock,
-        );
-        $household->releaseEvents();
-
-        $household->withdrawMemberFromHousehold(
-            MemberId::fromString(self::MINOR_MEMBER_ID),
-            HouseholdId::fromString(self::TARGET_HOUSEHOLD_ID),
-            $this->clock,
-        );
-
-        $events = $household->releaseEvents();
-        self::assertCount(1, $events);
-        self::assertInstanceOf(MemberSharingWithdrawn::class, $events[0]);
-        self::assertSame(self::TARGET_HOUSEHOLD_ID, $events[0]->sharedHouseholdId->value);
-
-        $minorLinks = $this->memberById($household, MemberId::fromString(self::MINOR_MEMBER_ID))->householdLinks();
-        self::assertFalse($minorLinks->includes(HouseholdId::fromString(self::TARGET_HOUSEHOLD_ID)));
-        self::assertSame([], $minorLinks->householdIds());
-    }
-
-    #[Test]
-    #[TestDox('::withdrawMemberFromHousehold() is a no-op (no event) when the member is not shared with the target.')]
-    public function withdraw_member_from_household_is_noop_when_not_shared(): void
-    {
-        $household = $this->registerWithMinorMember();
-
-        $household->withdrawMemberFromHousehold(
-            MemberId::fromString(self::MINOR_MEMBER_ID),
-            HouseholdId::fromString(self::TARGET_HOUSEHOLD_ID),
-            $this->clock,
-        );
-
-        self::assertSame([], $household->releaseEvents());
-    }
-
-    private function registerWithMinorMember(): Household
-    {
-        $household = $this->register();
-        $household->addMember(
-            MemberId::fromString(self::MINOR_MEMBER_ID),
-            MemberCode::of('M0004'),
-            MemberProfile::of(
-                PersonName::of('Timmy', 'Smith'),
-                DateOfBirth::of(new DateTimeImmutable('2015-01-01'), $this->clock),
-                Gender::Male,
-            ),
-            MemberContact::none(),
-            ResidencyStatus::Resident,
-            false,
-            $this->clock,
-        );
-        $household->releaseEvents();
-
-        return $household;
     }
 
     private function register(): Household

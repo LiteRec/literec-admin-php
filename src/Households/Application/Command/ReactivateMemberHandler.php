@@ -27,7 +27,7 @@ final class ReactivateMemberHandler
         $household = $this->households->findById(HouseholdId::fromString($command->householdId));
         $memberId = MemberId::fromString($command->memberId);
 
-        $household->reactivateMember($memberId, $this->clock);
+        $household->member($memberId)->reactivate($this->clock);
         $this->households->save($household);
 
         foreach ($household->releaseEvents() as $event) {

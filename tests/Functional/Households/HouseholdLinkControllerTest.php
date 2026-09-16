@@ -127,8 +127,7 @@ final class HouseholdLinkControllerTest extends WebTestCase
         $repo = static::getContainer()->get(Households::class);
         self::assertInstanceOf(Households::class, $repo);
         $home = $repo->findById(HouseholdId::fromString(self::HOME_HOUSEHOLD_ID));
-        $home->mergeMemberInto(
-            MemberId::fromString(self::MINOR_ID),
+        $home->member(MemberId::fromString(self::MINOR_ID))->mergeInto(
             HouseholdId::fromString(self::HOME_HOUSEHOLD_ID),
             MemberId::fromString(self::PRIMARY_ID),
             $this->clock,

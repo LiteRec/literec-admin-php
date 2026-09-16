@@ -46,7 +46,7 @@ final class MemberLifecycleTest extends WebTestCase
     private const string UNKNOWN_MEMBER_ID = '019571bf-5d56-7000-b500-0000000000fe';
     private const string UNKNOWN_HOUSEHOLD_ID = '019571bf-5d56-7000-b500-0000000000ff';
 
-    /** Stand-in survivor id: Household::mergeMemberInto() does not require it to exist. */
+    /** Stand-in survivor id: MemberInHousehold::mergeInto() does not require it to exist. */
     private const string SURVIVOR_ID = '019571bf-5d56-7000-b500-00000000dd03';
 
     /** Throwaway fixture used only to harvest a valid 'reactivate_member' CSRF token. */
@@ -379,7 +379,7 @@ final class MemberLifecycleTest extends WebTestCase
             self::PRIMARY_DOB_ISO,
             $this->clock,
         );
-        $household->deactivateMember(MemberId::fromString($memberId), self::DEACTIVATION_REASON, $this->clock);
+        $household->member(MemberId::fromString($memberId))->deactivate(self::DEACTIVATION_REASON, $this->clock);
         $repo->save($household);
     }
 
@@ -396,8 +396,7 @@ final class MemberLifecycleTest extends WebTestCase
             self::PRIMARY_DOB_ISO,
             $this->clock,
         );
-        $household->mergeMemberInto(
-            MemberId::fromString(self::PRIMARY_ID),
+        $household->member(MemberId::fromString(self::PRIMARY_ID))->mergeInto(
             HouseholdId::fromString(self::HOUSEHOLD_ID),
             MemberId::fromString(self::SURVIVOR_ID),
             $this->clock,

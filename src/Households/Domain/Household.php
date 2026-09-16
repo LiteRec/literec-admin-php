@@ -8,28 +8,13 @@ use App\Households\Domain\Event\HouseholdRegistered;
 use App\Households\Domain\Event\MemberAddedToHousehold;
 use App\Households\Domain\Event\MemberAnonymized;
 use App\Households\Domain\Event\HouseholdAddressUpdated;
-use App\Households\Domain\Event\MemberContactUpdated;
-use App\Households\Domain\Event\MemberDeactivated;
-use App\Households\Domain\Event\MemberMergedInto;
-use App\Households\Domain\Event\MemberPhotoAttached;
 use App\Households\Domain\Event\MemberPhotoReleased;
-use App\Households\Domain\Event\MemberPhotoRemoved;
-use App\Households\Domain\Event\MemberProfileUpdated;
-use App\Households\Domain\Event\MemberReactivated;
 use App\Households\Domain\Event\MemberRemovedFromHousehold;
-use App\Households\Domain\Event\MemberResidencyChanged;
-use App\Households\Domain\Event\MemberSharedWithHousehold;
-use App\Households\Domain\Event\MemberSharingWithdrawn;
 use App\Households\Domain\Event\MemberSplitOff;
-use App\Households\Domain\Exception\CannotMergeMemberIntoItself;
-use App\Households\Domain\Exception\CannotShareWithHomeHousehold;
 use App\Households\Domain\Exception\DuplicateMemberCode;
 use App\Households\Domain\Exception\DuplicateMemberId;
-use App\Households\Domain\Exception\HouseholdAlreadyLinked;
-use App\Households\Domain\Exception\InvariantViolation;
 use App\Households\Domain\Exception\MemberAlreadyMerged;
 use App\Households\Domain\Exception\MemberIsAnonymized;
-use App\Households\Domain\Exception\MemberNotAMinor;
 use App\Households\Domain\Exception\MemberNotFound;
 use App\Households\Domain\Exception\SplitSelectionEmpty;
 use App\Households\Domain\ValueObject\Address;
@@ -41,7 +26,6 @@ use App\Households\Domain\ValueObject\MemberContact;
 use App\Households\Domain\ValueObject\MemberId;
 use App\Households\Domain\ValueObject\MemberProfile;
 use App\Households\Domain\ValueObject\PersonName;
-use App\Households\Domain\ValueObject\ProfilePhoto;
 use App\Households\Domain\ValueObject\ResidencyStatus;
 use App\Households\Domain\ValueObject\TransactionReferences;
 use App\Shared\Domain\ValueObject\EmailAddress;
@@ -60,13 +44,16 @@ use Psr\Clock\ClockInterface;
  *
  * On the email/phone parameters: the aggregate accepts them as nullable on
  * the member-level mutators ({@see self::register()}, {@see self::addMember()},
- * {@see self::updateMemberContact()}) so contact-only edits — including
- * "remove email", "remove phone" — can be expressed without re-asking for
- * other profile fields. The command DTOs in the Application layer
- * ({@see \App\Households\Application\Command\RegisterHousehold},
+ * {@see MemberInHousehold::updateContact()}) so contact-only edits —
+ * including "remove email", "remove phone" — can be expressed without
+ * re-asking for other profile fields. The command DTOs in the Application
+ * layer ({@see \App\Households\Application\Command\RegisterHousehold},
  * {@see \App\Households\Application\Command\AddMemberToHousehold}) currently
  * require both at registration/add time because the legacy "view users" UI
  * never created a member without contact info; LRA-43 may relax that.
+ *
+ * Household methods change household state or the member set; per-member
+ * state changes go through {@see self::member()}.
  */
 final class Household
 {
@@ -209,72 +196,10 @@ final class Household
 
     public function removeMember(MemberId $memberId, ClockInterface $clock): void
     {
-        $removed = null;
-        foreach ($this->members as $existing) {
-            if ($existing->id()->equals($memberId)) {
-                $removed = $existing;
-                break;
-            }
-        }
-
-        if ($removed === null) {
-            throw MemberNotFound::inHousehold($this->id, $memberId);
-        }
-        $this->assertNotMerged($removed);
+        $removed = $this->unmergedMemberById($memberId);
 
         $this->members->removeElement($removed);
         $this->recordThat(new MemberRemovedFromHousehold($this->id, $memberId, $clock->now()));
-    }
-
-    /**
-     * @throws MemberNotFound when $memberId does not belong to this household
-     * @throws MemberAlreadyMerged when the member has already been merged into another record
-     * @throws MemberIsAnonymized when the member has been anonymized (LRA-212)
-     */
-    public function updateMemberProfile(
-        MemberId $memberId,
-        MemberProfile $profile,
-        ClockInterface $clock,
-    ): void {
-        $member = $this->memberById($memberId);
-        $this->assertNotMerged($member);
-        $this->assertNotAnonymized($member, MemberIsAnonymized::cannotBeModified(...));
-
-        if ($member->profile()->equals($profile)) {
-            return;
-        }
-
-        $member->updateProfile($profile);
-
-        $this->recordThat(new MemberProfileUpdated($this->id, $memberId, $clock->now()));
-    }
-
-    /**
-     * @throws MemberNotFound when $memberId does not belong to this household
-     * @throws MemberAlreadyMerged when the member has already been merged into another record
-     * @throws MemberIsAnonymized when the member has been anonymized (LRA-212)
-     */
-    public function updateMemberContact(
-        MemberId $memberId,
-        MemberContact $contact,
-        ClockInterface $clock,
-    ): void {
-        $member = $this->memberById($memberId);
-        $this->assertNotMerged($member);
-        $this->assertNotAnonymized($member, MemberIsAnonymized::cannotBeModified(...));
-
-        if ($member->contact()->equals($contact)) {
-            return;
-        }
-
-        $member->updateContact($contact);
-        $this->recordThat(new MemberContactUpdated(
-            $this->id,
-            $memberId,
-            $contact->email,
-            $contact->phone,
-            $clock->now(),
-        ));
     }
 
     public function updateAddress(Address $address, ClockInterface $clock): void
@@ -285,73 +210,6 @@ final class Household
 
         $this->address = $address;
         $this->recordThat(new HouseholdAddressUpdated($this->id, $address, $clock->now()));
-    }
-
-    /**
-     * @throws MemberNotFound when $memberId does not belong to this household
-     * @throws MemberAlreadyMerged when the member has already been merged into another record
-     * @throws MemberIsAnonymized when the member has been anonymized (LRA-212)
-     */
-    public function changeMemberResidency(
-        MemberId $memberId,
-        ResidencyStatus $status,
-        DateTimeImmutable $effectiveFrom,
-        ClockInterface $clock,
-        ?string $reason = null,
-    ): void {
-        $member = $this->memberById($memberId);
-        $this->assertNotMerged($member);
-        $this->assertNotAnonymized($member, MemberIsAnonymized::cannotBeModified(...));
-
-        if ($member->residencyStatus() === $status) {
-            return;
-        }
-
-        $member->changeResidency($status);
-        $this->recordThat(new MemberResidencyChanged(
-            $this->id,
-            $memberId,
-            $status,
-            $effectiveFrom,
-            $clock->now(),
-            $reason,
-        ));
-    }
-
-    public function deactivateMember(
-        MemberId $memberId,
-        string $reason,
-        ClockInterface $clock,
-    ): void {
-        $member = $this->memberById($memberId);
-        $this->assertNotMerged($member);
-
-        if (!$member->lifecycle()->isActive) {
-            return;
-        }
-
-        $now = $clock->now();
-        $member->deactivate($reason, $now);
-        $this->recordThat(new MemberDeactivated($this->id, $memberId, $reason, $now));
-    }
-
-    /**
-     * @throws MemberNotFound when $memberId does not belong to this household
-     * @throws MemberAlreadyMerged when the member has already been merged into another record
-     * @throws MemberIsAnonymized when the member has been anonymized (LRA-212)
-     */
-    public function reactivateMember(MemberId $memberId, ClockInterface $clock): void
-    {
-        $member = $this->memberById($memberId);
-        $this->assertNotMerged($member);
-        $this->assertNotAnonymized($member, MemberIsAnonymized::cannotBeReactivated(...));
-
-        if ($member->lifecycle()->isActive) {
-            return;
-        }
-
-        $member->reactivate();
-        $this->recordThat(new MemberReactivated($this->id, $memberId, $clock->now()));
     }
 
     /**
@@ -367,9 +225,10 @@ final class Household
      * the household's own name and address — which would otherwise still
      * identify the person — are replaced with the same placeholder set.
      *
-     * Unlike {@see self::deactivateMember()}, a second call is refused
-     * rather than silently ignored: an operator retrying an anonymize
-     * action must know nothing happened, not believe it succeeded again.
+     * Unlike {@see MemberInHousehold::deactivate()}, a second call is
+     * refused rather than silently ignored: an operator retrying an
+     * anonymize action must know nothing happened, not believe it
+     * succeeded again.
      *
      * @throws MemberNotFound when $memberId does not belong to this household
      * @throws MemberAlreadyMerged when the member has already been merged into another record
@@ -377,8 +236,7 @@ final class Household
      */
     public function anonymizeMember(MemberId $memberId, AnonymizedProfile $profile, ClockInterface $clock): void
     {
-        $member = $this->memberById($memberId);
-        $this->assertNotMerged($member);
+        $member = $this->unmergedMemberById($memberId);
 
         if ($member->lifecycle()->isAnonymized()) {
             throw MemberIsAnonymized::cannotBeAnonymizedAgain($memberId);
@@ -397,73 +255,6 @@ final class Household
             $this->name = $profile->householdName;
             $this->address = $profile->address;
         }
-    }
-
-    /**
-     * Merges the duplicate member identified by $duplicateId into the
-     * survivor member identified by $survivorId (owned by a possibly
-     * different {@see Household} aggregate, identified by
-     * $survivorHouseholdId) — LRA-208.
-     *
-     * Called on the duplicate's owning aggregate: $this must be the
-     * household that owns $duplicateId. The survivor-side invariant (the
-     * survivor exists and is not itself merged) is asserted separately by
-     * {@see MemberMergePolicy} against the survivor's aggregate before
-     * this method runs, since a single aggregate transaction cannot span
-     * two Household instances.
-     *
-     * @throws CannotMergeMemberIntoItself when $duplicateId equals $survivorId
-     * @throws MemberAlreadyMerged when the duplicate is already merged
-     * @throws MemberNotFound when $duplicateId does not belong to $this household
-     */
-    public function mergeMemberInto(
-        MemberId $duplicateId,
-        HouseholdId $survivorHouseholdId,
-        MemberId $survivorId,
-        ClockInterface $clock,
-    ): void {
-        if ($duplicateId->equals($survivorId)) {
-            throw CannotMergeMemberIntoItself::for($duplicateId);
-        }
-
-        $duplicate = $this->memberById($duplicateId);
-        $this->assertNotMerged($duplicate);
-
-        $now = $clock->now();
-        $duplicate->markMergedInto($survivorId, $now);
-
-        $contact = $duplicate->contact();
-        $this->recordThat(new MemberMergedInto(
-            $this->id,
-            $duplicateId,
-            $survivorHouseholdId,
-            $survivorId,
-            $contact->email,
-            $contact->phone,
-            $now,
-        ));
-    }
-
-    /**
-     * Fills the survivor's blank email/phone from the values carried on
-     * {@see MemberMergedInto} — the legacy merge's contact gap-fill
-     * (LRA-208). Delegates to {@see self::updateMemberContact()} so the
-     * existing {@see MemberContactUpdated} event is reused and a no-op
-     * (nothing blank, or nothing supplied) stays silent.
-     */
-    public function fillMemberContactGaps(
-        MemberId $memberId,
-        ?EmailAddress $email,
-        ?PhoneNumber $phone,
-        ClockInterface $clock,
-    ): void {
-        $member = $this->memberById($memberId);
-
-        $this->updateMemberContact(
-            $memberId,
-            $member->contact()->filledFrom($email, $phone),
-            $clock,
-        );
     }
 
     /**
@@ -500,8 +291,7 @@ final class Household
         ?string $reason,
         ClockInterface $clock,
     ): void {
-        $source = $this->memberById($sourceMemberId);
-        $this->assertNotMerged($source);
+        $source = $this->unmergedMemberById($sourceMemberId);
 
         if ($transactions->count() === 0) {
             throw SplitSelectionEmpty::forMember($sourceMemberId);
@@ -530,109 +320,19 @@ final class Household
     }
 
     /**
-     * Attaches (or replaces) a member's profile photo. When a previous
-     * photo existed, its storage key is released via
-     * {@see MemberPhotoReleased} in the same call so the superseded file
-     * is cleaned up — the caller never has to orchestrate the two steps
-     * itself.
-     */
-    public function attachMemberPhoto(MemberId $memberId, ProfilePhoto $photo, ClockInterface $clock): void
-    {
-        $member = $this->memberById($memberId);
-        $this->assertNotMerged($member);
-        $previous = $member->photo();
-
-        $member->replacePhoto($photo);
-        $this->recordThat(new MemberPhotoAttached($this->id, $memberId, $photo->storageKey, $clock->now()));
-
-        if ($previous !== null) {
-            $this->recordThat(new MemberPhotoReleased($previous->storageKey, $clock->now()));
-        }
-    }
-
-    /**
-     * Removes a member's profile photo. A no-op when the member has none.
-     */
-    public function removeMemberPhoto(MemberId $memberId, ClockInterface $clock): void
-    {
-        $member = $this->memberById($memberId);
-        $this->assertNotMerged($member);
-        $previous = $member->photo();
-
-        if ($previous === null) {
-            return;
-        }
-
-        $member->replacePhoto(null);
-        $now = $clock->now();
-        $this->recordThat(new MemberPhotoRemoved($this->id, $memberId, $now));
-        $this->recordThat(new MemberPhotoReleased($previous->storageKey, $now));
-    }
-
-    /**
-     * Shares $memberId — who must be a minor and must belong to this (their
-     * home) household — with another household (LRA-210, e.g. shared
-     * custody). The member's identity data keeps a single owner (this
-     * aggregate); $target is loaded only by the caller to confirm it
-     * exists, never mutated here — a single transaction touches at most one
-     * aggregate.
-     *
-     * @throws MemberNotFound when $memberId does not belong to this household
-     * @throws MemberAlreadyMerged when the member has already been merged into another record
-     * @throws InvariantViolation when the member is deactivated
-     * @throws CannotShareWithHomeHousehold when $target is this household
-     * @throws MemberNotAMinor when the member is not under 18 on the current date
-     * @throws HouseholdAlreadyLinked when the member is already shared with $target
-     */
-    public function shareMemberWithHousehold(
-        MemberId $memberId,
-        HouseholdId $target,
-        ClockInterface $clock,
-    ): void {
-        $member = $this->memberById($memberId);
-        $this->assertNotMerged($member);
-
-        if (!$member->lifecycle()->isActive) {
-            throw InvariantViolation::with('An inactive member cannot be shared with another household.');
-        }
-
-        if ($target->equals($this->id)) {
-            throw CannotShareWithHomeHousehold::for($memberId, $target);
-        }
-
-        $now = $clock->now();
-        if (!$member->profile()->dateOfBirth->isMinorOn($now)) {
-            throw MemberNotAMinor::for($memberId);
-        }
-
-        if ($member->householdLinks()->includes($target)) {
-            throw HouseholdAlreadyLinked::for($memberId, $target);
-        }
-
-        $member->shareWith($target, $now);
-        $this->recordThat(new MemberSharedWithHousehold($this->id, $memberId, $target, $now));
-    }
-
-    /**
-     * Withdraws a previously-created share (LRA-210). A no-op — mirroring
-     * the existing idempotent style of {@see self::deactivateMember()} —
-     * when the member is not currently shared with $target.
+     * The single write handle for every per-member state change: household
+     * methods change household state or the member set, and everything
+     * scoped to one member — profile, contact, residency, lifecycle,
+     * merge, photo, and household-sharing — goes through the returned
+     * {@see MemberInHousehold}. It wraps the live {@see HouseholdMember}
+     * entity and records every event into this aggregate's own buffer, so
+     * {@see self::releaseEvents()} is unaffected.
      *
      * @throws MemberNotFound when $memberId does not belong to this household
      */
-    public function withdrawMemberFromHousehold(
-        MemberId $memberId,
-        HouseholdId $target,
-        ClockInterface $clock,
-    ): void {
-        $member = $this->memberById($memberId);
-
-        if (!$member->householdLinks()->includes($target)) {
-            return;
-        }
-
-        $member->withdrawFrom($target);
-        $this->recordThat(new MemberSharingWithdrawn($this->id, $memberId, $target, $clock->now()));
+    public function member(MemberId $memberId): MemberInHousehold
+    {
+        return new MemberInHousehold($this->memberById($memberId), $this->id, $this->recordThat(...));
     }
 
     private function memberById(MemberId $id): HouseholdMember
@@ -647,36 +347,26 @@ final class Household
     }
 
     /**
-     * @throws MemberAlreadyMerged when $member has already been merged into
+     * @throws MemberNotFound when $id does not belong to this household
+     * @throws MemberAlreadyMerged when the member has already been merged into
      *                             a survivor — every mutator on a merged
      *                             member is refused (LRA-208).
      */
-    private function assertNotMerged(HouseholdMember $member): void
+    private function unmergedMemberById(MemberId $id): HouseholdMember
     {
+        $member = $this->memberById($id);
+
         if ($member->lifecycle()->isMerged()) {
-            throw MemberAlreadyMerged::for($member->id());
+            throw MemberAlreadyMerged::for($id);
         }
+
+        return $member;
     }
 
     /**
-     * @param callable(MemberId): MemberIsAnonymized $exceptionFactory One of
-     *        {@see MemberIsAnonymized}'s named constructors, bound to the
-     *        call site so the thrown exception's message matches the
-     *        refused operation.
-     *
-     * @throws MemberIsAnonymized when $member has been anonymized (LRA-212)
-     */
-    private function assertNotAnonymized(HouseholdMember $member, callable $exceptionFactory): void
-    {
-        if ($member->lifecycle()->isAnonymized()) {
-            throw $exceptionFactory($member->id());
-        }
-    }
-
-    /**
-     * Merged members are skipped: {@see self::mergeMemberInto()} keeps the
-     * duplicate record in {@see self::$members} (marked merged, never
-     * anonymized) so its history stays attributable, and that record
+     * Merged members are skipped: {@see MemberInHousehold::mergeInto()}
+     * keeps the duplicate record in {@see self::$members} (marked merged,
+     * never anonymized) so its history stays attributable, and that record
      * would otherwise block the household-level scrub forever.
      */
     private function everyMemberAnonymized(): bool

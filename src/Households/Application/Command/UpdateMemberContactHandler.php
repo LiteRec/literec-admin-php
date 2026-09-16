@@ -41,7 +41,7 @@ final class UpdateMemberContactHandler
         $email = $command->email !== null ? EmailAddress::of($command->email) : null;
         $phone = $command->phone !== null ? PhoneNumber::of($command->phone) : null;
 
-        $household->updateMemberContact($memberId, MemberContact::of($email, $phone), $this->clock);
+        $household->member($memberId)->updateContact(MemberContact::of($email, $phone), $this->clock);
         $this->households->save($household);
 
         foreach ($household->releaseEvents() as $event) {

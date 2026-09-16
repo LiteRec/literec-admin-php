@@ -50,8 +50,7 @@ final class SimulatesConcurrentMergeHouseholds implements Households
         if (!$this->interloperApplied) {
             $this->interloperApplied = true;
             $survivorHousehold = $this->inner->findById($this->survivorHouseholdId);
-            $survivorHousehold->mergeMemberInto(
-                $this->survivorId,
+            $survivorHousehold->member($this->survivorId)->mergeInto(
                 $this->interloperHouseholdId,
                 $this->interloperSurvivorId,
                 $this->clock,

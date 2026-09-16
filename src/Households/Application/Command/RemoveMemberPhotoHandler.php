@@ -27,7 +27,7 @@ final class RemoveMemberPhotoHandler
         $household = $this->households->findById(HouseholdId::fromString($command->householdId));
         $memberId = MemberId::fromString($command->memberId);
 
-        $household->removeMemberPhoto($memberId, $this->clock);
+        $household->member($memberId)->removePhoto($this->clock);
         $this->households->save($household);
 
         foreach ($household->releaseEvents() as $event) {

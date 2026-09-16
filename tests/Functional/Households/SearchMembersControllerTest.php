@@ -230,7 +230,7 @@ final class SearchMembersControllerTest extends WebTestCase
             MemberCode::of(self::A_SECOND_CODE),
             $this->clock,
         );
-        $household->deactivateMember(MemberId::fromString(self::A_SECOND_ID), 'left the household', $this->clock);
+        $household->member(MemberId::fromString(self::A_SECOND_ID))->deactivate('left the household', $this->clock);
         $repo->save($household);
 
         $client->request('GET', self::ROUTE_MEMBERS . '?segment=inactive');

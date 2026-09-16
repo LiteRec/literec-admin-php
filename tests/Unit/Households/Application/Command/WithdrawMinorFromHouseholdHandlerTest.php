@@ -129,8 +129,7 @@ final class WithdrawMinorFromHouseholdHandlerTest extends TestCase
             $this->clock,
         );
 
-        $home->shareMemberWithHousehold(
-            MemberId::fromString(self::MINOR_ID),
+        $home->member(MemberId::fromString(self::MINOR_ID))->shareWithHousehold(
             HouseholdId::fromString(self::TARGET_HOUSEHOLD_ID),
             $this->clock,
         );

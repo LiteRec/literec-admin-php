@@ -52,7 +52,7 @@ final class MergeMembersHandler
         $this->policy->assertSurvivorAccepts($survivorHousehold, $survivorId);
 
         $duplicateHousehold = $this->households->findByMemberId($duplicateId);
-        $duplicateHousehold->mergeMemberInto($duplicateId, $survivorHousehold->id(), $survivorId, $this->clock);
+        $duplicateHousehold->member($duplicateId)->mergeInto($survivorHousehold->id(), $survivorId, $this->clock);
         // Re-assert the survivor premise under a row lock, in the same
         // transaction as the write below — see the class docblock.
         $this->households->lockUnmergedMember($survivorHousehold->id(), $survivorId);

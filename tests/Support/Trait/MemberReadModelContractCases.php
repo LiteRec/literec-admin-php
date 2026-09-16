@@ -164,8 +164,7 @@ trait MemberReadModelContractCases
     public function search_excludes_deactivated_members_by_default(): void
     {
         $household = $this->buildHouseholdA();
-        $household->deactivateMember(
-            MemberId::fromString(self::A_THIRD_ID),
+        $household->member(MemberId::fromString(self::A_THIRD_ID))->deactivate(
             'left the household',
             $this->clock(),
         );
@@ -183,8 +182,7 @@ trait MemberReadModelContractCases
     public function search_excludes_merged_members_by_default(): void
     {
         $household = $this->buildHouseholdA();
-        $household->mergeMemberInto(
-            MemberId::fromString(self::A_SECOND_ID),
+        $household->member(MemberId::fromString(self::A_SECOND_ID))->mergeInto(
             HouseholdId::fromString(self::HOUSEHOLD_A),
             MemberId::fromString(self::A_PRIMARY_ID),
             $this->clock(),
@@ -203,8 +201,7 @@ trait MemberReadModelContractCases
     public function search_includes_merged_members_when_requested(): void
     {
         $household = $this->buildHouseholdA();
-        $household->mergeMemberInto(
-            MemberId::fromString(self::A_SECOND_ID),
+        $household->member(MemberId::fromString(self::A_SECOND_ID))->mergeInto(
             HouseholdId::fromString(self::HOUSEHOLD_A),
             MemberId::fromString(self::A_PRIMARY_ID),
             $this->clock(),
@@ -230,8 +227,7 @@ trait MemberReadModelContractCases
     public function segment_counts_excludes_merged_members(): void
     {
         $household = $this->buildHouseholdA();
-        $household->mergeMemberInto(
-            MemberId::fromString(self::A_SECOND_ID),
+        $household->member(MemberId::fromString(self::A_SECOND_ID))->mergeInto(
             HouseholdId::fromString(self::HOUSEHOLD_A),
             MemberId::fromString(self::A_PRIMARY_ID),
             $this->clock(),
@@ -249,8 +245,7 @@ trait MemberReadModelContractCases
     public function member_detail_projects_merge_pointer_for_merged_member(): void
     {
         $household = $this->buildHouseholdA();
-        $household->mergeMemberInto(
-            MemberId::fromString(self::A_SECOND_ID),
+        $household->member(MemberId::fromString(self::A_SECOND_ID))->mergeInto(
             HouseholdId::fromString(self::HOUSEHOLD_A),
             MemberId::fromString(self::A_PRIMARY_ID),
             $this->clock(),
@@ -426,7 +421,7 @@ trait MemberReadModelContractCases
     public function search_with_segment_inactive_returns_deactivated_members(): void
     {
         $household = $this->buildHouseholdA();
-        $household->deactivateMember(MemberId::fromString(self::A_THIRD_ID), 'left the household', $this->clock());
+        $household->member(MemberId::fromString(self::A_THIRD_ID))->deactivate('left the household', $this->clock());
         $this->seedHouseholds([$household]);
 
         $page = $this->readModel()->search(new SearchMembersCriteria(segment: MembersSegment::Inactive));
@@ -442,7 +437,7 @@ trait MemberReadModelContractCases
     public function segment_counts_reflects_current_state(): void
     {
         $household = $this->buildHouseholdA();
-        $household->deactivateMember(MemberId::fromString(self::A_THIRD_ID), 'left the household', $this->clock());
+        $household->member(MemberId::fromString(self::A_THIRD_ID))->deactivate('left the household', $this->clock());
         $this->seedHouseholds([$household, $this->buildHouseholdB()]);
 
         $counts = $this->readModel()->segmentCounts(null);
@@ -549,8 +544,7 @@ trait MemberReadModelContractCases
     public function member_detail_household_members_includes_deactivated(): void
     {
         $household = $this->buildHouseholdA();
-        $household->deactivateMember(
-            MemberId::fromString(self::A_THIRD_ID),
+        $household->member(MemberId::fromString(self::A_THIRD_ID))->deactivate(
             'left the household',
             $this->clock(),
         );
@@ -650,7 +644,7 @@ trait MemberReadModelContractCases
             ImageFormat::Png,
             $this->clock()->now(),
         );
-        $household->attachMemberPhoto(MemberId::fromString(self::A_PRIMARY_ID), $photo, $this->clock());
+        $household->member(MemberId::fromString(self::A_PRIMARY_ID))->attachPhoto($photo, $this->clock());
         $this->seedHouseholds([$household]);
 
         $detail = $this->readModel()->memberDetail(
@@ -698,8 +692,7 @@ trait MemberReadModelContractCases
     {
         $home = $this->buildHouseholdA();
         $this->addMinorTo($home);
-        $home->shareMemberWithHousehold(
-            MemberId::fromString(self::A_MINOR_ID),
+        $home->member(MemberId::fromString(self::A_MINOR_ID))->shareWithHousehold(
             HouseholdId::fromString(self::HOUSEHOLD_B),
             $this->clock(),
         );
