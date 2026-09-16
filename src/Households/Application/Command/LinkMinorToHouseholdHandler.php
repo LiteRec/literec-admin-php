@@ -36,6 +36,11 @@ final class LinkMinorToHouseholdHandler
     ) {
     }
 
+    private function eventBus(): MessageBusInterface
+    {
+        return $this->eventBus;
+    }
+
     public function __invoke(LinkMinorToHousehold $command): void
     {
         $target = HouseholdId::fromString($command->householdId);

@@ -66,6 +66,16 @@ final class MemberPhotoController extends AbstractController
     ) {
     }
 
+    private function queryBus(): MessageBusInterface
+    {
+        return $this->queryBus;
+    }
+
+    private function commandBus(): MessageBusInterface
+    {
+        return $this->commandBus;
+    }
+
     /**
      * Streams the stored photo bytes. 404s unless $version matches the
      * member's current photoVersion — this both rejects unknown members

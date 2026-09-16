@@ -23,6 +23,11 @@ final class WithdrawMinorFromHouseholdHandler
     ) {
     }
 
+    private function eventBus(): MessageBusInterface
+    {
+        return $this->eventBus;
+    }
+
     public function __invoke(WithdrawMinorFromHousehold $command): void
     {
         $target = HouseholdId::fromString($command->householdId);

@@ -118,6 +118,16 @@ final class MemberDetailController extends AbstractController
     ) {
     }
 
+    private function queryBus(): MessageBusInterface
+    {
+        return $this->queryBus;
+    }
+
+    private function commandBus(): MessageBusInterface
+    {
+        return $this->commandBus;
+    }
+
     #[Route(
         '/admin/users/{householdId}/{memberId}',
         name: 'member_detail',

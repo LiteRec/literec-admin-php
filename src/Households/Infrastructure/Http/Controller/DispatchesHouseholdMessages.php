@@ -9,6 +9,7 @@ use App\Households\Application\Query\Port\MemberDetail;
 use LogicException;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Exception\HandlerFailedException;
+use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\HandledStamp;
 use Throwable;
 
@@ -20,11 +21,16 @@ use Throwable;
  * Messenger-unwrapping boilerplate — new controller classes kept the
  * SonarCloud new-code duplication gate under 3%.
  *
- * Requires the consuming controller to expose `$this->queryBus` and
- * `$this->commandBus` as `MessageBusInterface` properties.
+ * Requires the consuming controller to implement {@see self::queryBus()}
+ * and {@see self::commandBus()}, each returning the bus the controller
+ * already holds as a constructor-promoted property.
  */
 trait DispatchesHouseholdMessages
 {
+    abstract private function queryBus(): MessageBusInterface;
+
+    abstract private function commandBus(): MessageBusInterface;
+
     /**
      * Dispatches the GetMemberDetail query and unwraps Messenger's
      * HandlerFailedException so the original domain exceptions reach the
@@ -34,7 +40,7 @@ trait DispatchesHouseholdMessages
     private function runQuery(string $householdId, string $memberId): MemberDetail
     {
         try {
-            $envelope = $this->queryBus->dispatch(new GetMemberDetail($householdId, $memberId));
+            $envelope = $this->queryBus()->dispatch(new GetMemberDetail($householdId, $memberId));
         } catch (HandlerFailedException $wrapper) {
             $nested = $wrapper->getPrevious();
             if ($nested instanceof Throwable) {
@@ -63,7 +69,7 @@ trait DispatchesHouseholdMessages
     private function dispatchCommandUnwrapping(object $command): void
     {
         try {
-            $this->commandBus->dispatch($command);
+            $this->commandBus()->dispatch($command);
         } catch (HandlerFailedException $wrapper) {
             $nested = $wrapper->getPrevious();
             if ($nested instanceof Throwable) {
@@ -81,7 +87,7 @@ trait DispatchesHouseholdMessages
     private function dispatchCommandUnwrappingWithResult(object $command): mixed
     {
         try {
-            $envelope = $this->commandBus->dispatch($command);
+            $envelope = $this->commandBus()->dispatch($command);
         } catch (HandlerFailedException $wrapper) {
             $nested = $wrapper->getPrevious();
             if ($nested instanceof Throwable) {
