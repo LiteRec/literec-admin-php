@@ -207,7 +207,7 @@ trait HouseholdsContractCases
             $this->clock(),
         );
 
-        $loaded->setResidencyStatus(
+        $loaded->changeMemberResidency(
             MemberId::fromString(self::SECOND_MEMBER_ID),
             ResidencyStatus::Member,
             $this->clock()->now(),
