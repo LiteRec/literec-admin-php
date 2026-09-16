@@ -19,7 +19,10 @@ use App\Households\Domain\ValueObject\Gender;
 use App\Households\Domain\ValueObject\HouseholdId;
 use App\Households\Domain\ValueObject\HouseholdName;
 use App\Households\Domain\ValueObject\MemberCode;
+use App\Households\Domain\ValueObject\MemberContact;
 use App\Households\Domain\ValueObject\MemberId;
+use App\Households\Domain\ValueObject\MemberProfile;
+use App\Households\Domain\ValueObject\PersonName;
 use App\Households\Domain\ValueObject\ResidencyStatus;
 use App\Households\Infrastructure\Persistence\InMemory\InMemoryHouseholds;
 use App\Shared\Domain\ValueObject\EmailAddress;
@@ -71,7 +74,7 @@ final class LinkMinorToHouseholdHandlerTest extends TestCase
 
         $home = $this->households->findById(HouseholdId::fromString(self::HOME_HOUSEHOLD_ID));
         $minor = $this->memberById($home, self::MINOR_ID);
-        self::assertTrue($minor->isSharedWith(HouseholdId::fromString(self::TARGET_HOUSEHOLD_ID)));
+        self::assertTrue($minor->householdLinks()->includes(HouseholdId::fromString(self::TARGET_HOUSEHOLD_ID)));
 
         $messages = $this->eventBus->dispatchedMessages();
         self::assertCount(1, $messages);
@@ -172,11 +175,12 @@ final class LinkMinorToHouseholdHandlerTest extends TestCase
             $address,
             MemberId::fromString(self::PRIMARY_ID),
             MemberCode::of('M000500'),
-            \App\Households\Domain\ValueObject\PersonName::of('Alice', 'Smith'),
-            DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
-            Gender::Female,
-            EmailAddress::of('alice@example.com'),
-            PhoneNumber::of('5550001'),
+            MemberProfile::of(
+                PersonName::of('Alice', 'Smith'),
+                DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
+                Gender::Female,
+            ),
+            MemberContact::of(EmailAddress::of('alice@example.com'), PhoneNumber::of('5550001')),
             ResidencyStatus::Resident,
             $this->clock,
         );
@@ -184,11 +188,12 @@ final class LinkMinorToHouseholdHandlerTest extends TestCase
         $home->addMember(
             MemberId::fromString(self::MINOR_ID),
             MemberCode::of('M000501'),
-            \App\Households\Domain\ValueObject\PersonName::of('Timmy', 'Smith'),
-            DateOfBirth::of(new DateTimeImmutable('2015-01-01'), $this->clock),
-            Gender::Male,
-            null,
-            null,
+            MemberProfile::of(
+                PersonName::of('Timmy', 'Smith'),
+                DateOfBirth::of(new DateTimeImmutable('2015-01-01'), $this->clock),
+                Gender::Male,
+            ),
+            MemberContact::none(),
             ResidencyStatus::Resident,
             false,
             $this->clock,
@@ -207,11 +212,12 @@ final class LinkMinorToHouseholdHandlerTest extends TestCase
             $address,
             MemberId::fromString('019571bf-5d54-7000-b500-000000000e05'),
             MemberCode::of('M000502'),
-            \App\Households\Domain\ValueObject\PersonName::of('Bob', 'Jones'),
-            DateOfBirth::of(new DateTimeImmutable('1978-01-01'), $this->clock),
-            Gender::Male,
-            EmailAddress::of('bob@example.com'),
-            null,
+            MemberProfile::of(
+                PersonName::of('Bob', 'Jones'),
+                DateOfBirth::of(new DateTimeImmutable('1978-01-01'), $this->clock),
+                Gender::Male,
+            ),
+            MemberContact::of(EmailAddress::of('bob@example.com'), null),
             ResidencyStatus::Resident,
             $this->clock,
         );

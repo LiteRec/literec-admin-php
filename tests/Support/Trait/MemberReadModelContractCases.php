@@ -19,7 +19,9 @@ use App\Households\Domain\ValueObject\HouseholdId;
 use App\Households\Domain\ValueObject\HouseholdName;
 use App\Households\Domain\ValueObject\ImageFormat;
 use App\Households\Domain\ValueObject\MemberCode;
+use App\Households\Domain\ValueObject\MemberContact;
 use App\Households\Domain\ValueObject\MemberId;
+use App\Households\Domain\ValueObject\MemberProfile;
 use App\Households\Domain\ValueObject\PersonName;
 use App\Households\Domain\ValueObject\ProfilePhoto;
 use App\Shared\Domain\ValueObject\PhoneNumber;
@@ -375,11 +377,12 @@ trait MemberReadModelContractCases
             Address::of('1 Elm St', null, 'Berlin', 'BE', '10115', 'DE'),
             MemberId::fromString('019571bf-5d51-7000-b500-0000000000ce'),
             MemberCode::of('M000090'),
-            PersonName::of('Uwe', 'Müller'),
-            DateOfBirth::of(new DateTimeImmutable('1980-04-04'), $this->clock()),
-            Gender::Male,
-            EmailAddress::of('uwe@example.com'),
-            null,
+            MemberProfile::of(
+                PersonName::of('Uwe', 'Müller'),
+                DateOfBirth::of(new DateTimeImmutable('1980-04-04'), $this->clock()),
+                Gender::Male,
+            ),
+            MemberContact::of(EmailAddress::of('uwe@example.com'), null),
             ResidencyStatus::Resident,
             $this->clock(),
         );
@@ -769,11 +772,12 @@ trait MemberReadModelContractCases
         $household->addMember(
             MemberId::fromString(self::A_MINOR_ID),
             MemberCode::of(self::A_MINOR_CODE),
-            PersonName::of('Fiona', 'Smith'),
-            DateOfBirth::of(new DateTimeImmutable('2015-01-01'), $this->clock()),
-            Gender::Female,
-            null,
-            null,
+            MemberProfile::of(
+                PersonName::of('Fiona', 'Smith'),
+                DateOfBirth::of(new DateTimeImmutable('2015-01-01'), $this->clock()),
+                Gender::Female,
+            ),
+            MemberContact::none(),
             ResidencyStatus::Resident,
             false,
             $this->clock(),
@@ -800,26 +804,28 @@ trait MemberReadModelContractCases
             Address::of('100 Main St', 'Apt 2B', 'Seattle', 'WA', '98101', 'US'),
             MemberId::fromString(self::A_PRIMARY_ID),
             MemberCode::of(self::A_PRIMARY_CODE),
-            PersonName::of('Alice', 'Smith', nickname: $nickname),
-            DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock()),
-            Gender::Female,
-            EmailAddress::of('alice@example.com'),
-            null,
+            MemberProfile::of(
+                PersonName::of('Alice', 'Smith', nickname: $nickname),
+                DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock()),
+                Gender::Female,
+                $salutation,
+                $height,
+                $weight,
+            ),
+            MemberContact::of(EmailAddress::of('alice@example.com'), null),
             ResidencyStatus::Resident,
             $this->clock(),
-            $salutation,
-            $height,
-            $weight,
         );
 
         $household->addMember(
             MemberId::fromString(self::A_SECOND_ID),
             MemberCode::of(self::A_SECOND_CODE),
-            PersonName::of('Bob', 'Brown'),
-            DateOfBirth::of(new DateTimeImmutable('1992-03-04'), $this->clock()),
-            Gender::Male,
-            null,
-            PhoneNumber::of('5550002'),
+            MemberProfile::of(
+                PersonName::of('Bob', 'Brown'),
+                DateOfBirth::of(new DateTimeImmutable('1992-03-04'), $this->clock()),
+                Gender::Male,
+            ),
+            MemberContact::of(null, PhoneNumber::of('5550002')),
             ResidencyStatus::NonResident,
             false,
             $this->clock(),
@@ -828,11 +834,12 @@ trait MemberReadModelContractCases
         $household->addMember(
             MemberId::fromString(self::A_THIRD_ID),
             MemberCode::of(self::A_THIRD_CODE),
-            PersonName::of('Eli', 'Underwood'),
-            DateOfBirth::of(new DateTimeImmutable('2005-07-12'), $this->clock()),
-            Gender::Other,
-            null,
-            null,
+            MemberProfile::of(
+                PersonName::of('Eli', 'Underwood'),
+                DateOfBirth::of(new DateTimeImmutable('2005-07-12'), $this->clock()),
+                Gender::Other,
+            ),
+            MemberContact::none(),
             ResidencyStatus::Resident,
             false,
             $this->clock(),
@@ -849,11 +856,12 @@ trait MemberReadModelContractCases
             Address::of('200 Oak Ave', null, 'Portland', 'OR', '97201', 'US'),
             MemberId::fromString(self::B_PRIMARY_ID),
             MemberCode::of(self::B_PRIMARY_CODE),
-            PersonName::of('Carl', 'Smith'),
-            DateOfBirth::of(new DateTimeImmutable('1985-11-30'), $this->clock()),
-            Gender::Male,
-            EmailAddress::of('carl@example.com'),
-            PhoneNumber::of('5550100'),
+            MemberProfile::of(
+                PersonName::of('Carl', 'Smith'),
+                DateOfBirth::of(new DateTimeImmutable('1985-11-30'), $this->clock()),
+                Gender::Male,
+            ),
+            MemberContact::of(EmailAddress::of('carl@example.com'), PhoneNumber::of('5550100')),
             ResidencyStatus::Member,
             $this->clock(),
         );
@@ -861,11 +869,12 @@ trait MemberReadModelContractCases
         $household->addMember(
             MemberId::fromString(self::B_SECOND_ID),
             MemberCode::of(self::B_SECOND_CODE),
-            PersonName::of('Diana', 'Lopez'),
-            DateOfBirth::of(new DateTimeImmutable('1987-02-15'), $this->clock()),
-            Gender::Female,
-            EmailAddress::of('diana@example.com'),
-            PhoneNumber::of('5550101'),
+            MemberProfile::of(
+                PersonName::of('Diana', 'Lopez'),
+                DateOfBirth::of(new DateTimeImmutable('1987-02-15'), $this->clock()),
+                Gender::Female,
+            ),
+            MemberContact::of(EmailAddress::of('diana@example.com'), PhoneNumber::of('5550101')),
             ResidencyStatus::Member,
             false,
             $this->clock(),

@@ -15,7 +15,9 @@ use App\Households\Domain\ValueObject\Gender;
 use App\Households\Domain\ValueObject\HouseholdId;
 use App\Households\Domain\ValueObject\HouseholdName;
 use App\Households\Domain\ValueObject\MemberCode;
+use App\Households\Domain\ValueObject\MemberContact;
 use App\Households\Domain\ValueObject\MemberId;
+use App\Households\Domain\ValueObject\MemberProfile;
 use App\Households\Domain\ValueObject\PersonName;
 use App\Households\Domain\ValueObject\ResidencyStatus;
 use DateTimeImmutable;
@@ -104,11 +106,12 @@ final class MemberMergePolicyTest extends TestCase
             Address::of('123 Main St', null, 'Springfield', 'IL', '62701', 'US'),
             MemberId::fromString(self::SURVIVOR_ID),
             MemberCode::of('M0001'),
-            PersonName::of('Sam', 'Survivor'),
-            DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
-            Gender::Male,
-            null,
-            null,
+            MemberProfile::of(
+                PersonName::of('Sam', 'Survivor'),
+                DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
+                Gender::Male,
+            ),
+            MemberContact::none(),
             ResidencyStatus::Resident,
             $this->clock,
         );

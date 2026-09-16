@@ -12,7 +12,9 @@ use App\Households\Domain\ValueObject\Gender;
 use App\Households\Domain\ValueObject\HouseholdId;
 use App\Households\Domain\ValueObject\HouseholdName;
 use App\Households\Domain\ValueObject\MemberCode;
+use App\Households\Domain\ValueObject\MemberContact;
 use App\Households\Domain\ValueObject\MemberId;
+use App\Households\Domain\ValueObject\MemberProfile;
 use App\Households\Domain\ValueObject\PersonName;
 use App\Households\Domain\ValueObject\ResidencyStatus;
 use App\Shared\Domain\ValueObject\EmailAddress;
@@ -272,11 +274,12 @@ final class HouseholdLinkControllerTest extends WebTestCase
             Address::of('100 Main St', 'Apt 2B', 'Seattle', 'WA', '98101', 'US'),
             MemberId::fromString(self::PRIMARY_ID),
             MemberCode::of(self::PRIMARY_CODE),
-            PersonName::of('Alice', 'Smith'),
-            DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
-            Gender::Female,
-            EmailAddress::of('alice@example.com'),
-            null,
+            MemberProfile::of(
+                PersonName::of('Alice', 'Smith'),
+                DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
+                Gender::Female,
+            ),
+            MemberContact::of(EmailAddress::of('alice@example.com'), null),
             ResidencyStatus::Resident,
             $this->clock,
         );
@@ -284,11 +287,12 @@ final class HouseholdLinkControllerTest extends WebTestCase
         $household->addMember(
             MemberId::fromString(self::MINOR_ID),
             MemberCode::of(self::MINOR_CODE),
-            PersonName::of('Minor', 'Smith'),
-            DateOfBirth::of(new DateTimeImmutable('2015-01-01'), $this->clock),
-            Gender::Male,
-            null,
-            null,
+            MemberProfile::of(
+                PersonName::of('Minor', 'Smith'),
+                DateOfBirth::of(new DateTimeImmutable('2015-01-01'), $this->clock),
+                Gender::Male,
+            ),
+            MemberContact::of(null, null),
             ResidencyStatus::Resident,
             false,
             $this->clock,
@@ -308,11 +312,12 @@ final class HouseholdLinkControllerTest extends WebTestCase
             Address::of('200 Oak Ave', null, 'Portland', 'OR', '97201', 'US'),
             MemberId::fromString(self::TARGET_PRIMARY_ID),
             MemberCode::of(self::TARGET_PRIMARY_CODE),
-            PersonName::of('Bob', 'Jones'),
-            DateOfBirth::of(new DateTimeImmutable('1978-01-01'), $this->clock),
-            Gender::Male,
-            EmailAddress::of('bob@example.com'),
-            null,
+            MemberProfile::of(
+                PersonName::of('Bob', 'Jones'),
+                DateOfBirth::of(new DateTimeImmutable('1978-01-01'), $this->clock),
+                Gender::Male,
+            ),
+            MemberContact::of(EmailAddress::of('bob@example.com'), null),
             ResidencyStatus::Resident,
             $this->clock,
         );

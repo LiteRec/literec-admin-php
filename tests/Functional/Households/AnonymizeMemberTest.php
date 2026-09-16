@@ -188,9 +188,9 @@ final class AnonymizeMemberTest extends WebTestCase
 
         $household = $this->repo()->findById(HouseholdId::fromString(self::HOUSEHOLD_ID));
         $member = $this->memberById($household, self::PRIMARY_ID);
-        self::assertTrue($member->isAnonymized());
-        self::assertFalse($member->isActive());
-        self::assertSame('Anonymized', $member->name()->firstName);
+        self::assertTrue($member->lifecycle()->isAnonymized());
+        self::assertFalse($member->lifecycle()->isActive);
+        self::assertSame('Anonymized', $member->profile()->name->firstName);
     }
 
     #[Test]
@@ -285,7 +285,7 @@ final class AnonymizeMemberTest extends WebTestCase
 
         self::assertResponseStatusCodeSame(422);
         $household = $this->repo()->findById(HouseholdId::fromString(self::HOUSEHOLD_ID));
-        self::assertFalse($this->memberById($household, self::PRIMARY_ID)->isAnonymized());
+        self::assertFalse($this->memberById($household, self::PRIMARY_ID)->lifecycle()->isAnonymized());
     }
 
     #[Test]
@@ -357,7 +357,7 @@ final class AnonymizeMemberTest extends WebTestCase
     private function assertMemberIsNotAnonymized(): void
     {
         $household = $this->repo()->findById(HouseholdId::fromString(self::HOUSEHOLD_ID));
-        self::assertFalse($this->memberById($household, self::PRIMARY_ID)->isAnonymized());
+        self::assertFalse($this->memberById($household, self::PRIMARY_ID)->lifecycle()->isAnonymized());
     }
 
     private function repo(): Households

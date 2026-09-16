@@ -13,7 +13,9 @@ use App\Households\Domain\ValueObject\Gender;
 use App\Households\Domain\ValueObject\HouseholdId;
 use App\Households\Domain\ValueObject\HouseholdName;
 use App\Households\Domain\ValueObject\MemberCode;
+use App\Households\Domain\ValueObject\MemberContact;
 use App\Households\Domain\ValueObject\MemberId;
+use App\Households\Domain\ValueObject\MemberProfile;
 use App\Households\Domain\ValueObject\PersonName;
 use App\Households\Domain\ValueObject\ResidencyStatus;
 use App\Households\Domain\ValueObject\TransactionReferences;
@@ -118,11 +120,12 @@ final class RecordMemberSplitLineageHandlerTest extends KernelTestCase
             Address::of('1 Test St', null, 'Seattle', 'WA', '98101', 'US'),
             MemberId::fromString(self::SOURCE_ID),
             MemberCode::of(self::SOURCE_CODE),
-            PersonName::of('Src', 'Test'),
-            DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
-            Gender::Unspecified,
-            null,
-            null,
+            MemberProfile::of(
+                PersonName::of('Src', 'Test'),
+                DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
+                Gender::Unspecified,
+            ),
+            MemberContact::of(null, null),
             ResidencyStatus::Resident,
             $this->clock,
         );

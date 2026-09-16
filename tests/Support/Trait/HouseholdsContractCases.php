@@ -20,7 +20,9 @@ use App\Households\Domain\ValueObject\HouseholdId;
 use App\Households\Domain\ValueObject\HouseholdName;
 use App\Households\Domain\ValueObject\ImageFormat;
 use App\Households\Domain\ValueObject\MemberCode;
+use App\Households\Domain\ValueObject\MemberContact;
 use App\Households\Domain\ValueObject\MemberId;
+use App\Households\Domain\ValueObject\MemberProfile;
 use App\Households\Domain\ValueObject\PersonName;
 use App\Households\Domain\ValueObject\ProfilePhoto;
 use App\Shared\Domain\ValueObject\PhoneNumber;
@@ -78,35 +80,39 @@ trait HouseholdsContractCases
         }
 
         $primary = $byId[self::PRIMARY_MEMBER_ID];
+        $primaryProfile = $primary->profile();
+        $primaryContact = $primary->contact();
         self::assertTrue($primary->code()->equals(MemberCode::of(self::PRIMARY_MEMBER_CODE)));
-        self::assertTrue($primary->name()->equals(PersonName::of('Alice', 'Smith', nickname: 'Al')));
-        self::assertSame(Gender::Female, $primary->gender());
-        self::assertNotNull($primary->email());
-        self::assertTrue($primary->email()->equals(EmailAddress::of('alice@example.com')));
-        self::assertNull($primary->phone());
-        self::assertSame(Salutation::Ms, $primary->salutation());
-        self::assertNotNull($primary->height());
-        self::assertTrue($primary->height()->equals(Height::ofInches(65)));
-        self::assertNotNull($primary->weight());
-        self::assertTrue($primary->weight()->equals(Weight::ofPounds(140)));
+        self::assertTrue($primaryProfile->name->equals(PersonName::of('Alice', 'Smith', nickname: 'Al')));
+        self::assertSame(Gender::Female, $primaryProfile->gender);
+        self::assertNotNull($primaryContact->email);
+        self::assertTrue($primaryContact->email->equals(EmailAddress::of('alice@example.com')));
+        self::assertNull($primaryContact->phone);
+        self::assertSame(Salutation::Ms, $primaryProfile->salutation);
+        self::assertNotNull($primaryProfile->height);
+        self::assertTrue($primaryProfile->height->equals(Height::ofInches(65)));
+        self::assertNotNull($primaryProfile->weight);
+        self::assertTrue($primaryProfile->weight->equals(Weight::ofPounds(140)));
         self::assertSame(ResidencyStatus::Resident, $primary->residencyStatus());
         self::assertTrue($primary->isPrimary());
-        self::assertTrue($primary->isActive());
+        self::assertTrue($primary->lifecycle()->isActive);
 
         $second = $byId[self::SECOND_MEMBER_ID];
+        $secondProfile = $second->profile();
+        $secondContact = $second->contact();
         self::assertTrue($second->code()->equals(MemberCode::of(self::SECOND_MEMBER_CODE)));
-        self::assertTrue($second->name()->equals(PersonName::of('Bob', 'Smith', 'Quincy', 'Jr.')));
-        self::assertSame(Gender::Male, $second->gender());
-        self::assertNull($second->email());
-        self::assertNotNull($second->phone());
-        self::assertTrue($second->phone()->equals(PhoneNumber::of('5550002')));
-        self::assertNull($second->name()->nickname);
-        self::assertNull($second->salutation());
-        self::assertNull($second->height());
-        self::assertNull($second->weight());
+        self::assertTrue($secondProfile->name->equals(PersonName::of('Bob', 'Smith', 'Quincy', 'Jr.')));
+        self::assertSame(Gender::Male, $secondProfile->gender);
+        self::assertNull($secondContact->email);
+        self::assertNotNull($secondContact->phone);
+        self::assertTrue($secondContact->phone->equals(PhoneNumber::of('5550002')));
+        self::assertNull($secondProfile->name->nickname);
+        self::assertNull($secondProfile->salutation);
+        self::assertNull($secondProfile->height);
+        self::assertNull($secondProfile->weight);
         self::assertSame(ResidencyStatus::NonResident, $second->residencyStatus());
         self::assertFalse($second->isPrimary());
-        self::assertTrue($second->isActive());
+        self::assertTrue($second->lifecycle()->isActive);
     }
 
     #[Test]
@@ -202,8 +208,7 @@ trait HouseholdsContractCases
 
         $loaded->updateMemberContact(
             MemberId::fromString(self::PRIMARY_MEMBER_ID),
-            EmailAddress::of('alice.new@example.com'),
-            PhoneNumber::of('5550111'),
+            MemberContact::of(EmailAddress::of('alice.new@example.com'), PhoneNumber::of('5550111')),
             $this->clock(),
         );
 
@@ -233,15 +238,17 @@ trait HouseholdsContractCases
         }
 
         $primary = $byId[self::PRIMARY_MEMBER_ID];
-        self::assertNotNull($primary->email());
-        self::assertTrue($primary->email()->equals(EmailAddress::of('alice.new@example.com')));
-        self::assertNotNull($primary->phone());
-        self::assertTrue($primary->phone()->equals(PhoneNumber::of('5550111')));
+        $primaryContact = $primary->contact();
+        self::assertNotNull($primaryContact->email);
+        self::assertTrue($primaryContact->email->equals(EmailAddress::of('alice.new@example.com')));
+        self::assertNotNull($primaryContact->phone);
+        self::assertTrue($primaryContact->phone->equals(PhoneNumber::of('5550111')));
 
         $second = $byId[self::SECOND_MEMBER_ID];
+        $secondLifecycle = $second->lifecycle();
         self::assertSame(ResidencyStatus::Member, $second->residencyStatus());
-        self::assertFalse($second->isActive());
-        $deactivation = $second->deactivation();
+        self::assertFalse($secondLifecycle->isActive);
+        $deactivation = $secondLifecycle->deactivation;
         self::assertNotNull($deactivation);
         self::assertSame('moved out of state', $deactivation->reason);
         self::assertInstanceOf(\DateTimeImmutable::class, $deactivation->at);
@@ -291,8 +298,9 @@ trait HouseholdsContractCases
 
         $reloaded = $this->households()->findById(HouseholdId::fromString(self::HOUSEHOLD_ID));
         $merged = $this->memberById($reloaded, self::SECOND_MEMBER_ID);
-        self::assertTrue($merged->isMerged());
-        $merge = $merged->merge();
+        $mergedLifecycle = $merged->lifecycle();
+        self::assertTrue($mergedLifecycle->isMerged());
+        $merge = $mergedLifecycle->merge;
         self::assertNotNull($merge);
         self::assertTrue($merge->intoMemberId->equals($survivorId));
         self::assertInstanceOf(DateTimeImmutable::class, $merge->at);
@@ -315,13 +323,15 @@ trait HouseholdsContractCases
 
         $reloaded = $this->households()->findById(HouseholdId::fromString(self::HOUSEHOLD_ID));
         $anonymized = $this->memberById($reloaded, self::SECOND_MEMBER_ID);
-        self::assertTrue($anonymized->isAnonymized());
-        self::assertInstanceOf(DateTimeImmutable::class, $anonymized->anonymizedAt());
-        self::assertSame('Anonymized', $anonymized->name()->firstName);
-        self::assertSame('Member', $anonymized->name()->lastName);
-        self::assertNull($anonymized->email());
-        self::assertNull($anonymized->phone());
-        self::assertFalse($anonymized->isActive());
+        $anonymizedLifecycle = $anonymized->lifecycle();
+        $anonymizedContact = $anonymized->contact();
+        self::assertTrue($anonymizedLifecycle->isAnonymized());
+        self::assertInstanceOf(DateTimeImmutable::class, $anonymizedLifecycle->anonymizedAt);
+        self::assertSame('Anonymized', $anonymized->profile()->name->firstName);
+        self::assertSame('Member', $anonymized->profile()->name->lastName);
+        self::assertNull($anonymizedContact->email);
+        self::assertNull($anonymizedContact->phone);
+        self::assertFalse($anonymizedLifecycle->isActive);
 
         // Alice (the primary) is untouched, and remains — the household is
         // not scrubbed while a non-anonymized member remains.
@@ -358,7 +368,7 @@ trait HouseholdsContractCases
         // Reaching here without an exception is the point; also confirm the
         // lock did not itself mutate the member's merged state.
         $reloaded = $repository->findById(HouseholdId::fromString(self::HOUSEHOLD_ID));
-        self::assertFalse($this->memberById($reloaded, self::PRIMARY_MEMBER_ID)->isMerged());
+        self::assertFalse($this->memberById($reloaded, self::PRIMARY_MEMBER_ID)->lifecycle()->isMerged());
     }
 
     #[Test]
@@ -400,11 +410,12 @@ trait HouseholdsContractCases
         $household->addMember(
             MemberId::fromString(self::MINOR_MEMBER_ID),
             MemberCode::of(self::MINOR_MEMBER_CODE),
-            PersonName::of('Charlie', 'Smith'),
-            DateOfBirth::of(new DateTimeImmutable('2015-01-01'), $this->clock()),
-            Gender::Male,
-            null,
-            null,
+            MemberProfile::of(
+                PersonName::of('Charlie', 'Smith'),
+                DateOfBirth::of(new DateTimeImmutable('2015-01-01'), $this->clock()),
+                Gender::Male,
+            ),
+            MemberContact::none(),
             ResidencyStatus::Resident,
             false,
             $this->clock(),
@@ -422,10 +433,10 @@ trait HouseholdsContractCases
 
         $reloaded = $this->households()->findById(HouseholdId::fromString(self::HOUSEHOLD_ID));
         $minor = $this->memberById($reloaded, self::MINOR_MEMBER_ID);
-        self::assertTrue($minor->isSharedWith(HouseholdId::fromString(self::TARGET_HOUSEHOLD_ID)));
+        self::assertTrue($minor->householdLinks()->includes(HouseholdId::fromString(self::TARGET_HOUSEHOLD_ID)));
         self::assertEquals(
             [HouseholdId::fromString(self::TARGET_HOUSEHOLD_ID)],
-            $minor->sharedHouseholdIds(),
+            $minor->householdLinks()->householdIds(),
         );
 
         $reloaded->withdrawMemberFromHousehold(
@@ -436,7 +447,7 @@ trait HouseholdsContractCases
         $this->households()->save($reloaded);
 
         $final = $this->households()->findById(HouseholdId::fromString(self::HOUSEHOLD_ID));
-        self::assertSame([], $this->memberById($final, self::MINOR_MEMBER_ID)->sharedHouseholdIds());
+        self::assertSame([], $this->memberById($final, self::MINOR_MEMBER_ID)->householdLinks()->householdIds());
     }
 
     private function buildTargetHousehold(): Household
@@ -447,11 +458,12 @@ trait HouseholdsContractCases
             Address::of('500 Pine St', null, 'Tacoma', 'WA', '98402', 'US'),
             MemberId::fromString('019571bf-5d51-7000-b500-000000000006'),
             MemberCode::of('M000004'),
-            PersonName::of('Dana', 'Jones'),
-            DateOfBirth::of(new DateTimeImmutable('1978-01-01'), $this->clock()),
-            Gender::Female,
-            EmailAddress::of('dana@example.com'),
-            null,
+            MemberProfile::of(
+                PersonName::of('Dana', 'Jones'),
+                DateOfBirth::of(new DateTimeImmutable('1978-01-01'), $this->clock()),
+                Gender::Female,
+            ),
+            MemberContact::of(EmailAddress::of('dana@example.com'), null),
             ResidencyStatus::Resident,
             $this->clock(),
         );
@@ -465,26 +477,28 @@ trait HouseholdsContractCases
             $this->address(),
             MemberId::fromString(self::PRIMARY_MEMBER_ID),
             MemberCode::of(self::PRIMARY_MEMBER_CODE),
-            PersonName::of('Alice', 'Smith', nickname: 'Al'),
-            DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock()),
-            Gender::Female,
-            EmailAddress::of('alice@example.com'),
-            null,
+            MemberProfile::of(
+                PersonName::of('Alice', 'Smith', nickname: 'Al'),
+                DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock()),
+                Gender::Female,
+                Salutation::Ms,
+                Height::ofInches(65),
+                Weight::ofPounds(140),
+            ),
+            MemberContact::of(EmailAddress::of('alice@example.com'), null),
             ResidencyStatus::Resident,
             $this->clock(),
-            Salutation::Ms,
-            Height::ofInches(65),
-            Weight::ofPounds(140),
         );
 
         $household->addMember(
             MemberId::fromString(self::SECOND_MEMBER_ID),
             MemberCode::of(self::SECOND_MEMBER_CODE),
-            PersonName::of('Bob', 'Smith', 'Quincy', 'Jr.'),
-            DateOfBirth::of(new DateTimeImmutable('1992-03-04'), $this->clock()),
-            Gender::Male,
-            null,
-            PhoneNumber::of('5550002'),
+            MemberProfile::of(
+                PersonName::of('Bob', 'Smith', 'Quincy', 'Jr.'),
+                DateOfBirth::of(new DateTimeImmutable('1992-03-04'), $this->clock()),
+                Gender::Male,
+            ),
+            MemberContact::of(null, PhoneNumber::of('5550002')),
             ResidencyStatus::NonResident,
             false,
             $this->clock(),

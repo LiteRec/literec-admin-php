@@ -77,9 +77,9 @@ final class AnonymizeMemberHandlerTest extends TestCase
 
         $stored = $this->households->findById(HouseholdId::fromString(self::HOUSEHOLD_ID));
         $member = $this->memberById($stored, self::PRIMARY_ID);
-        self::assertTrue($member->isAnonymized());
-        self::assertFalse($member->isActive());
-        self::assertSame('Anonymized', $member->name()->firstName);
+        self::assertTrue($member->lifecycle()->isAnonymized());
+        self::assertFalse($member->lifecycle()->isActive);
+        self::assertSame('Anonymized', $member->profile()->name->firstName);
 
         $messages = $this->eventBus->dispatchedMessages();
         self::assertCount(1, $messages);

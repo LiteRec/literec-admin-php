@@ -90,11 +90,11 @@ final class MemberProfileCardTest extends WebTestCase
         self::assertInstanceOf(Households::class, $repo);
         $household = $repo->findById(HouseholdId::fromString(self::HOUSEHOLD_A));
         $member = $this->firstMember($household);
-        self::assertSame('Al', $member->name()->nickname);
-        self::assertNotNull($member->height());
-        self::assertSame(65, $member->height()->inches);
-        self::assertNotNull($member->weight());
-        self::assertSame(140, $member->weight()->pounds);
+        self::assertSame('Al', $member->profile()->name->nickname);
+        self::assertNotNull($member->profile()->height);
+        self::assertSame(65, $member->profile()->height->inches);
+        self::assertNotNull($member->profile()->weight);
+        self::assertSame(140, $member->profile()->weight->pounds);
     }
 
     #[Test]
@@ -153,7 +153,7 @@ final class MemberProfileCardTest extends WebTestCase
         self::assertInstanceOf(Households::class, $repo);
         $household = $repo->findById(HouseholdId::fromString(self::HOUSEHOLD_A));
         $member = $this->firstMember($household);
-        self::assertNull($member->height());
+        self::assertNull($member->profile()->height);
     }
 
     #[Test]
@@ -231,8 +231,8 @@ final class MemberProfileCardTest extends WebTestCase
         self::assertInstanceOf(Households::class, $repo);
         $household = $repo->findById(HouseholdId::fromString(self::HOUSEHOLD_A));
         $member = $this->firstMember($household);
-        self::assertSame('Alicia', $member->name()->firstName);
-        self::assertSame('Smith-Jones', $member->name()->lastName);
+        self::assertSame('Alicia', $member->profile()->name->firstName);
+        self::assertSame('Smith-Jones', $member->profile()->name->lastName);
     }
 
     #[Test]
@@ -301,7 +301,7 @@ final class MemberProfileCardTest extends WebTestCase
         self::assertInstanceOf(Households::class, $repo);
         $household = $repo->findById(HouseholdId::fromString(self::HOUSEHOLD_A));
         $member = $this->firstMember($household);
-        self::assertSame(self::DOB, $member->dateOfBirth()->value()->format('Y-m-d'));
+        self::assertSame(self::DOB, $member->profile()->dateOfBirth->value()->format('Y-m-d'));
     }
 
     #[Test]
@@ -339,7 +339,7 @@ final class MemberProfileCardTest extends WebTestCase
         self::assertInstanceOf(Households::class, $repo);
         $household = $repo->findById(HouseholdId::fromString(self::HOUSEHOLD_A));
         $member = $this->firstMember($household);
-        self::assertSame('Alice', $member->name()->firstName);
+        self::assertSame('Alice', $member->profile()->name->firstName);
     }
 
     #[Test]

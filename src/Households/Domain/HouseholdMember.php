@@ -4,17 +4,21 @@ declare(strict_types=1);
 
 namespace App\Households\Domain;
 
-use App\Households\Domain\Exception\HouseholdMemberAlreadyAttached;
 use App\Households\Domain\ValueObject\AnonymizedProfile;
 use App\Households\Domain\ValueObject\DateOfBirth;
 use App\Households\Domain\ValueObject\Deactivation;
 use App\Households\Domain\ValueObject\Gender;
 use App\Households\Domain\ValueObject\Height;
 use App\Households\Domain\ValueObject\HouseholdId;
+use App\Households\Domain\ValueObject\HouseholdLink;
 use App\Households\Domain\ValueObject\ImageFormat;
 use App\Households\Domain\ValueObject\MemberCode;
+use App\Households\Domain\ValueObject\MemberContact;
+use App\Households\Domain\ValueObject\MemberHouseholdLinks;
 use App\Households\Domain\ValueObject\MemberId;
+use App\Households\Domain\ValueObject\MemberLifecycle;
 use App\Households\Domain\ValueObject\MemberMerge;
+use App\Households\Domain\ValueObject\MemberProfile;
 use App\Households\Domain\ValueObject\PersonName;
 use App\Households\Domain\ValueObject\ProfilePhoto;
 use App\Households\Domain\ValueObject\ResidencyStatus;
@@ -33,6 +37,13 @@ use Doctrine\Common\Collections\Collection;
  * package-private modifier), they are considered internal to the aggregate:
  * callers in Application or Infrastructure layers must go through `Household`
  * methods. Direct instantiation outside the aggregate is a programming error.
+ *
+ * The scalar/embeddable properties below stay mapped individually in
+ * {@see \App\Households\Infrastructure\Persistence\Doctrine\Mapping\HouseholdMember.orm.xml}
+ * (LRA-237): {@see self::profile()}, {@see self::contact()},
+ * {@see self::lifecycle()}, and {@see self::householdLinks()} are read
+ * projections built from them on demand, not additional storage, so
+ * callers read one cohesive value object instead of several loose getters.
  */
 final class HouseholdMember
 {
@@ -80,13 +91,11 @@ final class HouseholdMember
      * Back-reference to the owning {@see Household}. Required by the
      * Doctrine persistence mapping (many-to-one inverse) so that adding a
      * member to a household persists the FK without a second flush. Set
-     * once by {@see Household::register()} / {@see Household::addMember()}
-     * via {@see self::attachToHousehold()} and never reassigned. The
-     * property is left uninitialized rather than nullable because the
-     * Doctrine many-to-one mapping is declared non-nullable; a
-     * HouseholdMember without an owning household is a programming error
-     * and surfaces immediately as a property-access error rather than as
-     * a silent NULL.
+     * once in the constructor and never reassigned — the property is left
+     * uninitialized rather than nullable because the Doctrine many-to-one
+     * mapping is declared non-nullable; a HouseholdMember without an
+     * owning household is a programming error and surfaces immediately as
+     * a property-access error rather than as a silent NULL.
      */
     private Household $household;
 
@@ -97,24 +106,22 @@ final class HouseholdMember
     public function __construct(
         MemberId $id,
         MemberCode $code,
-        PersonName $name,
-        DateOfBirth $dateOfBirth,
-        Gender $gender,
-        ?EmailAddress $email,
-        ?PhoneNumber $phone,
+        MemberProfile $profile,
+        MemberContact $contact,
         ResidencyStatus $residencyStatus,
         bool $isPrimary,
-        ?Salutation $salutation = null,
-        ?Height $height = null,
-        ?Weight $weight = null,
+        Household $household,
     ) {
         $this->id = $id;
         $this->code = $code;
-        $this->name = $name;
-        $this->dateOfBirth = $dateOfBirth;
-        $this->gender = $gender;
-        $this->email = $email;
-        $this->phone = $phone;
+        $this->name = $profile->name;
+        $this->dateOfBirth = $profile->dateOfBirth;
+        $this->gender = $profile->gender;
+        $this->salutation = $profile->salutation;
+        $this->height = $profile->height;
+        $this->weight = $profile->weight;
+        $this->email = $contact->email;
+        $this->phone = $contact->phone;
         $this->residencyStatus = $residencyStatus;
         $this->isPrimary = $isPrimary;
         $this->isActive = true;
@@ -123,13 +130,11 @@ final class HouseholdMember
         $this->anonymizedAt = null;
         $this->mergedIntoMemberId = null;
         $this->mergedAt = null;
-        $this->salutation = $salutation;
-        $this->height = $height;
-        $this->weight = $weight;
         $this->photoStorageKey = null;
         $this->photoFormat = null;
         $this->photoUploadedAt = null;
         $this->affiliations = new ArrayCollection();
+        $this->household = $household;
     }
 
     public function id(): MemberId
@@ -142,44 +147,9 @@ final class HouseholdMember
         return $this->code;
     }
 
-    public function name(): PersonName
+    public function isPrimary(): bool
     {
-        return $this->name;
-    }
-
-    public function dateOfBirth(): DateOfBirth
-    {
-        return $this->dateOfBirth;
-    }
-
-    public function gender(): Gender
-    {
-        return $this->gender;
-    }
-
-    public function email(): ?EmailAddress
-    {
-        return $this->email;
-    }
-
-    public function phone(): ?PhoneNumber
-    {
-        return $this->phone;
-    }
-
-    public function salutation(): ?Salutation
-    {
-        return $this->salutation;
-    }
-
-    public function height(): ?Height
-    {
-        return $this->height;
-    }
-
-    public function weight(): ?Weight
-    {
-        return $this->weight;
+        return $this->isPrimary;
     }
 
     public function residencyStatus(): ResidencyStatus
@@ -187,64 +157,44 @@ final class HouseholdMember
         return $this->residencyStatus;
     }
 
-    public function isPrimary(): bool
+    public function profile(): MemberProfile
     {
-        return $this->isPrimary;
+        return MemberProfile::of(
+            $this->name,
+            $this->dateOfBirth,
+            $this->gender,
+            $this->salutation,
+            $this->height,
+            $this->weight,
+        );
     }
 
-    public function isActive(): bool
+    public function contact(): MemberContact
     {
-        return $this->isActive;
-    }
-
-    public function isAnonymized(): bool
-    {
-        return $this->anonymizedAt !== null;
-    }
-
-    public function anonymizedAt(): ?DateTimeImmutable
-    {
-        return $this->anonymizedAt;
+        return MemberContact::of($this->email, $this->phone);
     }
 
     /**
-     * The deactivation record (reason + timestamp), or null while the member
-     * is active. Materialized from the persisted scalar fields so the pair is
-     * never exposed as two loose nullable getters.
+     * The member's lifecycle state, materialized from the four persisted
+     * scalar facts so they are never exposed as six loose getters.
      */
-    public function deactivation(): ?Deactivation
+    public function lifecycle(): MemberLifecycle
     {
-        if ($this->deactivatedReason === null || $this->deactivatedAt === null) {
-            return null;
-        }
+        $deactivation = $this->deactivatedReason !== null && $this->deactivatedAt !== null
+            ? new Deactivation($this->deactivatedReason, $this->deactivatedAt)
+            : null;
 
-        return new Deactivation($this->deactivatedReason, $this->deactivatedAt);
-    }
+        $merge = $this->mergedIntoMemberId !== null && $this->mergedAt !== null
+            ? new MemberMerge($this->mergedIntoMemberId, $this->mergedAt)
+            : null;
 
-    public function isMerged(): bool
-    {
-        return $this->mergedIntoMemberId !== null;
-    }
-
-    /**
-     * The merge record (survivor id + timestamp), or null while the member
-     * has not been merged. Materialized from the persisted scalar fields the
-     * same way {@see self::deactivation()} projects {@see Deactivation}.
-     */
-    public function merge(): ?MemberMerge
-    {
-        if ($this->mergedIntoMemberId === null || $this->mergedAt === null) {
-            return null;
-        }
-
-        return new MemberMerge($this->mergedIntoMemberId, $this->mergedAt);
+        return new MemberLifecycle($this->isActive, $deactivation, $this->anonymizedAt, $merge);
     }
 
     /**
      * The member's uploaded profile photo, or null when none has been
-     * uploaded. Materialized from the persisted scalar fields the same
-     * way {@see self::deactivation()} projects {@see Deactivation} — this
-     * is a read of already-validated state, not re-validation.
+     * uploaded. Materialized from the persisted scalar fields — this is a
+     * read of already-validated state, not re-validation.
      */
     public function photo(): ?ProfilePhoto
     {
@@ -256,53 +206,37 @@ final class HouseholdMember
     }
 
     /**
-     * @internal Mutation must be triggered via {@see Household} aggregate.
+     * Every household this member has been shared with (LRA-210),
+     * materialized from the {@see self::$affiliations} collection.
      */
-    public function rename(PersonName $name): void
+    public function householdLinks(): MemberHouseholdLinks
     {
-        $this->name = $name;
+        return MemberHouseholdLinks::of(...array_map(
+            static fn(HouseholdAffiliation $a): HouseholdLink => HouseholdLink::of($a->householdId(), $a->linkedAt()),
+            $this->affiliations->toArray(),
+        ));
     }
 
     /**
      * @internal Mutation must be triggered via {@see Household} aggregate.
      */
-    public function updateDateOfBirth(DateOfBirth $dateOfBirth): void
+    public function updateProfile(MemberProfile $profile): void
     {
-        $this->dateOfBirth = $dateOfBirth;
+        $this->name = $profile->name;
+        $this->dateOfBirth = $profile->dateOfBirth;
+        $this->gender = $profile->gender;
+        $this->salutation = $profile->salutation;
+        $this->height = $profile->height;
+        $this->weight = $profile->weight;
     }
 
     /**
      * @internal Mutation must be triggered via {@see Household} aggregate.
      */
-    public function updateGender(Gender $gender): void
+    public function updateContact(MemberContact $contact): void
     {
-        $this->gender = $gender;
-    }
-
-    /**
-     * @internal Mutation must be triggered via {@see Household} aggregate.
-     */
-    public function updateContact(?EmailAddress $email, ?PhoneNumber $phone): void
-    {
-        $this->email = $email;
-        $this->phone = $phone;
-    }
-
-    /**
-     * @internal Mutation must be triggered via {@see Household} aggregate.
-     */
-    public function updateSalutation(?Salutation $salutation): void
-    {
-        $this->salutation = $salutation;
-    }
-
-    /**
-     * @internal Mutation must be triggered via {@see Household} aggregate.
-     */
-    public function updateMeasurements(?Height $height, ?Weight $weight): void
-    {
-        $this->height = $height;
-        $this->weight = $weight;
+        $this->email = $contact->email;
+        $this->phone = $contact->phone;
     }
 
     /**
@@ -358,7 +292,7 @@ final class HouseholdMember
         $this->salutation = $profile->salutation;
         $this->height = $profile->height;
         $this->weight = $profile->weight;
-        $this->removePhoto();
+        $this->replacePhoto(null);
         $this->isActive = false;
         $this->deactivatedReason = self::ANONYMIZED_DEACTIVATION_REASON;
         $this->deactivatedAt = $at;
@@ -375,81 +309,20 @@ final class HouseholdMember
     }
 
     /**
+     * Replaces the member's profile photo; a null $photo clears it.
+     * Absorbs what were previously separate attachPhoto()/removePhoto()
+     * mutators (LRA-237) — the intention-revealing attach/remove verbs
+     * stay on the {@see Household} aggregate API where callers see them,
+     * this entity-level primitive is @internal to the aggregate exactly as
+     * the mutators it replaces were.
+     *
      * @internal Mutation must be triggered via {@see Household} aggregate.
      */
-    public function attachPhoto(ProfilePhoto $photo): void
+    public function replacePhoto(?ProfilePhoto $photo): void
     {
-        $this->photoStorageKey = $photo->storageKey;
-        $this->photoFormat = $photo->format;
-        $this->photoUploadedAt = $photo->uploadedAt;
-    }
-
-    /**
-     * @internal Mutation must be triggered via {@see Household} aggregate.
-     */
-    public function removePhoto(): void
-    {
-        $this->photoStorageKey = null;
-        $this->photoFormat = null;
-        $this->photoUploadedAt = null;
-    }
-
-    /**
-     * @internal Called by {@see Household::register()} and
-     *           {@see Household::addMember()} to link a freshly-constructed
-     *           member to its owning aggregate so the Doctrine many-to-one
-     *           FK persists on flush. Idempotent: re-attaching to the same
-     *           household is a no-op; attaching to a different one is a
-     *           programming error.
-     */
-    public function attachToHousehold(Household $household): void
-    {
-        if (isset($this->household)) {
-            if ($this->household === $household) {
-                return;
-            }
-            throw HouseholdMemberAlreadyAttached::toAnotherHousehold();
-        }
-        $this->household = $household;
-    }
-
-    /**
-     * @return list<HouseholdId>
-     */
-    public function sharedHouseholdIds(): array
-    {
-        return array_values(array_map(
-            static fn(HouseholdAffiliation $a): HouseholdId => $a->householdId(),
-            $this->affiliations->toArray(),
-        ));
-    }
-
-    public function isSharedWith(HouseholdId $householdId): bool
-    {
-        foreach ($this->affiliations as $affiliation) {
-            if ($affiliation->householdId()->equals($householdId)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * The timestamp the member was shared with $householdId, or null when
-     * not currently shared with it. Materialized from the affiliations
-     * collection the same way {@see self::deactivation()} projects
-     * {@see Deactivation} — a read of already-validated state.
-     */
-    public function linkedAtFor(HouseholdId $householdId): ?DateTimeImmutable
-    {
-        foreach ($this->affiliations as $affiliation) {
-            if ($affiliation->householdId()->equals($householdId)) {
-                return $affiliation->linkedAt();
-            }
-        }
-
-        return null;
+        $this->photoStorageKey = $photo?->storageKey;
+        $this->photoFormat = $photo?->format;
+        $this->photoUploadedAt = $photo?->uploadedAt;
     }
 
     /**

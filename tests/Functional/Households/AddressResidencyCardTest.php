@@ -13,7 +13,9 @@ use App\Households\Domain\ValueObject\Gender;
 use App\Households\Domain\ValueObject\HouseholdId;
 use App\Households\Domain\ValueObject\HouseholdName;
 use App\Households\Domain\ValueObject\MemberCode;
+use App\Households\Domain\ValueObject\MemberContact;
 use App\Households\Domain\ValueObject\MemberId;
+use App\Households\Domain\ValueObject\MemberProfile;
 use App\Households\Domain\ValueObject\PersonName;
 use App\Households\Domain\ValueObject\ResidencyStatus;
 use App\Tests\Support\Trait\SignsInUsers;
@@ -346,11 +348,12 @@ final class AddressResidencyCardTest extends WebTestCase
             Address::of('100 Main St', 'Apt 2B', 'Seattle', 'WA', '98101', 'US'),
             MemberId::fromString(self::US_PRIMARY_ID),
             MemberCode::of(self::US_PRIMARY_CODE),
-            PersonName::of('Alice', 'Smith'),
-            DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
-            Gender::Female,
-            EmailAddress::of('alice@example.com'),
-            null,
+            MemberProfile::of(
+                PersonName::of('Alice', 'Smith'),
+                DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
+                Gender::Female,
+            ),
+            MemberContact::of(EmailAddress::of('alice@example.com'), null),
             ResidencyStatus::Resident,
             $this->clock,
         );
@@ -369,11 +372,12 @@ final class AddressResidencyCardTest extends WebTestCase
             Address::of('100 Maple Ave', null, 'Toronto', 'ON', 'K1A 0B1', 'CA'),
             MemberId::fromString(self::CA_PRIMARY_ID),
             MemberCode::of(self::CA_PRIMARY_CODE),
-            PersonName::of('Jean', 'Tremblay'),
-            DateOfBirth::of(new DateTimeImmutable('1988-07-14'), $this->clock),
-            Gender::Male,
-            EmailAddress::of('jean@example.com'),
-            null,
+            MemberProfile::of(
+                PersonName::of('Jean', 'Tremblay'),
+                DateOfBirth::of(new DateTimeImmutable('1988-07-14'), $this->clock),
+                Gender::Male,
+            ),
+            MemberContact::of(EmailAddress::of('jean@example.com'), null),
             ResidencyStatus::NonResident,
             $this->clock,
         );

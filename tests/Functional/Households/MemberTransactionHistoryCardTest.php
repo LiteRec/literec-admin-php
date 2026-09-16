@@ -13,7 +13,9 @@ use App\Households\Domain\ValueObject\Gender;
 use App\Households\Domain\ValueObject\HouseholdId;
 use App\Households\Domain\ValueObject\HouseholdName;
 use App\Households\Domain\ValueObject\MemberCode;
+use App\Households\Domain\ValueObject\MemberContact;
 use App\Households\Domain\ValueObject\MemberId;
+use App\Households\Domain\ValueObject\MemberProfile;
 use App\Households\Domain\ValueObject\PersonName;
 use App\Households\Domain\ValueObject\ResidencyStatus;
 use App\Tests\Support\Trait\SignsInUsers;
@@ -266,11 +268,12 @@ final class MemberTransactionHistoryCardTest extends WebTestCase
             Address::of('700 Elm St', null, 'Austin', 'TX', '78701', 'US'),
             MemberId::fromString(self::LARGE_MEMBER_ID),
             MemberCode::of(self::LARGE_MEMBER_CODE),
-            PersonName::of('Sam', 'Sandoval'),
-            DateOfBirth::of(new DateTimeImmutable('1985-03-15'), $this->clock),
-            Gender::Other,
-            EmailAddress::of('sam@example.com'),
-            null,
+            MemberProfile::of(
+                PersonName::of('Sam', 'Sandoval'),
+                DateOfBirth::of(new DateTimeImmutable('1985-03-15'), $this->clock),
+                Gender::Other,
+            ),
+            MemberContact::of(EmailAddress::of('sam@example.com'), null),
             ResidencyStatus::Resident,
             $this->clock,
         );

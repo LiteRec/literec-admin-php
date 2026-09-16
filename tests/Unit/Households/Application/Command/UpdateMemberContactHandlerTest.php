@@ -16,7 +16,9 @@ use App\Households\Domain\ValueObject\Gender;
 use App\Households\Domain\ValueObject\HouseholdId;
 use App\Households\Domain\ValueObject\HouseholdName;
 use App\Households\Domain\ValueObject\MemberCode;
+use App\Households\Domain\ValueObject\MemberContact;
 use App\Households\Domain\ValueObject\MemberId;
+use App\Households\Domain\ValueObject\MemberProfile;
 use App\Households\Domain\ValueObject\PersonName;
 use App\Households\Domain\ValueObject\ResidencyStatus;
 use App\Households\Infrastructure\Persistence\InMemory\InMemoryHouseholds;
@@ -77,8 +79,8 @@ final class UpdateMemberContactHandlerTest extends TestCase
         ($this->handler)($command);
 
         $member = $this->memberById($this->reload(), self::PRIMARY_ID);
-        self::assertSame('alicia.new@example.com', (string) $member->email());
-        self::assertSame('5559999', (string) $member->phone());
+        self::assertSame('alicia.new@example.com', (string) $member->contact()->email);
+        self::assertSame('5559999', (string) $member->contact()->phone);
 
         $messages = $this->eventBus->dispatchedMessages();
         self::assertCount(1, $messages);
@@ -99,8 +101,8 @@ final class UpdateMemberContactHandlerTest extends TestCase
         ($this->handler)($command);
 
         $member = $this->memberById($this->reload(), self::PRIMARY_ID);
-        self::assertNull($member->email());
-        self::assertNull($member->phone());
+        self::assertNull($member->contact()->email);
+        self::assertNull($member->contact()->phone);
 
         $messages = $this->eventBus->dispatchedMessages();
         self::assertCount(1, $messages);
@@ -158,7 +160,7 @@ final class UpdateMemberContactHandlerTest extends TestCase
         }
 
         $member = $this->memberById($this->reload(), self::PRIMARY_ID);
-        self::assertSame('alice@example.com', (string) $member->email());
+        self::assertSame('alice@example.com', (string) $member->contact()->email);
         self::assertSame([], $this->eventBus->dispatchedMessages());
     }
 
@@ -181,7 +183,7 @@ final class UpdateMemberContactHandlerTest extends TestCase
         }
 
         $member = $this->memberById($this->reload(), self::PRIMARY_ID);
-        self::assertSame('5550001', (string) $member->phone());
+        self::assertSame('5550001', (string) $member->contact()->phone);
         self::assertSame([], $this->eventBus->dispatchedMessages());
     }
 
@@ -215,11 +217,8 @@ final class UpdateMemberContactHandlerTest extends TestCase
             $address,
             MemberId::fromString(self::PRIMARY_ID),
             MemberCode::of(self::PRIMARY_CODE),
-            $primaryMemberName,
-            $primaryMemberDob,
-            Gender::Female,
-            EmailAddress::of('alice@example.com'),
-            PhoneNumber::of('5550001'),
+            MemberProfile::of($primaryMemberName, $primaryMemberDob, Gender::Female),
+            MemberContact::of(EmailAddress::of('alice@example.com'), PhoneNumber::of('5550001')),
             ResidencyStatus::Resident,
             $this->clock,
         );

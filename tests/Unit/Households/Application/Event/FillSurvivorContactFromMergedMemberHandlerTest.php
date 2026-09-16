@@ -14,7 +14,9 @@ use App\Households\Domain\ValueObject\Gender;
 use App\Households\Domain\ValueObject\HouseholdId;
 use App\Households\Domain\ValueObject\HouseholdName;
 use App\Households\Domain\ValueObject\MemberCode;
+use App\Households\Domain\ValueObject\MemberContact;
 use App\Households\Domain\ValueObject\MemberId;
+use App\Households\Domain\ValueObject\MemberProfile;
 use App\Households\Domain\ValueObject\PersonName;
 use App\Households\Domain\ValueObject\ResidencyStatus;
 use App\Households\Infrastructure\Persistence\InMemory\InMemoryHouseholds;
@@ -70,11 +72,11 @@ final class FillSurvivorContactFromMergedMemberHandlerTest extends TestCase
         ));
 
         $reloaded = $this->households->findById(HouseholdId::fromString(self::SURVIVOR_HOUSEHOLD_ID));
-        $survivor = $reloaded->members()[0];
-        self::assertNotNull($survivor->email());
-        self::assertTrue($survivor->email()->equals(EmailAddress::of('found@example.com')));
-        self::assertNotNull($survivor->phone());
-        self::assertTrue($survivor->phone()->equals(PhoneNumber::of('5559999')));
+        $survivorContact = $reloaded->members()[0]->contact();
+        self::assertNotNull($survivorContact->email);
+        self::assertTrue($survivorContact->email->equals(EmailAddress::of('found@example.com')));
+        self::assertNotNull($survivorContact->phone);
+        self::assertTrue($survivorContact->phone->equals(PhoneNumber::of('5559999')));
 
         $messages = $this->eventBus->dispatchedMessages();
         self::assertCount(1, $messages);
@@ -102,11 +104,11 @@ final class FillSurvivorContactFromMergedMemberHandlerTest extends TestCase
 
         self::assertSame([], $this->eventBus->dispatchedMessages());
         $reloaded = $this->households->findById(HouseholdId::fromString(self::SURVIVOR_HOUSEHOLD_ID));
-        $survivor = $reloaded->members()[0];
-        self::assertNotNull($survivor->email());
-        self::assertTrue($survivor->email()->equals(EmailAddress::of('existing@example.com')));
-        self::assertNotNull($survivor->phone());
-        self::assertTrue($survivor->phone()->equals(PhoneNumber::of('5551111')));
+        $survivorContact = $reloaded->members()[0]->contact();
+        self::assertNotNull($survivorContact->email);
+        self::assertTrue($survivorContact->email->equals(EmailAddress::of('existing@example.com')));
+        self::assertNotNull($survivorContact->phone);
+        self::assertTrue($survivorContact->phone->equals(PhoneNumber::of('5551111')));
     }
 
     private function seedSurvivorHousehold(?EmailAddress $email, ?PhoneNumber $phone): void
@@ -117,11 +119,12 @@ final class FillSurvivorContactFromMergedMemberHandlerTest extends TestCase
             Address::of('100 Main St', null, 'Seattle', 'WA', '98101', 'US'),
             MemberId::fromString(self::SURVIVOR_ID),
             MemberCode::of('M000F01'),
-            PersonName::of('Sam', 'Survivor'),
-            DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
-            Gender::Male,
-            $email,
-            $phone,
+            MemberProfile::of(
+                PersonName::of('Sam', 'Survivor'),
+                DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
+                Gender::Male,
+            ),
+            MemberContact::of($email, $phone),
             ResidencyStatus::Resident,
             $this->clock,
         );

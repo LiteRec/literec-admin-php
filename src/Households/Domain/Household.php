@@ -34,19 +34,16 @@ use App\Households\Domain\Exception\MemberNotFound;
 use App\Households\Domain\Exception\SplitSelectionEmpty;
 use App\Households\Domain\ValueObject\Address;
 use App\Households\Domain\ValueObject\AnonymizedProfile;
-use App\Households\Domain\ValueObject\DateOfBirth;
-use App\Households\Domain\ValueObject\Gender;
-use App\Households\Domain\ValueObject\Height;
 use App\Households\Domain\ValueObject\HouseholdId;
 use App\Households\Domain\ValueObject\HouseholdName;
 use App\Households\Domain\ValueObject\MemberCode;
+use App\Households\Domain\ValueObject\MemberContact;
 use App\Households\Domain\ValueObject\MemberId;
+use App\Households\Domain\ValueObject\MemberProfile;
 use App\Households\Domain\ValueObject\PersonName;
 use App\Households\Domain\ValueObject\ProfilePhoto;
 use App\Households\Domain\ValueObject\ResidencyStatus;
-use App\Households\Domain\ValueObject\Salutation;
 use App\Households\Domain\ValueObject\TransactionReferences;
-use App\Households\Domain\ValueObject\Weight;
 use App\Shared\Domain\ValueObject\EmailAddress;
 use App\Shared\Domain\ValueObject\PhoneNumber;
 use DateTimeImmutable;
@@ -100,16 +97,10 @@ final class Household
         Address $address,
         MemberId $primaryMemberId,
         MemberCode $primaryMemberCode,
-        PersonName $primaryMemberName,
-        DateOfBirth $primaryMemberDob,
-        Gender $primaryMemberGender,
-        ?EmailAddress $primaryMemberEmail,
-        ?PhoneNumber $primaryMemberPhone,
+        MemberProfile $primaryMemberProfile,
+        MemberContact $primaryMemberContact,
         ResidencyStatus $primaryMemberResidency,
         ClockInterface $clock,
-        ?Salutation $primaryMemberSalutation = null,
-        ?Height $primaryMemberHeight = null,
-        ?Weight $primaryMemberWeight = null,
     ): self {
         $household = new self();
         $household->id = $id;
@@ -122,24 +113,18 @@ final class Household
         $primary = new HouseholdMember(
             $primaryMemberId,
             $primaryMemberCode,
-            $primaryMemberName,
-            $primaryMemberDob,
-            $primaryMemberGender,
-            $primaryMemberEmail,
-            $primaryMemberPhone,
+            $primaryMemberProfile,
+            $primaryMemberContact,
             $primaryMemberResidency,
             true,
-            $primaryMemberSalutation,
-            $primaryMemberHeight,
-            $primaryMemberWeight,
+            $household,
         );
-        $primary->attachToHousehold($household);
         $household->members->add($primary);
         $household->recordThat(new MemberAddedToHousehold(
             $id,
             $primaryMemberId,
             $primaryMemberCode,
-            $primaryMemberName,
+            $primaryMemberProfile->name,
             true,
             $household->createdAt,
         ));
@@ -186,17 +171,11 @@ final class Household
     public function addMember(
         MemberId $memberId,
         MemberCode $memberCode,
-        PersonName $name,
-        DateOfBirth $dateOfBirth,
-        Gender $gender,
-        ?EmailAddress $email,
-        ?PhoneNumber $phone,
+        MemberProfile $profile,
+        MemberContact $contact,
         ResidencyStatus $residencyStatus,
         bool $isPrimary,
         ClockInterface $clock,
-        ?Salutation $salutation = null,
-        ?Height $height = null,
-        ?Weight $weight = null,
     ): void {
         foreach ($this->members as $existing) {
             if ($existing->id()->equals($memberId)) {
@@ -210,25 +189,19 @@ final class Household
         $member = new HouseholdMember(
             $memberId,
             $memberCode,
-            $name,
-            $dateOfBirth,
-            $gender,
-            $email,
-            $phone,
+            $profile,
+            $contact,
             $residencyStatus,
             $isPrimary,
-            $salutation,
-            $height,
-            $weight,
+            $this,
         );
-        $member->attachToHousehold($this);
         $this->members->add($member);
 
         $this->recordThat(new MemberAddedToHousehold(
             $this->id,
             $memberId,
             $memberCode,
-            $name,
+            $profile->name,
             $isPrimary,
             $clock->now(),
         ));
@@ -254,59 +227,24 @@ final class Household
     }
 
     /**
-     * 8 parameters: identity (memberId, name, dateOfBirth, gender), the
-     * clock, and the three independently-optional LRA-205 measurement
-     * fields (salutation, height, weight). Each is a distinct, unrelated
-     * attribute — bundling them into a parameter object would be a
-     * meaningless grouping rather than a domain concept, and this mirrors
-     * {@see self::register()}'s existing wide constructor for the same
-     * reason.
-     *
      * @throws MemberNotFound when $memberId does not belong to this household
      * @throws MemberAlreadyMerged when the member has already been merged into another record
      * @throws MemberIsAnonymized when the member has been anonymized (LRA-212)
      */
-    public function updateMemberProfile( // NOSONAR php:S107 — see docblock
+    public function updateMemberProfile(
         MemberId $memberId,
-        PersonName $name,
-        DateOfBirth $dateOfBirth,
-        Gender $gender,
+        MemberProfile $profile,
         ClockInterface $clock,
-        ?Salutation $salutation = null,
-        ?Height $height = null,
-        ?Weight $weight = null,
     ): void {
         $member = $this->memberById($memberId);
         $this->assertNotMerged($member);
         $this->assertNotAnonymized($member, MemberIsAnonymized::cannotBeModified(...));
 
-        $heightChanged = !self::optionalEquals(
-            $member->height(),
-            $height,
-            static fn(Height $a, Height $b): bool => $a->equals($b),
-        );
-        $weightChanged = !self::optionalEquals(
-            $member->weight(),
-            $weight,
-            static fn(Weight $a, Weight $b): bool => $a->equals($b),
-        );
-
-        $changed = !$member->name()->equals($name)
-            || !$member->dateOfBirth()->equals($dateOfBirth)
-            || $member->gender() !== $gender
-            || $member->salutation() !== $salutation
-            || $heightChanged
-            || $weightChanged;
-
-        if (!$changed) {
+        if ($member->profile()->equals($profile)) {
             return;
         }
 
-        $member->rename($name);
-        $member->updateDateOfBirth($dateOfBirth);
-        $member->updateGender($gender);
-        $member->updateSalutation($salutation);
-        $member->updateMeasurements($height, $weight);
+        $member->updateProfile($profile);
 
         $this->recordThat(new MemberProfileUpdated($this->id, $memberId, $clock->now()));
     }
@@ -318,38 +256,23 @@ final class Household
      */
     public function updateMemberContact(
         MemberId $memberId,
-        ?EmailAddress $email,
-        ?PhoneNumber $phone,
+        MemberContact $contact,
         ClockInterface $clock,
     ): void {
         $member = $this->memberById($memberId);
         $this->assertNotMerged($member);
         $this->assertNotAnonymized($member, MemberIsAnonymized::cannotBeModified(...));
 
-        $currentEmail = $member->email();
-        $currentPhone = $member->phone();
-
-        $emailChanged = !self::optionalEquals(
-            $currentEmail,
-            $email,
-            static fn(EmailAddress $a, EmailAddress $b): bool => $a->equals($b),
-        );
-        $phoneChanged = !self::optionalEquals(
-            $currentPhone,
-            $phone,
-            static fn(PhoneNumber $a, PhoneNumber $b): bool => $a->equals($b),
-        );
-
-        if (!$emailChanged && !$phoneChanged) {
+        if ($member->contact()->equals($contact)) {
             return;
         }
 
-        $member->updateContact($email, $phone);
+        $member->updateContact($contact);
         $this->recordThat(new MemberContactUpdated(
             $this->id,
             $memberId,
-            $email,
-            $phone,
+            $contact->email,
+            $contact->phone,
             $clock->now(),
         ));
     }
@@ -403,7 +326,7 @@ final class Household
         $member = $this->memberById($memberId);
         $this->assertNotMerged($member);
 
-        if (!$member->isActive()) {
+        if (!$member->lifecycle()->isActive) {
             return;
         }
 
@@ -423,7 +346,7 @@ final class Household
         $this->assertNotMerged($member);
         $this->assertNotAnonymized($member, MemberIsAnonymized::cannotBeReactivated(...));
 
-        if ($member->isActive()) {
+        if ($member->lifecycle()->isActive) {
             return;
         }
 
@@ -457,7 +380,7 @@ final class Household
         $member = $this->memberById($memberId);
         $this->assertNotMerged($member);
 
-        if ($member->isAnonymized()) {
+        if ($member->lifecycle()->isAnonymized()) {
             throw MemberIsAnonymized::cannotBeAnonymizedAgain($memberId);
         }
 
@@ -509,13 +432,14 @@ final class Household
         $now = $clock->now();
         $duplicate->markMergedInto($survivorId, $now);
 
+        $contact = $duplicate->contact();
         $this->recordThat(new MemberMergedInto(
             $this->id,
             $duplicateId,
             $survivorHouseholdId,
             $survivorId,
-            $duplicate->email(),
-            $duplicate->phone(),
+            $contact->email,
+            $contact->phone,
             $now,
         ));
     }
@@ -537,8 +461,7 @@ final class Household
 
         $this->updateMemberContact(
             $memberId,
-            $member->email() ?? $email,
-            $member->phone() ?? $phone,
+            $member->contact()->filledFrom($email, $phone),
             $clock,
         );
     }
@@ -584,14 +507,12 @@ final class Household
             throw SplitSelectionEmpty::forMember($sourceMemberId);
         }
 
+        $sourceProfile = $source->profile();
         $this->addMember(
             $newMemberId,
             $newMemberCode,
-            $name,
-            $source->dateOfBirth(),
-            $source->gender(),
-            $email,
-            $phone,
+            MemberProfile::of($name, $sourceProfile->dateOfBirth, $sourceProfile->gender),
+            MemberContact::of($email, $phone),
             $source->residencyStatus(),
             false,
             $clock,
@@ -621,7 +542,7 @@ final class Household
         $this->assertNotMerged($member);
         $previous = $member->photo();
 
-        $member->attachPhoto($photo);
+        $member->replacePhoto($photo);
         $this->recordThat(new MemberPhotoAttached($this->id, $memberId, $photo->storageKey, $clock->now()));
 
         if ($previous !== null) {
@@ -642,7 +563,7 @@ final class Household
             return;
         }
 
-        $member->removePhoto();
+        $member->replacePhoto(null);
         $now = $clock->now();
         $this->recordThat(new MemberPhotoRemoved($this->id, $memberId, $now));
         $this->recordThat(new MemberPhotoReleased($previous->storageKey, $now));
@@ -671,7 +592,7 @@ final class Household
         $member = $this->memberById($memberId);
         $this->assertNotMerged($member);
 
-        if (!$member->isActive()) {
+        if (!$member->lifecycle()->isActive) {
             throw InvariantViolation::with('An inactive member cannot be shared with another household.');
         }
 
@@ -680,11 +601,11 @@ final class Household
         }
 
         $now = $clock->now();
-        if (!$member->dateOfBirth()->isMinorOn($now)) {
+        if (!$member->profile()->dateOfBirth->isMinorOn($now)) {
             throw MemberNotAMinor::for($memberId);
         }
 
-        if ($member->isSharedWith($target)) {
+        if ($member->householdLinks()->includes($target)) {
             throw HouseholdAlreadyLinked::for($memberId, $target);
         }
 
@@ -706,7 +627,7 @@ final class Household
     ): void {
         $member = $this->memberById($memberId);
 
-        if (!$member->isSharedWith($target)) {
+        if (!$member->householdLinks()->includes($target)) {
             return;
         }
 
@@ -732,7 +653,7 @@ final class Household
      */
     private function assertNotMerged(HouseholdMember $member): void
     {
-        if ($member->isMerged()) {
+        if ($member->lifecycle()->isMerged()) {
             throw MemberAlreadyMerged::for($member->id());
         }
     }
@@ -747,7 +668,7 @@ final class Household
      */
     private function assertNotAnonymized(HouseholdMember $member, callable $exceptionFactory): void
     {
-        if ($member->isAnonymized()) {
+        if ($member->lifecycle()->isAnonymized()) {
             throw $exceptionFactory($member->id());
         }
     }
@@ -761,35 +682,16 @@ final class Household
     private function everyMemberAnonymized(): bool
     {
         foreach ($this->members as $member) {
-            if ($member->isMerged()) {
+            $lifecycle = $member->lifecycle();
+            if ($lifecycle->isMerged()) {
                 continue;
             }
 
-            if (!$member->isAnonymized()) {
+            if (!$lifecycle->isAnonymized()) {
                 return false;
             }
         }
 
         return true;
-    }
-
-    /**
-     * @template T of object
-     *
-     * @param T|null $a
-     * @param T|null $b
-     * @param callable(T, T): bool $equals
-     */
-    private static function optionalEquals(?object $a, ?object $b, callable $equals): bool
-    {
-        if ($a === null && $b === null) {
-            return true;
-        }
-
-        if ($a === null || $b === null) {
-            return false;
-        }
-
-        return $equals($a, $b);
     }
 }

@@ -33,11 +33,12 @@ final class MemberMergePolicy
                 continue;
             }
 
-            if ($member->isMerged()) {
+            $lifecycle = $member->lifecycle();
+            if ($lifecycle->isMerged()) {
                 throw MemberAlreadyMerged::for($survivorId);
             }
 
-            if (!$member->isActive()) {
+            if (!$lifecycle->isActive) {
                 throw InactiveSurvivorCannotAcceptMerge::for($survivorId);
             }
 

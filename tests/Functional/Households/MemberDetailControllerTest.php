@@ -13,7 +13,9 @@ use App\Households\Domain\ValueObject\Gender;
 use App\Households\Domain\ValueObject\HouseholdId;
 use App\Households\Domain\ValueObject\HouseholdName;
 use App\Households\Domain\ValueObject\MemberCode;
+use App\Households\Domain\ValueObject\MemberContact;
 use App\Households\Domain\ValueObject\MemberId;
+use App\Households\Domain\ValueObject\MemberProfile;
 use App\Households\Domain\ValueObject\PersonName;
 use App\Households\Domain\ValueObject\ResidencyStatus;
 use App\Tests\Support\Trait\SignsInUsers;
@@ -187,11 +189,12 @@ final class MemberDetailControllerTest extends WebTestCase
             Address::of('100 Main St', 'Apt 2B', 'Seattle', 'WA', '98101', 'US'),
             MemberId::fromString(self::A_PRIMARY_ID),
             MemberCode::of(self::A_PRIMARY_CODE),
-            PersonName::of('Alice', 'Smith'),
-            DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
-            Gender::Female,
-            EmailAddress::of('alice@example.com'),
-            null,
+            MemberProfile::of(
+                PersonName::of('Alice', 'Smith'),
+                DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
+                Gender::Female,
+            ),
+            MemberContact::of(EmailAddress::of('alice@example.com'), null),
             ResidencyStatus::Resident,
             $this->clock,
         );
@@ -210,11 +213,12 @@ final class MemberDetailControllerTest extends WebTestCase
             Address::of('200 Oak Ave', null, 'Portland', 'OR', '97201', 'US'),
             MemberId::fromString(self::B_PRIMARY_ID),
             MemberCode::of(self::B_PRIMARY_CODE),
-            PersonName::of('Carl', 'Lopez'),
-            DateOfBirth::of(new DateTimeImmutable('1985-11-30'), $this->clock),
-            Gender::Male,
-            EmailAddress::of('carl@example.com'),
-            null,
+            MemberProfile::of(
+                PersonName::of('Carl', 'Lopez'),
+                DateOfBirth::of(new DateTimeImmutable('1985-11-30'), $this->clock),
+                Gender::Male,
+            ),
+            MemberContact::of(EmailAddress::of('carl@example.com'), null),
             ResidencyStatus::Resident,
             $this->clock,
         );

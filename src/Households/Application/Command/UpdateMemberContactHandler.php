@@ -6,6 +6,7 @@ namespace App\Households\Application\Command;
 
 use App\Households\Domain\Households;
 use App\Households\Domain\ValueObject\HouseholdId;
+use App\Households\Domain\ValueObject\MemberContact;
 use App\Households\Domain\ValueObject\MemberId;
 use App\Shared\Domain\ValueObject\EmailAddress;
 use App\Shared\Domain\ValueObject\PhoneNumber;
@@ -40,7 +41,7 @@ final class UpdateMemberContactHandler
         $email = $command->email !== null ? EmailAddress::of($command->email) : null;
         $phone = $command->phone !== null ? PhoneNumber::of($command->phone) : null;
 
-        $household->updateMemberContact($memberId, $email, $phone, $this->clock);
+        $household->updateMemberContact($memberId, MemberContact::of($email, $phone), $this->clock);
         $this->households->save($household);
 
         foreach ($household->releaseEvents() as $event) {

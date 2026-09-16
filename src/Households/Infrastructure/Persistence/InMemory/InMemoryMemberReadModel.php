@@ -61,12 +61,12 @@ final class InMemoryMemberReadModel implements MemberReadModel
         }
 
         usort($rows, static function (array $a, array $b): int {
-            $byLast = strcasecmp($a['member']->name()->lastName, $b['member']->name()->lastName);
+            $byLast = strcasecmp($a['member']->profile()->name->lastName, $b['member']->profile()->name->lastName);
             if ($byLast !== 0) {
                 return $byLast;
             }
 
-            $byFirst = strcasecmp($a['member']->name()->firstName, $b['member']->name()->firstName);
+            $byFirst = strcasecmp($a['member']->profile()->name->firstName, $b['member']->profile()->name->firstName);
             if ($byFirst !== 0) {
                 return $byFirst;
             }
@@ -106,7 +106,7 @@ final class InMemoryMemberReadModel implements MemberReadModel
                     continue;
                 }
 
-                if (!$member->isActive()) {
+                if (!$member->lifecycle()->isActive) {
                     $inactive++;
                     continue;
                 }
@@ -131,7 +131,7 @@ final class InMemoryMemberReadModel implements MemberReadModel
      */
     private function excludedFromSegmentCounts(HouseholdMember $member, Household $household, ?string $q): bool
     {
-        return $member->isMerged() || ($q !== null && !$this->matchesQuery($member, $household, $q));
+        return $member->lifecycle()->isMerged() || ($q !== null && !$this->matchesQuery($member, $household, $q));
     }
 
     /**
@@ -156,7 +156,7 @@ final class InMemoryMemberReadModel implements MemberReadModel
         [$homeHousehold, $member] = $found;
 
         $isHome = $homeHousehold->id()->equals($householdId);
-        if (!$isHome && !$member->isSharedWith($householdId)) {
+        if (!$isHome && !$member->householdLinks()->includes($householdId)) {
             throw MemberNotFound::inHousehold($householdId, $memberId);
         }
 
@@ -199,9 +199,10 @@ final class InMemoryMemberReadModel implements MemberReadModel
     {
         $items = [new LinkedHouseholdDto($homeHousehold->id()->value, $homeHousehold->name()->value, true, null)];
 
-        foreach ($member->sharedHouseholdIds() as $sharedId) {
+        $links = $member->householdLinks();
+        foreach ($links->householdIds() as $sharedId) {
             $sharedHousehold = $this->households[$sharedId->value] ?? null;
-            $linkedAt = $member->linkedAtFor($sharedId);
+            $linkedAt = $links->linkedAt($sharedId);
             $items[] = new LinkedHouseholdDto(
                 $sharedId->value,
                 $sharedHousehold?->name()->value ?? '',
@@ -234,18 +235,18 @@ final class InMemoryMemberReadModel implements MemberReadModel
                 continue;
             }
             foreach ($other->members() as $member) {
-                if ($member->isSharedWith($household->id())) {
+                if ($member->householdLinks()->includes($household->id())) {
                     $rows[] = ['member' => $member, 'home' => $other, 'isShared' => true];
                 }
             }
         }
 
         usort($rows, static function (array $a, array $b): int {
-            $byLast = strcasecmp($a['member']->name()->lastName, $b['member']->name()->lastName);
+            $byLast = strcasecmp($a['member']->profile()->name->lastName, $b['member']->profile()->name->lastName);
             if ($byLast !== 0) {
                 return $byLast;
             }
-            $byFirst = strcasecmp($a['member']->name()->firstName, $b['member']->name()->firstName);
+            $byFirst = strcasecmp($a['member']->profile()->name->firstName, $b['member']->profile()->name->firstName);
             if ($byFirst !== 0) {
                 return $byFirst;
             }
@@ -263,9 +264,10 @@ final class InMemoryMemberReadModel implements MemberReadModel
 
     private function matches(HouseholdMember $member, Household $household, SearchMembersCriteria $c): bool
     {
+        $lifecycle = $member->lifecycle();
         $activeMatches = $c->segment === MembersSegment::Inactive
-            ? !$member->isActive()
-            : ($c->includeDeleted || $member->isActive());
+            ? !$lifecycle->isActive
+            : ($c->includeDeleted || $lifecycle->isActive);
 
         $segmentMatches = match ($c->segment) {
             MembersSegment::Residents => $member->residencyStatus() === ResidencyStatus::Resident,
@@ -273,7 +275,7 @@ final class InMemoryMemberReadModel implements MemberReadModel
             default => true,
         };
 
-        return ($c->includeMerged || !$member->isMerged())
+        return ($c->includeMerged || !$lifecycle->isMerged())
             && $activeMatches
             && $segmentMatches
             && ($c->q === null || $this->matchesQuery($member, $household, $c->q))
@@ -290,12 +292,15 @@ final class InMemoryMemberReadModel implements MemberReadModel
      */
     private function matchesDetailedFilters(HouseholdMember $member, SearchMembersCriteria $c): bool
     {
+        $profile = $member->profile();
+        $contact = $member->contact();
+
         return (!$c->primaryOnly || $member->isPrimary())
             && ($c->memberCode === null || $member->code()->value === $c->memberCode)
-            && ($c->lastName === null || stripos($member->name()->lastName, $c->lastName) !== false)
-            && ($c->firstName === null || stripos($member->name()->firstName, $c->firstName) !== false)
-            && ($c->email === null || $this->valueContains($member->email()?->value, $c->email))
-            && ($c->phone === null || $this->valueContains($member->phone()?->value, $c->phone));
+            && ($c->lastName === null || stripos($profile->name->lastName, $c->lastName) !== false)
+            && ($c->firstName === null || stripos($profile->name->firstName, $c->firstName) !== false)
+            && ($c->email === null || $this->valueContains($contact->email?->value, $c->email))
+            && ($c->phone === null || $this->valueContains($contact->phone?->value, $c->phone));
     }
 
     /**
@@ -305,11 +310,13 @@ final class InMemoryMemberReadModel implements MemberReadModel
      */
     private function matchesQuery(HouseholdMember $member, Household $household, string $q): bool
     {
-        return $this->valueContains($member->name()->lastName, $q)
-            || $this->valueContains($member->name()->firstName, $q)
+        $name = $member->profile()->name;
+
+        return $this->valueContains($name->lastName, $q)
+            || $this->valueContains($name->firstName, $q)
             || $this->valueContains($member->code()->value, $q)
             || $this->valueContains($household->name()->value, $q)
-            || $this->valueContains($member->phone()?->value, $q);
+            || $this->valueContains($member->contact()->phone?->value, $q);
     }
 
     /**
@@ -326,23 +333,27 @@ final class InMemoryMemberReadModel implements MemberReadModel
 
     private function toListItem(HouseholdMember $member, Household $household, bool $isShared = false): MemberListItem
     {
+        $profile = $member->profile();
+        $contact = $member->contact();
+        $lifecycle = $member->lifecycle();
+
         return new MemberListItem(
             $member->id()->value,
             $household->id()->value,
             $household->name()->value,
             $member->code()->value,
-            $member->name()->fullName(),
-            $member->email()?->value,
-            $member->dateOfBirth()->value->format('Y-m-d'),
-            $member->phone()?->value,
+            $profile->name->fullName(),
+            $contact->email?->value,
+            $profile->dateOfBirth->value->format('Y-m-d'),
+            $contact->phone?->value,
             $this->shortAddress($household),
             $member->residencyStatus()->value,
             $member->isPrimary(),
-            $member->isActive(),
+            $lifecycle->isActive,
             $member->photo()?->version(),
-            $member->isMerged(),
+            $lifecycle->isMerged(),
             $isShared,
-            $member->isAnonymized(),
+            $lifecycle->isAnonymized(),
         );
     }
 
@@ -384,7 +395,7 @@ final class InMemoryMemberReadModel implements MemberReadModel
             $household->name()->value,
             count($members) + $this->countMembersSharedInto($household->id()),
             $primary->id()->value,
-            $primary->name()->fullName(),
+            $primary->profile()->name->fullName(),
         );
     }
 
@@ -393,7 +404,7 @@ final class InMemoryMemberReadModel implements MemberReadModel
         $count = 0;
         foreach ($this->households as $household) {
             foreach ($household->members() as $member) {
-                if ($member->isSharedWith($householdId)) {
+                if ($member->householdLinks()->includes($householdId)) {
                     $count++;
                 }
             }
@@ -404,28 +415,31 @@ final class InMemoryMemberReadModel implements MemberReadModel
 
     private function profile(HouseholdMember $member): MemberProfileDto
     {
-        $deactivation = $member->deactivation();
+        $profile = $member->profile();
+        $contact = $member->contact();
+        $lifecycle = $member->lifecycle();
         $photo = $member->photo();
-        $merge = $member->merge();
+        $deactivation = $lifecycle->deactivation;
+        $merge = $lifecycle->merge;
 
         return new MemberProfileDto(
             $member->id()->value,
             $member->code()->value,
-            $member->name()->firstName,
-            $member->name()->middleName,
-            $member->name()->lastName,
-            $member->name()->suffix,
-            $member->name()->fullName(),
-            $member->dateOfBirth()->value->format('Y-m-d'),
-            $member->gender()->value,
-            $member->email()?->value,
-            $member->phone()?->value,
-            $member->name()->nickname,
-            $member->salutation()?->value,
-            $member->height()?->inches,
-            $member->weight()?->pounds,
+            $profile->name->firstName,
+            $profile->name->middleName,
+            $profile->name->lastName,
+            $profile->name->suffix,
+            $profile->name->fullName(),
+            $profile->dateOfBirth->value->format('Y-m-d'),
+            $profile->gender->value,
+            $contact->email?->value,
+            $contact->phone?->value,
+            $profile->name->nickname,
+            $profile->salutation?->value,
+            $profile->height?->inches,
+            $profile->weight?->pounds,
             $member->isPrimary(),
-            $member->isActive(),
+            $lifecycle->isActive,
             $deactivation?->reason,
             $deactivation?->at->format(\DateTimeInterface::ATOM),
             $photo?->version(),
@@ -433,7 +447,7 @@ final class InMemoryMemberReadModel implements MemberReadModel
             $merge?->intoMemberId->value,
             $merge !== null ? $this->householdIdFor($merge->intoMemberId) : null,
             $merge?->at->format(\DateTimeInterface::ATOM),
-            $member->anonymizedAt()?->format(\DateTimeInterface::ATOM),
+            $lifecycle->anonymizedAt?->format(\DateTimeInterface::ATOM),
         );
     }
 
