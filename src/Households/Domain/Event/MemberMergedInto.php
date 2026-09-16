@@ -12,8 +12,8 @@ use DateTimeImmutable;
 
 /**
  * Recorded on the duplicate's owning {@see App\Households\Domain\Household}
- * aggregate when {@see Household::mergeMemberInto()} merges a duplicate
- * member into a survivor (LRA-208).
+ * aggregate when {@see \App\Households\Domain\MemberInHousehold::mergeInto()}
+ * merges a duplicate member into a survivor (LRA-208).
  *
  * $email / $phone carry the duplicate's contact fields at merge time
  * (precedent: {@see MemberContactUpdated}) so the post-commit gap-fill

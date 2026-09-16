@@ -37,7 +37,7 @@ final class AttachMemberPhotoHandler
 
         try {
             $photo = ProfilePhoto::of($storageKey, $format, $this->clock->now());
-            $household->attachMemberPhoto($memberId, $photo, $this->clock);
+            $household->member($memberId)->attachPhoto($photo, $this->clock);
             $this->households->save($household);
         } catch (Throwable $failure) {
             // The aggregate never took ownership of the key (MemberNotFound,

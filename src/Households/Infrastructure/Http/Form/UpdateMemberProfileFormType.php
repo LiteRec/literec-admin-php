@@ -14,7 +14,7 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
  * Surface is the subset of member profile fields the card mutates: name
  * parts, nickname, date of birth, gender, salutation, height, weight. Email
  * and phone are owned by a separate contact-update flow (see
- * {@see \App\Households\Domain\Household::updateMemberContact()}), so the
+ * {@see \App\Households\Domain\MemberInHousehold::updateContact()}), so the
  * Profile card edits identity data only — matching the inputs of
  * {@see \App\Households\Application\Command\UpdateMemberProfile}.
  *

@@ -141,8 +141,7 @@ final class MergeMembersHandlerTest extends TestCase
     public function rejects_already_merged_survivor(): void
     {
         $survivorHousehold = $this->seedSurvivorHousehold();
-        $survivorHousehold->mergeMemberInto(
-            MemberId::fromString(self::SURVIVOR_ID),
+        $survivorHousehold->member(MemberId::fromString(self::SURVIVOR_ID))->mergeInto(
             HouseholdId::fromString('019571bf-5d54-7000-b500-000000000e99'),
             MemberId::fromString('019571bf-5d54-7000-b500-000000000e98'),
             $this->clock,

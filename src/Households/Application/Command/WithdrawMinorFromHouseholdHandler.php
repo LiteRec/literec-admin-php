@@ -34,7 +34,7 @@ final class WithdrawMinorFromHouseholdHandler
         $memberId = MemberId::fromString($command->memberId);
         $home = $this->households->findByMemberId($memberId);
 
-        $home->withdrawMemberFromHousehold($memberId, $target, $this->clock);
+        $home->member($memberId)->withdrawFromHousehold($target, $this->clock);
         $this->households->save($home);
 
         $this->releaseAndDispatch($home);

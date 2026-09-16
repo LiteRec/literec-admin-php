@@ -73,8 +73,7 @@ final class MemberMergePolicyTest extends TestCase
     {
         $household = $this->registerHousehold();
         $survivorId = MemberId::fromString(self::SURVIVOR_ID);
-        $household->mergeMemberInto(
-            $survivorId,
+        $household->member($survivorId)->mergeInto(
             HouseholdId::fromString('019571bf-5d51-7000-b500-000000000099'),
             MemberId::fromString('019571bf-5d51-7000-b500-000000000098'),
             $this->clock,
@@ -91,7 +90,7 @@ final class MemberMergePolicyTest extends TestCase
     {
         $household = $this->registerHousehold();
         $survivorId = MemberId::fromString(self::SURVIVOR_ID);
-        $household->deactivateMember($survivorId, 'moved away', $this->clock);
+        $household->member($survivorId)->deactivate('moved away', $this->clock);
 
         $this->expectException(InactiveSurvivorCannotAcceptMerge::class);
 

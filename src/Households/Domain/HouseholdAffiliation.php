@@ -27,7 +27,7 @@ final class HouseholdAffiliation
 
     /**
      * Internal-to-aggregate constructor. Use
-     * {@see Household::shareMemberWithHousehold()} to create instances.
+     * {@see MemberInHousehold::shareWithHousehold()} to create instances.
      */
     public function __construct(HouseholdMember $member, HouseholdId $householdId, DateTimeImmutable $linkedAt)
     {

@@ -14,7 +14,7 @@ use App\Households\Domain\ValueObject\MemberId;
  * member merge (LRA-208).
  *
  * The survivor and the duplicate belong to two independent
- * {@see Household} aggregates (possibly the same one). {@see Household::mergeMemberInto()}
+ * {@see Household} aggregates (possibly the same one). {@see MemberInHousehold::mergeInto()}
  * only has access to the duplicate's aggregate, so the survivor-side
  * checks — the survivor id resolves to a real, not-already-merged, active
  * member — live here rather than becoming an `if` inside the application

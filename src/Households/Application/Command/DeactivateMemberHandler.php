@@ -27,7 +27,7 @@ final class DeactivateMemberHandler
         $household = $this->households->findById(HouseholdId::fromString($command->householdId));
         $memberId = MemberId::fromString($command->memberId);
 
-        $household->deactivateMember($memberId, $command->reason, $this->clock);
+        $household->member($memberId)->deactivate($command->reason, $this->clock);
         $this->households->save($household);
 
         foreach ($household->releaseEvents() as $event) {

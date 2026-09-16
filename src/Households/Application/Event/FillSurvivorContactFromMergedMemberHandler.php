@@ -38,8 +38,7 @@ final class FillSurvivorContactFromMergedMemberHandler
     {
         $survivorHousehold = $this->households->findById($event->survivorHouseholdId);
 
-        $survivorHousehold->fillMemberContactGaps(
-            $event->survivorMemberId,
+        $survivorHousehold->member($event->survivorMemberId)->fillContactGaps(
             $event->email,
             $event->phone,
             $this->clock,

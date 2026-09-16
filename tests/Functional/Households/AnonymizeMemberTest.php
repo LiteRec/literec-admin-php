@@ -45,7 +45,7 @@ final class AnonymizeMemberTest extends WebTestCase
     private const string PRIMARY_CODE = 'M000800';
 
     private const string UNKNOWN_MEMBER_ID = '019571bf-5d57-7000-b500-0000000000fe';
-    /** Stand-in survivor id: Household::mergeMemberInto() does not require it to exist. */
+    /** Stand-in survivor id: MemberInHousehold::mergeInto() does not require it to exist. */
     private const string SURVIVOR_ID = '019571bf-5d57-7000-b500-00000000ee03';
     private const string TOKEN_HOUSEHOLD_ID = '019571bf-5d57-7000-b500-00000000ee04';
     private const string TOKEN_MEMBER_ID = '019571bf-5d57-7000-b500-00000000ee05';
@@ -421,8 +421,7 @@ final class AnonymizeMemberTest extends WebTestCase
             self::PRIMARY_DOB_ISO,
             $this->clock,
         );
-        $household->mergeMemberInto(
-            MemberId::fromString(self::PRIMARY_ID),
+        $household->member(MemberId::fromString(self::PRIMARY_ID))->mergeInto(
             HouseholdId::fromString(self::HOUSEHOLD_ID),
             MemberId::fromString(self::SURVIVOR_ID),
             $this->clock,

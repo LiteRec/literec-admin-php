@@ -13,7 +13,7 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
  * Symfony Form type backing the Contact sub-card edit form (LRA-204).
  *
  * Surface is the pair of contact channels owned by
- * {@see \App\Households\Domain\Household::updateMemberContact()}: email and
+ * {@see \App\Households\Domain\MemberInHousehold::updateContact()}: email and
  * phone. Both are optional — an empty submitted value maps to `null`
  * (Symfony's default `empty_data` for {@see \Symfony\Component\Form\Extension\Core\Type\EmailType}
  * and {@see TelType}, both of which extend `TextType`), which the command

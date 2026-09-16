@@ -32,7 +32,7 @@ final class PublicSetterOnDomainClassRuleTest extends RuleTestCase
                 'App\\Fixture\\Domain\\DomainWithPublicSetter::setStatus() is a public setter; Domain state '
                     . 'changes must go through an intention-revealing method named after the domain action.',
                 9,
-                'Rename to the domain verb it performs, e.g. Household::changeMemberResidency().',
+                'Rename to the domain verb it performs, e.g. MemberInHousehold::changeResidency().',
             ],
         ]);
     }
