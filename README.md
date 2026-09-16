@@ -194,8 +194,8 @@ fixture reference the dependency by FQCN string in
 ### Static architecture checks
 
 `composer stan` also runs [PHPat](https://github.com/carlosas/phpat), a
-PHPStan extension, against four class-design rules registered in
-`phpat.neon`. They ratchet the current class-design baseline — nothing
+PHPStan extension, against a growing set of class-design rules registered
+in `phpat.neon`. They ratchet the current class-design baseline — nothing
 in `src/` had to change to add them — so any future violation fails
 CI rather than waiting for code review to catch it:
 
@@ -205,6 +205,10 @@ CI rather than waiting for code review to catch it:
 | `classesDoNotExtendAConcreteAppClass` | `NoConcreteInheritanceRule.php` | No `App` class extends another concrete (non-abstract, non-interface) `App` class; SPL/framework parents are unaffected. |
 | `controllersDoNotDependOnDoctrine` | `ControllersStayThinRule.php` | Controllers under a context's `Infrastructure\Http` layer, plus the legacy `App\Controller` root controllers, never depend on `Doctrine\*` directly. |
 | `handlersHaveOnlyOnePublicMethod` | `HandlersExposeOnePublicMethodRule.php` | Every `*Handler` class exposes exactly one public method, with four documented exceptions. |
+| `domainAndApplicationDoNotConstructSplExceptions` | `NoSplExceptionsInDomainOrApplicationRule.php` | Domain and Application code never constructs a generic SPL exception (`\Exception`, `\RuntimeException`, etc.); extending one to define a named domain exception is still allowed. |
+| `commandAndQueryDtosDoNotDependOnDomain`, `commandAndQueryDtosAreReadonly` | `CommandAndQueryDtoPurityRule.php` | Every command/query DTO under a context's `Application\Command`/`Application\Query` namespace never depends on that context's `Domain` and is `readonly`. |
+| `domainEventsAreReadonly`, `domainEventsAreNamedInThePastTense` | `DomainEventShapeRule.php` | Every class under a context's `Domain\Event` namespace is `readonly` and named in the past tense (regular `ed`, or an allow-listed irregular participle). |
+| `doctrineRepositoriesImplementTheirContextDomainPort{Context}` | `DoctrineRepositoriesImplementDomainPortRule.php` | Every `App\<Context>\Infrastructure\Persistence\Doctrine` class (yielded once per context) implements a port from that same context's `Domain`. |
 
 To add a rule: create a new class under `tests/Architecture/` with a
 public method tagged `#[PHPat\Test\Attributes\TestRule]` that returns
