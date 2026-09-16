@@ -27,12 +27,27 @@ use PHPStan\Rules\RuleErrorBuilder;
 final class AmbientClockAndRandomnessCallRule implements Rule
 {
     /** Ambient wall-clock reads. */
-    private const CLOCK_FUNCTIONS = ['time', 'date', 'microtime', 'hrtime', 'date_create', 'date_create_immutable'];
+    private const CLOCK_FUNCTIONS = [
+        'time', 'date', 'gmdate', 'idate', 'getdate', 'localtime',
+        'microtime', 'hrtime', 'mktime', 'gmmktime', 'strtotime',
+        'date_create', 'date_create_immutable',
+        // symfony/clock's global helper, called as `now()` via
+        // `use function Symfony\Component\Clock\now;`; matched on the
+        // unqualified name like every other entry here (see
+        // processFuncCall()), so a same-named user function in Domain or
+        // Application would also be reported — an accepted false positive
+        // for a syntactic rule, given how narrow that collision is.
+        'now',
+    ];
 
     /** Ambient randomness sources. */
-    private const RANDOMNESS_FUNCTIONS = ['uniqid', 'rand', 'mt_rand', 'random_int', 'random_bytes'];
+    private const RANDOMNESS_FUNCTIONS = [
+        'uniqid', 'rand', 'mt_rand', 'random_int', 'random_bytes',
+        'lcg_value', 'shuffle', 'str_shuffle', 'array_rand',
+    ];
 
     private const UID_NAMESPACE_PREFIX = 'Symfony\\Component\\Uid\\';
+    private const CLOCK_SINGLETON_CLASS = 'symfony\\component\\clock\\clock';
     private const CLOCK_TIP = 'Inject Psr\\Clock\\ClockInterface and call ->now() instead.';
     private const RANDOMNESS_TIP = 'Inject the context\'s IdentityGenerator port instead.';
 
@@ -98,15 +113,20 @@ final class AmbientClockAndRandomnessCallRule implements Rule
         }
 
         $resolvedClassName = $scope->resolveName($node->class);
-        if (!str_starts_with($resolvedClassName, self::UID_NAMESPACE_PREFIX)) {
-            return [];
-        }
 
-        return [$this->buildError(
-            sprintf('%s generates an identifier from an ambient randomness source.', $resolvedClassName),
-            'literec.ambientRandomness',
-            self::RANDOMNESS_TIP,
-        )];
+        return match (true) {
+            strtolower($resolvedClassName) === self::CLOCK_SINGLETON_CLASS => [$this->buildError(
+                sprintf('%s is a static clock singleton.', $resolvedClassName),
+                'literec.ambientClock',
+                self::CLOCK_TIP,
+            )],
+            str_starts_with($resolvedClassName, self::UID_NAMESPACE_PREFIX) => [$this->buildError(
+                sprintf('%s generates an identifier from an ambient randomness source.', $resolvedClassName),
+                'literec.ambientRandomness',
+                self::RANDOMNESS_TIP,
+            )],
+            default => [],
+        };
     }
 
     private function buildError(string $message, string $identifier, string $tip): IdentifierRuleError
