@@ -39,6 +39,7 @@ use App\Households\Domain\ValueObject\ResidencyStatus;
 use App\Households\Domain\ValueObject\Salutation;
 use App\Households\Domain\ValueObject\TransactionReferences;
 use App\Households\Domain\ValueObject\Weight;
+use App\Tests\Support\Trait\RegistersSmithHousehold;
 use DateTimeImmutable;
 use Generator;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -52,6 +53,8 @@ use Symfony\Component\Clock\MockClock;
 #[Small]
 final class HouseholdTest extends TestCase
 {
+    use RegistersSmithHousehold;
+
     private const string HOUSEHOLD_ID = '019571bf-5d51-7000-b500-000000000001';
     private const string PRIMARY_MEMBER_ID = '019571bf-5d51-7000-b500-000000000002';
     private const string SECOND_MEMBER_ID = '019571bf-5d51-7000-b500-000000000003';
@@ -641,21 +644,7 @@ final class HouseholdTest extends TestCase
 
     private function register(): Household
     {
-        return Household::register(
-            HouseholdId::fromString(self::HOUSEHOLD_ID),
-            HouseholdName::of('Smith Family'),
-            Address::of('123 Main St', 'Apt 4B', 'Springfield', 'IL', '62701', 'US'),
-            MemberId::fromString(self::PRIMARY_MEMBER_ID),
-            MemberCode::of('M0001'),
-            MemberProfile::of(
-                PersonName::of('Alice', 'Smith'),
-                DateOfBirth::of(new DateTimeImmutable('1990-01-01'), $this->clock),
-                Gender::Female,
-            ),
-            MemberContact::of(EmailAddress::of('alice@example.com'), PhoneNumber::of('5550001')),
-            ResidencyStatus::Resident,
-            $this->clock,
-        );
+        return $this->registerSmithHousehold(self::HOUSEHOLD_ID, self::PRIMARY_MEMBER_ID);
     }
 
     /**
