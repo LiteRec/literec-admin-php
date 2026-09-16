@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Households\Domain\ValueObject;
 
+use App\Households\Domain\NullSafeEquality;
+
 /**
  * Read projection of a {@see \App\Households\Domain\HouseholdMember}'s
  * identity/demographic fields (LRA-237): name, date of birth, gender, and
@@ -19,6 +21,8 @@ namespace App\Households\Domain\ValueObject;
  */
 final readonly class MemberProfile
 {
+    use NullSafeEquality;
+
     private function __construct(
         public PersonName $name,
         public DateOfBirth $dateOfBirth,
@@ -56,25 +60,5 @@ final readonly class MemberProfile
                 $other->weight,
                 static fn(Weight $a, Weight $b): bool => $a->equals($b),
             );
-    }
-
-    /**
-     * @template T of object
-     *
-     * @param T|null $a
-     * @param T|null $b
-     * @param callable(T, T): bool $equals
-     */
-    private static function nullSafeEquals(?object $a, ?object $b, callable $equals): bool
-    {
-        if ($a === null && $b === null) {
-            return true;
-        }
-
-        if ($a === null || $b === null) {
-            return false;
-        }
-
-        return $equals($a, $b);
     }
 }

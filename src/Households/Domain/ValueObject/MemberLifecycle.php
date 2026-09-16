@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Households\Domain\ValueObject;
 
+use App\Households\Domain\NullSafeEquality;
 use DateTimeImmutable;
 
 /**
@@ -21,6 +22,8 @@ use DateTimeImmutable;
  */
 final readonly class MemberLifecycle
 {
+    use NullSafeEquality;
+
     public function __construct(
         public bool $isActive,
         public ?Deactivation $deactivation,
@@ -53,25 +56,5 @@ final readonly class MemberLifecycle
                 $other->merge,
                 static fn(MemberMerge $a, MemberMerge $b): bool => $a->equals($b),
             );
-    }
-
-    /**
-     * @template T of object
-     *
-     * @param T|null $a
-     * @param T|null $b
-     * @param callable(T, T): bool $equals
-     */
-    private static function nullSafeEquals(?object $a, ?object $b, callable $equals): bool
-    {
-        if ($a === null && $b === null) {
-            return true;
-        }
-
-        if ($a === null || $b === null) {
-            return false;
-        }
-
-        return $equals($a, $b);
     }
 }
