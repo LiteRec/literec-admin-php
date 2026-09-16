@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Inventory\Application\Command;
 
-use App\Inventory\Domain\Event\PurchaseOrderLineReceived;
 use App\Inventory\Domain\IdentityGenerator;
 use App\Inventory\Domain\InventoryItems;
 use App\Inventory\Domain\PurchaseOrders;
@@ -12,7 +11,6 @@ use App\Inventory\Domain\ValueObject\PurchaseOrderId;
 use App\Inventory\Domain\ValueObject\PurchaseOrderLineId;
 use App\Inventory\Domain\ValueObject\Quantity;
 use DateTimeImmutable;
-use LogicException;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -55,25 +53,16 @@ final class ReceivePurchaseOrderLineHandler
         $lineId = PurchaseOrderLineId::fromString($command->lineId);
         $quantity = Quantity::ofUnits($command->receivedQuantityUnits);
 
-        $order->receiveLine($lineId, $quantity, new DateTimeImmutable($command->receivedAtIso), $this->clock);
+        $lineReceived = $order->receiveLine(
+            $lineId,
+            $quantity,
+            new DateTimeImmutable($command->receivedAtIso),
+            $this->clock,
+        );
 
         $this->purchaseOrders->save($order);
 
-        // Find the PurchaseOrderLineReceived event the aggregate just buffered
-        // so we have the canonical itemId, facility, costPerUnit, etc.
         $releasedFromOrder = $order->releaseEvents();
-        $lineReceived = null;
-        foreach ($releasedFromOrder as $event) {
-            if ($event instanceof PurchaseOrderLineReceived && $event->lineId->equals($lineId)) {
-                $lineReceived = $event;
-                break;
-            }
-        }
-        if ($lineReceived === null) {
-            throw new LogicException(
-                'PurchaseOrder::receiveLine() did not record a matching PurchaseOrderLineReceived event.',
-            );
-        }
 
         $item = $this->inventoryItems->byId($lineReceived->itemId);
 

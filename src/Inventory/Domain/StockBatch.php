@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Inventory\Domain;
 
 use App\Inventory\Domain\Exception\InvalidStockBatchQuantity;
+use App\Inventory\Domain\Exception\StockBatchAlreadyAttached;
 use App\Inventory\Domain\Exception\StockBatchExhausted;
 use App\Inventory\Domain\ValueObject\Comment;
 use App\Inventory\Domain\ValueObject\CostPerUnit;
@@ -14,7 +15,6 @@ use App\Inventory\Domain\ValueObject\PurchaseOrderLineId;
 use App\Inventory\Domain\ValueObject\Quantity;
 use App\Inventory\Domain\ValueObject\StockBatchId;
 use DateTimeImmutable;
-use LogicException;
 use Psr\Clock\ClockInterface;
 
 /**
@@ -147,9 +147,7 @@ final class StockBatch
             if ($this->item === $item) {
                 return;
             }
-            throw new LogicException(
-                'StockBatch is already attached to a different InventoryItem.',
-            );
+            throw StockBatchAlreadyAttached::toAnotherItem();
         }
         $this->item = $item;
     }

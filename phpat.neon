@@ -19,3 +19,7 @@ services:
         class: App\Tests\Architecture\HandlersExposeOnePublicMethodRule
         tags:
             - phpat.test
+    -
+        class: App\Tests\Architecture\NoSplExceptionsInDomainOrApplicationRule
+        tags:
+            - phpat.test

@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Inventory\Domain;
 
+use App\Inventory\Domain\Exception\PurchaseOrderLineAlreadyAttached;
 use App\Inventory\Domain\Exception\PurchaseOrderLineOverReceipt;
 use App\Inventory\Domain\ValueObject\CostPerUnit;
 use App\Inventory\Domain\ValueObject\InventoryItemId;
 use App\Inventory\Domain\ValueObject\PurchaseOrderLineId;
 use App\Inventory\Domain\ValueObject\Quantity;
 use DateTimeImmutable;
-use LogicException;
 
 /**
  * Child entity owned exclusively by the {@see PurchaseOrder} aggregate.
@@ -125,9 +125,7 @@ final class PurchaseOrderLine
             if ($this->purchaseOrder === $order) {
                 return;
             }
-            throw new LogicException(
-                'PurchaseOrderLine is already attached to a different PurchaseOrder.',
-            );
+            throw PurchaseOrderLineAlreadyAttached::toAnotherOrder();
         }
         $this->purchaseOrder = $order;
     }

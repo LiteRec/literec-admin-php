@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Households\Infrastructure\Http\Controller;
 
+use App\Households\Application\Exception\InvalidMemberSearchPagination;
 use App\Households\Application\Query\Port\PageOfMembers;
 use App\Households\Application\Query\Port\SearchMembersCriteria;
 use App\Households\Application\Query\SearchMembers;
-use InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -56,7 +56,7 @@ final class MemberLookupController extends AbstractController
     {
         try {
             $criteria = $this->buildCriteria($request);
-        } catch (InvalidArgumentException $exception) {
+        } catch (InvalidMemberSearchPagination $exception) {
             return new Response($exception->getMessage(), Response::HTTP_BAD_REQUEST);
         }
 
@@ -96,10 +96,7 @@ final class MemberLookupController extends AbstractController
 
         $requestedPageSize = $query->getInt('pageSize', self::LOOKUP_PAGE_SIZE);
         if ($requestedPageSize < 1 || $requestedPageSize > self::LOOKUP_PAGE_SIZE) {
-            throw new InvalidArgumentException(sprintf(
-                'Member lookup: pageSize must be between 1 and %d.',
-                self::LOOKUP_PAGE_SIZE,
-            ));
+            throw InvalidMemberSearchPagination::pageSizeOutOfRange(1, self::LOOKUP_PAGE_SIZE);
         }
 
         return new SearchMembersCriteria(

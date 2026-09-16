@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Inventory\Application\Command;
 
 use App\Inventory\Domain\Exception\DuplicateVendorCode;
+use App\Inventory\Domain\Exception\InvalidVendorAddress;
 use App\Inventory\Domain\IdentityGenerator;
 use App\Inventory\Domain\ValueObject\VendorAddress;
 use App\Inventory\Domain\ValueObject\VendorCode;
@@ -77,7 +78,7 @@ final class RegisterVendorHandler
 
     /**
      * Expected shape (validated at runtime so a malformed bus payload
-     * produces a controlled InvalidArgumentException rather than an
+     * produces a controlled InvalidVendorAddress rather than an
      * undefined-array-key notice):
      *   street, city, state, postalCode, country: non-empty string
      *   unit: string|null
@@ -92,9 +93,7 @@ final class RegisterVendorHandler
 
         foreach (['street', 'city', 'state', 'postalCode', 'country'] as $required) {
             if (! array_key_exists($required, $row) || ! is_string($row[$required])) {
-                throw new \InvalidArgumentException(
-                    sprintf('Vendor address missing or invalid field: %s', $required),
-                );
+                throw InvalidVendorAddress::missingField($required);
             }
         }
         $unit = array_key_exists('unit', $row) && is_string($row['unit'])

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Households\Application\Query\Port;
 
-use InvalidArgumentException;
+use App\Households\Application\Exception\InvalidMemberSearchPagination;
 
 /**
  * Search criteria for {@see MemberReadModel::search()}.
@@ -75,19 +75,11 @@ final readonly class SearchMembersCriteria
         int $pageSize = 20,
     ) {
         if ($page < self::MIN_PAGE) {
-            throw new InvalidArgumentException(
-                sprintf('SearchMembersCriteria: page must be >= %d.', self::MIN_PAGE),
-            );
+            throw InvalidMemberSearchPagination::pageBelowMinimum(self::MIN_PAGE);
         }
 
         if ($pageSize < self::MIN_PAGE_SIZE || $pageSize > self::MAX_PAGE_SIZE) {
-            throw new InvalidArgumentException(
-                sprintf(
-                    'SearchMembersCriteria: pageSize must be in [%d, %d].',
-                    self::MIN_PAGE_SIZE,
-                    self::MAX_PAGE_SIZE,
-                ),
-            );
+            throw InvalidMemberSearchPagination::pageSizeOutOfRange(self::MIN_PAGE_SIZE, self::MAX_PAGE_SIZE);
         }
 
         $this->memberCode    = self::nullIfBlank($memberCode);

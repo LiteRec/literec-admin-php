@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Households\Domain;
 
+use App\Households\Domain\Exception\HouseholdMemberAlreadyAttached;
 use App\Households\Domain\ValueObject\AnonymizedProfile;
 use App\Households\Domain\ValueObject\DateOfBirth;
 use App\Households\Domain\ValueObject\Deactivation;
@@ -407,9 +408,7 @@ final class HouseholdMember
             if ($this->household === $household) {
                 return;
             }
-            throw new \LogicException(
-                'HouseholdMember is already attached to a different Household.',
-            );
+            throw HouseholdMemberAlreadyAttached::toAnotherHousehold();
         }
         $this->household = $household;
     }

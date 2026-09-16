@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Unit\Catalog\Application\Query;
 
+use App\Catalog\Application\Exception\InvalidListingsPagination;
 use App\Catalog\Application\Query\FindListingByCode;
 use App\Catalog\Application\Query\FindListingByCodeHandler;
 use App\Catalog\Application\Query\FindListingsByKind;
@@ -105,19 +106,19 @@ final class CatalogQueryHandlersTest extends TestCase
     }
 
     #[Test]
-    #[TestDox('FindListingsByKind constructor rejects negative offset and non-positive limit at the bus boundary.')]
+    #[TestDox('FindListingsByKind constructor rejects negative offset with InvalidListingsPagination.')]
     public function find_by_kind_rejects_bad_pagination(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidListingsPagination::class);
         $query = new FindListingsByKind('PROGRAM', -1, 10);
         self::fail(sprintf('Expected exception was not thrown; got %s.', $query::class));
     }
 
     #[Test]
-    #[TestDox('FindListingsByKind constructor rejects a zero limit.')]
+    #[TestDox('FindListingsByKind constructor rejects a zero limit with InvalidListingsPagination.')]
     public function find_by_kind_rejects_zero_limit(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidListingsPagination::class);
         $query = new FindListingsByKind('PROGRAM', 0, 0);
         self::fail(sprintf('Expected exception was not thrown; got %s.', $query::class));
     }

@@ -87,6 +87,18 @@ final class SearchMembersControllerTest extends WebTestCase
     }
 
     #[Test]
+    #[TestDox('GET /admin/users?pageSize=0 returns HTTP 400 via InvalidMemberSearchPagination.')]
+    public function users_index_with_out_of_range_pageSize_returns_400(): void
+    {
+        $client = static::createClient();
+        $this->signInUser($client, self::TEST_USERNAME, self::TEST_PASSWORD);
+
+        $client->request('GET', self::ROUTE_MEMBERS . '?pageSize=0');
+
+        self::assertResponseStatusCodeSame(400);
+    }
+
+    #[Test]
     #[TestDox('GET /admin/users/_table?lastName=Smith returns a partial containing only matching rows.')]
     public function filter_by_lastname_narrows_results_via_partial(): void
     {

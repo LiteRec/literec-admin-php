@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\Households\Infrastructure\Http\Controller;
 
+use App\Households\Application\Exception\InvalidMemberSearchPagination;
 use App\Households\Application\Query\CountMemberSegments;
 use App\Households\Application\Query\Port\MemberSegmentCounts;
 use App\Households\Application\Query\Port\MembersSegment;
 use App\Households\Application\Query\Port\PageOfMembers;
 use App\Households\Application\Query\Port\SearchMembersCriteria;
 use App\Households\Application\Query\SearchMembers;
-use InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -50,7 +50,7 @@ final class SearchMembersController extends AbstractController
     {
         try {
             $criteria = $this->buildCriteria($request);
-        } catch (InvalidArgumentException $exception) {
+        } catch (InvalidMemberSearchPagination $exception) {
             return new Response($exception->getMessage(), Response::HTTP_BAD_REQUEST);
         }
 
@@ -71,7 +71,7 @@ final class SearchMembersController extends AbstractController
     {
         try {
             $criteria = $this->buildCriteria($request);
-        } catch (InvalidArgumentException $exception) {
+        } catch (InvalidMemberSearchPagination $exception) {
             return new Response($exception->getMessage(), Response::HTTP_BAD_REQUEST);
         }
 

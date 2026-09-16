@@ -9,6 +9,7 @@ use App\Inventory\Domain\Event\PurchaseOrderFullyReceived;
 use App\Inventory\Domain\Event\PurchaseOrderLineReceived;
 use App\Inventory\Domain\Event\PurchaseOrderSent;
 use App\Inventory\Domain\Event\PurchaseOrderVerified;
+use App\Inventory\Domain\Exception\PurchaseOrderLineAlreadyAttached;
 use App\Inventory\Domain\Exception\PurchaseOrderLineNotFound;
 use App\Inventory\Domain\Exception\PurchaseOrderLineOverReceipt;
 use App\Inventory\Domain\Exception\PurchaseOrderNotDraft;
@@ -253,6 +254,38 @@ final class PurchaseOrderTest extends TestCase
             new DateTimeImmutable('2026-05-26 13:00:00'),
             $this->clock,
         );
+    }
+
+    #[Test]
+    #[TestDox('PurchaseOrderLine::attachToOrder() throws PurchaseOrderLineAlreadyAttached for a second PurchaseOrder.')]
+    public function it_rejects_attaching_a_line_to_a_second_order(): void
+    {
+        $po = $this->draftWithTwoLines();
+        $other = $this->draftWithTwoLines();
+
+        $this->expectException(PurchaseOrderLineAlreadyAttached::class);
+
+        $po->lines()[0]->attachToOrder($other);
+    }
+
+    #[Test]
+    #[TestDox('receiveLine() returns the PurchaseOrderLineReceived event it recorded for the requested line.')]
+    public function receive_line_returns_the_event_it_recorded(): void
+    {
+        $po = $this->draftWithTwoLines();
+        $po->send(new DateTimeImmutable('2026-05-26 11:00:00'), null, $this->clock);
+        $po->releaseEvents();
+
+        $receivedAt = new DateTimeImmutable('2026-05-26 13:00:00');
+        $lineReceived = $po->receiveLine(
+            PurchaseOrderLineId::fromString(self::LINE_1),
+            Quantity::ofUnits(5),
+            $receivedAt,
+            $this->clock,
+        );
+
+        self::assertSame(self::LINE_1, $lineReceived->lineId->value);
+        self::assertSame($lineReceived, $po->releaseEvents()[0]);
     }
 
     #[Test]
