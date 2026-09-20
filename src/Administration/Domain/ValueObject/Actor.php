@@ -29,15 +29,23 @@ namespace App\Administration\Domain\ValueObject;
  * $kind is typed `?ActorKind`, not `ActorKind`, purely to satisfy
  * Doctrine's mapping for {@see \App\Administration\Domain\AdministratorTenure::$revokedBy}
  * (LRA-269): that field embeds this class but is genuinely absent while
- * a tenure is open, and Doctrine ORM represents "every column of this
- * embeddable is null" by leaving the *enclosing* property null rather
- * than constructing an Actor with a null kind — so a real Actor
- * instance, whether built through one of the three named constructors
- * below or hydrated by Doctrine, never actually holds a null $kind.
- * PHPStan's Doctrine extension checks property nullability against the
- * embeddable's mapped column nullability, which must allow null for
- * $kind to double as the optional revokedBy — hence the widened type
- * here rather than a mapping mismatch or a suppressed error.
+ * a tenure is open. PHPStan's Doctrine extension checks property
+ * nullability against the embeddable's mapped column nullability, which
+ * must allow null for $kind to double as the optional revokedBy —
+ * hence the widened type here rather than a mapping mismatch or a
+ * suppressed error.
+ *
+ * This does mean a *hydrated* Actor can transiently have every field
+ * null: Doctrine ORM 3.7 does not leave the enclosing property
+ * (revokedBy) null when every embedded column is NULL — it constructs
+ * an Actor with every field null instead (confirmed against a live
+ * reload; an earlier revision of this docblock assumed the opposite).
+ * {@see \App\Administration\Domain\AdministratorTenure::normalizeAfterLoad()}
+ * is the fix: a Doctrine postLoad callback that collapses that
+ * all-null Actor back to a genuine null, so revokedBy() upholds the
+ * open-tenure invariant regardless of how the row was hydrated. Actor
+ * built through one of the three named constructors below never holds
+ * a null $kind.
  */
 final readonly class Actor
 {

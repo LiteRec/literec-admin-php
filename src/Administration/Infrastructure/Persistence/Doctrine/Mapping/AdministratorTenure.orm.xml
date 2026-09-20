@@ -12,6 +12,13 @@
         populated once closed — see AdministratorTenure::close() and the
         migration's CHECK constraints, which enforce that pairing at the
         database level.
+
+        The postLoad callback exists because Doctrine ORM 3.7 does not
+        leave the revokedBy property null when every one of its embedded
+        columns is NULL — it constructs an Actor with every field null
+        instead (confirmed against a live reload). See
+        AdministratorTenure::normalizeAfterLoad() and Actor's own
+        docblock.
     -->
     <entity name="App\Administration\Domain\AdministratorTenure" table="administration_tenures">
 
@@ -31,6 +38,10 @@
         <many-to-one field="administrator" target-entity="App\Administration\Domain\Administrator" inversed-by="tenures" fetch="LAZY">
             <join-column name="administrator_id" referenced-column-name="id" nullable="false" on-delete="CASCADE"/>
         </many-to-one>
+
+        <lifecycle-callbacks>
+            <lifecycle-callback type="postLoad" method="normalizeAfterLoad"/>
+        </lifecycle-callbacks>
 
     </entity>
 

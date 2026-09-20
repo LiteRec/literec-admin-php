@@ -41,10 +41,10 @@ use Doctrine\Migrations\AbstractMigration;
  *     constraint shape administration_rank_roles already uses, one set
  *     per Actor embedded on the entity (grantedBy, revokedBy).
  *     granted_by_kind is always populated (every tenure has a grantor);
- *     the revoked_by_* triple and revoked_at are all null together while
- *     the tenure is open and all populated together once closed —
- *     enforced by CHK_administration_tenures_revoked_by_actor rather
- *     than left to application code alone.
+ *     the revoked_by_* triple, revoked_at, and revocation_reason are all
+ *     null together while the tenure is open and all populated together
+ *     once closed — enforced by CHK_administration_tenures_revoked_by_actor
+ *     rather than left to application code alone.
  *
  * administration_administrator_roles:
  *   - Composite primary key (administrator_id, role_id) makes a double
@@ -120,14 +120,17 @@ final class Version20260920100000 extends AbstractMigration
                         AND revoked_by_sign_in_account_id IS NULL)
                  OR (revoked_by_kind = 'ADMINISTRATOR'
                         AND revoked_at IS NOT NULL
+                        AND revocation_reason IS NOT NULL
                         AND revoked_by_administrator_id IS NOT NULL
                         AND revoked_by_sign_in_account_id IS NULL)
                  OR (revoked_by_kind = 'SIGN_IN_ACCOUNT'
                         AND revoked_at IS NOT NULL
+                        AND revocation_reason IS NOT NULL
                         AND revoked_by_sign_in_account_id IS NOT NULL
                         AND revoked_by_administrator_id IS NULL)
                  OR (revoked_by_kind = 'SYSTEM'
                         AND revoked_at IS NOT NULL
+                        AND revocation_reason IS NOT NULL
                         AND revoked_by_administrator_id IS NULL
                         AND revoked_by_sign_in_account_id IS NULL)
                 )
