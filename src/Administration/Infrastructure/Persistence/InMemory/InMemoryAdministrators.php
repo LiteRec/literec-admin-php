@@ -6,6 +6,7 @@ namespace App\Administration\Infrastructure\Persistence\InMemory;
 
 use App\Administration\Domain\Administrator;
 use App\Administration\Domain\Administrators;
+use App\Administration\Domain\Exception\AdministratorAlreadyExists;
 use App\Administration\Domain\Exception\AdministratorNotFound;
 use App\Administration\Domain\Exception\SignInAccountAlreadyAnAdministrator;
 use App\Administration\Domain\ValueObject\AdministratorId;
@@ -24,6 +25,15 @@ final class InMemoryAdministrators implements Administrators
 
     public function add(Administrator $administrator): void
     {
+        // Checked before the sign-in-account guard, matching
+        // DoctrineAdministrators::add(), which hits the primary-key
+        // constraint before it can even reach the sign-in-account
+        // unique index: an id collision must never silently overwrite
+        // the existing aggregate's tenure history.
+        if (isset($this->byId[$administrator->id()->value])) {
+            throw AdministratorAlreadyExists::withId($administrator->id());
+        }
+
         if ($this->existsForSignInAccount($administrator->signInAccountId())) {
             throw SignInAccountAlreadyAnAdministrator::for($administrator->signInAccountId());
         }

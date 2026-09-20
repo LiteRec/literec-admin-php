@@ -19,6 +19,16 @@
         instead (confirmed against a live reload). See
         AdministratorTenure::normalizeAfterLoad() and Actor's own
         docblock.
+
+        "At most one open tenure per administrator" — the invariant
+        Administrator::standing() and currentTenure() both rest on — is
+        enforced by a partial unique index (UNIQ_administration_tenures_open
+        ON administration_tenures (administrator_id) WHERE revoked_at IS
+        NULL) created by raw SQL in the migration: Doctrine's XML mapping
+        has no first-class partial-unique-index type, the same reason the
+        functional LOWER(name) indexes on administration_roles/
+        administration_ranks are raw SQL. Not expressed here, and must
+        not be dropped by a future schema diff.
     -->
     <entity name="App\Administration\Domain\AdministratorTenure" table="administration_tenures">
 

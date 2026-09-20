@@ -6,6 +6,7 @@ namespace App\Tests\Support\Trait;
 
 use App\Administration\Domain\Administrator;
 use App\Administration\Domain\Administrators;
+use App\Administration\Domain\Exception\AdministratorAlreadyExists;
 use App\Administration\Domain\Exception\AdministratorNotFound;
 use App\Administration\Domain\Exception\SignInAccountAlreadyAnAdministrator;
 use App\Administration\Domain\ValueObject\Actor;
@@ -121,6 +122,29 @@ trait AdministratorsContractCases
     }
 
     #[Test]
+    #[TestDox('add() throws AdministratorAlreadyExists when the id already has a record, rather than overwriting it.')]
+    public function add_throws_on_duplicate_administrator_id(): void
+    {
+        $this->seedAdministrator(self::ADMINISTRATOR_A, self::SIGN_IN_ACCOUNT_A, self::TENURE_A);
+
+        $this->expectException(AdministratorAlreadyExists::class);
+        $this->seedAdministrator(self::ADMINISTRATOR_A, self::SIGN_IN_ACCOUNT_B, self::TENURE_B);
+    }
+
+    /**
+     * revoke() and its later regrant() are saved separately, not in one
+     * flush: closing the old tenure is an UPDATE and opening the new one
+     * is an INSERT, and Doctrine's unit of work executes every pending
+     * INSERT before any UPDATE within a single flush. Combined in one
+     * save(), the new (open) row would hit the database before the old
+     * row's close is written, tripping the
+     * UNIQ_administration_tenures_open partial index this ticket's
+     * review round added — a real interleaving hazard, not a test
+     * artefact, which is exactly why the six lifecycle commands
+     * (LRA-279) model revoke and regrant as separate handlers, each its
+     * own load-mutate-save.
+     */
+    #[Test]
     #[TestDox('save() persists revoke, regrant, rank-change, and role-assignment mutations across reloads.')]
     public function save_persists_mutations(): void
     {
@@ -128,6 +152,9 @@ trait AdministratorsContractCases
 
         $loaded = $this->administrators()->byId(AdministratorId::fromString(self::ADMINISTRATOR_A));
         $loaded->revoke(RevocationReason::of('Left the organization.'), Actor::system(), $this->clock());
+        $loaded->releaseEvents();
+        $this->administrators()->save($loaded);
+
         $loaded->regrant(AdministratorTenureId::fromString(self::TENURE_B), Actor::system(), $this->clock());
         $loaded->assignRole(RoleId::fromString(self::ROLE_ID), Actor::system(), $this->clock());
         $loaded->releaseEvents();

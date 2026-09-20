@@ -42,6 +42,15 @@
         <field name="signInAccountId" column="sign_in_account_id" type="administration_sign_in_account_id" nullable="false"/>
         <field name="rankId"          column="rank_id"            type="administration_rank_id"            nullable="false"/>
         <field name="standing"        column="standing"           type="string" length="20" nullable="false" enum-type="App\Administration\Domain\ValueObject\AdministratorStanding"/>
+        <!--
+            Touched by every mutator (see Administrator::$updatedAt's
+            docblock) purely to keep the optimistic-lock version check
+            live for collection-only mutations such as
+            assignRole()/unassignRole() — Doctrine only checks/increments
+            $version when it emits an UPDATE for this row, which it does
+            not do for a root whose only change is a child collection.
+        -->
+        <field name="updatedAt"       column="updated_at"         type="datetime_immutable"                nullable="false"/>
         <field name="version"         column="version"            type="integer" version="true" nullable="false">
             <options>
                 <option name="default">0</option>
