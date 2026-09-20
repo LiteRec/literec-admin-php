@@ -25,7 +25,10 @@ final class PrivilegeDefinitionTest extends TestCase
     {
         $this->expectException(InvalidPrivilegeDefinition::class);
 
-        new PrivilegeDefinition($displayName, 'A description.', PrivilegeGroup::Users, 0);
+        self::assertInstanceOf(
+            PrivilegeDefinition::class,
+            new PrivilegeDefinition($displayName, 'A description.', PrivilegeGroup::Users, 0),
+        );
     }
 
     #[Test]
@@ -36,7 +39,10 @@ final class PrivilegeDefinitionTest extends TestCase
     {
         $this->expectException(InvalidPrivilegeDefinition::class);
 
-        new PrivilegeDefinition('Display Name', $description, PrivilegeGroup::Users, 0);
+        self::assertInstanceOf(
+            PrivilegeDefinition::class,
+            new PrivilegeDefinition('Display Name', $description, PrivilegeGroup::Users, 0),
+        );
     }
 
     #[Test]
@@ -45,7 +51,10 @@ final class PrivilegeDefinitionTest extends TestCase
     {
         $this->expectException(InvalidPrivilegeDefinition::class);
 
-        new PrivilegeDefinition('Display Name', 'A description.', PrivilegeGroup::Users, -1);
+        self::assertInstanceOf(
+            PrivilegeDefinition::class,
+            new PrivilegeDefinition('Display Name', 'A description.', PrivilegeGroup::Users, -1),
+        );
     }
 
     #[Test]
