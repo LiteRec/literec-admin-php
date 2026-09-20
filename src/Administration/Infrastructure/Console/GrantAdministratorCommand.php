@@ -49,25 +49,15 @@ final class GrantAdministratorCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
 
-        $signInAccountId = $input->getArgument('signInAccountId');
-        $rankId = $input->getArgument('rankId');
-
-        if (!is_string($signInAccountId) || $signInAccountId === '') {
-            $io->error('The signInAccountId argument must be a non-empty string.');
-
-            return Command::INVALID;
-        }
-
-        if (!is_string($rankId) || $rankId === '') {
-            $io->error('The rankId argument must be a non-empty string.');
-
+        $arguments = $this->readArguments($input, $io);
+        if ($arguments === null) {
             return Command::INVALID;
         }
 
         try {
             $envelope = $this->commandBus->dispatch(new GrantAdministrator(
-                $signInAccountId,
-                $rankId,
+                $arguments['signInAccountId'],
+                $arguments['rankId'],
                 ActorKind::System->value,
             ));
         } catch (HandlerFailedException $e) {
@@ -75,6 +65,33 @@ final class GrantAdministratorCommand extends Command
         }
 
         return $this->reportResult($envelope, $io);
+    }
+
+    /**
+     * Validates the CLI arguments, printing an error and returning null on
+     * the first problem so the caller can exit INVALID once — same
+     * shape as {@see \App\Users\Infrastructure\Console\CreateUserCommand::readCredentials()}.
+     *
+     * @return array{signInAccountId: string, rankId: string}|null
+     */
+    private function readArguments(InputInterface $input, SymfonyStyle $io): ?array
+    {
+        $signInAccountId = $input->getArgument('signInAccountId');
+        $rankId = $input->getArgument('rankId');
+
+        if (!is_string($signInAccountId) || $signInAccountId === '') {
+            $io->error('The signInAccountId argument must be a non-empty string.');
+
+            return null;
+        }
+
+        if (!is_string($rankId) || $rankId === '') {
+            $io->error('The rankId argument must be a non-empty string.');
+
+            return null;
+        }
+
+        return ['signInAccountId' => $signInAccountId, 'rankId' => $rankId];
     }
 
     private function reportResult(Envelope $envelope, SymfonyStyle $io): int
