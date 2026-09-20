@@ -4,20 +4,25 @@ declare(strict_types=1);
 
 namespace App\Administration\Infrastructure\Persistence\Doctrine;
 
+use App\Administration\Domain\Event\RankDefined;
+use App\Administration\Domain\Event\RoleGrantedToRank;
+use App\Administration\Domain\Event\RoleRevokedFromRank;
 use App\Administration\Domain\Exception\ConcurrentRankModification;
 use App\Administration\Domain\Exception\DuplicateRankName;
 use App\Administration\Domain\Exception\RankNotFound;
 use App\Administration\Domain\Rank;
 use App\Administration\Domain\Ranks;
+use App\Administration\Domain\ValueObject\Actor;
 use App\Administration\Domain\ValueObject\ActorKind;
 use App\Administration\Domain\ValueObject\AssignedRoles;
 use App\Administration\Domain\ValueObject\RankId;
 use App\Administration\Domain\ValueObject\RankName;
 use App\Administration\Domain\ValueObject\RoleId;
+use DateTimeImmutable;
+use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\OptimisticLockException;
-use Psr\Clock\ClockInterface;
 
 /**
  * Doctrine adapter for the {@see Ranks} port. The only class under
@@ -30,14 +35,19 @@ use Psr\Clock\ClockInterface;
  * class reconciles itself with plain DBAL statements inside the command
  * bus's transaction. byId()/byName()/listActiveBySeniority()/
  * listGrantingRole() all hydrate a Rank via Doctrine and then attach its
- * role set with one extra SELECT; add()/save() delete the rank's rows and
- * reinsert the current set, stamping assigned_at from the injected clock
- * and the assigned-by columns from the rank's most recently recorded
- * actor. At the ladder's scale (a few dozen ranks, a handful of roles
- * each) delete-and-reinsert is simpler and safer than diffing, and it
- * keeps both methods idempotent. The join row is only ever the *current*
- * holder of each assignment — LRA-273's audit log is the history of every
- * grant and revocation over time, not this table.
+ * role set with one extra SELECT.
+ *
+ * add()/save() apply only the role-assignment events actually pending on
+ * the aggregate — a RankDefined with an initial role set inserts those
+ * rows, a RoleGrantedToRank/RoleRevokedFromRank inserts/deletes the one
+ * row it names, and every other event (RankRenamed, RankSeniorityChanged,
+ * RankRetired, RankReinstated) leaves this table untouched. Each row is
+ * stamped with *that event's own* actor and occurredAt, not whichever
+ * event happened to be recorded most recently on the aggregate — an
+ * unrelated rename must never rewrite another role's assignment
+ * metadata. The join row is still only ever the *current* holder of each
+ * assignment; LRA-273's audit log is the history of every grant and
+ * revocation over time, not this table.
  */
 final class DoctrineRanks implements Ranks
 {
@@ -45,7 +55,6 @@ final class DoctrineRanks implements Ranks
 
     public function __construct(
         private readonly EntityManagerInterface $em,
-        private readonly ClockInterface $clock,
     ) {
     }
 
@@ -58,7 +67,7 @@ final class DoctrineRanks implements Ranks
             throw DuplicateRankName::of($rank->name()->value);
         }
 
-        $this->syncAssignedRoles($rank);
+        $this->applyRoleAssignmentEvents($rank);
     }
 
     public function save(Rank $rank): void
@@ -75,7 +84,7 @@ final class DoctrineRanks implements Ranks
             throw DuplicateRankName::of($rank->name()->value);
         }
 
-        $this->syncAssignedRoles($rank);
+        $this->applyRoleAssignmentEvents($rank);
     }
 
     public function byId(RankId $id): Rank
@@ -175,51 +184,67 @@ final class DoctrineRanks implements Ranks
         ));
     }
 
-    private function syncAssignedRoles(Rank $rank): void
+    /**
+     * Walks the events still pending on $rank (not yet released for
+     * dispatch) and applies only the ones that touch role assignment,
+     * each stamped with its own actor and occurredAt. Every other event
+     * type is ignored — a RankRenamed/RankSeniorityChanged/RankRetired/
+     * RankReinstated never reaches the join table.
+     */
+    private function applyRoleAssignmentEvents(Rank $rank): void
     {
-        $actor = $rank->lastPendingActor();
-
-        if ($actor === null) {
-            // No mutation was actually recorded on this call — e.g. a
-            // rename()/changeSeniority() no-op when the value was
-            // already current. The assigned-role set has not changed,
-            // so the join table needs no rewrite.
-            return;
-        }
-
         $connection = $this->em->getConnection();
-        $connection->executeStatement(
-            sprintf('DELETE FROM %s WHERE rank_id = :rankId', self::RANK_ROLES_TABLE),
-            ['rankId' => $rank->id()->value],
-        );
 
-        $roleIds = $rank->roles()->toList();
-
-        if ($roleIds === []) {
-            return;
-        }
-
-        $assignedAt = $this->clock->now();
-
-        foreach ($roleIds as $roleId) {
-            $connection->executeStatement(
-                sprintf(
-                    'INSERT INTO %s '
-                    . '(rank_id, role_id, assigned_at, assigned_by_kind, assigned_by_administrator_id, '
-                    . 'assigned_by_sign_in_account_id) '
-                    . 'VALUES (:rankId, :roleId, :assignedAt, :kind, :administratorId, :signInAccountId)',
-                    self::RANK_ROLES_TABLE,
+        foreach ($rank->pendingEvents() as $event) {
+            match (true) {
+                $event instanceof RankDefined => $this->insertInitialRoles($connection, $event),
+                $event instanceof RoleGrantedToRank => $this->insertRoleAssignment(
+                    $connection,
+                    $event->rankId,
+                    $event->roleId,
+                    $event->actor,
+                    $event->occurredAt,
                 ),
-                [
-                    'rankId' => $rank->id()->value,
-                    'roleId' => $roleId->value,
-                    'assignedAt' => $assignedAt->format('Y-m-d H:i:s'),
-                    'kind' => $this->columnKindFor($actor->kind),
-                    'administratorId' => $actor->administratorId?->value,
-                    'signInAccountId' => $actor->signInAccountId?->value,
-                ],
-            );
+                $event instanceof RoleRevokedFromRank => $connection->executeStatement(
+                    sprintf('DELETE FROM %s WHERE rank_id = :rankId AND role_id = :roleId', self::RANK_ROLES_TABLE),
+                    ['rankId' => $event->rankId->value, 'roleId' => $event->roleId->value],
+                ),
+                default => null,
+            };
         }
+    }
+
+    private function insertInitialRoles(Connection $connection, RankDefined $event): void
+    {
+        foreach ($event->roles->toList() as $roleId) {
+            $this->insertRoleAssignment($connection, $event->rankId, $roleId, $event->actor, $event->occurredAt);
+        }
+    }
+
+    private function insertRoleAssignment(
+        Connection $connection,
+        RankId $rankId,
+        RoleId $roleId,
+        Actor $actor,
+        DateTimeImmutable $assignedAt,
+    ): void {
+        $connection->executeStatement(
+            sprintf(
+                'INSERT INTO %s '
+                . '(rank_id, role_id, assigned_at, assigned_by_kind, assigned_by_administrator_id, '
+                . 'assigned_by_sign_in_account_id) '
+                . 'VALUES (:rankId, :roleId, :assignedAt, :kind, :administratorId, :signInAccountId)',
+                self::RANK_ROLES_TABLE,
+            ),
+            [
+                'rankId' => $rankId->value,
+                'roleId' => $roleId->value,
+                'assignedAt' => $assignedAt->format('Y-m-d H:i:s'),
+                'kind' => $this->columnKindFor($actor->kind),
+                'administratorId' => $actor->administratorId?->value,
+                'signInAccountId' => $actor->signInAccountId?->value,
+            ],
+        );
     }
 
     /**

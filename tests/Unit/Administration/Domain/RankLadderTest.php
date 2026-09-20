@@ -9,6 +9,7 @@ use App\Administration\Domain\ValueObject\Actor;
 use App\Administration\Domain\ValueObject\AssignedRoles;
 use App\Administration\Domain\ValueObject\RankId;
 use App\Administration\Domain\ValueObject\RankName;
+use App\Administration\Domain\ValueObject\RoleId;
 use App\Administration\Domain\ValueObject\SeniorityLevel;
 use App\Administration\Infrastructure\Fixtures\RankLadderFixtures;
 use App\Administration\Infrastructure\Persistence\InMemory\InMemoryRanks;
@@ -74,12 +75,13 @@ final class RankLadderTest extends TestCase
         $clock = new MockClock(new DateTimeImmutable('2026-05-27 12:00:00'));
         $ranks = new InMemoryRanks();
         $seniority = SeniorityLevel::of(22);
+        $northRole = RoleId::fromString('019571bf-5d51-7000-b500-0000000fad01');
 
         $first = Rank::define(
             RankId::fromString('019571bf-5d51-7000-b500-0000000fac01'),
             RankName::of('Facility Manager North'),
             $seniority,
-            AssignedRoles::none(),
+            AssignedRoles::of($northRole),
             Actor::system(),
             $clock,
         );
@@ -101,5 +103,8 @@ final class RankLadderTest extends TestCase
             $ranks->byId($first->id())->seniority()->equals($ranks->byId($second->id())->seniority()),
         );
         self::assertFalse($first->name()->equals($second->name()));
+        self::assertFalse($first->roles()->equals($second->roles()));
+        self::assertTrue($first->roles()->contains($northRole));
+        self::assertFalse($second->roles()->contains($northRole));
     }
 }
