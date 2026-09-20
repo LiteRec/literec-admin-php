@@ -139,6 +139,7 @@ services:
             - '../src/Administration/Application/Command/GrantRoleToRank.php'
             - '../src/Administration/Application/Command/RevokeRoleFromRank.php'
             - '../src/Administration/Application/Command/RetireRank.php'
+            - '../src/Administration/Application/Command/ReinstateRank.php'
             - '../src/Administration/Application/Query/SeniorityComparison.php'
 
     # add more service definitions when explicit configuration is needed

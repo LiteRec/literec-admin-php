@@ -11,6 +11,8 @@ use App\Administration\Application\Command\DefineRank;
 use App\Administration\Application\Command\DefineRankHandler;
 use App\Administration\Application\Command\GrantRoleToRank;
 use App\Administration\Application\Command\GrantRoleToRankHandler;
+use App\Administration\Application\Command\ReinstateRank;
+use App\Administration\Application\Command\ReinstateRankHandler;
 use App\Administration\Application\Command\RenameRank;
 use App\Administration\Application\Command\RenameRankHandler;
 use App\Administration\Application\Command\RetireRank;
@@ -18,6 +20,7 @@ use App\Administration\Application\Command\RetireRankHandler;
 use App\Administration\Application\Command\RevokeRoleFromRank;
 use App\Administration\Application\Command\RevokeRoleFromRankHandler;
 use App\Administration\Domain\Event\RankDefined;
+use App\Administration\Domain\Event\RankReinstated;
 use App\Administration\Domain\Event\RankRenamed;
 use App\Administration\Domain\Event\RankRetired;
 use App\Administration\Domain\Event\RankSeniorityChanged;
@@ -251,6 +254,22 @@ final class RankHandlersTest extends TestCase
 
         $this->expectException(RankIsRetired::class);
         $handler(new RetireRank(self::RANK_ID, ActorKind::System->value));
+    }
+
+    #[Test]
+    #[TestDox('ReinstateRankHandler clears retired, calls save(), and dispatches RankReinstated.')]
+    public function reinstate_rank_handler_reinstates_and_dispatches(): void
+    {
+        $this->seedRank(self::RANK_ID, 'Director', 20);
+        $retireHandler = new RetireRankHandler($this->countingRanks, $this->clock, $this->actors, $this->eventBus);
+        $retireHandler(new RetireRank(self::RANK_ID, ActorKind::System->value));
+
+        $handler = new ReinstateRankHandler($this->countingRanks, $this->clock, $this->actors, $this->eventBus);
+        $handler(new ReinstateRank(self::RANK_ID, ActorKind::System->value));
+
+        self::assertSame(2, $this->countingRanks->saveCalls);
+        self::assertFalse($this->ranks->byId(RankId::fromString(self::RANK_ID))->isRetired());
+        self::assertInstanceOf(RankReinstated::class, $this->eventBus->dispatchedMessages()[1]);
     }
 
     private function seedRank(string $id, string $name, int $seniority, ?AssignedRoles $roles = null): void
