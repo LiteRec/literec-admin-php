@@ -64,6 +64,11 @@ doctrine:
             administration_rank_id: App\Administration\Infrastructure\Persistence\Doctrine\Type\RankIdType
             administration_rank_name: App\Administration\Infrastructure\Persistence\Doctrine\Type\RankNameType
             administration_seniority_level: App\Administration\Infrastructure\Persistence\Doctrine\Type\SeniorityLevelType
+            # LRA-269
+            administration_administrator_id: App\Administration\Infrastructure\Persistence\Doctrine\Type\AdministratorIdType
+            administration_administrator_tenure_id: App\Administration\Infrastructure\Persistence\Doctrine\Type\AdministratorTenureIdType
+            administration_sign_in_account_id: App\Administration\Infrastructure\Persistence\Doctrine\Type\SignInAccountIdType
+            administration_revocation_reason: App\Administration\Infrastructure\Persistence\Doctrine\Type\RevocationReasonType
     orm:
         validate_xml_mapping: true
         naming_strategy: doctrine.orm.naming_strategy.underscore

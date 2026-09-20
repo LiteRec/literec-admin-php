@@ -4,10 +4,34 @@ deptrac:
     exclude_files:
         - '#.*/tests/.*#'
     layers:
+        - name: UsersPublishedLanguage
+          collectors:
+              # Narrow published-language subset of Users\Domain that
+              # AdministrationInfrastructure is allowed to import
+              # directly (LRA-269): SignInAccountId is constructed from
+              # the UserId string at the Infrastructure boundary, so
+              # Administration Domain never imports App\Users, but the
+              # boundary code performing that translation needs to name
+              # UserId itself and the exception its own construction can
+              # throw. Same bool/must_not construction as
+              # CatalogPublishedLanguage; no other context's Domain or
+              # Application may depend on this layer.
+              - type: classLike
+                value: '^App\\Users\\Domain\\ValueObject\\UserId$'
+              - type: classLike
+                value: '^App\\Users\\Domain\\Exception\\InvalidUserId$'
         - name: UsersDomain
           collectors:
-              - type: directory
-                value: src/Users/Domain/.*
+              # Everything under Users\Domain except the
+              # published-language types exported via
+              # UsersPublishedLanguage above.
+              - type: bool
+                must:
+                    - type: directory
+                      value: src/Users/Domain/.*
+                must_not:
+                    - type: layer
+                      value: UsersPublishedLanguage
         - name: UsersApplication
           collectors:
               - type: directory
@@ -294,16 +318,27 @@ deptrac:
                     - type: layer
                       value: SymfonyPasswordHasher
     ruleset:
+        # UsersPublishedLanguage classes (UserId, InvalidUserId) are still
+        # part of Users\Domain semantically — they happen to be the
+        # narrow subset exported to Administration\Infrastructure. Users'
+        # own layers must keep depending on them explicitly, same
+        # contract as CatalogPublishedLanguage/CatalogDomain above.
+        UsersPublishedLanguage:
+            - UsersDomain
+            - PsrClock
         UsersDomain:
             - PsrClock
+            - UsersPublishedLanguage
         UsersApplication:
             - UsersDomain
+            - UsersPublishedLanguage
             - SymfonyMessenger
             - SymfonyPasswordHasher
             - PsrClock
         UsersInfrastructure:
             - UsersDomain
             - UsersApplication
+            - UsersPublishedLanguage
             - SymfonyMessenger
             - SymfonyPasswordHasher
             - PsrClock
@@ -542,6 +577,12 @@ deptrac:
         AdministrationDomain:
             - PsrClock
             - AdministrationPublishedLanguage
+            # LRA-269: the Administrator aggregate holds its two child
+            # collections (tenures, directly assigned roles) in a
+            # Doctrine\Common\Collections\Collection so the one-to-many
+            # mappings can track changes — same precedent as
+            # HouseholdsDomain/InventoryDomain above.
+            - DoctrineCollections
         AdministrationApplication:
             - AdministrationDomain
             - AdministrationPublishedLanguage
@@ -553,6 +594,9 @@ deptrac:
             - AdministrationDomain
             - AdministrationApplication
             - AdministrationPublishedLanguage
+            # LRA-269: SignInAccountId is constructed from the UserId
+            # string at this boundary — see UsersPublishedLanguage above.
+            - UsersPublishedLanguage
             - PsrLog
             - Symfony
             - SymfonyMessenger
@@ -564,4 +608,7 @@ deptrac:
             # same as the Households/Inventory read models.
             - PsrClock
             - Doctrine
+            # LRA-269: same DoctrineCollections precedent as
+            # HouseholdsInfrastructure/InventoryInfrastructure above.
+            - DoctrineCollections
             - SharedInfrastructure

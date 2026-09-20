@@ -23,6 +23,7 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\OptimisticLockException;
+use LogicException;
 
 /**
  * Doctrine adapter for the {@see Ranks} port. The only class under
@@ -262,7 +263,7 @@ final class DoctrineRanks implements Ranks
                 'rankId' => $rankId->value,
                 'roleId' => $roleId->value,
                 'assignedAt' => $assignedAt->format('Y-m-d H:i:s'),
-                'kind' => $this->columnKindFor($actor->kind),
+                'kind' => $this->columnKindFor($this->requireActorKind($actor)),
                 'administratorId' => $actor->administratorId?->value,
                 'signInAccountId' => $actor->signInAccountId?->value,
             ],
@@ -283,5 +284,18 @@ final class DoctrineRanks implements Ranks
             ActorKind::SignInAccount => 'sign_in_account',
             ActorKind::System => 'system',
         };
+    }
+
+    /**
+     * $actor always comes from a pending domain event, built through one
+     * of {@see Actor}'s three named constructors, so $kind is never
+     * actually null here — {@see Actor}'s own docblock explains why the
+     * property is nullable at all (a Doctrine mapping requirement
+     * introduced by LRA-269's AdministratorTenure, unrelated to Rank).
+     * This narrows the type for callers rather than trusting it.
+     */
+    private function requireActorKind(Actor $actor): ActorKind
+    {
+        return $actor->kind ?? throw new LogicException('Actor::$kind must not be null on a recorded domain event.');
     }
 }

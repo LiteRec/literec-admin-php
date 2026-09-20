@@ -141,6 +141,15 @@ services:
             - '../src/Administration/Application/Command/RetireRank.php'
             - '../src/Administration/Application/Command/ReinstateRank.php'
             - '../src/Administration/Application/Query/SeniorityComparison.php'
+            # LRA-269: the Administrator aggregate and its two child
+            # entities are not services (same treatment as Role.php/
+            # Rank.php above). Domain\Event, Domain\Exception, and
+            # Domain\ValueObject are already excluded wholesale above,
+            # so the new event/exception/value-object classes this
+            # ticket adds need no further entries.
+            - '../src/Administration/Domain/Administrator.php'
+            - '../src/Administration/Domain/AdministratorTenure.php'
+            - '../src/Administration/Domain/AdministratorRoleAssignment.php'
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
@@ -296,6 +305,10 @@ services:
     # LRA-267: bind the Administration\Domain Ranks port to its Doctrine
     # adapter, mirroring the Roles binding above.
     App\Administration\Domain\Ranks: '@App\Administration\Infrastructure\Persistence\Doctrine\DoctrineRanks'
+
+    # LRA-269: bind the Administration\Domain Administrators port to its
+    # Doctrine adapter, mirroring the Roles/Ranks bindings above.
+    App\Administration\Domain\Administrators: '@App\Administration\Infrastructure\Persistence\Doctrine\DoctrineAdministrators'
 
     # Wire the AddHouseholdController (LRA-40) onto the command bus so its
     # POST actions can dispatch RegisterHousehold and AddMemberToHousehold.
@@ -539,6 +552,14 @@ when@test:
             public: true
         administration.in_memory_ranks_repository:
             alias: App\Administration\Infrastructure\Persistence\InMemory\InMemoryRanks
+            public: true
+        # Administration Administrators (LRA-269). Same treatment as
+        # Roles/Ranks above.
+        App\Administration\Domain\Administrators:
+            alias: App\Administration\Infrastructure\Persistence\Doctrine\DoctrineAdministrators
+            public: true
+        administration.in_memory_administrators_repository:
+            alias: App\Administration\Infrastructure\Persistence\InMemory\InMemoryAdministrators
             public: true
 
         # Seeded Faker generator for fixture loads. Test env mirrors the
