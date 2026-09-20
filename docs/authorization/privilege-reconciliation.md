@@ -308,7 +308,7 @@ written reason.
   posting-API tier are both gone from the respective platforms; no
   successor screen is planned, so these are dropped rather than
   deferred.
-- **Deferred (117):** every other non-shipped legacy name, grouped by
+- **Deferred (118):** every other non-shipped legacy name, grouped by
   the future bounded context named in the epic (`Programs`,
   `Facilities`, `Memberships`, `Reports`, `Accounting`,
   `Communications`, `Scholarships`, `Customization`, `Internet`,
