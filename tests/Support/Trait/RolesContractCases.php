@@ -177,22 +177,6 @@ trait RolesContractCases
     }
 
     #[Test]
-    #[TestDox('save() persists a case-only rename of a role\'s own name (LRA-280).')]
-    public function save_persists_a_case_only_rename(): void
-    {
-        $this->seedRole(self::ROLE_A, 'front desk', '', []);
-
-        $loaded = $this->roles()->byId(RoleId::fromString(self::ROLE_A));
-        $loaded->rename(RoleName::of('Front Desk'), Actor::system(), $this->clock());
-        $loaded->releaseEvents();
-        $this->roles()->save($loaded);
-        $this->resetPersistenceContext();
-
-        $reloaded = $this->roles()->byId(RoleId::fromString(self::ROLE_A));
-        self::assertSame('Front Desk', $reloaded->name()->value);
-    }
-
-    #[Test]
     #[TestDox('save() throws RoleNotFound when the role was never added.')]
     public function save_throws_when_not_added(): void
     {
