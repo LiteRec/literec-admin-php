@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Administration\Application\Command;
 
 use App\Administration\Application\ActorAssembler;
+use App\Administration\Domain\Exception\RoleIsRetired;
 use App\Administration\Domain\Exception\RoleNotFound;
 use App\Administration\Domain\Ranks;
 use App\Administration\Domain\Roles;
@@ -35,12 +36,21 @@ final class GrantRoleToRankHandler
      *         docblock), so this lookup is what stops an orphaned
      *         assignment from ever being written, rather than relying on
      *         the schema to reject it.
+     * @throws RoleIsRetired when the role exists but has already been
+     *         retired. {@see Roles::byId()} returns a retired role
+     *         unchanged — existence and liveness are different
+     *         questions — so this handler checks both before granting.
      */
     public function __invoke(GrantRoleToRank $command): void
     {
         $rank = $this->ranks->byId(RankId::fromString($command->rankId));
         $roleId = RoleId::fromString($command->roleId);
-        $this->roles->byId($roleId);
+        $role = $this->roles->byId($roleId);
+
+        if ($role->isRetired()) {
+            throw RoleIsRetired::for($roleId);
+        }
+
         $actor = $this->actors->fromPrimitives($command->actorKind, $command->actorId);
 
         $rank->grantRole($roleId, $actor, $this->clock);

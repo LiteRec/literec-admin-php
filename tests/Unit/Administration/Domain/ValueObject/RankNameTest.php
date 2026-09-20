@@ -76,4 +76,17 @@ final class RankNameTest extends TestCase
         self::assertTrue($a->equals($b));
         self::assertFalse($a->equals($c));
     }
+
+    #[Test]
+    #[TestDox('isIdenticalTo() compares byte-exactly, unlike the case-insensitive equals().')]
+    public function is_identical_to_compares_byte_exactly(): void
+    {
+        $a = RankName::of('Director');
+        $b = RankName::of('director');
+        $c = RankName::of('Director');
+
+        self::assertTrue($a->equals($b));
+        self::assertFalse($a->isIdenticalTo($b));
+        self::assertTrue($a->isIdenticalTo($c));
+    }
 }

@@ -25,6 +25,7 @@ use App\Administration\Domain\Event\RoleGrantedToRank;
 use App\Administration\Domain\Event\RoleRevokedFromRank;
 use App\Administration\Domain\Exception\DuplicateRankName;
 use App\Administration\Domain\Exception\RankIsRetired;
+use App\Administration\Domain\Exception\RoleIsRetired;
 use App\Administration\Domain\Exception\RoleNotFound;
 use App\Administration\Domain\Rank;
 use App\Administration\Domain\Role;
@@ -193,6 +194,24 @@ final class RankHandlersTest extends TestCase
     }
 
     #[Test]
+    #[TestDox('GrantRoleToRankHandler throws RoleIsRetired when the role has been retired, without granting it.')]
+    public function grant_role_to_rank_handler_rejects_retired_role(): void
+    {
+        $this->seedRank(self::RANK_ID, 'Director', 20);
+        $this->seedRole(self::ROLE_ID, 'Front Desk', retired: true);
+        $handler = new GrantRoleToRankHandler(
+            $this->countingRanks,
+            $this->roles,
+            $this->clock,
+            $this->actors,
+            $this->eventBus,
+        );
+
+        $this->expectException(RoleIsRetired::class);
+        $handler(new GrantRoleToRank(self::RANK_ID, self::ROLE_ID, ActorKind::System->value));
+    }
+
+    #[Test]
     #[TestDox('RevokeRoleFromRankHandler revokes the role, calls save(), and dispatches RoleRevokedFromRank.')]
     public function revoke_role_from_rank_handler_revokes_and_dispatches(): void
     {
@@ -248,7 +267,7 @@ final class RankHandlersTest extends TestCase
         $this->ranks->add($rank);
     }
 
-    private function seedRole(string $id, string $name): void
+    private function seedRole(string $id, string $name, bool $retired = false): void
     {
         $role = Role::define(
             RoleId::fromString($id),
@@ -258,6 +277,11 @@ final class RankHandlersTest extends TestCase
             Actor::system(),
             $this->clock,
         );
+
+        if ($retired) {
+            $role->retire(Actor::system(), $this->clock);
+        }
+
         $role->releaseEvents();
         $this->roles->add($role);
     }

@@ -86,6 +86,21 @@ final class RankTest extends TestCase
     }
 
     #[Test]
+    #[TestDox('rename() records an event for a case-only change, unlike the case-insensitive equals() guard.')]
+    public function rename_records_event_for_a_case_only_change(): void
+    {
+        $rank = $this->defineRank(name: RankName::of('director'));
+        $rank->releaseEvents();
+
+        $rank->rename(RankName::of('Director'), Actor::system(), $this->clock);
+
+        self::assertSame('Director', $rank->name()->value);
+        $events = $rank->releaseEvents();
+        self::assertCount(1, $events);
+        self::assertInstanceOf(RankRenamed::class, $events[0]);
+    }
+
+    #[Test]
     #[TestDox('changeSeniority() updates the level and records RankSeniorityChanged with the acting actor.')]
     public function change_seniority_updates_level_and_records_event(): void
     {

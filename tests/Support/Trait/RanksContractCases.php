@@ -186,6 +186,21 @@ trait RanksContractCases
     }
 
     #[Test]
+    #[TestDox('save() persists a case-only rename of a rank\'s own name.')]
+    public function save_persists_a_case_only_rename(): void
+    {
+        $this->seedRank(self::RANK_A, 'director', 20);
+
+        $loaded = $this->ranks()->byId(RankId::fromString(self::RANK_A));
+        $loaded->rename(RankName::of('Director'), Actor::system(), $this->clock());
+        $this->ranks()->save($loaded);
+        $this->resetPersistenceContext();
+
+        $reloaded = $this->ranks()->byId(RankId::fromString(self::RANK_A));
+        self::assertSame('Director', $reloaded->name()->value);
+    }
+
+    #[Test]
     #[TestDox('save() throws RankNotFound when the rank was never added.')]
     public function save_throws_when_not_added(): void
     {
@@ -239,6 +254,26 @@ trait RanksContractCases
         self::assertTrue($final->roles()->equals(
             AssignedRoles::of(RoleId::fromString(self::ROLE_A), RoleId::fromString(self::ROLE_B)),
         ));
+    }
+
+    #[Test]
+    #[TestDox('save() is idempotent when called twice without releasing events in between.')]
+    public function save_is_idempotent_without_an_intervening_release(): void
+    {
+        $this->seedRank(self::RANK_A, self::RANK_NAME_DIRECTOR, 20);
+
+        $rank = $this->ranks()->byId(RankId::fromString(self::RANK_A));
+        $rank->grantRole(RoleId::fromString(self::ROLE_A), Actor::system(), $this->clock());
+        // Deliberately no releaseEvents() call: save() twice in a row
+        // must replay the same pending RoleGrantedToRank without
+        // throwing or duplicating the row.
+        $this->ranks()->save($rank);
+        $this->ranks()->save($rank);
+        $this->resetPersistenceContext();
+
+        $reloaded = $this->ranks()->byId(RankId::fromString(self::RANK_A));
+        self::assertSame(1, $reloaded->roles()->count());
+        self::assertTrue($reloaded->roles()->contains(RoleId::fromString(self::ROLE_A)));
     }
 
     #[Test]
