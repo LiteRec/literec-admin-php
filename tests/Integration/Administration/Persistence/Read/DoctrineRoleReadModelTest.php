@@ -12,9 +12,11 @@ use App\Administration\Domain\Roles;
 use App\Administration\Domain\ValueObject\Actor;
 use App\Administration\Domain\ValueObject\PrivilegeSet;
 use App\Administration\Domain\ValueObject\RoleDescription;
+use App\Administration\Application\Query\View\RoleSummaryView;
 use App\Administration\Domain\ValueObject\RoleId;
 use App\Administration\Domain\ValueObject\RoleName;
 use DateTimeImmutable;
+use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\Medium;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\TestDox;
@@ -36,10 +38,12 @@ final class DoctrineRoleReadModelTest extends KernelTestCase
 {
     private const string ROLE_A = '019571bf-5d51-7000-b500-00000000bb01';
     private const string ROLE_B = '019571bf-5d51-7000-b500-00000000bb02';
+    private const string ROLE_C = '019571bf-5d51-7000-b500-00000000bb03';
 
     private MockClock $clock;
     private Roles $roles;
     private RoleReadModel $readModel;
+    private Connection $connection;
 
     protected function setUp(): void
     {
@@ -53,10 +57,14 @@ final class DoctrineRoleReadModelTest extends KernelTestCase
         $readModel = static::getContainer()->get(RoleReadModel::class);
         self::assertInstanceOf(RoleReadModel::class, $readModel);
         $this->readModel = $readModel;
+
+        $connection = static::getContainer()->get(Connection::class);
+        self::assertInstanceOf(Connection::class, $connection);
+        $this->connection = $connection;
     }
 
     #[Test]
-    #[TestDox('listRoles(false) excludes retired roles and orders by name.')]
+    #[TestDox('listRoles(false) excludes retired roles.')]
     public function list_roles_excludes_retired_by_default(): void
     {
         $this->seedRole(self::ROLE_A, 'Zebra Role', PrivilegeSet::of(Privilege::ViewUsers, Privilege::AddUsers));
@@ -72,6 +80,49 @@ final class DoctrineRoleReadModelTest extends KernelTestCase
         self::assertSame('Zebra Role', $page[0]->name);
         self::assertSame(2, $page[0]->privilegeCount);
         self::assertFalse($page[0]->retired);
+    }
+
+    #[Test]
+    #[TestDox('listRoles() orders active roles by name ascending, independent of insertion order.')]
+    public function list_roles_orders_active_roles_by_name_ascending(): void
+    {
+        // Seeded in reverse alphabetical order, plus a retired role, so
+        // the assertion below can only pass if ORDER BY name is real —
+        // a single-active-role fixture cannot distinguish an ORDER BY
+        // from no ordering at all.
+        $this->seedRole(self::ROLE_A, 'Zebra Role', PrivilegeSet::none());
+        $this->seedRole(self::ROLE_B, 'Alpha Role', PrivilegeSet::none());
+        $retired = $this->seedRole(self::ROLE_C, 'Middle Role', PrivilegeSet::none());
+        $retired->retire(Actor::system(), $this->clock);
+        $retired->releaseEvents();
+        $this->roles->save($retired);
+
+        $page = $this->readModel->listRoles(false);
+
+        self::assertSame(['Alpha Role', 'Zebra Role'], array_map(
+            static fn (RoleSummaryView $view): string => $view->name,
+            $page,
+        ));
+    }
+
+    #[Test]
+    #[TestDox('listRoles() privilegeCount excludes a stored name that no longer resolves through the catalogue.')]
+    public function list_roles_excludes_unresolvable_privilege_names_from_count(): void
+    {
+        $this->seedRole(self::ROLE_A, 'Front Desk', PrivilegeSet::of(Privilege::ViewUsers));
+
+        // Simulates a retired Privilege enum case: a name that once
+        // matched a case but no longer does. Written directly via SQL
+        // because PrivilegeSet::of() only accepts real Privilege cases —
+        // there is no write-side path that can produce this row shape.
+        $this->connection->executeStatement(
+            'UPDATE administration_roles SET privileges = :privileges WHERE id = :id',
+            ['privileges' => '["VIEW_USERS","RETIRED_PRIVILEGE"]', 'id' => self::ROLE_A],
+        );
+
+        $page = $this->readModel->listRoles(false);
+
+        self::assertSame(1, $page[0]->privilegeCount);
     }
 
     #[Test]

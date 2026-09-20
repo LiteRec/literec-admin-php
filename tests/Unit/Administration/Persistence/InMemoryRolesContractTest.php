@@ -35,4 +35,10 @@ final class InMemoryRolesContractTest extends TestCase
     {
         return $this->mockClock;
     }
+
+    protected function resetPersistenceContext(): void
+    {
+        // No-op: InMemoryRoles is a plain array store with no identity
+        // map to reset — reading it back already is the round trip.
+    }
 }
