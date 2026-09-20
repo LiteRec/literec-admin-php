@@ -55,7 +55,15 @@ final class DoctrineRoleReadModel implements RoleReadModel
             fn (array $row): RoleSummaryView => new RoleSummaryView(
                 $this->rowString($row, 'id'),
                 $this->rowString($row, 'name'),
-                count($this->decodePrivilegeNames($row)),
+                // Count only names that still resolve through the
+                // catalogue — same fail-closed filter privilegeViewsFrom()
+                // applies for the detail view, so a role never shows a
+                // larger count here than the privileges actually listed
+                // on its detail page.
+                count(array_filter(
+                    $this->decodePrivilegeNames($row),
+                    static fn (string $name): bool => Privilege::tryFrom($name) !== null,
+                )),
                 $this->rowBool($row, 'retired'),
             ),
             $rows,
