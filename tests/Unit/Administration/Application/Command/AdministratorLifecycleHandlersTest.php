@@ -238,6 +238,7 @@ final class AdministratorLifecycleHandlersTest extends TestCase
 
         $handler = new RegrantAdministratorHandler(
             $this->countingAdministrators,
+            $this->ranks,
             new SequenceAdministrationIdentityGenerator(
                 tenureIds: [AdministratorTenureId::fromString('019571bf-5d51-7000-b500-00000000af20')],
             ),
@@ -260,6 +261,7 @@ final class AdministratorLifecycleHandlersTest extends TestCase
         $this->seedAdministrator();
         $handler = new RegrantAdministratorHandler(
             $this->countingAdministrators,
+            $this->ranks,
             new SequenceAdministrationIdentityGenerator(
                 tenureIds: [AdministratorTenureId::fromString('019571bf-5d51-7000-b500-00000000af21')],
             ),
@@ -269,6 +271,42 @@ final class AdministratorLifecycleHandlersTest extends TestCase
         );
 
         $this->expectException(AdministratorAlreadyActive::class);
+        $handler(new RegrantAdministrator(self::ADMINISTRATOR_ID, ActorKind::System->value));
+    }
+
+    #[Test]
+    #[TestDox('RegrantAdministratorHandler throws RankIsRetired when the retained rank was retired while revoked.')]
+    public function regrant_administrator_handler_rejects_retired_rank(): void
+    {
+        $this->seedRank(self::RANK_ID, 'Director', 20);
+        $this->seedAdministrator();
+        $revokeHandler = new RevokeAdministratorHandler(
+            $this->countingAdministrators,
+            $this->clock,
+            $this->actors,
+            $this->eventBus,
+        );
+        $revokeHandler(new RevokeAdministrator(self::ADMINISTRATOR_ID, 'Left.', ActorKind::System->value));
+
+        // The rank is retired only after the administrator's revoke —
+        // exactly the ordering RegrantAdministratorHandler must guard
+        // against, since nothing stops a rank retirement from
+        // outliving a still-referencing (though currently inactive)
+        // administrator.
+        $this->ranks->byId(RankId::fromString(self::RANK_ID))->retire(Actor::system(), $this->clock);
+
+        $handler = new RegrantAdministratorHandler(
+            $this->countingAdministrators,
+            $this->ranks,
+            new SequenceAdministrationIdentityGenerator(
+                tenureIds: [AdministratorTenureId::fromString('019571bf-5d51-7000-b500-00000000af22')],
+            ),
+            $this->clock,
+            $this->actors,
+            $this->eventBus,
+        );
+
+        $this->expectException(RankIsRetired::class);
         $handler(new RegrantAdministrator(self::ADMINISTRATOR_ID, ActorKind::System->value));
     }
 
