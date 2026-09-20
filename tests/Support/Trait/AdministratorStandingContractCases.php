@@ -35,6 +35,7 @@ trait AdministratorStandingContractCases
     private const string RANK_ID = '019571bf-5d51-7000-b500-00000000ae04';
     private const string TENURE_A = '019571bf-5d51-7000-b500-00000000ae05';
     private const string ROLE_ID = '019571bf-5d51-7000-b500-00000000ae06';
+    private const string OTHER_ROLE_ID = '019571bf-5d51-7000-b500-00000000ae07';
 
     abstract protected function readModel(): AdministratorStandingReadModel;
 
@@ -59,11 +60,15 @@ trait AdministratorStandingContractCases
     }
 
     #[Test]
-    #[TestDox('standingFor() reports Active standing, rank id, and assigned role ids for an active administrator.')]
+    #[TestDox('standingFor() reports Active standing, rank id, and every assigned role id.')]
     public function standing_for_reports_active_administrator(): void
     {
         $administrator = $this->seedAdministrator();
         $administrator->assignRole(RoleId::fromString(self::ROLE_ID), Actor::system(), $this->clock());
+        // A second role so the Doctrine driver's LEFT JOIN returns more
+        // than one row: the row explosion its fetchAllAssociative() +
+        // $rows[0] shape exists to handle is otherwise never exercised.
+        $administrator->assignRole(RoleId::fromString(self::OTHER_ROLE_ID), Actor::system(), $this->clock());
         $administrator->releaseEvents();
         $this->administrators()->save($administrator);
         $this->resetPersistenceContext();
@@ -73,12 +78,13 @@ trait AdministratorStandingContractCases
         self::assertNotNull($view);
         self::assertSame(self::ADMINISTRATOR_A, $view->administratorId);
         self::assertSame(AdministratorStanding::Active->value, $view->standing);
+        self::assertTrue($view->isActive());
         self::assertSame(self::RANK_ID, $view->rankId);
-        self::assertSame([self::ROLE_ID], $view->roleIds);
+        self::assertEqualsCanonicalizing([self::ROLE_ID, self::OTHER_ROLE_ID], $view->roleIds);
     }
 
     #[Test]
-    #[TestDox('standingFor() reports Revoked standing for a revoked administrator, not null.')]
+    #[TestDox('standingFor() reports Revoked standing for a revoked administrator, not null, and isActive() is false.')]
     public function standing_for_reports_revoked_administrator(): void
     {
         $administrator = $this->seedAdministrator();
@@ -91,6 +97,7 @@ trait AdministratorStandingContractCases
 
         self::assertNotNull($view);
         self::assertSame(AdministratorStanding::Revoked->value, $view->standing);
+        self::assertFalse($view->isActive());
     }
 
     #[Test]
