@@ -96,12 +96,17 @@ services:
             - '../src/Shared/Domain/ValueObject/'
             - '../src/Shared/Domain/Exception/'
             - '../src/Kernel.php'
-            # LRA-266: Administration Domain exceptions and the
-            # parameterless ListPrivilegeCatalogue query DTO are not
-            # services, same treatment as the exception/DTO exclusions
+            # LRA-266: Administration Domain exceptions, the
+            # PrivilegeDefinition value object, the parameterless
+            # ListPrivilegeCatalogue query DTO, and the read-side view
+            # DTOs are not services — each takes scalar or array
+            # constructor arguments Symfony cannot autowire, same
+            # treatment as the exception/DTO/ValueObject exclusions
             # above.
             - '../src/Administration/Domain/Exception/'
+            - '../src/Administration/Domain/PrivilegeDefinition.php'
             - '../src/Administration/Application/Query/ListPrivilegeCatalogue.php'
+            - '../src/Administration/Application/Query/View/'
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
