@@ -51,9 +51,27 @@ final readonly class RankName implements Stringable
         return new self($value);
     }
 
+    /**
+     * Answers "would these two collide?" — case-insensitively, matching
+     * the functional LOWER(name) unique index. Use this for the
+     * duplicate-name guard; never for "did the value actually change",
+     * which {@see isIdenticalTo()} answers instead.
+     */
     public function equals(self $other): bool
     {
         return mb_strtolower($this->value, 'UTF-8') === mb_strtolower($other->value, 'UTF-8');
+    }
+
+    /**
+     * Answers "is this the exact same string?" — byte-exact, unlike
+     * {@see equals()}. Rank::rename()'s no-op guard needs this one: a
+     * case-only rename (e.g. "director" to "Director") is a real change
+     * to persist and record an event for, even though the two names
+     * collide under equals().
+     */
+    public function isIdenticalTo(self $other): bool
+    {
+        return $this->value === $other->value;
     }
 
     public function __toString(): string

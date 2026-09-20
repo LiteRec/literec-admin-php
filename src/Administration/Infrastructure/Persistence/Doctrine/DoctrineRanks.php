@@ -229,6 +229,19 @@ final class DoctrineRanks implements Ranks
         }
     }
 
+    /**
+     * ON CONFLICT DO NOTHING, not DO UPDATE: pendingEvents() is a
+     * non-destructive peek (see AggregateRoot::pendingEvents()), so the
+     * same RankDefined/RoleGrantedToRank is replayed against this method
+     * on every add()/save() call against the same aggregate instance
+     * until the caller releases its events — which every production
+     * handler already does immediately after persisting, but a future
+     * one that does not must get a silent no-op here rather than a raw
+     * UniqueConstraintViolationException that leaks the join table's
+     * name past the Ranks port. DO NOTHING also preserves the original
+     * assigned_at/assigned_by columns on a replayed insert, which is the
+     * property this class exists to protect in the first place.
+     */
     private function insertRoleAssignment(
         Connection $connection,
         RankId $rankId,
@@ -241,7 +254,8 @@ final class DoctrineRanks implements Ranks
                 'INSERT INTO %s '
                 . '(rank_id, role_id, assigned_at, assigned_by_kind, assigned_by_administrator_id, '
                 . 'assigned_by_sign_in_account_id) '
-                . 'VALUES (:rankId, :roleId, :assignedAt, :kind, :administratorId, :signInAccountId)',
+                . 'VALUES (:rankId, :roleId, :assignedAt, :kind, :administratorId, :signInAccountId) '
+                . 'ON CONFLICT (rank_id, role_id) DO NOTHING',
                 self::RANK_ROLES_TABLE,
             ),
             [

@@ -29,9 +29,9 @@ use Doctrine\Migrations\AbstractMigration;
  *   - role_id carries no foreign key: the roles table belongs to LRA-268,
  *     and a cross-table constraint here would couple the two tickets'
  *     migration ordering. GrantRoleToRankHandler is what stops an
- *     orphaned assignment from being written instead — it looks the role
- *     up through the Roles port and lets RoleNotFound propagate before
- *     Rank::grantRole() is ever called.
+ *     orphaned or retired-role assignment from being written instead —
+ *     it looks the role up through the Roles port and rejects it with
+ *     RoleNotFound/RoleIsRetired before Rank::grantRole() is ever called.
  *   - rank_id has ON DELETE CASCADE to administration_ranks — Rank owns
  *     this join table; nothing else references a rank row.
  *   - The join row records who made the assignment and when, under the

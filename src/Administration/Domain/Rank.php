@@ -145,7 +145,11 @@ final class Rank
     {
         $this->guardNotRetired();
 
-        if ($this->name->equals($name)) {
+        // isIdenticalTo(), not equals(): equals() is case-insensitive
+        // (it answers the uniqueness question), so a case-only rename
+        // like "director" to "Director" must still persist and record
+        // RankRenamed rather than being silently discarded as a no-op.
+        if ($this->name->isIdenticalTo($name)) {
             return;
         }
 
