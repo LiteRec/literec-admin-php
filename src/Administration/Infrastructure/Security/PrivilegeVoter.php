@@ -8,6 +8,7 @@ use App\Administration\Application\Security\CurrentAdministrator;
 use App\Administration\Domain\EffectivePrivileges;
 use App\Administration\Domain\Privilege;
 use App\Administration\Domain\ValueObject\AdministratorId;
+use App\Administration\Domain\ValueObject\PrivilegeGrant;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\CacheableVoterInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Vote;
@@ -116,12 +117,38 @@ final class PrivilegeVoter implements VoterInterface, CacheableVoterInterface
 
     private function voteOnPrivilege(string $attribute, ?Vote $vote): int
     {
+        $grant = $this->resolveGrant($attribute, $vote);
+
+        if ($grant === null) {
+            return self::ACCESS_DENIED;
+        }
+
+        $vote?->addReason(sprintf(
+            'Granted %s via %s "%s".',
+            $grant->privilege->value,
+            $grant->origin->value,
+            $grant->sourceName,
+        ));
+
+        return self::ACCESS_GRANTED;
+    }
+
+    /**
+     * Resolves the {@see PrivilegeGrant} backing $attribute, recording a
+     * deny reason on $vote for every failure path along the way.
+     * Returns null on any failure; the caller only needs to branch on
+     * that — extracted out of {@see self::voteOnPrivilege()} to keep
+     * both methods within php:S1142's three-return limit, same shape as
+     * {@see \App\Administration\Infrastructure\Console\GrantAdministratorCommand::readArguments()}.
+     */
+    private function resolveGrant(string $attribute, ?Vote $vote): ?PrivilegeGrant
+    {
         $privilege = Privilege::tryFrom($attribute);
 
         if ($privilege === null) {
             $vote?->addReason(sprintf('"%s" does not name a privilege in the catalogue.', $attribute));
 
-            return self::ACCESS_DENIED;
+            return null;
         }
 
         $standing = $this->currentAdministrator->standing();
@@ -129,7 +156,7 @@ final class PrivilegeVoter implements VoterInterface, CacheableVoterInterface
         if ($standing === null || !$standing->isActive()) {
             $vote?->addReason(sprintf('Not currently staff; missing %s.', $privilege->value));
 
-            return self::ACCESS_DENIED;
+            return null;
         }
 
         $grants = $this->effectivePrivileges->forAdministrator(AdministratorId::fromString($standing->administratorId));
@@ -137,17 +164,8 @@ final class PrivilegeVoter implements VoterInterface, CacheableVoterInterface
 
         if ($grant === null) {
             $vote?->addReason(sprintf('Missing %s.', $privilege->value));
-
-            return self::ACCESS_DENIED;
         }
 
-        $vote?->addReason(sprintf(
-            'Granted %s via %s "%s".',
-            $privilege->value,
-            $grant->origin->value,
-            $grant->sourceName,
-        ));
-
-        return self::ACCESS_GRANTED;
+        return $grant;
     }
 }

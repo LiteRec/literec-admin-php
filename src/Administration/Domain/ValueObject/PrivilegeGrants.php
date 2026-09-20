@@ -115,7 +115,10 @@ final readonly class PrivilegeGrants
         return $ours === $theirs;
     }
 
-    private static function grantSignature(PrivilegeGrant $grant): string
+    // Used as a first-class callable, self::grantSignature(...), by the
+    // array_map() calls in equals() above; SonarCloud's call graph does
+    // not follow first-class-callable references.
+    private static function grantSignature(PrivilegeGrant $grant): string // NOSONAR
     {
         return implode('|', [
             $grant->privilege->value,
