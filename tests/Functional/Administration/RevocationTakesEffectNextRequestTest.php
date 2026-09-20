@@ -7,12 +7,12 @@ namespace App\Tests\Functional\Administration;
 use App\Administration\Application\Command\DefineRank;
 use App\Administration\Application\Command\GrantAdministrator;
 use App\Administration\Application\Command\RevokeAdministrator;
-use App\Administration\Application\Security\CurrentAdministrator;
 use App\Administration\Domain\ValueObject\ActorKind;
 use App\Administration\Domain\ValueObject\AdministratorId;
 use App\Administration\Domain\ValueObject\AdministratorStanding;
 use App\Administration\Domain\ValueObject\RankId;
 use App\Shared\Infrastructure\Fixtures\HandledResult;
+use App\Tests\Support\EventListener\StampsCurrentAdministratorStandingHeader;
 use App\Users\Application\Command\RegisterUser;
 use App\Users\Domain\ValueObject\UserId;
 use PHPUnit\Framework\Attributes\Group;
@@ -30,7 +30,8 @@ use Symfony\Component\Messenger\MessageBusInterface;
  * on some later request either.
  *
  * `$client->disableReboot()` keeps the same kernel — and therefore the
- * same {@see CurrentAdministrator} service instance — alive across both
+ * same {@see \App\Administration\Application\Security\CurrentAdministrator}
+ * service instance — alive across both
  * `$client->request()` calls below, simulating the one scenario where a
  * naive per-instance memo would leak a stale standing: FrankenPHP worker
  * mode, where a service instance can survive many requests inside one
@@ -39,16 +40,21 @@ use Symfony\Component\Messenger\MessageBusInterface;
  * since a fresh instance would replace the memoising one on every call
  * regardless of whether reset() is wired correctly.
  *
- * `kernel.terminate` — and therefore {@see \App\Administration\Infrastructure\Security\SecurityCurrentAdministrator}'s
- * reset(), via its ResetInterface/kernel.reset autoconfiguration — fires
- * automatically at the end of each `$client->request()` call, including
- * both calls below. So the sequence is: first request resolves (and
- * memoises) "Active" — revoke happens in test code, outside any request
- * — second request's kernel.terminate has already cleared that memo by
- * the time this test reads standing() again, so it must recompute fresh
- * and see "Revoked". Without a working reset(), the stale "Active" memo
- * set in test code between the two requests would survive the second
- * request's terminate untouched, and this test would fail.
+ * The assertions read {@see StampsCurrentAdministratorStandingHeader}'s
+ * response header rather than re-querying `CurrentAdministrator` from
+ * the container after each `$client->request()` call returns. That
+ * distinction matters: `kernel.terminate` — and therefore
+ * {@see \App\Administration\Infrastructure\Security\SecurityCurrentAdministrator}'s
+ * reset() — fires at the END of request handling, so a read taken after
+ * `request()` returns is already past that request's own reset and
+ * would recompute fresh regardless of whether reset() actually works,
+ * proving nothing about what the request's own handling observed. The
+ * header is stamped from inside the request, via `kernel.response`
+ * (which fires before `kernel.terminate`), so it reflects exactly what
+ * application code resolving standing() during that request would have
+ * seen — stale "Active" for the second request if reset() were broken,
+ * since nothing would have cleared the memo the first request set
+ * before this second request began handling.
  */
 #[Large]
 #[Group('database')]
@@ -84,12 +90,10 @@ final class RevocationTakesEffectNextRequestTest extends WebTestCase
 
         $client->request('GET', '/dashboard');
         self::assertResponseIsSuccessful();
-
-        $currentAdministrator = $container->get(CurrentAdministrator::class);
-        $beforeRevocation = $currentAdministrator->standing();
-        self::assertNotNull($beforeRevocation);
-        self::assertSame($administratorId->value, $beforeRevocation->administratorId);
-        self::assertSame(AdministratorStanding::Active->value, $beforeRevocation->standing);
+        self::assertSame(
+            AdministratorStanding::Active->value,
+            $client->getResponse()->headers->get(StampsCurrentAdministratorStandingHeader::HEADER),
+        );
 
         $bus->dispatch(new RevokeAdministrator(
             $administratorId->value,
@@ -99,10 +103,10 @@ final class RevocationTakesEffectNextRequestTest extends WebTestCase
 
         $client->request('GET', '/dashboard');
         self::assertResponseIsSuccessful();
-
-        $afterRevocation = $container->get(CurrentAdministrator::class)->standing();
-        self::assertNotNull($afterRevocation);
-        self::assertSame(AdministratorStanding::Revoked->value, $afterRevocation->standing);
+        self::assertSame(
+            AdministratorStanding::Revoked->value,
+            $client->getResponse()->headers->get(StampsCurrentAdministratorStandingHeader::HEADER),
+        );
     }
 
     private function logIn(KernelBrowser $client): void

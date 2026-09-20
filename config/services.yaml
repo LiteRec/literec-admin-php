@@ -414,6 +414,15 @@ when@test:
             autowire: true
             autoconfigure: true
 
+        # LRA-279: stamps the in-request-resolved CurrentAdministrator
+        # standing onto a response header so RevocationTakesEffectNextRequestTest
+        # can assert what request-time application code actually saw,
+        # rather than re-querying the port after kernel.terminate has
+        # already reset it. See the listener's own docblock.
+        App\Tests\Support\EventListener\StampsCurrentAdministratorStandingHeader:
+            autowire: true
+            autoconfigure: true
+
         App\Users\Domain\IdentityGenerator:
             alias: App\Users\Infrastructure\Identity\Uuid7IdentityGenerator
             public: true
