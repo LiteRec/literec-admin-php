@@ -107,6 +107,27 @@ services:
             - '../src/Administration/Domain/PrivilegeDefinition.php'
             - '../src/Administration/Application/Query/ListPrivilegeCatalogue.php'
             - '../src/Administration/Application/Query/View/'
+            # LRA-268: the Role aggregate, its AggregateRoot trait, its
+            # domain events, and every Domain\ValueObject are not
+            # services — same treatment as the Users/Households/
+            # Inventory Domain exclusions above.
+            - '../src/Administration/Domain/Role.php'
+            - '../src/Administration/Domain/AggregateRoot.php'
+            - '../src/Administration/Domain/Event/'
+            - '../src/Administration/Domain/ValueObject/'
+            # LRA-268: primitive-only command DTOs for the Role write
+            # use cases — Symfony cannot autowire their scalar/array
+            # constructor arguments, same treatment as RegisterUser above.
+            - '../src/Administration/Application/Command/DefineRole.php'
+            - '../src/Administration/Application/Command/RenameRole.php'
+            - '../src/Administration/Application/Command/RewordRole.php'
+            - '../src/Administration/Application/Command/ReplaceRolePrivileges.php'
+            - '../src/Administration/Application/Command/GrantPrivilegeToRole.php'
+            - '../src/Administration/Application/Command/RevokePrivilegeFromRole.php'
+            - '../src/Administration/Application/Command/RetireRole.php'
+            - '../src/Administration/Application/Query/ListRoles.php'
+            - '../src/Administration/Application/Query/GetRoleDetail.php'
+            - '../src/Administration/Infrastructure/Persistence/Doctrine/Type/'
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
@@ -250,6 +271,14 @@ services:
     # Monolog channel — see CataloguePrivilegeLookup's docblock for why it
     # takes no null-object default.
     App\Administration\Domain\PrivilegeLookup: '@App\Administration\Infrastructure\Authorization\CataloguePrivilegeLookup'
+
+    # LRA-268: bind the Administration\Domain Role ports to their
+    # production adapters. Uuid7IdentityGenerator mirrors every other
+    # context's binding; the read model uses the DBAL Connection
+    # directly (CQRS-lite), never the EntityManager.
+    App\Administration\Domain\IdentityGenerator: '@App\Administration\Infrastructure\Identity\Uuid7IdentityGenerator'
+    App\Administration\Domain\Roles: '@App\Administration\Infrastructure\Persistence\Doctrine\DoctrineRoles'
+    App\Administration\Application\Query\Port\RoleReadModel: '@App\Administration\Infrastructure\Persistence\Doctrine\Read\DoctrineRoleReadModel'
 
     # Wire the AddHouseholdController (LRA-40) onto the command bus so its
     # POST actions can dispatch RegisterHousehold and AddMemberToHousehold.
@@ -471,6 +500,23 @@ when@test:
             public: true
         App\Tests\Support\Fake\InMemoryStockMovementLedger:
             public: true
+        # Administration Roles (LRA-268). Production binding stays on
+        # the Doctrine adapter; the in-memory adapter is wired behind a
+        # named alias so the shared contract test can target it
+        # deliberately without changing the production wiring.
+        App\Administration\Domain\IdentityGenerator:
+            alias: App\Administration\Infrastructure\Identity\Uuid7IdentityGenerator
+            public: true
+        App\Administration\Domain\Roles:
+            alias: App\Administration\Infrastructure\Persistence\Doctrine\DoctrineRoles
+            public: true
+        administration.in_memory_roles_repository:
+            alias: App\Administration\Infrastructure\Persistence\InMemory\InMemoryRoles
+            public: true
+        App\Administration\Application\Query\Port\RoleReadModel:
+            alias: App\Administration\Infrastructure\Persistence\Doctrine\Read\DoctrineRoleReadModel
+            public: true
+
         # Seeded Faker generator for fixture loads. Test env mirrors the
         # dev binding below so integration tests that exercise fixtures
         # see identical output.

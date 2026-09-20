@@ -54,6 +54,12 @@ doctrine:
             inventory_item_group_id: App\Inventory\Infrastructure\Persistence\Doctrine\Type\ItemGroupIdType
             inventory_item_group_name: App\Inventory\Infrastructure\Persistence\Doctrine\Type\ItemGroupNameType
             inventory_facility_scope: App\Inventory\Infrastructure\Persistence\Doctrine\Type\FacilityScopeType
+            # Custom DBAL types for the Administration bounded-context
+            # value objects (LRA-268).
+            administration_role_id: App\Administration\Infrastructure\Persistence\Doctrine\Type\RoleIdType
+            administration_role_name: App\Administration\Infrastructure\Persistence\Doctrine\Type\RoleNameType
+            administration_role_description: App\Administration\Infrastructure\Persistence\Doctrine\Type\RoleDescriptionType
+            administration_privilege_set: App\Administration\Infrastructure\Persistence\Doctrine\Type\PrivilegeSetType
     orm:
         validate_xml_mapping: true
         naming_strategy: doctrine.orm.naming_strategy.underscore
@@ -85,6 +91,12 @@ doctrine:
                 dir: '%kernel.project_dir%/src/Inventory/Infrastructure/Persistence/Doctrine/Mapping'
                 prefix: 'App\Inventory\Domain'
                 alias: Inventory
+            Administration:
+                type: xml
+                is_bundle: false
+                dir: '%kernel.project_dir%/src/Administration/Infrastructure/Persistence/Doctrine/Mapping'
+                prefix: 'App\Administration\Domain'
+                alias: Administration
 
 when@test:
     doctrine:

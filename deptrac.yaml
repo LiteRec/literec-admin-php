@@ -546,6 +546,9 @@ deptrac:
             - AdministrationDomain
             - AdministrationPublishedLanguage
             - SymfonyMessenger
+            # LRA-268: Role write handlers inject Psr\Clock\ClockInterface,
+            # same as every other context's Application layer.
+            - PsrClock
         AdministrationInfrastructure:
             - AdministrationDomain
             - AdministrationApplication
@@ -553,3 +556,12 @@ deptrac:
             - PsrLog
             - Symfony
             - SymfonyMessenger
+            # LRA-268: Role persistence (DoctrineRoles, the four DBAL
+            # types, and the DoctrineRoleReadModel) and Uuid7IdentityGenerator
+            # need Doctrine + PsrClock, mirroring every other context's
+            # Infrastructure layer. SharedInfrastructure is the
+            # RowFieldExtraction trait DoctrineRoleReadModel reuses,
+            # same as the Households/Inventory read models.
+            - PsrClock
+            - Doctrine
+            - SharedInfrastructure
