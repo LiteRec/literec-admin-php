@@ -35,8 +35,10 @@ The lane is chosen entirely by `DATABASE_URL`; nothing else needs changing:
 - **Locally**, `playwright.config.ts` and the `composer seed:e2e` / `reset:e2e`
   scripts default to the `app_e2e` connection, so the suite and the managed PHP
   server both target `app_e2e_test` without any manual export.
-- **In CI**, the E2E job sets `DATABASE_URL` to its Postgres service at the same
-  `app_e2e` base name (LRA-179), so the run is identical to local.
+- **In CI**, the E2E job — dispatched manually from the Actions tab via
+  `.github/workflows/on-demand-tests.yml`, not run automatically on PRs or
+  pushes — sets `DATABASE_URL` to its Postgres service at the same `app_e2e`
+  base name (LRA-179), so the run is identical to local.
 - To point at a different database (for example a shared docker stack), export
   `DATABASE_URL` before invoking the commands, or set `E2E_BASE_URL` to run the
   suite against an already-running instance.

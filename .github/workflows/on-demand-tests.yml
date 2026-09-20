@@ -1,26 +1,80 @@
-name: E2E
+name: On-demand Tests
 
 permissions:
   contents: read
 
 concurrency:
-  group: e2e-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: on-demand-tests-${{ inputs.ref || github.ref }}-${{ inputs.suite }}
+  # A manual run should not be killed by a second dispatch; queue instead.
+  cancel-in-progress: false
 
 on:
-  pull_request:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: 'Which suite(s) to run: both, fixtures only, or e2e only'
+        type: choice
+        options:
+          - both
+          - fixtures
+          - e2e
+        default: both
+      ref:
+        description: >-
+          Branch, tag, or SHA to check out. Leave blank to run the branch
+          picked in the "Run workflow" dropdown above.
+        type: string
+        default: ''
 
 jobs:
+  fixtures:
+    name: Fixtures smoke test
+    if: ${{ inputs.suite == 'both' || inputs.suite == 'fixtures' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:17-alpine@sha256:979c4379dd698aba0b890599a6104e082035f98ef31d9b9291ec22f2b13059ca
+        env:
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: '!ChangeMe!'
+          POSTGRES_DB: app
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: 'postgresql://app:!ChangeMe!@127.0.0.1:5432/app?serverVersion=17&charset=utf8'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+          persist-credentials: false
+
+      - name: Set up app
+        uses: ./.github/actions/setup-app
+
+      - name: db:reset-test (drop, create, migrate, load fixtures)
+        run: composer db:reset-test
+
+      - name: Run the slow-group fixture tests against the seeded DB
+        run: composer test:slow
+
   e2e:
     name: Playwright E2E
+    if: ${{ inputs.suite == 'both' || inputs.suite == 'e2e' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    # Advisory while the suite stabilises (LRA-161): the job reports results but
-    # does not block merges yet. Promotion to a required check is a follow-up.
-    continue-on-error: true
+    # continue-on-error was advisory (LRA-161) while the suite stabilised and
+    # blocked PRs otherwise. A manually dispatched run isn't gating anything,
+    # so it should report a real pass/fail instead of always going green.
 
     services:
       postgres:
@@ -49,6 +103,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ inputs.ref || github.ref }}
           persist-credentials: false
 
       - name: Set up app
