@@ -35,3 +35,7 @@ services:
         class: App\Tests\Architecture\DoctrineRepositoriesImplementDomainPortRule
         tags:
             - phpat.test
+    -
+        class: App\Tests\Architecture\RanksDoNotReferencePrivilegesRule
+        tags:
+            - phpat.test

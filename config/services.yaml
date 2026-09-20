@@ -128,6 +128,18 @@ services:
             - '../src/Administration/Application/Query/ListRoles.php'
             - '../src/Administration/Application/Query/GetRoleDetail.php'
             - '../src/Administration/Infrastructure/Persistence/Doctrine/Type/'
+            # LRA-267: the Rank aggregate is not a service (same
+            # treatment as Role.php above); its primitive-only command
+            # and query DTOs are not autowireable, same treatment as the
+            # Role DTOs above.
+            - '../src/Administration/Domain/Rank.php'
+            - '../src/Administration/Application/Command/DefineRank.php'
+            - '../src/Administration/Application/Command/RenameRank.php'
+            - '../src/Administration/Application/Command/ChangeRankSeniority.php'
+            - '../src/Administration/Application/Command/GrantRoleToRank.php'
+            - '../src/Administration/Application/Command/RevokeRoleFromRank.php'
+            - '../src/Administration/Application/Command/RetireRank.php'
+            - '../src/Administration/Application/Query/SeniorityComparison.php'
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
@@ -279,6 +291,10 @@ services:
     App\Administration\Domain\IdentityGenerator: '@App\Administration\Infrastructure\Identity\Uuid7IdentityGenerator'
     App\Administration\Domain\Roles: '@App\Administration\Infrastructure\Persistence\Doctrine\DoctrineRoles'
     App\Administration\Application\Query\Port\RoleReadModel: '@App\Administration\Infrastructure\Persistence\Doctrine\Read\DoctrineRoleReadModel'
+
+    # LRA-267: bind the Administration\Domain Ranks port to its Doctrine
+    # adapter, mirroring the Roles binding above.
+    App\Administration\Domain\Ranks: '@App\Administration\Infrastructure\Persistence\Doctrine\DoctrineRanks'
 
     # Wire the AddHouseholdController (LRA-40) onto the command bus so its
     # POST actions can dispatch RegisterHousehold and AddMemberToHousehold.
@@ -515,6 +531,13 @@ when@test:
             public: true
         App\Administration\Application\Query\Port\RoleReadModel:
             alias: App\Administration\Infrastructure\Persistence\Doctrine\Read\DoctrineRoleReadModel
+            public: true
+        # Administration Ranks (LRA-267). Same treatment as Roles above.
+        App\Administration\Domain\Ranks:
+            alias: App\Administration\Infrastructure\Persistence\Doctrine\DoctrineRanks
+            public: true
+        administration.in_memory_ranks_repository:
+            alias: App\Administration\Infrastructure\Persistence\InMemory\InMemoryRanks
             public: true
 
         # Seeded Faker generator for fixture loads. Test env mirrors the

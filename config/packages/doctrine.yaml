@@ -60,6 +60,10 @@ doctrine:
             administration_role_name: App\Administration\Infrastructure\Persistence\Doctrine\Type\RoleNameType
             administration_role_description: App\Administration\Infrastructure\Persistence\Doctrine\Type\RoleDescriptionType
             administration_privilege_set: App\Administration\Infrastructure\Persistence\Doctrine\Type\PrivilegeSetType
+            # LRA-267
+            administration_rank_id: App\Administration\Infrastructure\Persistence\Doctrine\Type\RankIdType
+            administration_rank_name: App\Administration\Infrastructure\Persistence\Doctrine\Type\RankNameType
+            administration_seniority_level: App\Administration\Infrastructure\Persistence\Doctrine\Type\SeniorityLevelType
     orm:
         validate_xml_mapping: true
         naming_strategy: doctrine.orm.naming_strategy.underscore
