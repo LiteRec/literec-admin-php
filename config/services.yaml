@@ -150,6 +150,16 @@ services:
             - '../src/Administration/Domain/Administrator.php'
             - '../src/Administration/Domain/AdministratorTenure.php'
             - '../src/Administration/Domain/AdministratorRoleAssignment.php'
+            # LRA-279: the six Administrator lifecycle command DTOs are
+            # not services — same treatment as the Role/Rank command DTOs
+            # above. The AdministratorStandingReadModel port's view DTO
+            # is already covered by the wholesale Query/View/ exclusion.
+            - '../src/Administration/Application/Command/GrantAdministrator.php'
+            - '../src/Administration/Application/Command/RevokeAdministrator.php'
+            - '../src/Administration/Application/Command/RegrantAdministrator.php'
+            - '../src/Administration/Application/Command/ChangeAdministratorRank.php'
+            - '../src/Administration/Application/Command/AssignRoleToAdministrator.php'
+            - '../src/Administration/Application/Command/UnassignRoleFromAdministrator.php'
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
@@ -309,6 +319,13 @@ services:
     # LRA-269: bind the Administration\Domain Administrators port to its
     # Doctrine adapter, mirroring the Roles/Ranks bindings above.
     App\Administration\Domain\Administrators: '@App\Administration\Infrastructure\Persistence\Doctrine\DoctrineAdministrators'
+
+    # LRA-279: bind the AdministratorStandingReadModel port to its DBAL
+    # adapter (CQRS-lite, same treatment as RoleReadModel above), and the
+    # CurrentAdministrator security port to the Symfony Security adapter
+    # that resolves through it.
+    App\Administration\Application\Query\Port\AdministratorStandingReadModel: '@App\Administration\Infrastructure\Persistence\Doctrine\Read\DoctrineAdministratorStandingReadModel'
+    App\Administration\Application\Security\CurrentAdministrator: '@App\Administration\Infrastructure\Security\SecurityCurrentAdministrator'
 
     # Wire the AddHouseholdController (LRA-40) onto the command bus so its
     # POST actions can dispatch RegisterHousehold and AddMemberToHousehold.
@@ -560,6 +577,26 @@ when@test:
             public: true
         administration.in_memory_administrators_repository:
             alias: App\Administration\Infrastructure\Persistence\InMemory\InMemoryAdministrators
+            public: true
+        # Administration administrator standing read model (LRA-279).
+        # Production binding stays on the Doctrine adapter. Unlike
+        # Roles/Ranks/Administrators above, no named in_memory_* alias is
+        # registered here: InMemoryAdministratorStandingReadModel takes
+        # the Administrators port as a constructor argument rather than
+        # holding its own storage (see its docblock), so autowiring it
+        # through the container would silently wrap whichever
+        # Administrators binding is active in this environment — Doctrine
+        # — defeating the point of an in-memory adapter. Its contract
+        # test constructs it directly against an InMemoryAdministrators
+        # instance instead.
+        App\Administration\Application\Query\Port\AdministratorStandingReadModel:
+            alias: App\Administration\Infrastructure\Persistence\Doctrine\Read\DoctrineAdministratorStandingReadModel
+            public: true
+        # Exposed public so RevocationTakesEffectNextRequestTest can read
+        # the resolved standing directly from the (non-rebooted) test
+        # container between two real HTTP requests.
+        App\Administration\Application\Security\CurrentAdministrator:
+            alias: App\Administration\Infrastructure\Security\SecurityCurrentAdministrator
             public: true
 
         # Seeded Faker generator for fixture loads. Test env mirrors the

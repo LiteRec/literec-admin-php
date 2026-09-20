@@ -20,6 +20,23 @@ deptrac:
                 value: '^App\\Users\\Domain\\ValueObject\\UserId$'
               - type: classLike
                 value: '^App\\Users\\Domain\\Exception\\InvalidUserId$'
+        - name: UsersSecurityPublishedLanguage
+          collectors:
+              # Narrow published-language slice of
+              # Users\Infrastructure\Security that AdministrationInfrastructure
+              # is allowed to import directly (LRA-279):
+              # SecurityCurrentAdministrator reads the authenticated
+              # SecurityUser's id to translate it into a SignInAccountId at
+              # this boundary — see SignInAccountId's own docblock, which
+              # names SecurityUser explicitly. SecurityUser is a
+              # Symfony-Security-facing projection, not a Domain type, so
+              # this is a narrower and more honest coupling surface than
+              # granting Administration blanket access to
+              # UsersInfrastructure. Same one-way-boundary contract as
+              # UsersPublishedLanguage above; no other context's Domain or
+              # Application may depend on this layer.
+              - type: classLike
+                value: '^App\\Users\\Infrastructure\\Security\\SecurityUser$'
         - name: UsersDomain
           collectors:
               # Everything under Users\Domain except the
@@ -38,8 +55,17 @@ deptrac:
                 value: src/Users/Application/.*
         - name: UsersInfrastructure
           collectors:
-              - type: directory
-                value: src/Users/Infrastructure/.*
+              # Everything under Users\Infrastructure except the
+              # published-language slice exported via
+              # UsersSecurityPublishedLanguage above — same must_not
+              # subtraction pattern as CatalogApplication.
+              - type: bool
+                must:
+                    - type: directory
+                      value: src/Users/Infrastructure/.*
+                must_not:
+                    - type: layer
+                      value: UsersSecurityPublishedLanguage
         - name: HouseholdsDomain
           collectors:
               - type: directory
@@ -326,6 +352,13 @@ deptrac:
         UsersPublishedLanguage:
             - UsersDomain
             - PsrClock
+        # SecurityUser (App\Users\Infrastructure\Security) is a
+        # Symfony-Security-facing projection: it needs UsersDomain (User,
+        # PasswordState, Role) plus the generic Symfony layer for the
+        # Security Core interfaces it implements.
+        UsersSecurityPublishedLanguage:
+            - UsersDomain
+            - Symfony
         UsersDomain:
             - PsrClock
             - UsersPublishedLanguage
@@ -339,6 +372,14 @@ deptrac:
             - UsersDomain
             - UsersApplication
             - UsersPublishedLanguage
+            # LRA-279: SecurityUser itself now lives in the
+            # UsersSecurityPublishedLanguage layer (carved out so
+            # AdministrationInfrastructure can depend on it too); the
+            # rest of UsersInfrastructure — SecurityUserProvider,
+            # EstablishPasswordController, UserChecker, and the others
+            # that already referenced it before this split — needs it
+            # back explicitly.
+            - UsersSecurityPublishedLanguage
             - SymfonyMessenger
             - SymfonyPasswordHasher
             - PsrClock
@@ -597,6 +638,10 @@ deptrac:
             # LRA-269: SignInAccountId is constructed from the UserId
             # string at this boundary — see UsersPublishedLanguage above.
             - UsersPublishedLanguage
+            # LRA-279: SecurityCurrentAdministrator reads SecurityUser's
+            # id to construct that SignInAccountId — see
+            # UsersSecurityPublishedLanguage above.
+            - UsersSecurityPublishedLanguage
             - PsrLog
             - Symfony
             - SymfonyMessenger

@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Tests\Integration\Users\Fixtures;
 
+use App\Shared\Infrastructure\Fixtures\FixtureReferenceRegistry;
 use App\Tests\Support\Trait\TruncatesFixtureTables;
 use App\Users\Domain\Users;
 use App\Users\Domain\ValueObject\Role;
+use App\Users\Domain\ValueObject\UserId;
 use App\Users\Domain\ValueObject\Username;
 use App\Users\Infrastructure\Fixtures\UsersFixtures;
 use Doctrine\ORM\EntityManagerInterface;
@@ -44,13 +46,19 @@ final class UsersFixturesTest extends KernelTestCase
             // (e.g. composer db:reset-test run before the suite).
             $this->truncateFixtureTables($em->getConnection());
 
-            $fixture = new UsersFixtures($commandBus, $faker);
+            $references = $container->get(FixtureReferenceRegistry::class);
+            $fixture = new UsersFixtures($commandBus, $faker, $references);
             $fixture->load($em);
 
             $users = $container->get(Users::class);
 
             $admin = $users->byUsername(Username::of(UsersFixtures::ADMIN_USERNAME));
             self::assertTrue($admin->roles()->contains(Role::Admin), 'Admin persona must carry ROLE_ADMIN.');
+            self::assertSame(
+                $admin->id()->value,
+                $references->get(UsersFixtures::ADMIN_REFERENCE_KEY, UserId::class)->value,
+                'Admin persona UserId should be stashed on the fixture reference registry for AdministrationFixtures.',
+            );
 
             foreach (UsersFixtures::CURATED_MEMBER_USERNAMES as $username) {
                 self::assertTrue(
