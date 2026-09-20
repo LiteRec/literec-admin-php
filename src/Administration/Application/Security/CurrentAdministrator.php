@@ -18,6 +18,10 @@ use App\Administration\Application\Query\View\AdministratorStandingView;
  * administrator is distinct from both: it returns a non-null view whose
  * standing is {@see \App\Administration\Domain\ValueObject\AdministratorStanding::Revoked}'s
  * value, same contract as {@see \App\Administration\Application\Query\Port\AdministratorStandingReadModel}.
+ * A non-null return is therefore NOT itself sufficient to conclude the
+ * account may currently act as staff — a caller must additionally check
+ * {@see AdministratorStandingView::isActive()}; treating "not null" as
+ * "is staff" grants a revoked administrator their full former privileges.
  *
  * Implementations must memoise their answer for the lifetime of the
  * current request only — never across requests, and never in a shared
