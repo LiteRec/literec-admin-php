@@ -20,11 +20,16 @@ use PHPat\Test\PHPat;
  * just as easily smuggle a Privilege dependency into a rank-owned value
  * object (e.g. AssignedRoles) as onto Rank itself.
  *
- * {@see \App\Administration\Domain\ValueObject\PrivilegeSet} is excluded:
- * it is Role's privilege bundle (LRA-266/LRA-268), not Rank's, and its
- * entire purpose is to hold {@see \App\Administration\Domain\Privilege}
- * cases — excluding it here is the rule's one deliberate carve-out, not
- * a loophole for Rank.
+ * {@see \App\Administration\Domain\ValueObject\PrivilegeSet},
+ * {@see \App\Administration\Domain\ValueObject\PrivilegeGrant}, and
+ * {@see \App\Administration\Domain\ValueObject\PrivilegeGrants} are
+ * excluded: none of the three belongs to Rank — PrivilegeSet is Role's
+ * privilege bundle (LRA-266/LRA-268), and PrivilegeGrant/PrivilegeGrants
+ * carry a granted privilege's provenance for LRA-270's resolution
+ * pipeline — and each one's entire purpose is to hold
+ * {@see \App\Administration\Domain\Privilege} cases. Excluding them here
+ * is the rule's deliberate carve-out for Role/grant-owned types, not a
+ * loophole for Rank.
  */
 final class RanksDoNotReferencePrivilegesRule
 {
@@ -37,7 +42,11 @@ final class RanksDoNotReferencePrivilegesRule
                     Selector::classname('App\Administration\Domain\Rank'),
                     Selector::inNamespace('App\Administration\Domain\ValueObject'),
                 ),
-                Selector::Not(Selector::classname('App\Administration\Domain\ValueObject\PrivilegeSet')),
+                Selector::Not(Selector::AnyOf(
+                    Selector::classname('App\Administration\Domain\ValueObject\PrivilegeSet'),
+                    Selector::classname('App\Administration\Domain\ValueObject\PrivilegeGrant'),
+                    Selector::classname('App\Administration\Domain\ValueObject\PrivilegeGrants'),
+                )),
             ))
             ->shouldNot()
             ->dependOn()

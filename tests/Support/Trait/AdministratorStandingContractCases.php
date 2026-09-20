@@ -113,6 +113,45 @@ trait AdministratorStandingContractCases
         self::assertSame([], $view->roleIds);
     }
 
+    #[Test]
+    #[TestDox('standingOfAdministrator() returns null when no administrator has this id.')]
+    public function standing_of_administrator_returns_null_when_no_record_exists(): void
+    {
+        $view = $this->readModel()->standingOfAdministrator(AdministratorId::fromString(self::ADMINISTRATOR_A));
+
+        self::assertNull($view);
+    }
+
+    #[Test]
+    #[TestDox('standingOfAdministrator() reports the same Active standing standingFor() would, by administrator id.')]
+    public function standing_of_administrator_reports_active_administrator(): void
+    {
+        $this->seedAdministrator();
+        $this->resetPersistenceContext();
+
+        $view = $this->readModel()->standingOfAdministrator(AdministratorId::fromString(self::ADMINISTRATOR_A));
+
+        self::assertNotNull($view);
+        self::assertSame(self::ADMINISTRATOR_A, $view->administratorId);
+        self::assertTrue($view->isActive());
+    }
+
+    #[Test]
+    #[TestDox('standingOfAdministrator() reports Revoked and isActive() false for a revoked administrator.')]
+    public function standing_of_administrator_reports_revoked_administrator(): void
+    {
+        $administrator = $this->seedAdministrator();
+        $administrator->revoke(RevocationReason::of('Left the organization.'), Actor::system(), $this->clock());
+        $administrator->releaseEvents();
+        $this->administrators()->save($administrator);
+        $this->resetPersistenceContext();
+
+        $view = $this->readModel()->standingOfAdministrator(AdministratorId::fromString(self::ADMINISTRATOR_A));
+
+        self::assertNotNull($view);
+        self::assertFalse($view->isActive());
+    }
+
     private function seedAdministrator(): Administrator
     {
         $administrator = Administrator::grant(

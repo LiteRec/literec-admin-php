@@ -6,6 +6,7 @@ namespace App\Administration\Infrastructure\Persistence\Doctrine\Read;
 
 use App\Administration\Application\Query\Port\AdministratorStandingReadModel;
 use App\Administration\Application\Query\View\AdministratorStandingView;
+use App\Administration\Domain\ValueObject\AdministratorId;
 use App\Administration\Domain\ValueObject\SignInAccountId;
 use App\Shared\Infrastructure\Doctrine\Read\RowFieldExtraction;
 use Doctrine\DBAL\Connection;
@@ -36,13 +37,38 @@ final class DoctrineAdministratorStandingReadModel implements AdministratorStand
     public function standingFor(SignInAccountId $signInAccountId): ?AdministratorStandingView
     {
         $rows = $this->connection->fetchAllAssociative(
-            'SELECT a.id, a.rank_id, a.standing, ar.role_id '
-            . 'FROM administration_administrators a '
-            . 'LEFT JOIN administration_administrator_roles ar ON ar.administrator_id = a.id '
-            . 'WHERE a.sign_in_account_id = :signInAccountId',
-            ['signInAccountId' => $signInAccountId->value],
+            self::baseQuery() . 'WHERE a.sign_in_account_id = :value',
+            ['value' => $signInAccountId->value],
         );
 
+        return $this->viewFromRows($rows);
+    }
+
+    public function standingOfAdministrator(AdministratorId $administratorId): ?AdministratorStandingView
+    {
+        $rows = $this->connection->fetchAllAssociative(
+            self::baseQuery() . 'WHERE a.id = :value',
+            ['value' => $administratorId->value],
+        );
+
+        return $this->viewFromRows($rows);
+    }
+
+    private static function baseQuery(): string
+    {
+        return 'SELECT a.id, a.rank_id, a.standing, ar.role_id '
+            . 'FROM administration_administrators a '
+            . 'LEFT JOIN administration_administrator_roles ar ON ar.administrator_id = a.id ';
+    }
+
+    /**
+     * Shared row-to-view projection behind both finders — they differ
+     * only in which column the administrator row is matched by.
+     *
+     * @param list<array<string, mixed>> $rows
+     */
+    private function viewFromRows(array $rows): ?AdministratorStandingView
+    {
         if ($rows === []) {
             return null;
         }

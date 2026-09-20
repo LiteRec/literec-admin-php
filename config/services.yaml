@@ -160,6 +160,21 @@ services:
             - '../src/Administration/Application/Command/ChangeAdministratorRank.php'
             - '../src/Administration/Application/Command/AssignRoleToAdministrator.php'
             - '../src/Administration/Application/Command/UnassignRoleFromAdministrator.php'
+            # LRA-270: the parameterless GetGrantedPrivileges query DTO is
+            # not a service — same treatment as ListRoles/GetRoleDetail
+            # above, even though it happens to take no constructor
+            # arguments. GrantedPrivilegesView is already covered by the
+            # wholesale Query/View/ exclusion.
+            - '../src/Administration/Application/Query/GetGrantedPrivileges.php'
+
+    _instanceof:
+        # LRA-270: any PrivilegeGrantSource implementation is
+        # auto-tagged so UnionOfGrantSources below collects every one of
+        # them without either side naming the other. Registering a new
+        # source (LRA-271's time-boxed vendor support access) means
+        # writing the class; no wiring change is needed here.
+        App\Administration\Domain\PrivilegeGrantSource:
+            tags: ['administration.privilege_grant_source']
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
@@ -326,6 +341,29 @@ services:
     # that resolves through it.
     App\Administration\Application\Query\Port\AdministratorStandingReadModel: '@App\Administration\Infrastructure\Persistence\Doctrine\Read\DoctrineAdministratorStandingReadModel'
     App\Administration\Application\Security\CurrentAdministrator: '@App\Administration\Infrastructure\Security\SecurityCurrentAdministrator'
+
+    # LRA-270: collect every `administration.privilege_grant_source`-tagged
+    # service (RankRoleGrants, DirectRoleGrants today) into the union, and
+    # bind the Domain EffectivePrivileges port to the request-scoped
+    # decorator around it — never straight to the union itself, or a
+    # revocation would not take effect until the memoising service
+    # instance was itself replaced (see RequestScopedEffectivePrivileges's
+    # own docblock on why that matters under FrankenPHP worker mode).
+    App\Administration\Infrastructure\Security\UnionOfGrantSources:
+        arguments:
+            $sources: !tagged_iterator administration.privilege_grant_source
+    App\Administration\Domain\EffectivePrivileges: '@App\Administration\Infrastructure\Security\RequestScopedEffectivePrivileges'
+
+    # Wire the two LRA-270 read controllers onto the query bus, matching
+    # the ListInventoryController convention above.
+    App\Administration\Infrastructure\Http\Controller\GrantedPrivilegesController:
+        arguments:
+            $queryBus: '@query.bus'
+        tags: ['controller.service_arguments']
+    App\Administration\Infrastructure\Http\Controller\RoleListController:
+        arguments:
+            $queryBus: '@query.bus'
+        tags: ['controller.service_arguments']
 
     # Wire the AddHouseholdController (LRA-40) onto the command bus so its
     # POST actions can dispatch RegisterHousehold and AddMemberToHousehold.

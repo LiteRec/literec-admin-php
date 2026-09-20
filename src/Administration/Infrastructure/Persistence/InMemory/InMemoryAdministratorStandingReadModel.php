@@ -6,7 +6,10 @@ namespace App\Administration\Infrastructure\Persistence\InMemory;
 
 use App\Administration\Application\Query\Port\AdministratorStandingReadModel;
 use App\Administration\Application\Query\View\AdministratorStandingView;
+use App\Administration\Domain\Administrator;
 use App\Administration\Domain\Administrators;
+use App\Administration\Domain\Exception\AdministratorNotFound;
+use App\Administration\Domain\ValueObject\AdministratorId;
 use App\Administration\Domain\ValueObject\SignInAccountId;
 
 /**
@@ -29,8 +32,22 @@ final class InMemoryAdministratorStandingReadModel implements AdministratorStand
             return null;
         }
 
-        $administrator = $this->administrators->forSignInAccount($signInAccountId);
+        return self::viewFrom($this->administrators->forSignInAccount($signInAccountId));
+    }
 
+    public function standingOfAdministrator(AdministratorId $administratorId): ?AdministratorStandingView
+    {
+        try {
+            $administrator = $this->administrators->byId($administratorId);
+        } catch (AdministratorNotFound) {
+            return null;
+        }
+
+        return self::viewFrom($administrator);
+    }
+
+    private static function viewFrom(Administrator $administrator): AdministratorStandingView
+    {
         return new AdministratorStandingView(
             $administrator->id()->value,
             $administrator->standing()->value,
