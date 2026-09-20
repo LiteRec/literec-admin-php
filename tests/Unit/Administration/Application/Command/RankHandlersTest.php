@@ -25,15 +25,21 @@ use App\Administration\Domain\Event\RoleGrantedToRank;
 use App\Administration\Domain\Event\RoleRevokedFromRank;
 use App\Administration\Domain\Exception\DuplicateRankName;
 use App\Administration\Domain\Exception\RankIsRetired;
+use App\Administration\Domain\Exception\RoleNotFound;
 use App\Administration\Domain\Rank;
+use App\Administration\Domain\Role;
 use App\Administration\Domain\ValueObject\Actor;
 use App\Administration\Domain\ValueObject\ActorKind;
 use App\Administration\Domain\ValueObject\AssignedRoles;
+use App\Administration\Domain\ValueObject\PrivilegeSet;
 use App\Administration\Domain\ValueObject\RankId;
 use App\Administration\Domain\ValueObject\RankName;
+use App\Administration\Domain\ValueObject\RoleDescription;
 use App\Administration\Domain\ValueObject\RoleId;
+use App\Administration\Domain\ValueObject\RoleName;
 use App\Administration\Domain\ValueObject\SeniorityLevel;
 use App\Administration\Infrastructure\Persistence\InMemory\InMemoryRanks;
+use App\Administration\Infrastructure\Persistence\InMemory\InMemoryRoles;
 use App\Tests\Support\Fake\RecordingMessageBus;
 use App\Tests\Support\Fake\SequenceAdministrationIdentityGenerator;
 use DateTimeImmutable;
@@ -50,6 +56,7 @@ final class RankHandlersTest extends TestCase
     private const string ROLE_ID = '019571bf-5d51-7000-b500-00000000ba02';
 
     private InMemoryRanks $ranks;
+    private InMemoryRoles $roles;
     private RecordingMessageBus $eventBus;
     private MockClock $clock;
     private ActorAssembler $actors;
@@ -57,6 +64,7 @@ final class RankHandlersTest extends TestCase
     protected function setUp(): void
     {
         $this->ranks = new InMemoryRanks();
+        $this->roles = new InMemoryRoles();
         $this->eventBus = new RecordingMessageBus();
         $this->clock = new MockClock(new DateTimeImmutable('2026-05-27 12:00:00'));
         $this->actors = new ActorAssembler();
@@ -137,7 +145,8 @@ final class RankHandlersTest extends TestCase
     public function grant_role_to_rank_handler_grants_and_dispatches(): void
     {
         $this->seedRank(self::RANK_ID, 'Director', 20);
-        $handler = new GrantRoleToRankHandler($this->ranks, $this->clock, $this->actors, $this->eventBus);
+        $this->seedRole(self::ROLE_ID, 'Front Desk');
+        $handler = new GrantRoleToRankHandler($this->ranks, $this->roles, $this->clock, $this->actors, $this->eventBus);
 
         $handler(new GrantRoleToRank(self::RANK_ID, self::ROLE_ID, ActorKind::System->value));
 
@@ -145,6 +154,17 @@ final class RankHandlersTest extends TestCase
             $this->ranks->byId(RankId::fromString(self::RANK_ID))->roles()->contains(RoleId::fromString(self::ROLE_ID)),
         );
         self::assertInstanceOf(RoleGrantedToRank::class, $this->eventBus->dispatchedMessages()[0]);
+    }
+
+    #[Test]
+    #[TestDox('GrantRoleToRankHandler throws RoleNotFound when the role does not exist, without granting it.')]
+    public function grant_role_to_rank_handler_rejects_unknown_role(): void
+    {
+        $this->seedRank(self::RANK_ID, 'Director', 20);
+        $handler = new GrantRoleToRankHandler($this->ranks, $this->roles, $this->clock, $this->actors, $this->eventBus);
+
+        $this->expectException(RoleNotFound::class);
+        $handler(new GrantRoleToRank(self::RANK_ID, self::ROLE_ID, ActorKind::System->value));
     }
 
     #[Test]
@@ -199,5 +219,19 @@ final class RankHandlersTest extends TestCase
         );
         $rank->releaseEvents();
         $this->ranks->add($rank);
+    }
+
+    private function seedRole(string $id, string $name): void
+    {
+        $role = Role::define(
+            RoleId::fromString($id),
+            RoleName::of($name),
+            RoleDescription::empty(),
+            PrivilegeSet::none(),
+            Actor::system(),
+            $this->clock,
+        );
+        $role->releaseEvents();
+        $this->roles->add($role);
     }
 }

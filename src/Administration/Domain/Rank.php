@@ -246,34 +246,6 @@ final class Rank
     }
 
     /**
-     * The actor behind this aggregate's most recently recorded change, if
-     * any is still pending release. Infrastructure-only accessor:
-     * {@see \App\Administration\Infrastructure\Persistence\Doctrine\DoctrineRanks}
-     * reads it to attribute the rank-roles join-table rows it reconciles
-     * outside Doctrine's own change tracking. Returns null only for a
-     * freshly loaded aggregate with no pending mutation, which never
-     * reaches DoctrineRanks::add()/save() in practice — both are only
-     * ever called immediately after a mutator recorded at least one
-     * event.
-     */
-    public function lastPendingActor(): ?Actor
-    {
-        $events = $this->pendingEvents();
-        $last = $events === [] ? null : $events[array_key_last($events)];
-
-        return match (true) {
-            $last instanceof RankDefined,
-            $last instanceof RankRenamed,
-            $last instanceof RankSeniorityChanged,
-            $last instanceof RoleGrantedToRank,
-            $last instanceof RoleRevokedFromRank,
-            $last instanceof RankRetired,
-            $last instanceof RankReinstated => $last->actor,
-            default => null,
-        };
-    }
-
-    /**
      * @throws RankIsRetired when this rank is already retired.
      */
     private function guardNotRetired(): void

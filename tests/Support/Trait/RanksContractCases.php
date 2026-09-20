@@ -238,6 +238,13 @@ trait RanksContractCases
      * Doctrine's save() requires the instance it is given to still be
      * managed. Callers that need a genuine round trip reset explicitly,
      * between this call and the verifying read.
+     *
+     * Releases events after add(), same as every real command handler
+     * (fetch/define → persist → releaseEvents() → dispatch): add() has
+     * already read them to seed the rank-roles join table, and leaving
+     * them buffered would replay the same RankDefined against a later
+     * save() on an identity-map hit of this same instance, attempting to
+     * insert its initial roles a second time.
      */
     private function addRankNamed(string $id, string $name, int $seniority): void
     {
@@ -250,11 +257,13 @@ trait RanksContractCases
             $this->clock(),
         );
         $this->ranks()->add($rank);
+        $rank->releaseEvents();
     }
 
     /**
      * Deliberately does not call {@see self::resetPersistenceContext()} —
-     * see {@see self::addRankNamed()}.
+     * see {@see self::addRankNamed()}. Releases events after add() for
+     * the same reason as {@see self::addRankNamed()}.
      */
     private function seedRank(string $id, string $name, int $seniority, ?AssignedRoles $roles = null): Rank
     {
@@ -267,6 +276,7 @@ trait RanksContractCases
             $this->clock(),
         );
         $this->ranks()->add($rank);
+        $rank->releaseEvents();
 
         return $rank;
     }
