@@ -79,9 +79,24 @@ final class RoleTest extends TestCase
         $role = $this->defineRole(name: RoleName::of('Front Desk'));
         $role->releaseEvents();
 
-        $role->rename(RoleName::of('front desk'), Actor::system(), $this->clock);
+        $role->rename(RoleName::of('Front Desk'), Actor::system(), $this->clock);
 
         self::assertSame([], $role->releaseEvents());
+    }
+
+    #[Test]
+    #[TestDox('rename() records an event for a case-only change, unlike the case-insensitive equals() (LRA-280).')]
+    public function rename_records_event_for_a_case_only_change(): void
+    {
+        $role = $this->defineRole(name: RoleName::of('front desk'));
+        $role->releaseEvents();
+
+        $role->rename(RoleName::of('Front Desk'), Actor::system(), $this->clock);
+
+        self::assertSame('Front Desk', $role->name()->value);
+        $events = $role->releaseEvents();
+        self::assertCount(1, $events);
+        self::assertInstanceOf(RoleRenamed::class, $events[0]);
     }
 
     #[Test]

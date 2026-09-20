@@ -51,9 +51,28 @@ final readonly class RoleName implements Stringable
         return new self($value);
     }
 
+    /**
+     * Answers "would these two collide?" — case-insensitively, matching
+     * the functional LOWER(name) unique index. Use this for the
+     * duplicate-name guard; never for "did the value actually change",
+     * which {@see isIdenticalTo()} answers instead (LRA-280: Role::rename()'s
+     * no-op guard used this method and silently discarded a case-only
+     * rename such as "cashier" to "Cashier").
+     */
     public function equals(self $other): bool
     {
         return mb_strtolower($this->value, 'UTF-8') === mb_strtolower($other->value, 'UTF-8');
+    }
+
+    /**
+     * Answers "is this the exact same string?" — byte-exact, unlike
+     * {@see equals()}. Role::rename()'s no-op guard needs this one: a
+     * case-only rename is a real change to persist and record an event
+     * for, even though the two names collide under equals().
+     */
+    public function isIdenticalTo(self $other): bool
+    {
+        return $this->value === $other->value;
     }
 
     public function __toString(): string
