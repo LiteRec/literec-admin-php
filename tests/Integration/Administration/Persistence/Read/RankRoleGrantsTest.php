@@ -29,6 +29,8 @@ use App\Administration\Infrastructure\Persistence\Doctrine\Read\RankRoleGrants;
 use App\Tests\Support\Trait\PrivilegeGrantSourceContractCases;
 use DateTimeImmutable;
 use PHPUnit\Framework\Attributes\Medium;
+use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\Attributes\TestDox;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Clock\MockClock;
 
@@ -111,6 +113,39 @@ final class RankRoleGrantsTest extends KernelTestCase
     protected function expectedOrigin(): GrantOrigin
     {
         return GrantOrigin::RankRole;
+    }
+
+    #[Test]
+    #[TestDox('grantsFor() stops reporting a privilege once the granting role is retired.')]
+    public function retired_role_grants_nothing(): void
+    {
+        $this->grantPrivilege(Privilege::ViewUsers, self::SOURCE_ID_1, 'Front Desk');
+        self::assertTrue(
+            $this->source()->grantsFor($this->administratorId())->privileges()->contains(Privilege::ViewUsers),
+        );
+
+        $role = $this->roles->byId(RoleId::fromString(self::SOURCE_ID_1));
+        $role->retire(Actor::system(), $this->clock);
+        $role->releaseEvents();
+        $this->roles->save($role);
+
+        self::assertSame(0, $this->source()->grantsFor($this->administratorId())->count());
+    }
+
+    #[Test]
+    #[TestDox('grantsFor() stops reporting a privilege once the rank carrying it is retired.')]
+    public function retired_rank_grants_nothing(): void
+    {
+        $this->grantPrivilege(Privilege::ViewUsers, self::SOURCE_ID_1, 'Front Desk');
+        self::assertTrue(
+            $this->source()->grantsFor($this->administratorId())->privileges()->contains(Privilege::ViewUsers),
+        );
+
+        $this->rank->retire(Actor::system(), $this->clock);
+        $this->rank->releaseEvents();
+        $this->ranks->save($this->rank);
+
+        self::assertSame(0, $this->source()->grantsFor($this->administratorId())->count());
     }
 
     protected function grantPrivilege(Privilege $privilege, string $sourceId, string $sourceName): void

@@ -161,6 +161,56 @@ final class PrivilegeVoterTest extends TestCase
         self::assertNotEmpty($vote->reasons);
     }
 
+    #[Test]
+    #[TestDox('vote() denies the whole set when only one of several requested privileges is held.')]
+    public function denies_when_any_attribute_in_the_set_is_not_granted(): void
+    {
+        $standing = $this->activeStanding();
+        $source = new InMemoryPrivilegeGrantSource();
+        $source->grant(
+            AdministratorId::fromString(self::ADMINISTRATOR_A),
+            Privilege::ViewUsers,
+            GrantOrigin::RankRole,
+            'role-1',
+            'Front Desk',
+        );
+
+        $voter = $this->voterFor($standing, $source);
+
+        $result = $voter->vote(
+            $this->createStub(TokenInterface::class),
+            null,
+            [Privilege::ViewUsers->value, Privilege::ManageAdminRanks->value],
+        );
+
+        self::assertSame(VoterInterface::ACCESS_DENIED, $result);
+    }
+
+    #[Test]
+    #[TestDox('vote() grants when an unsupported attribute is mixed in alongside a held privilege.')]
+    public function grants_when_an_unsupported_attribute_accompanies_a_held_privilege(): void
+    {
+        $standing = $this->activeStanding();
+        $source = new InMemoryPrivilegeGrantSource();
+        $source->grant(
+            AdministratorId::fromString(self::ADMINISTRATOR_A),
+            Privilege::ViewUsers,
+            GrantOrigin::RankRole,
+            'role-1',
+            'Front Desk',
+        );
+
+        $voter = $this->voterFor($standing, $source);
+
+        $result = $voter->vote(
+            $this->createStub(TokenInterface::class),
+            null,
+            ['ROLE_USER', Privilege::ViewUsers->value],
+        );
+
+        self::assertSame(VoterInterface::ACCESS_GRANTED, $result);
+    }
+
     private function activeStanding(): AdministratorStandingView
     {
         return new AdministratorStandingView(
