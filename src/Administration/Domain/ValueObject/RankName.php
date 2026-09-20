@@ -13,12 +13,11 @@ use Stringable;
  * `*` to force it to sort first — both symptoms of seniority never being a
  * first-class value in the old system).
  *
- * Equality is case-sensitive, matching the plain (non-functional) UNIQUE
- * INDEX the migration creates on the `name` column — unlike
- * {@see \App\Administration\Domain\ValueObject\RoleName}, whose
- * case-insensitive equals() is backed by a functional LOWER(name) index.
- * There is no evidence here that two case variants of the same rank name
- * need to collide.
+ * Equality is case-insensitive, matching {@see \App\Administration\Domain\ValueObject\RoleName}:
+ * "Director" and "director" collide as the same rank name, backed by a
+ * functional UNIQUE INDEX on LOWER(name) rather than a byte-exact one —
+ * a rank ladder is operator-facing and ordered for reading, and nothing
+ * should stop a case-variant duplicate being created by accident.
  */
 final readonly class RankName implements Stringable
 {
@@ -54,7 +53,7 @@ final readonly class RankName implements Stringable
 
     public function equals(self $other): bool
     {
-        return $this->value === $other->value;
+        return mb_strtolower($this->value, 'UTF-8') === mb_strtolower($other->value, 'UTF-8');
     }
 
     public function __toString(): string

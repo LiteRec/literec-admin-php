@@ -41,6 +41,7 @@ use App\Administration\Domain\ValueObject\SeniorityLevel;
 use App\Administration\Infrastructure\Persistence\InMemory\InMemoryRanks;
 use App\Administration\Infrastructure\Persistence\InMemory\InMemoryRoles;
 use App\Tests\Support\Fake\RecordingMessageBus;
+use App\Tests\Support\Fake\SaveCountingRanks;
 use App\Tests\Support\Fake\SequenceAdministrationIdentityGenerator;
 use DateTimeImmutable;
 use PHPUnit\Framework\Attributes\Small;
@@ -56,6 +57,7 @@ final class RankHandlersTest extends TestCase
     private const string ROLE_ID = '019571bf-5d51-7000-b500-00000000ba02';
 
     private InMemoryRanks $ranks;
+    private SaveCountingRanks $countingRanks;
     private InMemoryRoles $roles;
     private RecordingMessageBus $eventBus;
     private MockClock $clock;
@@ -64,6 +66,13 @@ final class RankHandlersTest extends TestCase
     protected function setUp(): void
     {
         $this->ranks = new InMemoryRanks();
+        // Every handler is wired against this decorator rather than
+        // $this->ranks directly: InMemoryRanks stores the very instance a
+        // handler mutates, so an assertion against the stored aggregate
+        // alone stays green even if the handler never calls save()/add()
+        // — the decorator's call counts are what actually pin down that
+        // persistence was requested.
+        $this->countingRanks = new SaveCountingRanks($this->ranks);
         $this->roles = new InMemoryRoles();
         $this->eventBus = new RecordingMessageBus();
         $this->clock = new MockClock(new DateTimeImmutable('2026-05-27 12:00:00'));
@@ -75,7 +84,7 @@ final class RankHandlersTest extends TestCase
     public function define_rank_handler_defines_and_dispatches(): void
     {
         $handler = new DefineRankHandler(
-            $this->ranks,
+            $this->countingRanks,
             new SequenceAdministrationIdentityGenerator(rankIds: [RankId::fromString(self::RANK_ID)]),
             $this->clock,
             $this->actors,
@@ -85,6 +94,7 @@ final class RankHandlersTest extends TestCase
         $id = $handler(new DefineRank('Director', 20, ActorKind::System->value));
 
         self::assertSame(self::RANK_ID, $id->value);
+        self::assertSame(1, $this->countingRanks->addCalls);
         $rank = $this->ranks->byId($id);
         self::assertSame('Director', $rank->name()->value);
         self::assertTrue($rank->seniority()->equals(SeniorityLevel::of(20)));
@@ -99,7 +109,7 @@ final class RankHandlersTest extends TestCase
         $this->seedRank(self::RANK_ID, 'Director', 20);
 
         $handler = new DefineRankHandler(
-            $this->ranks,
+            $this->countingRanks,
             new SequenceAdministrationIdentityGenerator(
                 rankIds: [RankId::fromString('019571bf-5d51-7000-b500-00000000ba03')],
             ),
@@ -113,27 +123,29 @@ final class RankHandlersTest extends TestCase
     }
 
     #[Test]
-    #[TestDox('RenameRankHandler renames the rank and dispatches RankRenamed.')]
+    #[TestDox('RenameRankHandler renames the rank, calls save(), and dispatches RankRenamed.')]
     public function rename_rank_handler_renames_and_dispatches(): void
     {
         $this->seedRank(self::RANK_ID, 'Old Name', 20);
-        $handler = new RenameRankHandler($this->ranks, $this->clock, $this->actors, $this->eventBus);
+        $handler = new RenameRankHandler($this->countingRanks, $this->clock, $this->actors, $this->eventBus);
 
         $handler(new RenameRank(self::RANK_ID, 'New Name', ActorKind::System->value));
 
+        self::assertSame(1, $this->countingRanks->saveCalls);
         self::assertSame('New Name', $this->ranks->byId(RankId::fromString(self::RANK_ID))->name()->value);
         self::assertInstanceOf(RankRenamed::class, $this->eventBus->dispatchedMessages()[0]);
     }
 
     #[Test]
-    #[TestDox('ChangeRankSeniorityHandler updates the level and dispatches RankSeniorityChanged.')]
+    #[TestDox('ChangeRankSeniorityHandler updates the level, calls save(), and dispatches RankSeniorityChanged.')]
     public function change_rank_seniority_handler_updates_and_dispatches(): void
     {
         $this->seedRank(self::RANK_ID, 'Director', 20);
-        $handler = new ChangeRankSeniorityHandler($this->ranks, $this->clock, $this->actors, $this->eventBus);
+        $handler = new ChangeRankSeniorityHandler($this->countingRanks, $this->clock, $this->actors, $this->eventBus);
 
         $handler(new ChangeRankSeniority(self::RANK_ID, 40, ActorKind::System->value));
 
+        self::assertSame(1, $this->countingRanks->saveCalls);
         self::assertTrue(
             $this->ranks->byId(RankId::fromString(self::RANK_ID))->seniority()->equals(SeniorityLevel::of(40)),
         );
@@ -141,15 +153,22 @@ final class RankHandlersTest extends TestCase
     }
 
     #[Test]
-    #[TestDox('GrantRoleToRankHandler grants the role and dispatches RoleGrantedToRank.')]
+    #[TestDox('GrantRoleToRankHandler grants the role, calls save(), and dispatches RoleGrantedToRank.')]
     public function grant_role_to_rank_handler_grants_and_dispatches(): void
     {
         $this->seedRank(self::RANK_ID, 'Director', 20);
         $this->seedRole(self::ROLE_ID, 'Front Desk');
-        $handler = new GrantRoleToRankHandler($this->ranks, $this->roles, $this->clock, $this->actors, $this->eventBus);
+        $handler = new GrantRoleToRankHandler(
+            $this->countingRanks,
+            $this->roles,
+            $this->clock,
+            $this->actors,
+            $this->eventBus,
+        );
 
         $handler(new GrantRoleToRank(self::RANK_ID, self::ROLE_ID, ActorKind::System->value));
 
+        self::assertSame(1, $this->countingRanks->saveCalls);
         self::assertTrue(
             $this->ranks->byId(RankId::fromString(self::RANK_ID))->roles()->contains(RoleId::fromString(self::ROLE_ID)),
         );
@@ -161,21 +180,28 @@ final class RankHandlersTest extends TestCase
     public function grant_role_to_rank_handler_rejects_unknown_role(): void
     {
         $this->seedRank(self::RANK_ID, 'Director', 20);
-        $handler = new GrantRoleToRankHandler($this->ranks, $this->roles, $this->clock, $this->actors, $this->eventBus);
+        $handler = new GrantRoleToRankHandler(
+            $this->countingRanks,
+            $this->roles,
+            $this->clock,
+            $this->actors,
+            $this->eventBus,
+        );
 
         $this->expectException(RoleNotFound::class);
         $handler(new GrantRoleToRank(self::RANK_ID, self::ROLE_ID, ActorKind::System->value));
     }
 
     #[Test]
-    #[TestDox('RevokeRoleFromRankHandler revokes the role and dispatches RoleRevokedFromRank.')]
+    #[TestDox('RevokeRoleFromRankHandler revokes the role, calls save(), and dispatches RoleRevokedFromRank.')]
     public function revoke_role_from_rank_handler_revokes_and_dispatches(): void
     {
         $this->seedRank(self::RANK_ID, 'Director', 20, AssignedRoles::of(RoleId::fromString(self::ROLE_ID)));
-        $handler = new RevokeRoleFromRankHandler($this->ranks, $this->clock, $this->actors, $this->eventBus);
+        $handler = new RevokeRoleFromRankHandler($this->countingRanks, $this->clock, $this->actors, $this->eventBus);
 
         $handler(new RevokeRoleFromRank(self::RANK_ID, self::ROLE_ID, ActorKind::System->value));
 
+        self::assertSame(1, $this->countingRanks->saveCalls);
         self::assertFalse(
             $this->ranks->byId(RankId::fromString(self::RANK_ID))->roles()->contains(RoleId::fromString(self::ROLE_ID)),
         );
@@ -183,14 +209,15 @@ final class RankHandlersTest extends TestCase
     }
 
     #[Test]
-    #[TestDox('RetireRankHandler retires the rank and dispatches RankRetired.')]
+    #[TestDox('RetireRankHandler retires the rank, calls save(), and dispatches RankRetired.')]
     public function retire_rank_handler_retires_and_dispatches(): void
     {
         $this->seedRank(self::RANK_ID, 'Director', 20);
-        $handler = new RetireRankHandler($this->ranks, $this->clock, $this->actors, $this->eventBus);
+        $handler = new RetireRankHandler($this->countingRanks, $this->clock, $this->actors, $this->eventBus);
 
         $handler(new RetireRank(self::RANK_ID, ActorKind::System->value));
 
+        self::assertSame(1, $this->countingRanks->saveCalls);
         self::assertTrue($this->ranks->byId(RankId::fromString(self::RANK_ID))->isRetired());
         self::assertInstanceOf(RankRetired::class, $this->eventBus->dispatchedMessages()[0]);
     }
@@ -200,7 +227,7 @@ final class RankHandlersTest extends TestCase
     public function retire_rank_handler_rejects_double_retire(): void
     {
         $this->seedRank(self::RANK_ID, 'Director', 20);
-        $handler = new RetireRankHandler($this->ranks, $this->clock, $this->actors, $this->eventBus);
+        $handler = new RetireRankHandler($this->countingRanks, $this->clock, $this->actors, $this->eventBus);
         $handler(new RetireRank(self::RANK_ID, ActorKind::System->value));
 
         $this->expectException(RankIsRetired::class);

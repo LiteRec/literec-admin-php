@@ -16,10 +16,10 @@ use Doctrine\Migrations\AbstractMigration;
  * which roles each rank currently grants.
  *
  * administration_ranks:
- *   - Plain UNIQUE INDEX on name (not a functional LOWER(name) index like
- *     administration_roles): RankName::equals() is case-sensitive (see
- *     that class's docblock), so a byte-exact constraint matches the
- *     write-time predicate.
+ *   - Functional UNIQUE INDEX on LOWER(name), matching administration_roles:
+ *     RankName::equals() is case-insensitive (see that class's docblock),
+ *     so the write-time predicate must be too, or a case variant of an
+ *     existing rank name would slip past the duplicate-name guard.
  *   - Plain INDEX on seniority: ranks are listed ordered by it.
  *
  * administration_rank_roles:
@@ -75,7 +75,8 @@ final class Version20260920093000 extends AbstractMigration
             SQL);
 
         $this->addSql(
-            'CREATE UNIQUE INDEX UNIQ_administration_ranks_name ON administration_ranks (name)',
+            'CREATE UNIQUE INDEX UNIQ_administration_ranks_name '
+            . 'ON administration_ranks (LOWER(name))',
         );
         $this->addSql(
             'CREATE INDEX IDX_administration_ranks_seniority ON administration_ranks (seniority)',

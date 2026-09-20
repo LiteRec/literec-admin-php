@@ -219,6 +219,17 @@ final class Rank
      * already active — unlike retire(), which throws on the equivalent
      * already-in-that-state call, since "reinstate an active rank" has no
      * sensible active-state guard to enforce.
+     *
+     * Deliberately unreachable from the Application layer in LRA-267: the
+     * ticket's Implementation Plan lists DefineRank/RenameRank/
+     * ChangeRankSeniority/GrantRoleToRank/RevokeRoleFromRank/RetireRank
+     * as the six write use cases this ticket ships, with no
+     * ReinstateRank counterpart, and explicitly defers the rank
+     * administration screen — the natural caller of an "undo a mistaken
+     * retirement" action — to LRA-269. The domain method and its
+     * RankReinstated event exist now because Rank owns the transition
+     * and LRA-273's audit trail needs the event shape settled; wiring a
+     * command/handler onto it belongs with that screen.
      */
     public function reinstate(Actor $actor, ClockInterface $clock): void
     {

@@ -20,14 +20,16 @@
     <entity name="App\Administration\Domain\Rank" table="administration_ranks">
 
         <!--
-            A plain unique constraint on name is sufficient here, unlike
-            Role.orm.xml's functional LOWER(name) index: RankName::equals()
-            is case-sensitive (see that class's docblock), so a byte-exact
-            constraint matches the write-time predicate.
+            No <unique-constraints> block here, same treatment as
+            Role.orm.xml: the uniqueness invariant is a functional UNIQUE
+            INDEX on LOWER(name), created by raw SQL in the migration, not
+            a plain column constraint — RankName::equals() is
+            case-insensitive, so the write-time predicate must be too.
+            Declaring a byte-exact <unique-constraint columns="name"/>
+            here would both under-enforce the invariant and make
+            doctrine:schema:validate diff against the functional index the
+            migration actually creates.
         -->
-        <unique-constraints>
-            <unique-constraint name="UNIQ_administration_ranks_name" columns="name"/>
-        </unique-constraints>
 
         <indexes>
             <index name="IDX_administration_ranks_seniority" columns="seniority"/>
