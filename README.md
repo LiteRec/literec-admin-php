@@ -220,14 +220,15 @@ in that file makes `composer stan` output name the failing rule.
 
 `dama/doctrine-test-bundle` wraps every functional test in a database
 transaction that is rolled back at the end of the test. Fixtures
-loaded once (typically by CI's "Fixtures smoke test" job or a manual
+loaded once (typically by the manually-dispatched "Fixtures smoke test"
+job in `.github/workflows/on-demand-tests.yml`, or a local
 `composer db:reset-test`) remain visible inside every functional test
 and roll back implicitly per test. The full `composer test` suite
 does **not** load fixtures because the existing unit/integration/
 functional tests are designed to run against an empty migrated DB —
-the fixtures path is exercised in its own dedicated CI job
-(`Fixtures smoke test`) plus the `slow`-tagged integration tests
-under `tests/Integration/*/Fixtures/`.
+the fixtures path is exercised in its own on-demand workflow job
+(`Fixtures smoke test`, dispatched manually from the Actions tab) plus
+the `slow`-tagged integration tests under `tests/Integration/*/Fixtures/`.
 
 ### Extending fixtures
 
