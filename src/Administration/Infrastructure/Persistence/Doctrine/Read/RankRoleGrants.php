@@ -27,6 +27,16 @@ use Doctrine\DBAL\Connection;
  * Never checks whether the administrator is currently active: standing
  * is consulted once by {@see \App\Administration\Infrastructure\Security\UnionOfGrantSources}
  * before any source runs — see that class's docblock.
+ *
+ * A retired rank stops granting its roles' privileges (the
+ * `administration_ranks.retired = false` join condition below), the
+ * same immediate effect a retired role already has here: retirement
+ * means the privileges it carried stop applying to whoever currently
+ * holds it, not merely "not assignable to anyone new". An administrator
+ * whose rank is retired without a replacement rank being set therefore
+ * loses that rank's privileges starting with the next request, same as
+ * a direct revocation — deliberately symmetric with the role-retirement
+ * filter, not an oversight.
  */
 final class RankRoleGrants implements PrivilegeGrantSource
 {
@@ -44,9 +54,10 @@ final class RankRoleGrants implements PrivilegeGrantSource
         $rows = $this->connection->fetchAllAssociative(
             'SELECT r.id AS role_id, r.name AS role_name, r.privileges '
             . 'FROM administration_administrators a '
+            . 'JOIN administration_ranks rk ON rk.id = a.rank_id '
             . 'JOIN administration_rank_roles rr ON rr.rank_id = a.rank_id '
             . 'JOIN administration_roles r ON r.id = rr.role_id '
-            . 'WHERE a.id = :administratorId AND r.retired = false',
+            . 'WHERE a.id = :administratorId AND rk.retired = false AND r.retired = false',
             ['administratorId' => $id->value],
         );
 

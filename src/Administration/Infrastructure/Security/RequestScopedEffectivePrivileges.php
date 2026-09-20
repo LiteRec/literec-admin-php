@@ -34,8 +34,18 @@ final class RequestScopedEffectivePrivileges implements EffectivePrivileges, Res
     /** @var array<string, PrivilegeGrants> */
     private array $memo = [];
 
+    /**
+     * Type-hinted against the {@see EffectivePrivileges} port this class
+     * itself implements, not the concrete {@see UnionOfGrantSources} —
+     * every other seam in this slice depends on an abstraction, and this
+     * one is what would let a future LRA-273 audit/metrics decorator
+     * slot in without editing this class. Autowiring cannot resolve this
+     * argument on its own, since the port is aliased back to this very
+     * class for production; services.yaml binds `$union` explicitly to
+     * the union instead.
+     */
     public function __construct(
-        private readonly UnionOfGrantSources $union,
+        private readonly EffectivePrivileges $union,
     ) {
     }
 

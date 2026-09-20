@@ -166,6 +166,17 @@ services:
             # arguments. GrantedPrivilegesView is already covered by the
             # wholesale Query/View/ exclusion.
             - '../src/Administration/Application/Query/GetGrantedPrivileges.php'
+            # LRA-270: the in-memory PrivilegeGrantSource adapter is a
+            # test double, constructed directly (`new`) by its contract
+            # test — it never needs to be a service. Without this
+            # exclusion, the _instanceof rule below would tag it too and
+            # UnionOfGrantSources's !tagged_iterator would collect it
+            # into the PRODUCTION privilege union alongside the real
+            # Doctrine sources, unlike every other InMemory adapter in
+            # this codebase (those are resolved by a single named alias,
+            # never a tagged collection, so an unreferenced one is
+            # simply compiled out).
+            - '../src/Administration/Infrastructure/Persistence/InMemory/InMemoryPrivilegeGrantSource.php'
 
     _instanceof:
         # LRA-270: any PrivilegeGrantSource implementation is
@@ -352,6 +363,15 @@ services:
     App\Administration\Infrastructure\Security\UnionOfGrantSources:
         arguments:
             $sources: !tagged_iterator administration.privilege_grant_source
+    # RequestScopedEffectivePrivileges type-hints its $union argument
+    # against the EffectivePrivileges port it itself implements, so a
+    # future decorator can be inserted without editing the class — but
+    # that means autowiring cannot resolve $union on its own (the port
+    # is aliased back to this very class below), so it is bound
+    # explicitly to the concrete union here.
+    App\Administration\Infrastructure\Security\RequestScopedEffectivePrivileges:
+        arguments:
+            $union: '@App\Administration\Infrastructure\Security\UnionOfGrantSources'
     App\Administration\Domain\EffectivePrivileges: '@App\Administration\Infrastructure\Security\RequestScopedEffectivePrivileges'
 
     # Wire the two LRA-270 read controllers onto the query bus, matching
