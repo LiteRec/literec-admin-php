@@ -96,6 +96,12 @@ services:
             - '../src/Shared/Domain/ValueObject/'
             - '../src/Shared/Domain/Exception/'
             - '../src/Kernel.php'
+            # LRA-266: Administration Domain exceptions and the
+            # parameterless ListPrivilegeCatalogue query DTO are not
+            # services, same treatment as the exception/DTO exclusions
+            # above.
+            - '../src/Administration/Domain/Exception/'
+            - '../src/Administration/Application/Query/ListPrivilegeCatalogue.php'
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
@@ -233,6 +239,12 @@ services:
 
     # Bind the BarcodeRenderer domain port to its CODE128 SVG adapter.
     App\Inventory\Domain\Barcode\BarcodeRenderer: '@App\Inventory\Infrastructure\Barcode\Code128BarcodeRenderer'
+
+    # LRA-266: bind the Administration\Domain PrivilegeLookup port to its
+    # catalogue-backed adapter. The logger is autowired to the default
+    # Monolog channel — see CataloguePrivilegeLookup's docblock for why it
+    # takes no null-object default.
+    App\Administration\Domain\PrivilegeLookup: '@App\Administration\Infrastructure\Authorization\CataloguePrivilegeLookup'
 
     # Wire the AddHouseholdController (LRA-40) onto the command bus so its
     # POST actions can dispatch RegisterHousehold and AddMemberToHousehold.

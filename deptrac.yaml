@@ -195,6 +195,41 @@ deptrac:
               # cross-context dependencies" rule.
               - type: directory
                 value: src/Shared/Infrastructure/.*
+        - name: AdministrationPublishedLanguage
+          collectors:
+              # Narrow published-language subset of Administration\Domain
+              # that other contexts' Infrastructure may name once LRA-270
+              # adds enforcement (an Infrastructure adapter checking "does
+              # this administrator hold Privilege::X" needs to name the
+              # enum). No other context's Domain or Application may
+              # depend on this layer — authorization is not domain logic.
+              # Same bool/must_not construction as CatalogPublishedLanguage.
+              - type: classLike
+                value: '^App\\Administration\\Domain\\Privilege$'
+              - type: classLike
+                value: '^App\\Administration\\Domain\\PrivilegeGroup$'
+              - type: classLike
+                value: '^App\\Administration\\Domain\\Exception\\UnknownPrivilege$'
+        - name: AdministrationDomain
+          collectors:
+              # Everything under Administration\Domain except the
+              # published-language types exported via
+              # AdministrationPublishedLanguage above.
+              - type: bool
+                must:
+                    - type: directory
+                      value: src/Administration/Domain/.*
+                must_not:
+                    - type: layer
+                      value: AdministrationPublishedLanguage
+        - name: AdministrationApplication
+          collectors:
+              - type: directory
+                value: src/Administration/Application/.*
+        - name: AdministrationInfrastructure
+          collectors:
+              - type: directory
+                value: src/Administration/Infrastructure/.*
 
         # External-code layers are matched by namespace prefix rather than by
         # composer package list. This avoids depending on the exact direct/transitive
@@ -205,6 +240,10 @@ deptrac:
           collectors:
               - type: classLike
                 value: ^Psr\\Clock\\.*
+        - name: PsrLog
+          collectors:
+              - type: classLike
+                value: ^Psr\\Log\\.*
         - name: SymfonyMessenger
           collectors:
               - type: classLike
@@ -290,6 +329,12 @@ deptrac:
             - SharedDomain
             - SymfonyMessenger
             - PsrClock
+            # ReleaseMemberPhotoFileHandler logs a warning when the
+            # photo file to delete is already gone. Pre-dates the
+            # LRA-266 PsrLog layer; listed explicitly now that
+            # Psr\Log\* is a named layer instead of falling outside
+            # every layer.
+            - PsrLog
         HouseholdsInfrastructure:
             - HouseholdsDomain
             - HouseholdsApplication
@@ -302,6 +347,9 @@ deptrac:
             - Symfony
             - Faker
             - SharedInfrastructure
+            # AnonymizeMemberController logs anonymization outcomes.
+            # See the HouseholdsApplication PsrLog note above.
+            - PsrLog
         HouseholdsIntegration: []
         # Catalog layers. CatalogDomain is framework-free and owns the
         # cross-cutting "sellable thing" concept (Listing aggregate, fees,
@@ -427,6 +475,12 @@ deptrac:
             - Faker
             - Picqer
             - SharedInfrastructure
+            # CatalogIntegrationListener logs ACL outcomes (insufficient
+            # stock, link violations, duplicate envelopes). Pre-dates
+            # the LRA-266 PsrLog layer; listed explicitly now that
+            # Psr\Log\* is a named layer instead of falling outside
+            # every layer.
+            - PsrLog
         InventoryIntegration: []
         # Legacy now covers only the two root controllers
         # (HomeController, DashboardController) that LRA-13 left in place
@@ -473,3 +527,29 @@ deptrac:
             # stay framework-free.
             - Doctrine
             - Symfony
+        # Administration layers (LRA-266). AdministrationDomain is
+        # framework-free and owns the privilege catalogue.
+        # AdministrationPublishedLanguage is the narrow subset of
+        # Administration\Domain (Privilege, PrivilegeGroup,
+        # UnknownPrivilege) that other contexts' Infrastructure may
+        # import once LRA-270 adds enforcement — no other context's
+        # Domain or Application may depend on it, because authorization
+        # is not domain logic. Same one-way-boundary contract as
+        # CatalogPublishedLanguage.
+        AdministrationPublishedLanguage:
+            - AdministrationDomain
+            - PsrClock
+        AdministrationDomain:
+            - PsrClock
+            - AdministrationPublishedLanguage
+        AdministrationApplication:
+            - AdministrationDomain
+            - AdministrationPublishedLanguage
+            - SymfonyMessenger
+        AdministrationInfrastructure:
+            - AdministrationDomain
+            - AdministrationApplication
+            - AdministrationPublishedLanguage
+            - PsrLog
+            - Symfony
+            - SymfonyMessenger
