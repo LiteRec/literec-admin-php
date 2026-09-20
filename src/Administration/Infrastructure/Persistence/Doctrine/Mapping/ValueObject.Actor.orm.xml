@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<doctrine-mapping xmlns="http://doctrine-project.org/schemas/orm/doctrine-mapping"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping
+                                      https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
+
+    <!--
+        Actor embeddable: a kind column plus a nullable administrator id
+        and a nullable sign-in-account id, so each case stays
+        independently queryable — a single serialised column could not
+        be filtered on in an access review. Every field is nullable at
+        this shared definition even though grantedBy (AdministratorTenure)
+        is never actually null in practice: revokedBy embeds the same
+        class and IS genuinely absent while a tenure is open, and when
+        every field of an embeddable is null Doctrine hydrates the
+        property itself as null rather than an Actor with three null
+        fields (see AdministratorTenure.orm.xml's column-prefix usage).
+    -->
+    <embeddable name="App\Administration\Domain\ValueObject\Actor">
+        <field name="kind" type="string" length="20" nullable="true" enum-type="App\Administration\Domain\ValueObject\ActorKind"/>
+        <field name="administratorId" column="administrator_id" type="administration_administrator_id" nullable="true"/>
+        <field name="signInAccountId" column="sign_in_account_id" type="administration_sign_in_account_id" nullable="true"/>
+    </embeddable>
+
+</doctrine-mapping>
