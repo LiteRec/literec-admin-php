@@ -25,9 +25,15 @@ use Symfony\Component\HttpKernel\KernelEvents;
  * itself would have observed.
  *
  * Registered only under `when@test` in services.yaml; never loaded in
- * dev/prod, and it never runs against a request CurrentAdministrator has
- * not already been asked about — it introduces no new resolution, only
- * observability into the existing one.
+ * dev/prod. Note that it does NOT merely observe a resolution some other
+ * caller already performed: until LRA-270's voter lands, this listener is
+ * the only caller of CurrentAdministrator::standing() in the codebase, so
+ * it is what drives the per-request resolution (one read-model query per
+ * main-request response) throughout the test environment. That is
+ * deliberate and is precisely what makes the assertion meaningful — the
+ * memo it populates during request 1 is the one that must not survive
+ * into request 2 — but it is instrumentation with an effect, not a
+ * passive probe.
  */
 #[AsEventListener(event: KernelEvents::RESPONSE, method: 'onKernelResponse')]
 final class StampsCurrentAdministratorStandingHeader
