@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace App\Users\Infrastructure\Fixtures;
 
 use App\Shared\Infrastructure\Fixtures\FixtureEnv;
+use App\Shared\Infrastructure\Fixtures\FixtureReferenceRegistry;
+use App\Shared\Infrastructure\Fixtures\HandledResult;
 use App\Users\Application\Command\RegisterUser;
 use App\Users\Domain\ValueObject\Role;
+use App\Users\Domain\ValueObject\UserId;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Bundle\FixturesBundle\FixtureGroupInterface;
 use Doctrine\Persistence\ObjectManager;
@@ -20,10 +23,18 @@ use Symfony\Component\Messenger\MessageBusInterface;
  * construction, no EntityManager, no repository calls. The fixture is
  * registered against the dev, test, and demo groups; the test group is
  * minimal (curated personas only) by setting FIXTURE_USER_COUNT=0.
+ *
+ * The admin persona's minted {@see UserId} is stashed on the fixtures
+ * reference registry under {@see self::ADMIN_REFERENCE_KEY} (LRA-279) so
+ * {@see \App\Administration\Infrastructure\Fixtures\AdministrationFixtures}
+ * can grant it administrator status without a second lookup path — Users
+ * and Administration are separate bounded contexts, so that fixture
+ * cannot query this one's Users repository directly.
  */
 final class UsersFixtures extends Fixture implements FixtureGroupInterface
 {
     public const ADMIN_USERNAME = 'admin';
+    public const string ADMIN_REFERENCE_KEY = 'users.admin_id';
     /** @var list<string> */
     public const CURATED_MEMBER_USERNAMES = [
         'member-1',
@@ -44,6 +55,7 @@ final class UsersFixtures extends Fixture implements FixtureGroupInterface
     public function __construct(
         private readonly MessageBusInterface $commandBus,
         private readonly Generator $faker,
+        private readonly FixtureReferenceRegistry $references,
     ) {
     }
 
@@ -56,7 +68,8 @@ final class UsersFixtures extends Fixture implements FixtureGroupInterface
         // the surrounding framework can perturb.
         $this->faker->seed($this->seedValue());
 
-        $this->dispatch(new RegisterUser(self::ADMIN_USERNAME, self::SHARED_PASSWORD, [Role::Admin->value]));
+        $adminId = $this->dispatch(new RegisterUser(self::ADMIN_USERNAME, self::SHARED_PASSWORD, [Role::Admin->value]));
+        $this->references->set(self::ADMIN_REFERENCE_KEY, $adminId);
 
         foreach (self::CURATED_MEMBER_USERNAMES as $username) {
             $this->dispatch(new RegisterUser($username, self::SHARED_PASSWORD, [Role::User->value]));
@@ -83,11 +96,13 @@ final class UsersFixtures extends Fixture implements FixtureGroupInterface
         return ['dev', 'test', 'demo'];
     }
 
-    private function dispatch(RegisterUser $command): void
+    private function dispatch(RegisterUser $command): UserId
     {
         // RegisterUser is not routed to an async transport, so dispatch()
         // runs the handler inline and any exception surfaces here.
-        $this->commandBus->dispatch($command);
+        $envelope = $this->commandBus->dispatch($command);
+
+        return HandledResult::from($envelope, UserId::class);
     }
 
     private function bulkCount(): int

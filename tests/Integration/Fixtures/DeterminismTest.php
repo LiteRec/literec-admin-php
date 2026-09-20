@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Integration\Fixtures;
 
 use App\Households\Infrastructure\Fixtures\HouseholdsFixtures;
+use App\Shared\Infrastructure\Fixtures\FixtureReferenceRegistry;
 use App\Tests\Support\Trait\TruncatesFixtureTables;
 use App\Users\Infrastructure\Fixtures\UsersFixtures;
 use Doctrine\DBAL\Connection;
@@ -102,7 +103,13 @@ final class DeterminismTest extends KernelTestCase
         // FIXTURE_SEED inside their own load(), so we do not seed here.
         $faker = Factory::create('en_US');
 
-        (new UsersFixtures($commandBus, $faker))->load($em);
+        // A fresh registry per snapshot, not the container's shared
+        // singleton: this method runs twice per test (see
+        // repeated_loads_produce_identical_content_for_stable_columns()),
+        // and FixtureReferenceRegistry::set() throws on a duplicate key
+        // (LRA-279) — reusing one instance across both loads would fail
+        // the second load rather than testing determinism.
+        (new UsersFixtures($commandBus, $faker, new FixtureReferenceRegistry()))->load($em);
         (new HouseholdsFixtures($commandBus, $faker))->load($em);
 
         $connection = $em->getConnection();
