@@ -55,4 +55,17 @@ final class RoleNameTest extends TestCase
         self::assertTrue($a->equals($b));
         self::assertFalse($a->equals($c));
     }
+
+    #[Test]
+    #[TestDox('isIdenticalTo() compares byte-exactly, unlike the case-insensitive equals() (LRA-280).')]
+    public function is_identical_to_compares_byte_exactly(): void
+    {
+        $a = RoleName::of('Front Desk');
+        $b = RoleName::of('front desk');
+        $c = RoleName::of('Front Desk');
+
+        self::assertTrue($a->equals($b));
+        self::assertFalse($a->isIdenticalTo($b));
+        self::assertTrue($a->isIdenticalTo($c));
+    }
 }

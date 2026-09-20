@@ -127,7 +127,12 @@ final class Role
     {
         $this->guardNotRetired();
 
-        if ($this->name->equals($name)) {
+        // isIdenticalTo(), not equals() (LRA-280): equals() is
+        // case-insensitive (it answers the uniqueness question), so a
+        // case-only rename like "cashier" to "Cashier" must still
+        // persist and record RoleRenamed rather than being silently
+        // discarded as a no-op.
+        if ($this->name->isIdenticalTo($name)) {
             return;
         }
 
