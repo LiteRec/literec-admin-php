@@ -18,8 +18,13 @@ use Doctrine\Migrations\AbstractMigration;
  * Version20260528020000).
  *
  * Indexes:
- *   - UNIQUE on name so DoctrineRoles::add()/save() can surface a
- *     collision via UniqueConstraintViolationException → DuplicateRoleName.
+ *   - UNIQUE functional index on LOWER(name), not on name itself: RoleName
+ *     equality is case-insensitive ("Front Desk" and "front desk" are the
+ *     same role name), so the write-time predicate must be too, or the
+ *     uniqueness invariant DoctrineRoles::add()/save() enforce via
+ *     UniqueConstraintViolationException → DuplicateRoleName only catches
+ *     byte-exact collisions. Same functional-index treatment as the
+ *     Inventory vendors LOWER(name) trigram index (Version20260525175800).
  *   - GIN on privileges so "which roles grant this privilege" is an
  *     index lookup rather than a scan. Declared here rather than in the
  *     ORM XML mapping because Doctrine's schema tooling has no
@@ -58,7 +63,10 @@ final class Version20260919120000 extends AbstractMigration
             )
         SQL);
 
-        $this->addSql('CREATE UNIQUE INDEX UNIQ_administration_roles_name ON administration_roles (name)');
+        $this->addSql(
+            'CREATE UNIQUE INDEX UNIQ_administration_roles_name '
+            . 'ON administration_roles (LOWER(name))',
+        );
         $this->addSql(
             'CREATE INDEX idx_administration_roles_privileges '
             . 'ON administration_roles USING GIN (privileges)',

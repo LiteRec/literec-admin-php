@@ -25,12 +25,15 @@ use App\Administration\Domain\ValueObject\SignInAccountId;
 final class ActorAssembler
 {
     /**
-     * @throws InvalidActorState when the (kind, identifier) pair is
+     * @throws InvalidActorState when $actorKind does not name an
+     *         ActorKind case, or when the (kind, identifier) pair is
      *         inconsistent with Actor's per-kind identity invariant.
      */
     public function fromPrimitives(string $actorKind, ?string $actorId): Actor
     {
-        return match (ActorKind::from($actorKind)) {
+        $kind = ActorKind::tryFrom($actorKind) ?? throw InvalidActorState::unknownKind($actorKind);
+
+        return match ($kind) {
             ActorKind::Administrator => Actor::administrator(AdministratorId::fromString(
                 $actorId ?? throw InvalidActorState::administratorRequiresIdentifier(),
             )),

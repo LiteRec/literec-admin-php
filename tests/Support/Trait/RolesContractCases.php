@@ -72,6 +72,17 @@ trait RolesContractCases
     }
 
     #[Test]
+    #[TestDox('byName() is case-insensitive and returns the role in its stored casing.')]
+    public function by_name_is_case_insensitive(): void
+    {
+        $this->seedRole(self::ROLE_A, 'Front Desk', '', []);
+
+        $loaded = $this->roles()->byName(RoleName::of('front desk'));
+        self::assertSame(self::ROLE_A, $loaded->id()->value);
+        self::assertSame('Front Desk', $loaded->name()->value);
+    }
+
+    #[Test]
     #[TestDox('existsWithName() reports whether a role with that name has been added.')]
     public function exists_with_name_reports_membership(): void
     {
@@ -82,23 +93,47 @@ trait RolesContractCases
     }
 
     #[Test]
+    #[TestDox('existsWithName() is case-insensitive, matching RoleName::equals().')]
+    public function exists_with_name_is_case_insensitive(): void
+    {
+        $this->seedRole(self::ROLE_A, 'Front Desk', '', []);
+
+        self::assertTrue($this->roles()->existsWithName(RoleName::of('FRONT DESK')));
+    }
+
+    #[Test]
     #[TestDox('add() throws DuplicateRoleName when another role already has that name.')]
     public function add_throws_on_duplicate_name(): void
     {
         $this->seedRole(self::ROLE_A, 'Front Desk', '', []);
 
-        $duplicate = Role::define(
-            RoleId::fromString(self::ROLE_B),
-            RoleName::of('Front Desk'),
-            RoleDescription::empty(),
-            PrivilegeSet::none(),
-            Actor::system(),
-            $this->clock(),
-        );
-        $duplicate->releaseEvents();
+        $this->expectException(DuplicateRoleName::class);
+        $this->addRoleNamed(self::ROLE_B, 'Front Desk');
+    }
+
+    #[Test]
+    #[TestDox('add() throws DuplicateRoleName for a case variant of an existing name.')]
+    public function add_throws_on_case_variant_of_duplicate_name(): void
+    {
+        $this->seedRole(self::ROLE_A, 'Front Desk', '', []);
 
         $this->expectException(DuplicateRoleName::class);
-        $this->roles()->add($duplicate);
+        $this->addRoleNamed(self::ROLE_B, 'FRONT DESK');
+    }
+
+    #[Test]
+    #[TestDox('save() throws DuplicateRoleName when renaming into a case variant of another role\'s name.')]
+    public function save_throws_when_renamed_into_case_variant_of_another_name(): void
+    {
+        $this->seedRole(self::ROLE_A, 'Front Desk', '', []);
+        $this->seedRole(self::ROLE_B, 'Facility Manager', '', []);
+
+        $second = $this->roles()->byId(RoleId::fromString(self::ROLE_B));
+        $second->rename(RoleName::of('FRONT DESK'), Actor::system(), $this->clock());
+        $second->releaseEvents();
+
+        $this->expectException(DuplicateRoleName::class);
+        $this->roles()->save($second);
     }
 
     #[Test]
@@ -152,6 +187,20 @@ trait RolesContractCases
         $ids = array_map(static fn (Role $role): string => $role->id()->value, $active);
 
         self::assertSame([self::ROLE_A], $ids);
+    }
+
+    private function addRoleNamed(string $id, string $name): void
+    {
+        $role = Role::define(
+            RoleId::fromString($id),
+            RoleName::of($name),
+            RoleDescription::empty(),
+            PrivilegeSet::none(),
+            Actor::system(),
+            $this->clock(),
+        );
+        $role->releaseEvents();
+        $this->roles()->add($role);
     }
 
     /**

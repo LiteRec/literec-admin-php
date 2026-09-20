@@ -28,7 +28,9 @@ use App\Administration\Domain\Event\RoleRetired;
 use App\Administration\Domain\Event\RoleReworded;
 use App\Administration\Domain\Exception\DuplicateRoleName;
 use App\Administration\Domain\Exception\RoleAlreadyRetired;
+use App\Administration\Domain\Exception\UnknownPrivilege;
 use App\Administration\Domain\Privilege;
+use App\Administration\Domain\PrivilegeLookup;
 use App\Administration\Domain\Role;
 use App\Administration\Domain\ValueObject\Actor;
 use App\Administration\Domain\ValueObject\ActorKind;
@@ -36,6 +38,7 @@ use App\Administration\Domain\ValueObject\PrivilegeSet;
 use App\Administration\Domain\ValueObject\RoleDescription;
 use App\Administration\Domain\ValueObject\RoleId;
 use App\Administration\Domain\ValueObject\RoleName;
+use App\Administration\Infrastructure\Authorization\CataloguePrivilegeLookup;
 use App\Administration\Infrastructure\Persistence\InMemory\InMemoryRoles;
 use App\Tests\Support\Fake\RecordingMessageBus;
 use App\Tests\Support\Fake\SequenceAdministrationIdentityGenerator;
@@ -44,17 +47,20 @@ use PHPUnit\Framework\Attributes\Small;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\TestDox;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\NullLogger;
 use Symfony\Component\Clock\MockClock;
 
 #[Small]
 final class RoleHandlersTest extends TestCase
 {
     private const string ROLE_ID = '019571bf-5d51-7000-b500-00000000ba01';
+    private const string UNKNOWN_PRIVILEGE = 'NOT_A_PRIVILEGE';
 
     private InMemoryRoles $roles;
     private RecordingMessageBus $eventBus;
     private MockClock $clock;
     private ActorAssembler $actors;
+    private PrivilegeLookup $privilegeLookup;
 
     protected function setUp(): void
     {
@@ -62,6 +68,11 @@ final class RoleHandlersTest extends TestCase
         $this->eventBus = new RecordingMessageBus();
         $this->clock = new MockClock(new DateTimeImmutable('2026-05-27 12:00:00'));
         $this->actors = new ActorAssembler();
+        // The real catalogue-backed adapter, not a mock: it is stateless
+        // and side-effect-free (the NullLogger absorbs its one log call),
+        // so exercising it here is more honest than a fake that could
+        // drift from Privilege's actual case list.
+        $this->privilegeLookup = new CataloguePrivilegeLookup(new NullLogger());
     }
 
     #[Test]
@@ -73,6 +84,7 @@ final class RoleHandlersTest extends TestCase
             new SequenceAdministrationIdentityGenerator([RoleId::fromString(self::ROLE_ID)]),
             $this->clock,
             $this->actors,
+            $this->privilegeLookup,
             $this->eventBus,
         );
 
@@ -102,11 +114,29 @@ final class RoleHandlersTest extends TestCase
             new SequenceAdministrationIdentityGenerator([RoleId::fromString('019571bf-5d51-7000-b500-00000000ba02')]),
             $this->clock,
             $this->actors,
+            $this->privilegeLookup,
             $this->eventBus,
         );
 
         $this->expectException(DuplicateRoleName::class);
         $handler(new DefineRole('Front Desk', '', [], ActorKind::System->value));
+    }
+
+    #[Test]
+    #[TestDox('DefineRoleHandler throws UnknownPrivilege for an unrecognised privilege name.')]
+    public function define_role_handler_rejects_unknown_privilege(): void
+    {
+        $handler = new DefineRoleHandler(
+            $this->roles,
+            new SequenceAdministrationIdentityGenerator([RoleId::fromString(self::ROLE_ID)]),
+            $this->clock,
+            $this->actors,
+            $this->privilegeLookup,
+            $this->eventBus,
+        );
+
+        $this->expectException(UnknownPrivilege::class);
+        $handler(new DefineRole('Front Desk', '', [self::UNKNOWN_PRIVILEGE], ActorKind::System->value));
     }
 
     #[Test]
@@ -143,7 +173,13 @@ final class RoleHandlersTest extends TestCase
     public function grant_privilege_handler_grants_and_dispatches(): void
     {
         $this->seedRole(self::ROLE_ID, 'Front Desk');
-        $handler = new GrantPrivilegeToRoleHandler($this->roles, $this->clock, $this->actors, $this->eventBus);
+        $handler = new GrantPrivilegeToRoleHandler(
+            $this->roles,
+            $this->clock,
+            $this->actors,
+            $this->privilegeLookup,
+            $this->eventBus,
+        );
 
         $handler(new GrantPrivilegeToRole(self::ROLE_ID, Privilege::ViewUsers->value, ActorKind::System->value));
 
@@ -154,11 +190,34 @@ final class RoleHandlersTest extends TestCase
     }
 
     #[Test]
+    #[TestDox('GrantPrivilegeToRoleHandler throws UnknownPrivilege for an unrecognised privilege name.')]
+    public function grant_privilege_handler_rejects_unknown_privilege(): void
+    {
+        $this->seedRole(self::ROLE_ID, 'Front Desk');
+        $handler = new GrantPrivilegeToRoleHandler(
+            $this->roles,
+            $this->clock,
+            $this->actors,
+            $this->privilegeLookup,
+            $this->eventBus,
+        );
+
+        $this->expectException(UnknownPrivilege::class);
+        $handler(new GrantPrivilegeToRole(self::ROLE_ID, self::UNKNOWN_PRIVILEGE, ActorKind::System->value));
+    }
+
+    #[Test]
     #[TestDox('RevokePrivilegeFromRoleHandler revokes the privilege and dispatches RolePrivilegeRevoked.')]
     public function revoke_privilege_handler_revokes_and_dispatches(): void
     {
         $this->seedRole(self::ROLE_ID, 'Front Desk', PrivilegeSet::of(Privilege::ViewUsers));
-        $handler = new RevokePrivilegeFromRoleHandler($this->roles, $this->clock, $this->actors, $this->eventBus);
+        $handler = new RevokePrivilegeFromRoleHandler(
+            $this->roles,
+            $this->clock,
+            $this->actors,
+            $this->privilegeLookup,
+            $this->eventBus,
+        );
 
         $handler(new RevokePrivilegeFromRole(self::ROLE_ID, Privilege::ViewUsers->value, ActorKind::System->value));
 
@@ -169,11 +228,34 @@ final class RoleHandlersTest extends TestCase
     }
 
     #[Test]
+    #[TestDox('RevokePrivilegeFromRoleHandler throws UnknownPrivilege for an unrecognised privilege name.')]
+    public function revoke_privilege_handler_rejects_unknown_privilege(): void
+    {
+        $this->seedRole(self::ROLE_ID, 'Front Desk', PrivilegeSet::of(Privilege::ViewUsers));
+        $handler = new RevokePrivilegeFromRoleHandler(
+            $this->roles,
+            $this->clock,
+            $this->actors,
+            $this->privilegeLookup,
+            $this->eventBus,
+        );
+
+        $this->expectException(UnknownPrivilege::class);
+        $handler(new RevokePrivilegeFromRole(self::ROLE_ID, self::UNKNOWN_PRIVILEGE, ActorKind::System->value));
+    }
+
+    #[Test]
     #[TestDox('ReplaceRolePrivilegesHandler replaces the whole bundle and dispatches RolePrivilegesReplaced.')]
     public function replace_privileges_handler_replaces_and_dispatches(): void
     {
         $this->seedRole(self::ROLE_ID, 'Front Desk', PrivilegeSet::of(Privilege::ViewUsers));
-        $handler = new ReplaceRolePrivilegesHandler($this->roles, $this->clock, $this->actors, $this->eventBus);
+        $handler = new ReplaceRolePrivilegesHandler(
+            $this->roles,
+            $this->clock,
+            $this->actors,
+            $this->privilegeLookup,
+            $this->eventBus,
+        );
 
         $handler(new ReplaceRolePrivileges(
             self::ROLE_ID,
@@ -186,6 +268,23 @@ final class RoleHandlersTest extends TestCase
         self::assertTrue($role->privileges()->contains(Privilege::AddUsers));
         self::assertTrue($role->privileges()->contains(Privilege::EditUsers));
         self::assertInstanceOf(RolePrivilegesReplaced::class, $this->eventBus->dispatchedMessages()[0]);
+    }
+
+    #[Test]
+    #[TestDox('ReplaceRolePrivilegesHandler throws UnknownPrivilege for an unrecognised privilege name.')]
+    public function replace_privileges_handler_rejects_unknown_privilege(): void
+    {
+        $this->seedRole(self::ROLE_ID, 'Front Desk', PrivilegeSet::of(Privilege::ViewUsers));
+        $handler = new ReplaceRolePrivilegesHandler(
+            $this->roles,
+            $this->clock,
+            $this->actors,
+            $this->privilegeLookup,
+            $this->eventBus,
+        );
+
+        $this->expectException(UnknownPrivilege::class);
+        $handler(new ReplaceRolePrivileges(self::ROLE_ID, [self::UNKNOWN_PRIVILEGE], ActorKind::System->value));
     }
 
     #[Test]
