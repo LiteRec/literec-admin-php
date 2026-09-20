@@ -1,4 +1,17 @@
 security:
+    # LRA-270: explicit rather than relying on the framework default, so
+    # the strategy this codebase's authorization model depends on is
+    # visible and pinned. `affirmative` grants as soon as one voter
+    # (here, PrivilegeVoter) grants and no voter denies first;
+    # `allow_if_all_abstain: false` fails closed when every voter
+    # abstains (an unrecognised attribute, or no voter registered for
+    # it) rather than the framework default of allowing. This is the
+    # authorization gate; access_control below is the authentication
+    # gate and keeps its existing coarse shape.
+    access_decision_manager:
+        strategy: affirmative
+        allow_if_all_abstain: false
+
     # https://symfony.com/doc/current/security.html#registering-the-user-hashing-passwords
     password_hashers:
         # The custom SecurityUser adapter implements PasswordAuthenticatedUserInterface,
