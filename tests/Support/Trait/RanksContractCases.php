@@ -87,6 +87,17 @@ trait RanksContractCases
     }
 
     #[Test]
+    #[TestDox('byName() is case-insensitive and returns the rank in its stored casing.')]
+    public function by_name_is_case_insensitive(): void
+    {
+        $this->seedRank(self::RANK_A, self::RANK_NAME_DIRECTOR, 20);
+
+        $loaded = $this->ranks()->byName(RankName::of(strtolower(self::RANK_NAME_DIRECTOR)));
+        self::assertSame(self::RANK_A, $loaded->id()->value);
+        self::assertSame(self::RANK_NAME_DIRECTOR, $loaded->name()->value);
+    }
+
+    #[Test]
     #[TestDox('existsWithName() reports whether a rank with that name has been added.')]
     public function exists_with_name_reports_membership(): void
     {
@@ -94,6 +105,15 @@ trait RanksContractCases
 
         self::assertTrue($this->ranks()->existsWithName(RankName::of(self::RANK_NAME_DIRECTOR)));
         self::assertFalse($this->ranks()->existsWithName(RankName::of(self::RANK_NAME_MANAGER)));
+    }
+
+    #[Test]
+    #[TestDox('existsWithName() is case-insensitive, matching RankName::equals().')]
+    public function exists_with_name_is_case_insensitive(): void
+    {
+        $this->seedRank(self::RANK_A, self::RANK_NAME_DIRECTOR, 20);
+
+        self::assertTrue($this->ranks()->existsWithName(RankName::of(strtoupper(self::RANK_NAME_DIRECTOR))));
     }
 
     #[Test]
@@ -107,6 +127,16 @@ trait RanksContractCases
     }
 
     #[Test]
+    #[TestDox('add() throws DuplicateRankName for a case variant of an existing name.')]
+    public function add_throws_on_case_variant_of_duplicate_name(): void
+    {
+        $this->seedRank(self::RANK_A, self::RANK_NAME_DIRECTOR, 20);
+
+        $this->expectException(DuplicateRankName::class);
+        $this->addRankNamed(self::RANK_B, strtoupper(self::RANK_NAME_DIRECTOR), 30);
+    }
+
+    #[Test]
     #[TestDox('save() throws DuplicateRankName when renaming into another rank\'s name.')]
     public function save_throws_when_renamed_into_another_name(): void
     {
@@ -115,6 +145,20 @@ trait RanksContractCases
 
         $second = $this->ranks()->byId(RankId::fromString(self::RANK_B));
         $second->rename(RankName::of(self::RANK_NAME_DIRECTOR), Actor::system(), $this->clock());
+
+        $this->expectException(DuplicateRankName::class);
+        $this->ranks()->save($second);
+    }
+
+    #[Test]
+    #[TestDox('save() throws DuplicateRankName when renaming into a case variant of another rank\'s name.')]
+    public function save_throws_when_renamed_into_case_variant_of_another_name(): void
+    {
+        $this->seedRank(self::RANK_A, self::RANK_NAME_DIRECTOR, 20);
+        $this->seedRank(self::RANK_B, self::RANK_NAME_MANAGER, 30);
+
+        $second = $this->ranks()->byId(RankId::fromString(self::RANK_B));
+        $second->rename(RankName::of(strtoupper(self::RANK_NAME_DIRECTOR)), Actor::system(), $this->clock());
 
         $this->expectException(DuplicateRankName::class);
         $this->ranks()->save($second);

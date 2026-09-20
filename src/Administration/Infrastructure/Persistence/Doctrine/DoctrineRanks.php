@@ -100,13 +100,18 @@ final class DoctrineRanks implements Ranks
         return $rank;
     }
 
+    /**
+     * Case-insensitive lookup via LOWER(r.name), matching {@see RankName::equals()}'s
+     * case-insensitive semantics and the functional unique index the
+     * migration creates on LOWER(name).
+     */
     public function byName(RankName $name): Rank
     {
         $rank = $this->em->createQueryBuilder()
             ->select('r')
             ->from(Rank::class, 'r')
-            ->where('r.name = :name')
-            ->setParameter('name', $name->value)
+            ->where('LOWER(r.name) = :name')
+            ->setParameter('name', mb_strtolower($name->value, 'UTF-8'))
             ->setMaxResults(1)
             ->getQuery()
             ->getOneOrNullResult();
@@ -120,13 +125,16 @@ final class DoctrineRanks implements Ranks
         return $rank;
     }
 
+    /**
+     * Case-insensitive lookup via LOWER(r.name) — see {@see self::byName()}.
+     */
     public function existsWithName(RankName $name): bool
     {
         $result = $this->em->createQueryBuilder()
             ->select('1')
             ->from(Rank::class, 'r')
-            ->where('r.name = :name')
-            ->setParameter('name', $name->value)
+            ->where('LOWER(r.name) = :name')
+            ->setParameter('name', mb_strtolower($name->value, 'UTF-8'))
             ->setMaxResults(1)
             ->getQuery()
             ->getOneOrNullResult();

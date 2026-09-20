@@ -66,12 +66,12 @@ final class RankNameTest extends TestCase
     }
 
     #[Test]
-    #[TestDox('equals() compares case-sensitively, matching the plain unique index on the name column.')]
-    public function equals_compares_case_sensitively(): void
+    #[TestDox('equals() compares case-insensitively, matching the functional LOWER(name) unique index.')]
+    public function equals_compares_case_insensitively(): void
     {
         $a = RankName::of('Director');
-        $b = RankName::of('Director');
-        $c = RankName::of('director');
+        $b = RankName::of('director');
+        $c = RankName::of('Manager');
 
         self::assertTrue($a->equals($b));
         self::assertFalse($a->equals($c));
