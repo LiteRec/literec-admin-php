@@ -11,6 +11,7 @@ use App\Administration\Domain\ValueObject\Actor;
 use App\Administration\Domain\ValueObject\AdministratorId;
 use App\Administration\Domain\ValueObject\AdministratorTenureId;
 use App\Administration\Domain\ValueObject\RankId;
+use App\Administration\Domain\ValueObject\RoleId;
 use App\Administration\Domain\ValueObject\SignInAccountId;
 use DateTimeImmutable;
 use Doctrine\DBAL\Connection;
@@ -38,6 +39,7 @@ final class DoctrineAdministratorsOptimisticLockTest extends KernelTestCase
     private const string RANK_ID = '019571bf-5d51-7000-b500-00000000b003';
     private const string OTHER_RANK_ID = '019571bf-5d51-7000-b500-00000000b004';
     private const string TENURE_ID = '019571bf-5d51-7000-b500-00000000b005';
+    private const string ROLE_ID = '019571bf-5d51-7000-b500-00000000b006';
 
     #[Test]
     #[TestDox('save() throws ConcurrentAdministratorModification when the row was modified since it was loaded.')]
@@ -80,6 +82,61 @@ final class DoctrineAdministratorsOptimisticLockTest extends KernelTestCase
 
         $administrator->changeRankTo(
             RankId::fromString(self::OTHER_RANK_ID),
+            Actor::system(),
+            new MockClock(new DateTimeImmutable('2026-01-01 12:00:00')),
+        );
+        $administrators->save($administrator);
+
+        self::assertSame($versionBeforeSave + 1, $administrator->version());
+    }
+
+    /**
+     * Pins the fix for the review finding that assignRole()/unassignRole()
+     * — which change only the roleAssignments collection, no mapped
+     * scalar on the root — left the optimistic lock unable to fire:
+     * without Administrator::$updatedAt being touched, Doctrine computes
+     * an empty changeset for the root and never emits the version-checked
+     * UPDATE at all.
+     */
+    #[Test]
+    #[TestDox('save() throws ConcurrentAdministratorModification for a raced role-only change (assignRole()).')]
+    public function save_throws_when_a_role_only_change_races_concurrently(): void
+    {
+        self::bootKernel();
+        $administrators = $this->seedAdministrator();
+
+        $administrator = $administrators->byId(AdministratorId::fromString(self::ADMINISTRATOR_ID));
+
+        $connection = static::getContainer()->get(Connection::class);
+        self::assertInstanceOf(Connection::class, $connection);
+        $connection->executeStatement(
+            'UPDATE administration_administrators SET version = version + 1 WHERE id = ?',
+            [$administrator->id()->value],
+        );
+
+        $administrator->assignRole(
+            RoleId::fromString(self::ROLE_ID),
+            Actor::system(),
+            new MockClock(new DateTimeImmutable('2026-01-01 12:00:00')),
+        );
+
+        $this->expectException(ConcurrentAdministratorModification::class);
+
+        $administrators->save($administrator);
+    }
+
+    #[Test]
+    #[TestDox('save() increments version by one on an uncontested role-only change (assignRole()).')]
+    public function save_increments_version_on_an_uncontested_role_only_change(): void
+    {
+        self::bootKernel();
+        $administrators = $this->seedAdministrator();
+
+        $administrator = $administrators->byId(AdministratorId::fromString(self::ADMINISTRATOR_ID));
+        $versionBeforeSave = $administrator->version();
+
+        $administrator->assignRole(
+            RoleId::fromString(self::ROLE_ID),
             Actor::system(),
             new MockClock(new DateTimeImmutable('2026-01-01 12:00:00')),
         );

@@ -63,6 +63,18 @@ final class Administrator
     private RankId $rankId;
     private AdministratorStanding $standing;
 
+    /**
+     * Touched by every mutator, including the two
+     * (assignRole()/unassignRole()) that otherwise change only the
+     * roleAssignments collection. Doctrine only emits an UPDATE — and
+     * therefore only checks and increments $version — for a root whose
+     * own mapped fields changed; a collection-only mutation leaves the
+     * root's changeset empty, so the optimistic lock would silently
+     * never fire for a role-only race without this field. Same role as
+     * {@see Rank::$updatedAt}.
+     */
+    private DateTimeImmutable $updatedAt;
+
     /** @var Collection<int, AdministratorTenure> */
     private Collection $tenures;
 
@@ -108,6 +120,7 @@ final class Administrator
         $administrator->standing = AdministratorStanding::Active;
 
         $grantedAt = $clock->now();
+        $administrator->updatedAt = $grantedAt;
         $administrator->tenures->add(new AdministratorTenure($tenureId, $administrator, $actor, $grantedAt));
         $administrator->recordThat(new AdministratorGranted($id, $signInAccountId, $rankId, $actor, $grantedAt));
 
@@ -174,6 +187,11 @@ final class Administrator
         return $this->version;
     }
 
+    public function updatedAt(): DateTimeImmutable
+    {
+        return $this->updatedAt;
+    }
+
     /**
      * Closes the current open tenure. A second call without an
      * intervening {@see self::regrant()} throws — an operator retrying a
@@ -189,6 +207,7 @@ final class Administrator
         $now = $clock->now();
         $this->currentTenure()->close($reason, $actor, $now);
         $this->standing = AdministratorStanding::Revoked;
+        $this->updatedAt = $now;
 
         $this->recordThat(new AdministratorRevoked($this->id, $reason, $actor, $now));
     }
@@ -199,6 +218,15 @@ final class Administrator
      * never overwritten, so "when did they leave and come back" stays
      * answerable from history. See {@see self::grant()} on why $tenureId
      * is supplied rather than generated internally.
+     *
+     * Callers must {@see Administrators::save()} the {@see self::revoke()}
+     * that closed the previous tenure before calling this method and
+     * saving again — never revoke() and regrant() the same instance in
+     * one save(). Doctrine's unit of work executes every pending INSERT
+     * before any UPDATE within a single flush, so the new tenure this
+     * method opens would be inserted while the old one is still open in
+     * the database, tripping the database's "at most one open tenure"
+     * partial unique index.
      *
      * @throws AdministratorAlreadyActive when this administrator is
      *         already active.
@@ -212,6 +240,7 @@ final class Administrator
         $grantedAt = $clock->now();
         $this->tenures->add(new AdministratorTenure($tenureId, $this, $actor, $grantedAt));
         $this->standing = AdministratorStanding::Active;
+        $this->updatedAt = $grantedAt;
 
         $this->recordThat(new AdministratorRegranted($this->id, $actor, $grantedAt));
     }
@@ -228,7 +257,8 @@ final class Administrator
 
         $previousRankId = $this->rankId;
         $this->rankId = $rankId;
-        $this->recordThat(new AdministratorRankChanged($this->id, $previousRankId, $rankId, $actor, $clock->now()));
+        $this->updatedAt = $clock->now();
+        $this->recordThat(new AdministratorRankChanged($this->id, $previousRankId, $rankId, $actor, $this->updatedAt));
     }
 
     /**
@@ -243,6 +273,7 @@ final class Administrator
 
         $assignedAt = $clock->now();
         $this->roleAssignments->add(new AdministratorRoleAssignment($this, $roleId, $assignedAt));
+        $this->updatedAt = $assignedAt;
         $this->recordThat(new RoleAssignedToAdministrator($this->id, $roleId, $actor, $assignedAt));
     }
 
@@ -259,7 +290,8 @@ final class Administrator
         }
 
         $this->roleAssignments->removeElement($assignment);
-        $this->recordThat(new RoleUnassignedFromAdministrator($this->id, $roleId, $actor, $clock->now()));
+        $this->updatedAt = $clock->now();
+        $this->recordThat(new RoleUnassignedFromAdministrator($this->id, $roleId, $actor, $this->updatedAt));
     }
 
     /**

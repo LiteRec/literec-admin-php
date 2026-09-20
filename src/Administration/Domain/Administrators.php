@@ -24,6 +24,8 @@ interface Administrators
      *         when the sign-in account already has an administrator
      *         record (caught via the unique constraint on race
      *         conditions).
+     * @throws \App\Administration\Domain\Exception\AdministratorAlreadyExists
+     *         when an administrator with this id already exists.
      */
     public function add(Administrator $administrator): void;
 

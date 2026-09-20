@@ -78,6 +78,7 @@ final class Version20260920100000 extends AbstractMigration
                 sign_in_account_id  CHAR(36)    NOT NULL,
                 rank_id             CHAR(36)    NOT NULL,
                 standing            VARCHAR(20) NOT NULL,
+                updated_at          TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL,
                 version             INT         NOT NULL DEFAULT 0
             )
             SQL);
@@ -139,6 +140,18 @@ final class Version20260920100000 extends AbstractMigration
 
         $this->addSql(
             'CREATE INDEX IDX_administration_tenures_administrator ON administration_tenures (administrator_id)',
+        );
+
+        // Enforces "at most one open tenure per administrator" at the
+        // database level — the invariant standing() and currentTenure()
+        // both rest on — the same way the two CHECK constraints above
+        // enforce the actor pairing rather than leaving it to
+        // application code alone. Doctrine's XML mapping cannot express
+        // a partial unique index, so this stays migration-only; a
+        // future schema diff must not drop it.
+        $this->addSql(
+            'CREATE UNIQUE INDEX UNIQ_administration_tenures_open '
+            . 'ON administration_tenures (administrator_id) WHERE revoked_at IS NULL',
         );
 
         $this->addSql(<<<'SQL'
