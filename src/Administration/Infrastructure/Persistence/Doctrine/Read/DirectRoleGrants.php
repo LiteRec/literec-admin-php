@@ -8,9 +8,7 @@ use App\Administration\Domain\PrivilegeGrantSource;
 use App\Administration\Domain\PrivilegeLookup;
 use App\Administration\Domain\ValueObject\AdministratorId;
 use App\Administration\Domain\ValueObject\GrantOrigin;
-use App\Administration\Domain\ValueObject\PrivilegeGrant;
 use App\Administration\Domain\ValueObject\PrivilegeGrants;
-use App\Shared\Infrastructure\Doctrine\Read\RowFieldExtraction;
 use Doctrine\DBAL\Connection;
 
 /**
@@ -27,8 +25,7 @@ use Doctrine\DBAL\Connection;
  */
 final class DirectRoleGrants implements PrivilegeGrantSource
 {
-    use RowFieldExtraction;
-    use DecodesStoredPrivilegeNames;
+    use MapsRoleRowsToPrivilegeGrants;
 
     public function __construct(
         private readonly Connection $connection,
@@ -46,16 +43,6 @@ final class DirectRoleGrants implements PrivilegeGrantSource
             ['administratorId' => $id->value],
         );
 
-        $grants = [];
-        foreach ($rows as $row) {
-            $roleId = $this->rowString($row, 'role_id');
-            $roleName = $this->rowString($row, 'role_name');
-
-            foreach ($this->decodeGrantedPrivileges($row, 'privileges', $this->privilegeLookup) as $privilege) {
-                $grants[] = new PrivilegeGrant($privilege, GrantOrigin::DirectRole, $roleId, $roleName);
-            }
-        }
-
-        return PrivilegeGrants::of(...$grants);
+        return $this->grantsFromRoleRows($rows, GrantOrigin::DirectRole, $this->privilegeLookup);
     }
 }

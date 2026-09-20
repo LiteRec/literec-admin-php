@@ -27,6 +27,7 @@ use App\Administration\Domain\ValueObject\SeniorityLevel;
 use App\Administration\Domain\ValueObject\SignInAccountId;
 use App\Administration\Infrastructure\Persistence\Doctrine\Read\RankRoleGrants;
 use App\Tests\Support\Trait\PrivilegeGrantSourceContractCases;
+use App\Tests\Support\Trait\RetiredRoleGrantsNothingCase;
 use DateTimeImmutable;
 use PHPUnit\Framework\Attributes\Medium;
 use PHPUnit\Framework\Attributes\Test;
@@ -45,6 +46,7 @@ use Symfony\Component\Clock\MockClock;
 final class RankRoleGrantsTest extends KernelTestCase
 {
     use PrivilegeGrantSourceContractCases;
+    use RetiredRoleGrantsNothingCase;
 
     private const string ADMINISTRATOR_A = '019571bf-5d51-7000-b500-00000000ae01';
     private const string SIGN_IN_ACCOUNT_A = '019571bf-5d51-7000-b500-00000000ae02';
@@ -115,21 +117,14 @@ final class RankRoleGrantsTest extends KernelTestCase
         return GrantOrigin::RankRole;
     }
 
-    #[Test]
-    #[TestDox('grantsFor() stops reporting a privilege once the granting role is retired.')]
-    public function retired_role_grants_nothing(): void
+    protected function roles(): Roles
     {
-        $this->grantPrivilege(Privilege::ViewUsers, self::SOURCE_ID_1, 'Front Desk');
-        self::assertTrue(
-            $this->source()->grantsFor($this->administratorId())->privileges()->contains(Privilege::ViewUsers),
-        );
+        return $this->roles;
+    }
 
-        $role = $this->roles->byId(RoleId::fromString(self::SOURCE_ID_1));
-        $role->retire(Actor::system(), $this->clock);
-        $role->releaseEvents();
-        $this->roles->save($role);
-
-        self::assertSame(0, $this->source()->grantsFor($this->administratorId())->count());
+    protected function clock(): MockClock
+    {
+        return $this->clock;
     }
 
     #[Test]
