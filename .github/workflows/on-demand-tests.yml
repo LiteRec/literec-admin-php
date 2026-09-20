@@ -145,10 +145,17 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Install Node dependencies
-        run: npm ci
+        # --ignore-scripts: this project defines no install-time lifecycle
+        # scripts, and skipping them closes off arbitrary code execution from
+        # a compromised dependency's postinstall/prepare hook (Sonar S6505).
+        run: npm ci --ignore-scripts
 
       - name: Install Playwright browser
-        run: npx playwright install --with-deps chromium
+        # Use the locally installed, package-lock-pinned Playwright binary via
+        # the existing `e2e:install` script instead of `npx playwright ...`,
+        # which resolves a version on demand and can run arbitrary lifecycle
+        # scripts (Sonar S6505/S8543).
+        run: npm run e2e:install
 
       - name: Run Playwright E2E (headless)
         run: npm run test:e2e
