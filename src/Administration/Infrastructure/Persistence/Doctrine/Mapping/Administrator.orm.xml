@@ -49,6 +49,19 @@
         </field>
 
         <one-to-many field="tenures" target-entity="App\Administration\Domain\AdministratorTenure" mapped-by="administrator" orphan-removal="true" fetch="EAGER">
+            <!--
+                Without an explicit order, Doctrine hydrates this
+                collection in whatever order Postgres happens to return
+                rows, which is not guaranteed to be insertion order.
+                tenures() callers (including this codebase's own
+                contract tests) read history chronologically, so order
+                by grantedAt with id as a stable tie-breaker for tenures
+                granted in the same instant.
+            -->
+            <order-by>
+                <order-by-field name="grantedAt" direction="ASC"/>
+                <order-by-field name="id" direction="ASC"/>
+            </order-by>
             <cascade>
                 <cascade-persist/>
                 <cascade-remove/>

@@ -241,8 +241,9 @@ final class Administrator
             return;
         }
 
-        $this->roleAssignments->add(new AdministratorRoleAssignment($this, $roleId, $clock->now()));
-        $this->recordThat(new RoleAssignedToAdministrator($this->id, $roleId, $actor, $clock->now()));
+        $assignedAt = $clock->now();
+        $this->roleAssignments->add(new AdministratorRoleAssignment($this, $roleId, $assignedAt));
+        $this->recordThat(new RoleAssignedToAdministrator($this->id, $roleId, $actor, $assignedAt));
     }
 
     /**

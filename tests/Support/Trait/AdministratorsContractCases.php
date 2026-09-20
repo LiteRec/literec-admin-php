@@ -63,6 +63,10 @@ trait AdministratorsContractCases
         self::assertSame(AdministratorStanding::Active, $loaded->standing());
         self::assertCount(1, $loaded->tenures());
         self::assertTrue($loaded->tenures()[0]->isOpen());
+        // Pins the Doctrine postLoad normalization in AdministratorTenure:
+        // an open tenure's revokedBy must reload as a genuine null, not
+        // an Actor with every field null (see that method's docblock).
+        self::assertNull($loaded->tenures()[0]->revokedBy());
     }
 
     #[Test]
