@@ -16,14 +16,20 @@
     -->
     <entity name="App\Administration\Domain\Role" table="administration_roles">
 
-        <unique-constraints>
-            <unique-constraint name="UNIQ_administration_roles_name" columns="name"/>
-        </unique-constraints>
-
         <!--
+            No <unique-constraints> block here: the uniqueness invariant
+            is a functional UNIQUE INDEX on LOWER(name), created by raw
+            SQL in the migration, not a plain column constraint —
+            RoleName::equals() is case-insensitive, so the write-time
+            predicate must be too. Declaring a byte-exact
+            <unique-constraint name="..." columns="name"/> here would
+            both under-enforce the invariant and make
+            doctrine:schema:validate diff against the functional index
+            the migration actually creates.
+
             The GIN index on privileges (so "which roles grant this
             privilege" is an index lookup rather than a scan) is created
-            by raw SQL in the migration, not declared here: Doctrine's
+            by raw SQL in the migration for the same reason: Doctrine's
             schema tooling has no first-class GIN index type, the same
             reason the Inventory vendors pg_trgm index
             (Version20260525175800) is raw SQL rather than an

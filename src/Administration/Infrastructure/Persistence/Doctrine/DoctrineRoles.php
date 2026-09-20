@@ -62,9 +62,21 @@ final class DoctrineRoles implements Roles
         return $role;
     }
 
+    /**
+     * Case-insensitive lookup via LOWER(r.name), matching {@see RoleName::equals()}'s
+     * case-insensitive semantics and the functional unique index the
+     * migration creates on LOWER(name).
+     */
     public function byName(RoleName $name): Role
     {
-        $role = $this->em->getRepository(Role::class)->findOneBy(['name' => $name]);
+        $role = $this->em->createQueryBuilder()
+            ->select('r')
+            ->from(Role::class, 'r')
+            ->where('LOWER(r.name) = :name')
+            ->setParameter('name', mb_strtolower($name->value, 'UTF-8'))
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
 
         if (! $role instanceof Role) {
             throw RoleNotFound::withName($name);
@@ -73,13 +85,16 @@ final class DoctrineRoles implements Roles
         return $role;
     }
 
+    /**
+     * Case-insensitive lookup via LOWER(r.name) — see {@see self::byName()}.
+     */
     public function existsWithName(RoleName $name): bool
     {
         $qb = $this->em->createQueryBuilder()
             ->select('1')
             ->from(Role::class, 'r')
-            ->where('r.name = :name')
-            ->setParameter('name', $name)
+            ->where('LOWER(r.name) = :name')
+            ->setParameter('name', mb_strtolower($name->value, 'UTF-8'))
             ->setMaxResults(1);
 
         return $qb->getQuery()->getOneOrNullResult() !== null;

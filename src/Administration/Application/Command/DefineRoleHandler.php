@@ -6,8 +6,10 @@ namespace App\Administration\Application\Command;
 
 use App\Administration\Application\ActorAssembler;
 use App\Administration\Domain\Exception\DuplicateRoleName;
+use App\Administration\Domain\Exception\UnknownPrivilege;
 use App\Administration\Domain\IdentityGenerator;
 use App\Administration\Domain\Privilege;
+use App\Administration\Domain\PrivilegeLookup;
 use App\Administration\Domain\Role;
 use App\Administration\Domain\Roles;
 use App\Administration\Domain\ValueObject\PrivilegeSet;
@@ -27,10 +29,16 @@ final class DefineRoleHandler
         private readonly IdentityGenerator $ids,
         private readonly ClockInterface $clock,
         private readonly ActorAssembler $actors,
+        private readonly PrivilegeLookup $privilegeLookup,
         private readonly MessageBusInterface $eventBus,
     ) {
     }
 
+    /**
+     * @throws DuplicateRoleName when a role already holds this name.
+     * @throws UnknownPrivilege when a requested privilege name does not
+     *         match a catalogue case.
+     */
     public function __invoke(DefineRole $command): RoleId
     {
         $name = RoleName::of($command->name);
@@ -41,7 +49,7 @@ final class DefineRoleHandler
 
         $description = RoleDescription::of($command->description);
         $privileges = PrivilegeSet::of(...array_map(
-            static fn (string $privilegeName): Privilege => Privilege::from($privilegeName),
+            fn (string $privilegeName): Privilege => $this->privilegeLookup->privilegeNamed($privilegeName),
             $command->privilegeNames,
         ));
         $actor = $this->actors->fromPrimitives($command->actorKind, $command->actorId);

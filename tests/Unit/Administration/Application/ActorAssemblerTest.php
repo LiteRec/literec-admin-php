@@ -79,4 +79,12 @@ final class ActorAssemblerTest extends TestCase
         $this->expectException(InvalidActorState::class);
         $this->assembler->fromPrimitives(ActorKind::System->value, self::ADMINISTRATOR_ID);
     }
+
+    #[Test]
+    #[TestDox('Rejects a kind string that does not name an ActorKind case.')]
+    public function rejects_unknown_kind(): void
+    {
+        $this->expectException(InvalidActorState::class);
+        $this->assembler->fromPrimitives('NOT_A_KIND', null);
+    }
 }

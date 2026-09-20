@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace App\Administration\Application\Command;
 
 use App\Administration\Application\ActorAssembler;
+use App\Administration\Domain\Exception\RoleNotFound;
+use App\Administration\Domain\Exception\UnknownPrivilege;
 use App\Administration\Domain\Privilege;
+use App\Administration\Domain\PrivilegeLookup;
 use App\Administration\Domain\Roles;
 use App\Administration\Domain\ValueObject\PrivilegeSet;
 use App\Administration\Domain\ValueObject\RoleId;
@@ -21,16 +24,22 @@ final class ReplaceRolePrivilegesHandler
         private readonly Roles $roles,
         private readonly ClockInterface $clock,
         private readonly ActorAssembler $actors,
+        private readonly PrivilegeLookup $privilegeLookup,
         private readonly MessageBusInterface $eventBus,
     ) {
     }
 
+    /**
+     * @throws RoleNotFound when no role has this id.
+     * @throws UnknownPrivilege when a requested privilege name does not
+     *         match a catalogue case.
+     */
     public function __invoke(ReplaceRolePrivileges $command): void
     {
         $role = $this->roles->byId(RoleId::fromString($command->roleId));
         $actor = $this->actors->fromPrimitives($command->actorKind, $command->actorId);
         $privileges = PrivilegeSet::of(...array_map(
-            static fn (string $privilegeName): Privilege => Privilege::from($privilegeName),
+            fn (string $privilegeName): Privilege => $this->privilegeLookup->privilegeNamed($privilegeName),
             $command->privilegeNames,
         ));
 
